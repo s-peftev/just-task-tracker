@@ -1,0 +1,8 @@
+<Solution>
+  <Project Path="JustTaskTracker.API/JustTaskTracker.API.csproj" />
+  <Project Path="JustTaskTracker.Application/JustTaskTracker.Application.csproj" />
+  <Project Path="JustTaskTracker.Domain/JustTaskTracker.Domain.csproj" />
+  <Project Path="JustTaskTracker.Infrastructure/JustTaskTracker.Infrastructure.csproj" />
+  <Project Path="JustTaskTracker.Persistence/JustTaskTracker.Persistence.csproj" />
+  <Project Path="JustTaskTracker.Database/JustTaskTracker.Database.csproj" />
+</Solution>

@@ -1,14 +1,14 @@
-﻿using JustTaskTracker.Application.Common.Interfaces;
-using JustTaskTracker.Infrastructure.Auth;
+﻿using JustTaskTracker.Infrastructure.DI.Modules;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace JustTaskTracker.Infrastructure.DI;
 
 public static class InfrastructureServiceCollectionExtensions
 {
-    public static IServiceCollection AddInfrastructure(this IServiceCollection services)
+    public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddScoped<ICurrentUserAccessor, CurrentUserAccessor>();
+        services.AddAuthenticationModule(configuration);
 
         return services;
     }

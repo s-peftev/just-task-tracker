@@ -1,8 +1,12 @@
 <Solution>
-  <Project Path="JustTaskTracker.API/JustTaskTracker.API.csproj" />
-  <Project Path="JustTaskTracker.Application/JustTaskTracker.Application.csproj" />
-  <Project Path="JustTaskTracker.Domain/JustTaskTracker.Domain.csproj" />
-  <Project Path="JustTaskTracker.Infrastructure/JustTaskTracker.Infrastructure.csproj" />
-  <Project Path="JustTaskTracker.Persistence/JustTaskTracker.Persistence.csproj" />
-  <Project Path="JustTaskTracker.Database/JustTaskTracker.Database.csproj" />
+  <Project Path="api/JustTaskTracker.API/JustTaskTracker.API.csproj" />
+  <Project Path="api/JustTaskTracker.Application/JustTaskTracker.Application.csproj" />
+  <Project Path="api/JustTaskTracker.Database/JustTaskTracker.Database.csproj" />
+  <Project Path="api/JustTaskTracker.Domain/JustTaskTracker.Domain.csproj" />
+  <Project Path="api/JustTaskTracker.Infrastructure/JustTaskTracker.Infrastructure.csproj" />
+  <Project Path="api/JustTaskTracker.Persistence/JustTaskTracker.Persistence.csproj" />
+  <Project Path="client/JustTaskTracker.WebUI.Domain/JustTaskTracker.WebUI.Domain.csproj" Id="9ae9cb26-f602-46cd-b7b0-8142482c109e" />
+  <Project Path="client/JustTaskTracker.WebUI.Services.Abstractions/JustTaskTracker.WebUI.Services.Abstractions.csproj" Id="dfce9bdf-9713-4f5a-95c6-926e73636083" />
+  <Project Path="client/JustTaskTracker.WebUI.Services/JustTaskTracker.WebUI.Services.csproj" Id="89074b67-cd70-4016-81b4-b0d8cb87dae6" />
+  <Project Path="client/JustTaskTracker.WebUI/JustTaskTracker.WebUI.csproj" Id="b4773794-77cd-4525-a79b-5ad1bbc134ce" />
 </Solution>

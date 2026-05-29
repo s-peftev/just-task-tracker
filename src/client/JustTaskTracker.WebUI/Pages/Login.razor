@@ -1,0 +1,24 @@
+﻿@page "/login"
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthState
+
+<MudContainer MaxWidth="MaxWidth.ExtraSmall" Class="mt-16">
+    <MudPaper Class="pa-8" Elevation="3">
+        <MudText Typo="Typo.h5" Class="mb-6">Just Task Tracker</MudText>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true"
+                   StartIcon="@Icons.Custom.Brands.Microsoft" OnClick="BeginLogin">
+            Sign in with Microsoft
+        </MudButton>
+    </MudPaper>
+</MudContainer>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthState.GetAuthenticationStateAsync();
+        if (state.User.Identity?.IsAuthenticated == true)
+            Navigation.NavigateTo("/");
+    }
+
+    private void BeginLogin() => Navigation.NavigateToLogin("authentication/login");
+}

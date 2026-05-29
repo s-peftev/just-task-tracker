@@ -1,5 +1,6 @@
 using JustTaskTracker.API.Filters;
 using JustTaskTracker.Application.DI;
+using JustTaskTracker.Infrastructure.Common.Constants;
 using JustTaskTracker.Infrastructure.DI;
 using JustTaskTracker.Persistence.DI;
 
@@ -21,6 +22,7 @@ var app = builder.Build();
 // Configure the HTTP request pipeline.
 app.UseExceptionHandler(_ => { });
 app.UseHttpsRedirection();
+app.UseCors(CorsPolicies.DefaultCorsPolicy);
 
 app.UseAuthentication();
 app.UseAuthorization();

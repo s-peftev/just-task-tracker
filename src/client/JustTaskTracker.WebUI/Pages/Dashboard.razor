@@ -1,0 +1,48 @@
+﻿@page "/"
+@attribute [Authorize]
+@inject IAuthApiService AuthApi
+
+<PageTitle>Dashboard</PageTitle>
+
+@if (_loading)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else if (_profile is not null)
+{
+    <MudText Typo="Typo.h4">Welcome, @(_profile.DisplayName ?? _profile.Email)</MudText>
+    <MudText>Email: @_profile.Email</MudText>
+    <MudStack Row="true" Class="mt-2">
+        @foreach (var role in _profile.Roles)
+        {
+            <MudChip T="string" Color="Color.Primary">@role</MudChip>
+        }
+    </MudStack>
+}
+else if (_error is not null)
+{
+    <MudAlert Severity="Severity.Error">@_error</MudAlert>
+}
+
+@code {
+    private UserWithRolesDto? _profile;
+    private bool _loading = true;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _profile = await AuthApi.GetCurrentUserAsync();
+            _profile ??= await AuthApi.LoginAsync();
+        }
+        catch (Exception ex)
+        {
+            _error = ex.Message;
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}

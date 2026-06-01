@@ -2,7 +2,7 @@ using JustTaskTracker.Domain.Auth.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace JustTaskTracker.Persistence.Configurations.Auth;
+namespace JustTaskTracker.Persistence.Auth.Configurations;
 
 public class UserConfiguration : IEntityTypeConfiguration<User>
 {
@@ -14,6 +14,6 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(u => u.DisplayName).HasMaxLength(256);
 
         builder.HasIndex(u => u.AzureAdObjectId).IsUnique();
-        builder.HasIndex(u => u.Email);
+        builder.HasIndex(u => u.Email).IsUnique();
     }
 }

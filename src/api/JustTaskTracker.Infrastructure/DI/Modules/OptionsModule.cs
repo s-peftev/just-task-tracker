@@ -1,0 +1,20 @@
+﻿using JustTaskTracker.Infrastructure.Common.Constants;
+using JustTaskTracker.Infrastructure.Common.Options;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace JustTaskTracker.Infrastructure.DI.Modules;
+
+internal static class OptionsModule
+{
+    internal static IServiceCollection AddAppOptionsModule(this IServiceCollection services, IConfiguration configuration)
+    {
+        var frontendOptions = configuration
+            .GetSection(ConfigSections.Frontend)
+            .Get<FrontendOptions>() ?? new FrontendOptions();
+
+        services.AddSingleton(frontendOptions);
+
+        return services;
+    }
+}

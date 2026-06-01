@@ -11,7 +11,7 @@ namespace JustTaskTracker.Infrastructure.DI.Modules;
 
 internal static class AuthenticationModule
 {
-    public static IServiceCollection AddAuthenticationModule(this IServiceCollection services, IConfiguration configuration)
+    internal static IServiceCollection AddAuthenticationModule(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddHttpContextAccessor();
 

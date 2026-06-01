@@ -6,9 +6,8 @@ namespace JustTaskTracker.API.Extensions;
 
 public static class ErrorExtensions
 {
-    public static IActionResult CreateErrorResponse(this Error error)
-    {
-        return error.Type switch
+    public static IActionResult CreateErrorResponse(this Error error) =>
+        error.Type switch
         {
             ErrorType.Validation => new BadRequestObjectResult(error),
             ErrorType.Conflict => new ConflictObjectResult(error),
@@ -20,5 +19,4 @@ public static class ErrorExtensions
             ErrorType.ServiceUnavailable => new ObjectResult(error) { StatusCode = 503 },
             _ => new ObjectResult(error) { StatusCode = 500 }
         };
-    }
 }

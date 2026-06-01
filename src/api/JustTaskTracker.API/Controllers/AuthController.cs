@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace JustTaskTracker.API.Controllers;
 
-[Route("api/[controller]")]
+[Route("auth")]
 [ApiController]
 public class AuthController(ISender sender) : ControllerBase
 {

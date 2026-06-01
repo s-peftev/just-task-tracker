@@ -14,12 +14,8 @@ public class Error(string code, ErrorType type, IEnumerable<string>? details = n
     public ErrorType Type { get; } = type;
     public IEnumerable<string>? Details { get; } = details;
 
-    public override bool Equals(object? obj)
-    {
-        if (obj is not Error other) return false;
-
-        return Code == other.Code;
-    }
+    public override bool Equals(object? obj) =>
+        obj is Error other && Code == other.Code;
 
     public override int GetHashCode() => Code.GetHashCode();
 

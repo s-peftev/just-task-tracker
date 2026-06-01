@@ -21,7 +21,7 @@ public class CurrentUserAccessor(IHttpContextAccessor httpContextAccessor) : ICu
         ?? GetClaim(User, ClaimTypes.Email)
         ?? throw new InvalidOperationException("Missing email claim.");
 
-    public string? DisplayName => 
+    public string? DisplayName =>
         GetClaim(User, EntraClaimTypes.DisplayName);
 
     public IReadOnlyList<string> AppRoles =>

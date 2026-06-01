@@ -1,4 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using JustTaskTracker.Persistence.Common;
+using JustTaskTracker.Persistence.Common.Constants;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -8,10 +10,10 @@ internal static class DatabaseModule
 {
     public static IServiceCollection AddDatabaseModule(this IServiceCollection services, IConfiguration configuration)
     {
-        var connectionString = configuration.GetConnectionString("JustTaskTracker")
+        var connectionString = configuration.GetConnectionString(ConnectionStrings.JustTaskTracker)
             ?? throw new InvalidOperationException("DB connection string is not configured.");
 
-        services.AddDbContext<AppDbContext>(options =>
+        services.AddDbContext<JustTaskTrackerDbContext>(options =>
             options.UseSqlServer(connectionString));
 
         return services;

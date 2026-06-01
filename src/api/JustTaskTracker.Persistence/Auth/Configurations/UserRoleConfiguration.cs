@@ -2,7 +2,7 @@ using JustTaskTracker.Domain.Auth.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace JustTaskTracker.Persistence.Configurations.Auth;
+namespace JustTaskTracker.Persistence.Auth.Configurations;
 
 public class UserRoleConfiguration : IEntityTypeConfiguration<UserRole>
 {

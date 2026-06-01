@@ -1,25 +1,34 @@
 ﻿using JustTaskTracker.Infrastructure.Common.Constants;
-using Microsoft.Extensions.Configuration;
+using JustTaskTracker.Infrastructure.Common.Options;
+using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace JustTaskTracker.Infrastructure.DI.Modules;
 
 internal static class CorsModule
 {
-    public static IServiceCollection AddCorsModule(this IServiceCollection services, IConfiguration configuration)
+    internal static IServiceCollection AddCorsModule(this IServiceCollection services)
     {
-        var allowedOrigins = configuration.GetSection("Frontend:Url").Value
-            ?? throw new InvalidOperationException("FrontEnd Url is not configured.");
+        services.AddCors();
 
-        services.AddCors(options =>
+        services.AddOptions<CorsOptions>().Configure<FrontendOptions>((corsOptions, frontendOptions) =>
         {
-            options.AddPolicy(CorsPolicies.DefaultCorsPolicy, policy =>
+            var origins = frontendOptions?.AllowedOrigins;
+
+            var policyBuilder = new CorsPolicyBuilder()
+                .AllowAnyHeader()
+                .AllowAnyMethod();
+
+            if (origins is not null && origins.Length > 0)
             {
-                policy.WithOrigins(allowedOrigins!)
-                      .AllowAnyHeader()
-                      .AllowAnyMethod()
-                      .AllowCredentials();
-            });
+                policyBuilder.WithOrigins(origins);
+            }
+            else
+            {
+                policyBuilder.AllowAnyOrigin();
+            }
+
+            corsOptions.AddPolicy(CorsPolicies.DefaultCorsPolicy, policyBuilder.Build());
         });
 
         return services;

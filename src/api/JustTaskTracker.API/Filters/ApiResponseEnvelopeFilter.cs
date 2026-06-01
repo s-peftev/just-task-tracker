@@ -18,15 +18,13 @@ public sealed class ApiResponseEnvelopeFilter : IAsyncResultFilter
         return next();
     }
 
-    private static IActionResult ApplyEnvelope(IActionResult result)
-    {
-        return result switch
+    private static IActionResult ApplyEnvelope(IActionResult result) =>
+        result switch
         {
             OkResult => new OkObjectResult(ApiResponse<object>.Ok()),
             ObjectResult objectResult => ApplyToObjectResult(objectResult),
             _ => result,
         };
-    }
 
     private static ObjectResult ApplyToObjectResult(ObjectResult objectResult)
     {
@@ -47,18 +45,11 @@ public sealed class ApiResponseEnvelopeFilter : IAsyncResultFilter
         return objectResult;
     }
 
-    private static bool ShouldSkipWrapping(object? value)
-    {
-        if (value is null)
-            return false;
+    private static bool ShouldSkipWrapping(object? value) =>
+        value is not null && IsApiResponseEnvelope(value);
 
-        return IsApiResponseEnvelope(value);
-    }
-
-    private static bool IsApiResponseEnvelope(object value)
-    {
-        var type = value.GetType();
-
-        return type.IsGenericType && type.GetGenericTypeDefinition() == typeof(ApiResponse<>);
-    }
+    private static bool IsApiResponseEnvelope(object value) =>
+        value.GetType() is { } type
+        && type.IsGenericType
+        && type.GetGenericTypeDefinition() == typeof(ApiResponse<>);
 }

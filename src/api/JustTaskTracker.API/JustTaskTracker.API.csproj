@@ -14,6 +14,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\aspire\JustTaskTracker.ServiceDefaults\JustTaskTracker.ServiceDefaults.csproj" />
     <ProjectReference Include="..\JustTaskTracker.Application\JustTaskTracker.Application.csproj" />
     <ProjectReference Include="..\JustTaskTracker.Infrastructure\JustTaskTracker.Infrastructure.csproj" />
     <ProjectReference Include="..\JustTaskTracker.Persistence\JustTaskTracker.Persistence.csproj" />

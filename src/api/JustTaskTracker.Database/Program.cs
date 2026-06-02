@@ -40,10 +40,6 @@ var pendingScripts = upgrader.GetScriptsToExecute();
 if (pendingScripts.Count == 0)
 {
     Console.WriteLine("Database is up to date. No scripts to execute.");
-
-    Console.WriteLine("Press any key to exit...");
-    Console.ReadKey(true);
-
     return 0;
 }
 
@@ -60,18 +56,11 @@ var result = upgrader.PerformUpgrade();
 if (!result.Successful)
 {
     Console.Error.WriteLine(result.Error);
-
-    Console.WriteLine("Press any key to exit...");
-    Console.ReadKey(true);
-
     return 1;
 }
 
 Console.WriteLine();
 Console.WriteLine("Migration completed successfully.");
-
-Console.WriteLine("Press any key to exit...");
-Console.ReadKey(true);
 
 return 0;
 

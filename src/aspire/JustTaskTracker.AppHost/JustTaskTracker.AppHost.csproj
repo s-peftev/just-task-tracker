@@ -1,0 +1,22 @@
+<Project Sdk="Aspire.AppHost.Sdk/13.1.0">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <UserSecretsId>3c271332-2934-4cc7-9721-86d2b810c652</UserSecretsId>
+	<IsAspireHost>true</IsAspireHost>
+  </PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Aspire.Hosting.AppHost" Version="*" />
+		<PackageReference Include="Aspire.Hosting.SqlServer" Version="*" />
+	</ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\..\api\JustTaskTracker.API\JustTaskTracker.API.csproj" />
+		<ProjectReference Include="..\..\api\JustTaskTracker.Database\JustTaskTracker.Database.csproj" />
+		<ProjectReference Include="..\..\client\JustTaskTracker.WebUI\JustTaskTracker.WebUI.csproj" />
+	</ItemGroup>
+
+</Project>

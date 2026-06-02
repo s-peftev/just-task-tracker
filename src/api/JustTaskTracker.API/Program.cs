@@ -9,6 +9,8 @@ using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.AddServiceDefaults();
+
 builder.Services.AddControllers(options =>
 {
     options.Filters.Add<ApiResponseEnvelopeFilter>();
@@ -24,6 +26,8 @@ SerilogConfigurator.Configure(builder.Configuration);
 builder.Host.UseSerilog();
 
 var app = builder.Build();
+
+app.MapDefaultEndpoints();
 
 app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseExceptionHandler(_ => { });

@@ -1,6 +1,8 @@
 ﻿using JustTaskTracker.Application.Common.Interfaces;
 using JustTaskTracker.Infrastructure.Auth;
 using JustTaskTracker.Infrastructure.Auth.Constants;
+using JustTaskTracker.Infrastructure.Common.Constants;
+using JustTaskTracker.Infrastructure.Common.Options;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -20,21 +22,22 @@ internal static class AuthenticationModule
         JwtSecurityTokenHandler.DefaultMapInboundClaims = false;
 
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-            .AddMicrosoftIdentityWebApi(configuration.GetSection("AzureAd"));
+            .AddMicrosoftIdentityWebApi(configuration.GetSection(ConfigSections.AzureAd));
 
-        services.Configure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options => 
-        {
-            var clientId = configuration["AzureAd:ClientId"];
+        services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
+            .Configure<AzureAdOptions>((options, azureAdOptions) =>
+            {
+                var clientId = azureAdOptions.ClientId;
 
-            options.TokenValidationParameters.ValidAudiences =
-            [
-                clientId,
-                $"api://{clientId}" 
-            ];
+                options.TokenValidationParameters.ValidAudiences =
+                [
+                    clientId,
+                    $"api://{clientId}"
+                ];
 
-            options.TokenValidationParameters.RoleClaimType = EntraClaimTypes.Roles;
-            options.TokenValidationParameters.NameClaimType = EntraClaimTypes.ObjectId;
-        });
+                options.TokenValidationParameters.RoleClaimType = EntraClaimTypes.Roles;
+                options.TokenValidationParameters.NameClaimType = EntraClaimTypes.ObjectId;
+            });
 
         return services;
     }

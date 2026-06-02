@@ -15,6 +15,12 @@ internal static class OptionsModule
 
         services.AddSingleton(frontendOptions);
 
+        var azureAdOptions = configuration
+            .GetSection(ConfigSections.AzureAd)
+            .Get<AzureAdOptions>() ?? new AzureAdOptions();
+
+        services.AddSingleton(azureAdOptions);
+
         return services;
     }
 }

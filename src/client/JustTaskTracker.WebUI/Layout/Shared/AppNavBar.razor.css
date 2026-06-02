@@ -1,0 +1,45 @@
+.jtt-nav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: 0;
+    z-index: 50;
+    background: transparent;
+    box-shadow: none;
+    pointer-events: none;
+}
+
+.jtt-nav__inner {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+    height: 4rem;
+    display: flex;
+    align-items: center;
+    pointer-events: auto;
+}
+
+.jtt-nav__brand {
+    flex: 1;
+}
+
+.jtt-nav__logo {
+    font-size: 1.25rem;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    color: #fff;
+    text-decoration: none;
+    cursor: pointer;
+    user-select: none;
+    transition: color 0.15s;
+}
+
+.jtt-nav__logo:hover {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.jtt-nav__actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}

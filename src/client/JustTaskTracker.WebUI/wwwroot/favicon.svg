@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <clipPath id="clip">
+      <rect width="512" height="512" rx="110" ry="110" />
+    </clipPath>
+  </defs>
+  
+  <rect width="512" height="512" fill="#111827" clip-path="url(#clip)" />
+  
+  <text x="50%" y="54%" 
+        dominant-baseline="middle" 
+        text-anchor="middle" 
+        fill="#82EB00" 
+        font-family="ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" 
+        font-weight="normal" 
+        font-size="210" 
+        letter-spacing="-10">JTT</text>
+</svg>

@@ -1,0 +1,25 @@
+@page "/"
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthState
+
+<PageTitle>JustTaskTracker</PageTitle>
+
+<section class="home-hero" aria-label="Welcome">
+    <h1 class="home-hero__title">Let&#x2019;s track your tasks!</h1>
+
+    <MudButton Variant="Variant.Text"
+               Size="Size.Large"
+               Class="btn-glass btn-glass--hero"
+               Href="/login">
+        Start tracking
+    </MudButton>
+</section>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        var state = await AuthState.GetAuthenticationStateAsync();
+        if (state.User.Identity?.IsAuthenticated == true)
+            Navigation.NavigateTo("/dashboard");
+    }
+}

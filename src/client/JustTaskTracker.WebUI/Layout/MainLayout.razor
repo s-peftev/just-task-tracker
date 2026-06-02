@@ -1,5 +1,8 @@
 ﻿@inherits LayoutComponentBase
+@implements IDisposable
 @inject NavigationManager Navigation
+@inject IProfileStore ProfileStore
+@inject AuthenticationStateProvider AuthStateProvider
 
 <MudThemeProvider />
 <MudPopoverProvider />
@@ -12,7 +15,12 @@
         <MudSpacer />
         <AuthorizeView>
             <Authorized>
-                <MudText Class="mr-4">@context.User.Identity?.Name</MudText>
+                @{
+                    var displayName = ProfileStore.Profile?.DisplayName
+                        ?? ProfileStore.Profile?.Email
+                        ?? context.User.Identity?.Name;
+                }
+                <MudText Class="mr-4">@displayName</MudText>
                 <MudButton Color="Color.Inherit" OnClick="Logout">Logout</MudButton>
             </Authorized>
         </AuthorizeView>
@@ -25,5 +33,23 @@
 </MudLayout>
 
 @code {
-    private void Logout() => Navigation.NavigateToLogout("authentication/logout");
+    protected override void OnInitialized() =>
+        ProfileStore.StateChanged += OnStoreStateChanged;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        if (authState.User.Identity?.IsAuthenticated == true)
+            await ProfileStore.EnsureLoadedAsync();
+    }
+
+    public void Dispose() => ProfileStore.StateChanged -= OnStoreStateChanged;
+
+    private void OnStoreStateChanged() => InvokeAsync(StateHasChanged);
+
+    private void Logout()
+    {
+        ProfileStore.Reset();
+        Navigation.NavigateToLogout("authentication/logout");
+    }
 }

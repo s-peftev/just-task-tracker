@@ -1,6 +1,7 @@
 ﻿using JustTaskTracker.WebUI.Services.Abstractions.Auth;
 using JustTaskTracker.WebUI.Services.Api;
 using JustTaskTracker.WebUI.Services.Auth;
+using JustTaskTracker.WebUI.Services.Auth.Stores;
 using JustTaskTracker.WebUI.Services.Configuration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -22,6 +23,7 @@ public static class ServiceCollectionExtensions
             .AddHttpMessageHandler<ApiAuthorizationMessageHandler>();
 
         services.AddScoped<IAuthApiService, AuthApiService>();
+        services.AddScoped<IProfileStore, ProfileStore>();
 
         return services;
     }

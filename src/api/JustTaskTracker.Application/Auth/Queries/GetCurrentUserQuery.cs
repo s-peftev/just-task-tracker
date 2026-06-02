@@ -1,5 +1,5 @@
-﻿using JustTaskTracker.Application.Common.Interfaces;
-using JustTaskTracker.Application.Common.Interfaces.Persistence.Repositories;
+﻿using JustTaskTracker.Application.Auth.Repositories;
+using JustTaskTracker.Application.Common.Interfaces;
 using JustTaskTracker.Domain.Auth.DTOs;
 using JustTaskTracker.Domain.Common.Results;
 using JustTaskTracker.Domain.Common.Results.Errors;
@@ -16,11 +16,20 @@ public class GetCurrentUserQueryHandler(
 {
     public async Task<Result<UserWithRolesDto>> Handle(GetCurrentUserQuery request, CancellationToken ct)
     {
-        var user = await userRepository.GetUserWithRolesDtoByAzureAOIAsync(currentUser.AzureAdObjectId, ct);
+        var userDto = await userRepository.GetUserDtoByAzureAOIAsync(currentUser.AzureAdObjectId, ct);
 
-        if (user is null)
+        if (userDto is null)
             return Result<UserWithRolesDto>.Failure(GeneralErrors.NotFound);
 
-        return Result<UserWithRolesDto>.Success(user);
+        var rolesFromToken = currentUser.AppRoles ?? [];
+
+        var userWithRoles = new UserWithRolesDto(
+            userDto.Id,
+            userDto.Email,
+            userDto.DisplayName,
+            rolesFromToken
+        );
+
+        return Result<UserWithRolesDto>.Success(userWithRoles);
     }
 }

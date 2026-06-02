@@ -1,6 +1,6 @@
 ﻿namespace JustTaskTracker.Persistence.Common.Constants;
 
-internal static class ConnectionStrings
+internal static class ConnectionStringNames
 {
     public const string JustTaskTracker = "JustTaskTracker";
 }

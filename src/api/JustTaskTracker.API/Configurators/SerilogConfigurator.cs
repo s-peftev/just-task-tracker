@@ -10,11 +10,23 @@ public static class SerilogConfigurator
 
     public static void Configure(IConfiguration configuration)
     {
-        Log.Logger = new LoggerConfiguration()
+        var loggerConfiguration = new LoggerConfiguration()
             .Enrich.FromLogContext()
-            .Enrich.WithProperty(LogProperties.CorrelationId, LogProperties.UnknownValue)
-            .WriteTo.Console(outputTemplate: DefaultTemplate)
-            .ReadFrom.Configuration(configuration)
-            .CreateLogger();
+            .Enrich.WithProperty(LogProperties.CorrelationId, LogProperties.UnknownValue);
+
+        var hasWriteToConfig = configuration.GetSection("Serilog:WriteTo").Exists();
+
+        if (hasWriteToConfig)
+        {
+            loggerConfiguration.ReadFrom.Configuration(configuration);
+        }
+        else
+        {
+            loggerConfiguration
+                .WriteTo.Console(outputTemplate: DefaultTemplate)
+                .ReadFrom.Configuration(configuration);
+        }
+
+        Log.Logger = loggerConfiguration.CreateLogger();
     }
 }

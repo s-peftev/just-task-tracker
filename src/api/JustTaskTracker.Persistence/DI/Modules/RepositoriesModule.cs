@@ -1,5 +1,5 @@
+using JustTaskTracker.Application.Auth.Repositories;
 using JustTaskTracker.Application.Common.Interfaces.Persistence;
-using JustTaskTracker.Application.Common.Interfaces.Persistence.Repositories;
 using JustTaskTracker.Persistence.Auth.Repositories;
 using JustTaskTracker.Persistence.Common;
 using Microsoft.Extensions.DependencyInjection;
@@ -12,7 +12,6 @@ internal static class RepositoriesModule
     {
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IUserRepository, UserRepository>();
-        services.AddScoped<IUserRoleRepository, UserRoleRepository>();
 
         return services;
     }

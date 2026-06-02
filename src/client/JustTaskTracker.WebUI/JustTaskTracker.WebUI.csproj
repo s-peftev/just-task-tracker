@@ -8,6 +8,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="wwwroot\sample-data\**" />
+    <Content Remove="wwwroot\sample-data\**" />
+    <EmbeddedResource Remove="wwwroot\sample-data\**" />
+    <None Remove="wwwroot\sample-data\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.7" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Authentication" Version="10.0.8" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.7" PrivateAssets="all" />
@@ -19,10 +26,6 @@
     <ProjectReference Include="..\JustTaskTracker.WebUI.Domain\JustTaskTracker.WebUI.Domain.csproj" />
     <ProjectReference Include="..\JustTaskTracker.WebUI.Services.Abstractions\JustTaskTracker.WebUI.Services.Abstractions.csproj" />
     <ProjectReference Include="..\JustTaskTracker.WebUI.Services\JustTaskTracker.WebUI.Services.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="wwwroot\sample-data\" />
   </ItemGroup>
 
 </Project>

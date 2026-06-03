@@ -21,6 +21,12 @@ internal static class OptionsModule
 
         services.AddSingleton(azureAdOptions);
 
+        var paginationDefaultsOptions = configuration
+            .GetSection(ConfigSections.PaginationDefaults)
+            .Get<PaginationDefaultsOptions>() ?? new PaginationDefaultsOptions();
+
+        services.AddSingleton(paginationDefaultsOptions);
+
         return services;
     }
 }

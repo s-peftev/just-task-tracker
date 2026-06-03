@@ -6,4 +6,9 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <Folder Include="Kanban\Entities\" />
+    <Folder Include="Kanban\Enums\" />
+  </ItemGroup>
+
 </Project>

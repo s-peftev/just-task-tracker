@@ -2,6 +2,7 @@ using JustTaskTracker.Application.Common.Interfaces;
 using JustTaskTracker.Application.Common.Interfaces.Utils;
 using JustTaskTracker.Domain.Auth.Entities;
 using JustTaskTracker.Domain.Common.Interfaces;
+using JustTaskTracker.Domain.Kanban.Entities;
 using Microsoft.EntityFrameworkCore;
 using System.Reflection;
 
@@ -14,6 +15,10 @@ public class JustTaskTrackerDbContext(
     : DbContext(options)
 {
     public DbSet<User> Users => Set<User>();
+    public DbSet<Board> Boards => Set<Board>();
+    public DbSet<BoardMember> BoardMembers => Set<BoardMember>();
+    public DbSet<Column> Columns => Set<Column>();
+    public DbSet<BoardTask> BoardTasks => Set<BoardTask>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

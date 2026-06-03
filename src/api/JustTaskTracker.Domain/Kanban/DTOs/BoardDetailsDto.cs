@@ -6,5 +6,5 @@ public record BoardDetailsDto(
     Guid Id,
     string Name,
     DateTime CreatedAtUtc,
-    UserDto Owner,
+    IEnumerable<UserDto> Members,
     IEnumerable<ColumnDto> Columns);

@@ -26,7 +26,11 @@ public class BoardsController(ISender sender) : ControllerBase
     [Authorize(Policy = AuthorizationPolicies.IsAppMember)]
     public async Task<IActionResult> GetMyById(Guid id, CancellationToken ct)
     {
-        return Ok();
+        var result = await sender.Send(new GetBoardByIdQuery(id), ct);
+
+        return result.Match(
+            data => Ok(data),
+            error => error.CreateErrorResponse());
     }
 
     [HttpPost]

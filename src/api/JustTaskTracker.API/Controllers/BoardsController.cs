@@ -47,9 +47,13 @@ public class BoardsController(ISender sender) : ControllerBase
 
     [HttpPut("{id:guid}")]
     [Authorize(Policy = AuthorizationPolicies.IsAppContributor)]
-    public async Task<IActionResult> Update(Guid id, CancellationToken ct)
+    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateBoardCommand request, CancellationToken ct)
     {
-        return Ok();
+        var result = await sender.Send(request with { BoardId = id }, ct);
+
+        return result.Match(
+            data => Ok(data),
+            error => error.CreateErrorResponse());
     }
 
     [HttpDelete("{id:guid}")]

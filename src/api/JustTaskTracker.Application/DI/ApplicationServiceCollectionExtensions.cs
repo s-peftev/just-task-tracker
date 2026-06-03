@@ -1,6 +1,5 @@
 ﻿using FluentValidation;
 using JustTaskTracker.Application.Common.Behaviors;
-using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace JustTaskTracker.Application.DI;
@@ -17,6 +16,7 @@ public static class ApplicationServiceCollectionExtensions
             cfg.AddOpenBehavior(typeof(ValidationBehavior<,>));
         });
 
+        ValidatorOptions.Global.LanguageManager.Enabled = false;
         services.AddValidatorsFromAssembly(assembly);
 
         return services;

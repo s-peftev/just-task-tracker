@@ -60,6 +60,10 @@ public class BoardsController(ISender sender) : ControllerBase
     [Authorize(Policy = AuthorizationPolicies.IsAppContributor)]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
-        return Ok();
+        var result = await sender.Send(new DeleteBoardCommand(id), ct);
+
+        return result.Match(
+            () => NoContent(),
+            error => error.CreateErrorResponse());
     }
 }

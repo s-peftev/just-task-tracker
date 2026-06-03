@@ -8,6 +8,8 @@ namespace JustTaskTracker.Application.Kanban.Repositories;
 
 public interface IBoardRepository : IRepository<Board, Guid>
 {
+    void AddMember(BoardMember member);
+
     Task<BoardAccessStatus> GetBoardAccessAsync(Guid boardId, Guid azureAdObjectId, CancellationToken ct = default);
 
     Task<BoardDetailsDto?> GetBoardDetailsByIdAsync(Guid boardId, CancellationToken ct = default);

@@ -13,6 +13,9 @@ namespace JustTaskTracker.Persistence.Kanban.Repositories;
 public class BoardRepository(JustTaskTrackerDbContext context)
     : Repository<Board, Guid>(context), IBoardRepository
 {
+    public void AddMember(BoardMember member) =>
+        _context.BoardMembers.Add(member);
+
     public async Task<BoardAccessStatus> GetBoardAccessAsync(Guid boardId, Guid azureAdObjectId, CancellationToken ct = default)
     {
         var access = await _dbSet

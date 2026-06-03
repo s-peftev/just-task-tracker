@@ -17,6 +17,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Common\Behaviors\" />
+    <Folder Include="Kanban\Validators\" />
     <Folder Include="Kanban\Repositories\" />
   </ItemGroup>
 

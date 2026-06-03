@@ -1,5 +1,6 @@
 ﻿using JustTaskTracker.API.Extensions;
 using JustTaskTracker.Application.Common.Constants;
+using JustTaskTracker.Application.Kanban.Commands;
 using JustTaskTracker.Application.Kanban.Queries;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -35,9 +36,13 @@ public class BoardsController(ISender sender) : ControllerBase
 
     [HttpPost]
     [Authorize(Policy = AuthorizationPolicies.IsAppContributor)]
-    public async Task<IActionResult> Create(CancellationToken ct)
+    public async Task<IActionResult> Create([FromBody] CreateBoardCommand request, CancellationToken ct)
     {
-        return Ok();
+        var result = await sender.Send(request, ct);
+
+        return result.Match(
+            data => Ok(data),
+            error => error.CreateErrorResponse());
     }
 
     [HttpPut("{id:guid}")]

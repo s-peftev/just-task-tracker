@@ -1,0 +1,25 @@
+@using JustTaskTracker.WebUI.Domain.Kanban
+
+<button type="button" class="board-card card-surface-grain" @onclick="OnClickHandler">
+    <div class="board-card__body">
+        <h3 class="board-card__name">@Board.Name</h3>
+    </div>
+
+    <div class="board-card__footer">
+        @if (Board.Owner is { } owner)
+        {
+            <span class="board-card__owner">@(owner.DisplayName ?? owner.Email)</span>
+        }
+        <span class="board-card__role">@Board.UserRole</span>
+    </div>
+</button>
+
+@code {
+    [Parameter, EditorRequired]
+    public BoardLookupDto Board { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback<BoardLookupDto> OnClick { get; set; }
+
+    private Task OnClickHandler() => OnClick.InvokeAsync(Board);
+}

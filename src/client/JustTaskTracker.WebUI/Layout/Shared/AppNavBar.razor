@@ -1,5 +1,6 @@
 @inject NavigationManager Navigation
 @inject IProfileStore ProfileStore
+@inject IBoardStore BoardStore
 
 <header class="jtt-nav">
     <nav class="jtt-nav__inner">
@@ -31,6 +32,7 @@
     private void Logout()
     {
         ProfileStore.Reset();
+        BoardStore.Reset();
         Navigation.NavigateToLogout("authentication/logout");
     }
 }

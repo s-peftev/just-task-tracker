@@ -1,0 +1,41 @@
+@inject NavigationManager Navigation
+
+<aside class="sidebar card-surface-grain">
+    <div class="sidebar__profile">
+        <div class="sidebar__avatar" aria-hidden="true">
+            <span>@AvatarLetter</span>
+        </div>
+
+        <div class="sidebar__info">
+            <p class="sidebar__name">@(Profile.DisplayName ?? Profile.Email)</p>
+            <p class="sidebar__email">@Profile.Email</p>
+
+            @if (Profile.Roles.Count > 0)
+            {
+                <div class="sidebar__roles">
+                    @foreach (var role in Profile.Roles)
+                    {
+                        <span class="sidebar__role">@role</span>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+
+    <hr class="sidebar__divider" />
+
+    <nav class="sidebar__nav" aria-label="Main sections">
+        <a href="/dashboard" class="sidebar__tab sidebar__tab--active">Dashboard</a>
+    </nav>
+</aside>
+
+@code {
+    [Parameter, EditorRequired]
+    public UserWithRolesDto Profile { get; set; } = default!;
+
+    private char AvatarLetter =>
+        char.ToUpperInvariant(
+            (Profile.DisplayName ?? Profile.Email) is { Length: > 0 } source
+                ? source[0]
+                : '?');
+}

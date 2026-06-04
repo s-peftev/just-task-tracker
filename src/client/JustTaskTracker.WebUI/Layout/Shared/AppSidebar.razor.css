@@ -1,0 +1,108 @@
+.sidebar {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.50);
+    overflow-y: auto;
+}
+
+.sidebar__profile {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.25rem;
+}
+
+/* Placeholder for a future user avatar (up to 400px diameter). */
+.sidebar__avatar {
+    width: 100%;
+    max-width: 400px;
+    aspect-ratio: 1 / 1;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, rgba(149, 205, 65, 0.25), rgba(78, 108, 80, 0.25));
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.92);
+    font-weight: 700;
+    font-size: clamp(4rem, 14vw, 9rem);
+    user-select: none;
+}
+
+.sidebar__info {
+    width: 100%;
+    text-align: center;
+}
+
+.sidebar__name {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.92);
+    word-break: break-word;
+}
+
+.sidebar__email {
+    margin: 0.25rem 0 0;
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.55);
+    word-break: break-word;
+}
+
+.sidebar__roles {
+    margin-top: 0.85rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    justify-content: center;
+}
+
+.sidebar__role {
+    padding: 0.2rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    color: #bef264;
+    background: rgba(149, 205, 65, 0.12);
+    border: 1px solid rgba(149, 205, 65, 0.30);
+}
+
+.sidebar__divider {
+    width: 100%;
+    border: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.10);
+    margin: 1.5rem 0;
+}
+
+.sidebar__nav {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.sidebar__tab {
+    width: 100%;
+    border-radius: 0.75rem;
+    padding: 0.75rem 1rem;
+    text-align: left;
+    font-size: 0.9rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: rgba(255, 255, 255, 0.55);
+    text-decoration: none;
+    transition: background 0.2s, color 0.2s;
+}
+
+.sidebar__tab:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.92);
+}
+
+.sidebar__tab--active {
+    color: #bef264;
+    background: rgba(149, 205, 65, 0.10);
+}

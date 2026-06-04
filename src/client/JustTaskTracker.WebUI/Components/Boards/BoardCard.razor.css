@@ -1,0 +1,66 @@
+.board-card {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    max-width: 400px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    text-align: left;
+    padding: 1.75rem;
+    cursor: pointer;
+    color: inherit;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.50);
+    transition: transform 0.15s, border-color 0.2s;
+}
+
+.board-card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(149, 205, 65, 0.55);
+}
+
+.board-card__body {
+    display: flex;
+    flex: 1;
+    align-items: flex-start;
+}
+
+.board-card__name {
+    margin: 0;
+    font-size: 1.6rem;
+    font-weight: 700;
+    line-height: 1.25;
+    color: rgba(255, 255, 255, 0.92);
+    word-break: break-word;
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.board-card__footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.10);
+    padding-top: 1rem;
+}
+
+.board-card__owner {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.55);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.board-card__role {
+    flex-shrink: 0;
+    padding: 0.2rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #bef264;
+    background: rgba(149, 205, 65, 0.12);
+    border: 1px solid rgba(149, 205, 65, 0.30);
+}

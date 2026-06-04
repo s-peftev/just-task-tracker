@@ -30,7 +30,10 @@ public class GetBoardByIdQueryHandler(
                 return Result<BoardDetailsDto>.Failure(GeneralErrors.Forbidden);
         }
 
-        var board = await boardRepository.GetBoardDetailsByIdAsync(request.BoardId, ct);
+        var board = await boardRepository.GetBoardDetailsByIdAsync(
+            request.BoardId,
+            currentUserAccessor.AzureAdObjectId,
+            ct);
 
         if (board is null)
             return Result<BoardDetailsDto>.Failure(GeneralErrors.NotFound);

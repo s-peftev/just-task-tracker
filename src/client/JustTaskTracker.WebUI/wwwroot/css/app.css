@@ -40,6 +40,73 @@ html, body {
     z-index: 1;
 }
 
+/* Noir button — black surface with grain noise; used for board actions / pagination */
+.btn-noir {
+    position: relative;
+    isolation: isolate;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background-color: rgb(28 28 30 / 0.95);
+    border: 1px solid rgb(60 90 30 / 0.30);
+    border-radius: 0.75rem;
+    color: rgba(255, 255, 255, 0.87);
+    padding: 0.6rem 1.25rem;
+    font-family: inherit;
+    font-size: 0.9rem;
+    font-weight: 500;
+    line-height: 1.2;
+    cursor: pointer;
+    text-decoration: none;
+    transition: border-color 0.2s, background-color 0.2s, transform 0.1s;
+}
+
+.btn-noir::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.12;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3CfeContrast amount='1.5'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    background-size: 180px 180px;
+}
+
+.btn-noir > * {
+    position: relative;
+    z-index: 1;
+}
+
+.btn-noir:hover:not(:disabled) {
+    border-color: rgb(149 205 65 / 0.55);
+}
+
+.btn-noir:active:not(:disabled) {
+    transform: scale(0.98);
+}
+
+.btn-noir:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.btn-noir--danger {
+    border-color: rgb(220 70 70 / 0.40);
+    color: #ff7a7a;
+}
+
+.btn-noir--danger:hover:not(:disabled) {
+    border-color: rgb(220 70 70 / 0.85);
+    background-color: rgb(40 22 22 / 0.95);
+}
+
+.btn-noir--active {
+    border-color: rgb(149 205 65 / 0.65);
+    color: #bef264;
+}
+
 /* Glass button — applied via Class= on MudButton (outside scope isolation) */
 .btn-glass {
     background: rgba(255, 255, 255, 0.10) !important;

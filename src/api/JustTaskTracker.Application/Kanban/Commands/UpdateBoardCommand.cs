@@ -34,7 +34,10 @@ public class UpdateBoardCommandHandler(
 
         await unitOfWork.SaveChangesAsync(ct);
 
-        var details = await boardRepository.GetBoardDetailsByIdAsync(request.BoardId, ct);
+        var details = await boardRepository.GetBoardDetailsByIdAsync(
+            request.BoardId,
+            currentUserAccessor.AzureAdObjectId,
+            ct);
 
         return Result<BoardDetailsDto>.Success(details!);
     }

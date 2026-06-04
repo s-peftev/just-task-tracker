@@ -51,13 +51,17 @@ public class BoardRepository(JustTaskTrackerDbContext context)
             : BoardAccessStatus.Forbidden;
     }
 
-    public async Task<BoardDetailsDto?> GetBoardDetailsByIdAsync(Guid boardId, CancellationToken ct = default) =>
+    public async Task<BoardDetailsDto?> GetBoardDetailsByIdAsync(Guid boardId, Guid azureAdObjectId, CancellationToken ct = default) =>
         await _dbSet
             .Where(b => b.Id == boardId)
             .Select(b => new BoardDetailsDto(
                 b.Id,
                 b.Name,
                 b.CreatedAtUtc,
+                b.Members
+                    .Where(m => m.User.AzureAdObjectId == azureAdObjectId)
+                    .Select(m => m.Role)
+                    .First(),
                 b.Members
                     .OrderBy(m => m.JoinedAtUtc)
                     .Select(m => new UserDto(m.User.Id, m.User.Email, m.User.DisplayName)),

@@ -1,8 +1,11 @@
-﻿using JustTaskTracker.WebUI.Services.Abstractions.Auth;
+using JustTaskTracker.WebUI.Services.Abstractions.Auth;
+using JustTaskTracker.WebUI.Services.Abstractions.Kanban;
 using JustTaskTracker.WebUI.Services.Api;
 using JustTaskTracker.WebUI.Services.Auth;
 using JustTaskTracker.WebUI.Services.Auth.Stores;
 using JustTaskTracker.WebUI.Services.Configuration;
+using JustTaskTracker.WebUI.Services.Kanban;
+using JustTaskTracker.WebUI.Services.Kanban.Stores;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Refit;
@@ -22,8 +25,15 @@ public static class ServiceCollectionExtensions
             .ConfigureHttpClient(c => c.BaseAddress = new Uri(options.BaseUrl))
             .AddHttpMessageHandler<ApiAuthorizationMessageHandler>();
 
+        services.AddRefitClient<IBoardApi>()
+            .ConfigureHttpClient(c => c.BaseAddress = new Uri(options.BaseUrl))
+            .AddHttpMessageHandler<ApiAuthorizationMessageHandler>();
+
         services.AddScoped<IAuthApiService, AuthApiService>();
         services.AddScoped<IProfileStore, ProfileStore>();
+
+        services.AddScoped<IBoardApiService, BoardApiService>();
+        services.AddScoped<IBoardStore, BoardStore>();
 
         return services;
     }

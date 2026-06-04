@@ -1,0 +1,185 @@
+@page "/boards/{Id:guid}"
+@attribute [Authorize]
+@using JustTaskTracker.WebUI.Infrastructure
+@using JustTaskTracker.WebUI.Services.Exceptions
+@inject IBoardApiService BoardApiService
+@inject IBoardStore BoardStore
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+
+<PageTitle>@(_board?.Name ?? "Board") — JustTaskTracker</PageTitle>
+
+<div class="board-page">
+    @if (_isLoading)
+    {
+        <div class="board-page__state">
+            <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+        </div>
+    }
+    else if (_errorMessage is { } error)
+    {
+        <div class="board-page__state">
+            <MudAlert Severity="Severity.Error">@error</MudAlert>
+            <button type="button" class="btn-noir" @onclick="GoToDashboard">
+                <span>Back to dashboard</span>
+            </button>
+        </div>
+    }
+    else if (_board is { } board)
+    {
+        <header class="board-page__header">
+            <h1 class="board-page__title">@board.Name</h1>
+        </header>
+
+        <div class="board-page__body"></div>
+    }
+</div>
+
+@if (_board is not null && _errorMessage is null && !_isLoading)
+{
+    <footer class="board-page__footer">
+        <button type="button" class="btn-noir" @onclick="GoToDashboard">
+            <span>Back to dashboard</span>
+        </button>
+
+        <button type="button" class="btn-noir" @onclick="ShowMembersComingSoon">
+            <span>Members</span>
+        </button>
+
+        @if (CanManageColumns)
+        {
+            <button type="button" class="btn-noir" @onclick="ShowColumnsComingSoon">
+                <span>Create column</span>
+            </button>
+        }
+
+        @if (IsOwner)
+        {
+            <button type="button" class="btn-noir" @onclick="EditBoardAsync">
+                <span>Edit board name</span>
+            </button>
+
+            <button type="button" class="btn-noir btn-noir--danger" @onclick="DeleteBoardAsync">
+                <span>Delete</span>
+            </button>
+        }
+    </footer>
+}
+
+@code {
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private BoardDetailsDto? _board;
+    private bool _isLoading = true;
+    private string? _errorMessage;
+
+    private bool IsOwner => _board?.UserRole == BoardMemberRole.Owner;
+    private bool CanManageColumns => _board?.UserRole is BoardMemberRole.Owner or BoardMemberRole.Admin;
+
+    protected override async Task OnParametersSetAsync() =>
+        await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _isLoading = true;
+        _errorMessage = null;
+        StateHasChanged();
+
+        try
+        {
+            _board = await BoardApiService.GetBoardByIdAsync(Id);
+        }
+        catch (ApiServiceException ex)
+        {
+            _board = null;
+            _errorMessage = ex.Error?.Details is { Count: > 0 } details
+                ? string.Join(" ", details)
+                : ex.Message;
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void GoToDashboard() => Navigation.NavigateTo("/dashboard");
+
+    private void ShowMembersComingSoon() =>
+        Snackbar.Add("Members management is coming soon.", Severity.Info);
+
+    private void ShowColumnsComingSoon() =>
+        Snackbar.Add("Column creation is coming soon.", Severity.Info);
+
+    private async Task EditBoardAsync()
+    {
+        if (_board is null)
+            return;
+
+        var parameters = new DialogParameters<BoardFormDialog>
+        {
+            { x => x.SubmitLabel, "Save" },
+            { x => x.InitialName, _board.Name }
+        };
+
+        var options = new DialogOptions
+        {
+            CloseOnEscapeKey = true,
+            MaxWidth = MaxWidth.ExtraSmall,
+            FullWidth = true
+        };
+
+        var dialog = await DialogService.ShowAsync<BoardFormDialog>("Edit board name", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is not { Canceled: false, Data: string name })
+            return;
+
+        try
+        {
+            _board = await BoardApiService.UpdateBoardAsync(Id, name);
+            await BoardStore.RefreshAsync();
+            Snackbar.Add("Board updated.", Severity.Success);
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+    }
+
+    private async Task DeleteBoardAsync()
+    {
+        var parameters = new DialogParameters<ConfirmDialog>
+        {
+            { x => x.Message, $"Delete board \"{_board?.Name}\"? This action cannot be undone." },
+            { x => x.ConfirmLabel, "Delete" }
+        };
+
+        var options = new DialogOptions
+        {
+            CloseOnEscapeKey = true,
+            MaxWidth = MaxWidth.ExtraSmall,
+            FullWidth = true
+        };
+
+        var dialog = await DialogService.ShowAsync<ConfirmDialog>("Delete board", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is not { Canceled: false, Data: true })
+            return;
+
+        try
+        {
+            await BoardApiService.DeleteBoardAsync(Id);
+            await BoardStore.RefreshAsync();
+            Snackbar.Add("Board deleted.", Severity.Success);
+            Navigation.NavigateTo("/dashboard");
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+    }
+}

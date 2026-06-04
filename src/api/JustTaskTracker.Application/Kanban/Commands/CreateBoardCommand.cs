@@ -49,6 +49,7 @@ public class CreateBoardCommandHandler(
                 board.Id,
                 board.Name,
                 board.CreatedAtUtc,
+                BoardMemberRole.Owner,
                 [new UserDto(user.Id, user.Email, user.DisplayName)],
                 []));
         }

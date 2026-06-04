@@ -1,0 +1,15 @@
+namespace JustTaskTracker.WebUI.Domain.Common;
+
+public class PagedList<T>
+{
+    public PaginationMetadata Metadata { get; init; } = new();
+    public IReadOnlyList<T> Items { get; init; } = [];
+}
+
+public class PaginationMetadata
+{
+    public int CurrentPage { get; init; }
+    public int PageSize { get; init; }
+    public int TotalPages { get; init; }
+    public int TotalCount { get; init; }
+}

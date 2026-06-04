@@ -1,53 +1,172 @@
 @page "/dashboard"
 @attribute [Authorize]
 @implements IDisposable
+@using JustTaskTracker.WebUI.Infrastructure
+@using JustTaskTracker.WebUI.Services.Exceptions
 @inject IProfileStore ProfileStore
+@inject IBoardStore BoardStore
+@inject IBoardApiService BoardApiService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
 @inject NavigationManager Navigation
 
 <PageTitle>Dashboard — JustTaskTracker</PageTitle>
 
-<div class="layout-content">
-    @if (ProfileStore.IsLoading)
-    {
+@if (ProfileStore.IsLoading && !ProfileStore.IsLoaded)
+{
+    <div class="dashboard dashboard--center">
         <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
-    }
-    else if (ProfileStore.IsLoaded && ProfileStore.Profile is { } profile)
-    {
-        <div class="card-surface-grain dashboard-card">
-            <MudText Typo="Typo.h5" Style="margin-bottom: 0.25rem;">
-                Welcome, @(profile.DisplayName ?? profile.Email)
-            </MudText>
-            <MudText Typo="Typo.body2" Style="color: rgba(255,255,255,0.55); margin-bottom: 1.25rem;">
-                @profile.Email
-            </MudText>
-            <MudStack Row="true" Spacing="1">
-                @foreach (var role in profile.Roles)
-                {
-                    <MudChip T="string" Color="Color.Primary" Size="Size.Small">@role</MudChip>
-                }
-            </MudStack>
+    </div>
+}
+else if (ProfileStore.IsLoaded && ProfileStore.Profile is { } profile)
+{
+    <div class="dashboard">
+        <div class="dashboard__sidebar">
+            <AppSidebar Profile="profile" />
         </div>
-    }
-    else if (ProfileStore.ErrorMessage is { } error)
-    {
-        <MudAlert Severity="Severity.Error">@error</MudAlert>
-    }
-    @* RequiresLogin: render nothing while OnInitializedAsync triggers navigation *@
-</div>
+
+        <section class="dashboard__content">
+            <div class="dashboard__boards">
+                @if (BoardStore.IsLoading && BoardStore.Boards.Count == 0)
+                {
+                    <div class="dashboard__state">
+                        <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+                    </div>
+                }
+                else if (BoardStore.ErrorMessage is { } error)
+                {
+                    <div class="dashboard__state">
+                        <MudAlert Severity="Severity.Error">@error</MudAlert>
+                    </div>
+                }
+                else if (BoardStore.Boards.Count == 0)
+                {
+                    <div class="dashboard__state">
+                        <p class="dashboard__empty">You don't have any boards yet.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="dashboard__grid">
+                        @foreach (var board in BoardStore.Boards)
+                        {
+                            <BoardCard Board="board" OnClick="OpenBoard" />
+                        }
+                    </div>
+                }
+            </div>
+
+            <footer class="dashboard__footer">
+                <div class="dashboard__footer-start">
+                    @if (CanCreateBoard)
+                    {
+                        <button type="button" class="btn-noir" @onclick="CreateBoardAsync">
+                            <span>+ Create board</span>
+                        </button>
+                    }
+                </div>
+
+                @if (BoardStore.Pagination.TotalPages > 1)
+                {
+                    <div class="dashboard__pager">
+                        <button type="button"
+                                class="btn-noir"
+                                disabled="@(BoardStore.CurrentPage <= 1 || BoardStore.IsLoading)"
+                                @onclick="() => ChangePageAsync(BoardStore.CurrentPage - 1)">
+                            <span>Prev</span>
+                        </button>
+                        <span class="dashboard__pager-info">
+                            Page @BoardStore.CurrentPage of @BoardStore.Pagination.TotalPages
+                        </span>
+                        <button type="button"
+                                class="btn-noir"
+                                disabled="@(BoardStore.CurrentPage >= BoardStore.Pagination.TotalPages || BoardStore.IsLoading)"
+                                @onclick="() => ChangePageAsync(BoardStore.CurrentPage + 1)">
+                            <span>Next</span>
+                        </button>
+                    </div>
+                }
+            </footer>
+        </section>
+    </div>
+}
+else if (ProfileStore.ErrorMessage is { } profileError)
+{
+    <div class="dashboard dashboard--center">
+        <MudAlert Severity="Severity.Error">@profileError</MudAlert>
+    </div>
+}
 
 @code {
-    protected override void OnInitialized() =>
+    private bool CanCreateBoard =>
+        ProfileStore.Profile?.Roles.Any(r =>
+            r.Equals("Admin", StringComparison.OrdinalIgnoreCase) ||
+            r.Equals("User", StringComparison.OrdinalIgnoreCase)) ?? false;
+
+    protected override void OnInitialized()
+    {
         ProfileStore.StateChanged += OnStoreStateChanged;
+        BoardStore.StateChanged += OnStoreStateChanged;
+    }
 
     protected override async Task OnInitializedAsync()
     {
         await ProfileStore.EnsureLoadedAsync();
 
         if (ProfileStore.RequiresLogin)
+        {
             Navigation.NavigateTo("/login");
+            return;
+        }
+
+        if (ProfileStore.IsLoaded)
+            await BoardStore.LoadAsync(1);
     }
 
-    public void Dispose() => ProfileStore.StateChanged -= OnStoreStateChanged;
+    private void OpenBoard(BoardLookupDto board) =>
+        Navigation.NavigateTo($"/boards/{board.Id}");
+
+    private async Task ChangePageAsync(int pageNumber) =>
+        await BoardStore.LoadAsync(pageNumber);
+
+    private async Task CreateBoardAsync()
+    {
+        var parameters = new DialogParameters<BoardFormDialog>
+        {
+            { x => x.SubmitLabel, "Create" }
+        };
+
+        var options = new DialogOptions
+        {
+            CloseOnEscapeKey = true,
+            MaxWidth = MaxWidth.ExtraSmall,
+            FullWidth = true
+        };
+
+        var dialog = await DialogService.ShowAsync<BoardFormDialog>("Create board", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is not { Canceled: false, Data: string name })
+            return;
+
+        try
+        {
+            var board = await BoardApiService.CreateBoardAsync(name);
+
+            Snackbar.Add($"Board \"{board.Name}\" created.", Severity.Success);
+            Navigation.NavigateTo($"/boards/{board.Id}");
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+    }
+
+    public void Dispose()
+    {
+        ProfileStore.StateChanged -= OnStoreStateChanged;
+        BoardStore.StateChanged -= OnStoreStateChanged;
+    }
 
     private void OnStoreStateChanged() => InvokeAsync(StateHasChanged);
 }

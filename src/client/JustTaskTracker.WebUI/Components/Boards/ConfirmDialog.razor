@@ -1,0 +1,31 @@
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body1" Style="color: rgba(255,255,255,0.80);">
+            @Message
+        </MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Class="btn-glass" OnClick="Cancel">@CancelLabel</MudButton>
+        <MudButton Color="Color.Error" Variant="Variant.Filled" OnClick="Confirm">
+            @ConfirmLabel
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter]
+    public string Message { get; set; } = "Are you sure?";
+
+    [Parameter]
+    public string ConfirmLabel { get; set; } = "Confirm";
+
+    [Parameter]
+    public string CancelLabel { get; set; } = "Cancel";
+
+    private void Confirm() => MudDialog.Close(DialogResult.Ok(true));
+
+    private void Cancel() => MudDialog.Cancel();
+}

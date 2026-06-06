@@ -33,37 +33,69 @@
     box-sizing: border-box;
 }
 
+.dashboard__header {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.dashboard__title {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #fff;
+}
+
+.dashboard__pager {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.dashboard__pager-info {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.65);
+    white-space: nowrap;
+}
+
 .dashboard__boards {
     flex: 1 1 0;
     min-height: 0;
+    min-width: 0;
+    overflow-x: hidden;
     overflow-y: auto;
     padding-right: 0.25rem;
 }
 
 .dashboard__grid {
     display: grid;
-    grid-template-columns: repeat(4, calc(25% - 12px));
-    margin: 1.5rem 0 2rem;
-    column-gap: 1rem;
-    row-gap: 1rem;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin: 0 0 1rem;
+    column-gap: 1.25rem;
+    row-gap: 1.25rem;
     align-content: start;
 }
 
 @media only screen and (max-width: 1280px) {
     .dashboard__grid {
-        grid-template-columns: repeat(3, calc(33.3% - 10px));
+        grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 }
 
 @media only screen and (min-width: 751px) and (max-width: 900px) {
     .dashboard__grid {
-        grid-template-columns: repeat(2, calc(50% - 8px));
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
 
 @media only screen and (max-width: 750px) {
     .dashboard__grid {
-        grid-template-columns: max(100%, 120px);
+        grid-template-columns: minmax(0, 1fr);
     }
 }
 
@@ -79,24 +111,4 @@
     margin: 0;
     font-size: 1.1rem;
     color: rgba(255, 255, 255, 0.55);
-}
-
-.dashboard__footer {
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 1rem;
-}
-
-.dashboard__pager {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-}
-
-.dashboard__pager-info {
-    font-size: 0.85rem;
-    color: rgba(255, 255, 255, 0.65);
-    white-space: nowrap;
 }

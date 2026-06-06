@@ -3,7 +3,6 @@
 @using JustTaskTracker.WebUI.Infrastructure
 @using JustTaskTracker.WebUI.Services.Exceptions
 @inject IBoardApiService BoardApiService
-@inject IBoardStore BoardStore
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
@@ -140,7 +139,6 @@
         try
         {
             _board = await BoardApiService.UpdateBoardAsync(Id, name);
-            await BoardStore.RefreshAsync();
             Snackbar.Add("Board updated.", Severity.Success);
         }
         catch (ApiServiceException ex)
@@ -173,7 +171,6 @@
         try
         {
             await BoardApiService.DeleteBoardAsync(Id);
-            await BoardStore.RefreshAsync();
             Snackbar.Add("Board deleted.", Severity.Success);
             Navigation.NavigateTo("/dashboard");
         }

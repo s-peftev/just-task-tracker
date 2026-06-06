@@ -26,6 +26,27 @@ else if (ProfileStore.IsLoaded && ProfileStore.Profile is { } profile)
         </div>
 
         <section class="dashboard__content">
+            <header class="dashboard__header">
+                <h2 class="dashboard__title">Boards</h2>
+                <div class="dashboard__pager">
+                    <button type="button"
+                            class="btn-noir"
+                            disabled="@(BoardStore.CurrentPage <= 1 || BoardStore.IsLoading)"
+                            @onclick="() => ChangePageAsync(BoardStore.CurrentPage - 1)">
+                        <span>Prev</span>
+                    </button>
+                    <span class="dashboard__pager-info">
+                        Page @BoardStore.CurrentPage of @(Math.Max(BoardStore.Pagination.TotalPages, 1))
+                    </span>
+                    <button type="button"
+                            class="btn-noir"
+                            disabled="@(BoardStore.CurrentPage >= Math.Max(BoardStore.Pagination.TotalPages, 1) || BoardStore.IsLoading)"
+                            @onclick="() => ChangePageAsync(BoardStore.CurrentPage + 1)">
+                        <span>Next</span>
+                    </button>
+                </div>
+            </header>
+
             <div class="dashboard__boards">
                 @if (BoardStore.IsLoading && BoardStore.Boards.Count == 0)
                 {
@@ -60,26 +81,6 @@ else if (ProfileStore.IsLoaded && ProfileStore.Profile is { } profile)
                     </div>
                 }
             </div>
-
-            <footer class="dashboard__footer">
-                <div class="dashboard__pager">
-                    <button type="button"
-                            class="btn-noir"
-                            disabled="@(BoardStore.CurrentPage <= 1 || BoardStore.IsLoading)"
-                            @onclick="() => ChangePageAsync(BoardStore.CurrentPage - 1)">
-                        <span>Prev</span>
-                    </button>
-                    <span class="dashboard__pager-info">
-                        Page @BoardStore.CurrentPage of @(Math.Max(BoardStore.Pagination.TotalPages, 1))
-                    </span>
-                    <button type="button"
-                            class="btn-noir"
-                            disabled="@(BoardStore.CurrentPage >= Math.Max(BoardStore.Pagination.TotalPages, 1) || BoardStore.IsLoading)"
-                            @onclick="() => ChangePageAsync(BoardStore.CurrentPage + 1)">
-                        <span>Next</span>
-                    </button>
-                </div>
-            </footer>
         </section>
     </div>
 }
@@ -107,13 +108,15 @@ else if (ProfileStore.ErrorMessage is { } profileError)
         await ProfileStore.EnsureLoadedAsync();
 
         if (ProfileStore.RequiresLogin)
-        {
             Navigation.NavigateTo("/login");
-            return;
-        }
+    }
 
-        if (ProfileStore.IsLoaded)
-            await BoardStore.LoadAsync(1);
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!ProfileStore.IsLoaded || ProfileStore.RequiresLogin)
+            return;
+
+        await BoardStore.RefreshAsync();
     }
 
     private void OpenBoard(BoardLookupDto board) =>

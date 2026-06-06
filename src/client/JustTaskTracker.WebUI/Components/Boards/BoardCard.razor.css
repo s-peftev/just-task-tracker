@@ -1,5 +1,6 @@
 .board-card {
     width: 100%;
+    min-width: 0;
     height: 108px;
     display: flex;
     flex-direction: column;

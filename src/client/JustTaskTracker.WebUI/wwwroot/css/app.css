@@ -15,15 +15,6 @@ html, body {
 
 /* ─── Shared design tokens ─── */
 
-/* Reusable body text — sans-serif, muted foreground */
-.text-body {
-    color: var(--jtt-color-text-body);
-    font-family: var(--jtt-font-family-sans);
-    font-size: var(--jtt-font-size-body);
-    font-weight: var(--jtt-font-weight-body);
-    line-height: 1.4;
-}
-
 /* Sidebar — user profile block (name, email, roles, avatar letter) */
 .text-sidebar-user {
     color: var(--jtt-sidebar-user-color);

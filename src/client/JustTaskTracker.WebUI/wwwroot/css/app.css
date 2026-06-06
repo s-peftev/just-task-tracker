@@ -204,6 +204,8 @@ html, body {
     /* Reusable body text */
     --jtt-color-text-body: #CECFD2;
     --jtt-color-text-body-secondary: rgba(97, 179, 216, 0.65);
+    --jtt-color-accent-surface: rgba(97, 179, 216, 0.10);
+    --jtt-color-accent-border: rgba(97, 179, 216, 0.20);
     --jtt-font-family-sans: 'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif;
     --jtt-font-size-body: 16px;
     --jtt-font-weight-body: 500;
@@ -224,6 +226,24 @@ html, body {
     --mud-palette-appbar-background: transparent;
     --mud-palette-text-primary: rgba(255, 255, 255, 0.87);
     --mud-palette-text-secondary: rgba(255, 255, 255, 0.60);
+}
+
+.mud-progress-circular.mud-primary-text {
+    color: var(--jtt-color-text-body-secondary) !important;
+}
+
+.mud-snackbar.mud-alert-filled-success {
+    background-color: var(--jtt-color-accent-surface) !important;
+    backdrop-filter: blur(12px);
+    color: #fff !important;
+    border: 1px solid rgba(255, 255, 255, 0.20);
+    border-radius: 0.5rem;
+    box-shadow: none;
+}
+
+.mud-snackbar.mud-alert-filled-success .mud-snackbar-icon {
+    color: #fff;
+    opacity: 1;
 }
 
 /* ─── Blazor loading + error UI ─── */
@@ -280,7 +300,7 @@ h1:focus {
 }
 
 .loading-progress circle:last-child {
-    stroke: #95CD41;
+    stroke: rgba(97, 179, 216, 0.65);
     stroke-dasharray: calc(3.141 * var(--blazor-load-percentage, 0%) * 0.8), 500%;
     transition: stroke-dasharray 0.05s ease-in-out;
 }

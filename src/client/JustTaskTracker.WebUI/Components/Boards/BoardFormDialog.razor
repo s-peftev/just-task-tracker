@@ -2,29 +2,40 @@
 
 <MudDialog Class="board-form-dialog" ActionsClass="board-form-dialog__actions">
     <DialogContent>
-        <div class="board-form-dialog__field" @onfocusout="OnFieldFocusOutAsync">
-            <MudTextField @bind-Value="_model.Name"
-                          @bind-Value:after="OnNameChangedAsync"
-                          Label="Board name"
-                          Variant="Variant.Outlined"
-                          Counter="100"
-                          MaxLength="100"
-                          AutoFocus="true"
-                          Required="false"
-                          OnlyValidateIfDirty="true"
-                          Error="_showValidation && _nameError is not null"
-                          ErrorText="@(_showValidation ? _nameError : null)" />
-        </div>
+        <form id="@FormId" @onsubmit="HandleSubmitAsync" @onsubmit:preventDefault="true">
+            <div class="board-form-dialog__field" @onfocusout="OnFieldFocusOutAsync">
+                <MudTextField @bind-Value="_model.Name"
+                              @bind-Value:after="OnNameChangedAsync"
+                              Label="Board name"
+                              Variant="Variant.Outlined"
+                              Counter="100"
+                              MaxLength="100"
+                              AutoFocus="true"
+                              Required="false"
+                              OnlyValidateIfDirty="true"
+                              Error="_showValidation && _nameError is not null"
+                              ErrorText="@(_showValidation ? _nameError : null)" />
+            </div>
+        </form>
     </DialogContent>
     <DialogActions>
-        <MudButton Class="btn-dialog-cancel btn-dialog-action" OnClick="Cancel">Cancel</MudButton>
-        <MudButton Class="btn-glass btn-dialog-action" OnClick="SubmitAsync" Disabled="_isSubmitting">
+        <MudButton Class="btn-dialog-cancel btn-dialog-action"
+                   ButtonType="ButtonType.Button"
+                   OnClick="Cancel">
+            Cancel
+        </MudButton>
+        <MudButton Class="btn-glass btn-dialog-action"
+                   ButtonType="ButtonType.Submit"
+                   form="@FormId"
+                   Disabled="_isSubmitting">
             @SubmitLabel
         </MudButton>
     </DialogActions>
 </MudDialog>
 
 @code {
+    private const string FormId = "board-form-dialog-form";
+
     public static DialogOptions DefaultOptions { get; } = new()
     {
         CloseOnEscapeKey = true,
@@ -68,6 +79,8 @@
         await ValidateNameAsync();
     }
 
+    private Task HandleSubmitAsync() => SubmitAsync();
+
     private async Task SubmitAsync()
     {
         _showValidation = true;
@@ -76,8 +89,17 @@
         if (_nameError is not null)
             return;
 
+        var trimmedName = _model.Name.Trim();
+
+        if (InitialName is not null &&
+            string.Equals(trimmedName, InitialName.Trim(), StringComparison.Ordinal))
+        {
+            MudDialog.Cancel();
+            return;
+        }
+
         _isSubmitting = true;
-        MudDialog.Close(DialogResult.Ok(_model.Name.Trim()));
+        MudDialog.Close(DialogResult.Ok(trimmedName));
     }
 
     private void Cancel() => MudDialog.Cancel();

@@ -1,4 +1,5 @@
 @page "/login"
+@using JustTaskTracker.WebUI.Infrastructure
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthState
 
@@ -19,12 +20,22 @@
 </section>
 
 @code {
+    [SupplyParameterFromQuery(Name = MicrosoftAuthNavigation.AutoSignInQueryParam)]
+    public bool AutoSignIn { get; set; }
+
     protected override async Task OnInitializedAsync()
     {
         var state = await AuthState.GetAuthenticationStateAsync();
         if (state.User.Identity?.IsAuthenticated == true)
+        {
             Navigation.NavigateTo("/dashboard");
+            return;
+        }
+
+        if (AutoSignIn)
+            BeginLogin();
     }
 
-    private void BeginLogin() => Navigation.NavigateToLogin("authentication/login");
+    private void BeginLogin() =>
+        MicrosoftAuthNavigation.NavigateToMicrosoftLogin(Navigation);
 }

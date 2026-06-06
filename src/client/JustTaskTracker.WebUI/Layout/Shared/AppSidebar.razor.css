@@ -110,9 +110,12 @@
     margin-top: auto;
     border-top: 1px solid rgba(255, 255, 255, 0.12);
     padding: 1rem 2rem 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
 }
 
-.sidebar__logout {
+.sidebar__footer-action {
     display: block;
     width: 100%;
     padding: 0.5rem 0;
@@ -123,6 +126,6 @@
     transition: opacity 0.2s;
 }
 
-.sidebar__logout:hover {
-    opacity: 0.85;
-}
+    .sidebar__footer-action:hover {
+        color: var(--jtt-color-text-body-secondary);
+    }

@@ -9,6 +9,8 @@
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthState
+@inject IJSRuntime Js
 
 <PageTitle>Dashboard — JustTaskTracker</PageTitle>
 
@@ -105,6 +107,18 @@ else if (ProfileStore.ErrorMessage is { } profileError)
 
     protected override async Task OnInitializedAsync()
     {
+        var switchResult = await MicrosoftAuthNavigation.TryCompleteAccountSwitchAsync(Js, AuthState);
+        if (switchResult == AccountSwitchResult.SameAccountRequiresFullLogout)
+        {
+            ProfileStore.Reset();
+            BoardStore.Reset();
+            await MicrosoftAuthNavigation.NavigateToFullLogoutAsync(
+                Js,
+                Navigation,
+                $"/login?{MicrosoftAuthNavigation.AutoSignInQueryParam}=true");
+            return;
+        }
+
         await ProfileStore.EnsureLoadedAsync();
 
         if (ProfileStore.RequiresLogin)

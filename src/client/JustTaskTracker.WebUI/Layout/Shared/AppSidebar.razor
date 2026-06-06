@@ -1,6 +1,9 @@
+@using JustTaskTracker.WebUI.Infrastructure
 @inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthState
 @inject IProfileStore ProfileStore
 @inject IBoardStore BoardStore
+@inject IJSRuntime Js
 
 <aside class="sidebar">
     <div class="sidebar__profile">
@@ -36,7 +39,16 @@
     </nav>
 
     <div class="sidebar__footer">
-        <button type="button" class="sidebar__logout text-sidebar-tab" @onclick="Logout">Log out</button>
+        <button type="button"
+                class="sidebar__footer-action text-sidebar-tab"
+                @onclick="SwitchMicrosoftAccount">
+            Switch Microsoft account
+        </button>
+        <button type="button"
+                class="sidebar__footer-action text-sidebar-tab"
+                @onclick="Logout">
+            Log out
+        </button>
     </div>
 </aside>
 
@@ -50,10 +62,17 @@
                 ? source[0]
                 : '?');
 
-    private void Logout()
+    private async Task SwitchMicrosoftAccount()
     {
         ProfileStore.Reset();
         BoardStore.Reset();
-        Navigation.NavigateToLogout("authentication/logout");
+        await MicrosoftAuthNavigation.SwitchMicrosoftAccountAsync(Js, Navigation, AuthState);
+    }
+
+    private async Task Logout()
+    {
+        ProfileStore.Reset();
+        BoardStore.Reset();
+        await MicrosoftAuthNavigation.LocalSignOutAsync(Js, Navigation);
     }
 }

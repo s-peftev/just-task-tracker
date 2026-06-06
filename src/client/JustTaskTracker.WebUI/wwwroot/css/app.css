@@ -134,27 +134,24 @@ html, body {
     --jtt-navbar-height: 3.5rem;
     --jtt-color-background-app: #1F1F21;
     --jtt-color-background-surface: #18191A;
-
     /* Reusable body text */
     --jtt-color-text-body: #CECFD2;
+    --jtt-color-text-body-secondary: rgba(97, 179, 216, 0.65);
     --jtt-font-family-sans: 'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif;
     --jtt-font-size-body: 16px;
     --jtt-font-weight-body: 500;
-
     /* Sidebar — user info */
     --jtt-sidebar-user-color: #CECFD2;
     --jtt-sidebar-user-font-family: var(--jtt-font-family-sans);
     --jtt-sidebar-user-font-size: 14px;
     --jtt-sidebar-user-font-weight: 400;
     --jtt-sidebar-user-line-height: 1.4;
-
     /* Sidebar — nav tabs */
     --jtt-sidebar-tab-color: #CECFD2;
     --jtt-sidebar-tab-font-family: var(--jtt-font-family-sans);
     --jtt-sidebar-tab-font-size: 16px;
     --jtt-sidebar-tab-font-weight: 500;
     --jtt-sidebar-tab-line-height: 1.4;
-
     --mud-palette-background: transparent;
     --mud-palette-surface: rgba(28, 28, 30, 0.95);
     --mud-palette-appbar-background: transparent;

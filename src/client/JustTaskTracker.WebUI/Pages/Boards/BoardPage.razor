@@ -28,43 +28,89 @@
     else if (_board is { } board)
     {
         <header class="board-page__header">
-            <h1 class="board-page__title">@board.Name</h1>
+            <div class="board-page__title-area">
+                @if (_isEditingName)
+                {
+                    <div class="board-page__title-field">
+                        <span class="board-page__title-sizer">@_editName</span>
+                        <input @ref="_titleInputRef"
+                               class="board-page__title-input"
+                               type="text"
+                               maxlength="100"
+                               @bind="_editName"
+                               @bind:event="oninput"
+                               @onkeydown="OnTitleKeyDownAsync"
+                               @onblur="OnTitleBlurAsync" />
+                    </div>
+                }
+                else if (IsOwner)
+                {
+                    <h1 class="board-page__title board-page__title--editable"
+                        @onclick="StartNameEdit">
+                        @board.Name
+                    </h1>
+                }
+                else
+                {
+                    <h1 class="board-page__title">@board.Name</h1>
+                }
+            </div>
+
+            <div class="board-page__controls">
+                <button type="button" class="btn-noir" @onclick="ShowMembersComingSoon">
+                    <span>Members</span>
+                </button>
+
+                @if (IsOwner)
+                {
+                    <button type="button" class="btn-noir btn-noir--danger" @onclick="DeleteBoardAsync">
+                        <span>Delete</span>
+                    </button>
+                }
+
+                <button type="button"
+                        class="board-page__menu-btn"
+                        aria-label="Board menu"
+                        @onclick="ShowBoardMenuComingSoon">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <circle cx="5" cy="12" r="1.5" fill="currentColor" />
+                        <circle cx="12" cy="12" r="1.5" fill="currentColor" />
+                        <circle cx="19" cy="12" r="1.5" fill="currentColor" />
+                    </svg>
+                </button>
+
+                <button type="button"
+                        class="board-page__close-btn"
+                        aria-label="Back to dashboard"
+                        @onclick="GoToDashboard">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path d="M18 6L6 18M6 6l12 12"
+                              stroke="currentColor"
+                              stroke-width="2"
+                              stroke-linecap="round" />
+                    </svg>
+                </button>
+            </div>
         </header>
 
-        <div class="board-page__body"></div>
+        <section class="board-page__content">
+            <ul class="board-page__body">
+                @if (CanManageColumns)
+                {
+                    <li class="board-page__column-slot">
+                        <div class="board-page__add-column">
+                            <button type="button"
+                                    class="board-page__add-column-btn"
+                                    @onclick="ShowColumnsComingSoon">
+                                + Add column
+                            </button>
+                        </div>
+                    </li>
+                }
+            </ul>
+        </section>
     }
 </div>
-
-@if (_board is not null && _errorMessage is null && !_isLoading)
-{
-    <footer class="board-page__footer">
-        <button type="button" class="btn-noir" @onclick="GoToDashboard">
-            <span>Back to dashboard</span>
-        </button>
-
-        <button type="button" class="btn-noir" @onclick="ShowMembersComingSoon">
-            <span>Members</span>
-        </button>
-
-        @if (CanManageColumns)
-        {
-            <button type="button" class="btn-noir" @onclick="ShowColumnsComingSoon">
-                <span>Create column</span>
-            </button>
-        }
-
-        @if (IsOwner)
-        {
-            <button type="button" class="btn-noir" @onclick="EditBoardAsync">
-                <span>Edit board name</span>
-            </button>
-
-            <button type="button" class="btn-noir btn-noir--danger" @onclick="DeleteBoardAsync">
-                <span>Delete</span>
-            </button>
-        }
-    </footer>
-}
 
 @code {
     [Parameter]
@@ -73,12 +119,26 @@
     private BoardDetailsDto? _board;
     private bool _isLoading = true;
     private string? _errorMessage;
+    private bool _isEditingName;
+    private bool _isSavingName;
+    private bool _focusTitleInput;
+    private string _editName = string.Empty;
+    private ElementReference _titleInputRef;
 
     private bool IsOwner => _board?.UserRole == BoardMemberRole.Owner;
     private bool CanManageColumns => _board?.UserRole is BoardMemberRole.Owner or BoardMemberRole.Admin;
 
     protected override async Task OnParametersSetAsync() =>
         await LoadAsync();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!_focusTitleInput)
+            return;
+
+        _focusTitleInput = false;
+        await _titleInputRef.FocusAsync();
+    }
 
     private async Task LoadAsync()
     {
@@ -109,36 +169,84 @@
     private void ShowMembersComingSoon() =>
         Snackbar.Add("Members management is coming soon.", Severity.Info);
 
+    private void ShowBoardMenuComingSoon() =>
+        Snackbar.Add("Board menu is coming soon.", Severity.Info);
+
     private void ShowColumnsComingSoon() =>
         Snackbar.Add("Column creation is coming soon.", Severity.Info);
 
-    private async Task EditBoardAsync()
+    private void StartNameEdit()
     {
-        if (_board is null)
+        if (!IsOwner || _board is null || _isEditingName)
             return;
 
-        var parameters = new DialogParameters<BoardFormDialog>
+        _editName = _board.Name;
+        _isEditingName = true;
+        _focusTitleInput = true;
+    }
+
+    private void CancelNameEdit()
+    {
+        _isEditingName = false;
+        _editName = _board?.Name ?? string.Empty;
+    }
+
+    private async Task OnTitleKeyDownAsync(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            await SaveBoardNameAsync();
+        else if (e.Key == "Escape")
+            CancelNameEdit();
+    }
+
+    private async Task OnTitleBlurAsync()
+    {
+        if (!_isEditingName)
+            return;
+
+        await SaveBoardNameAsync();
+    }
+
+    private async Task SaveBoardNameAsync()
+    {
+        if (!_isEditingName || _board is null || _isSavingName)
+            return;
+
+        var trimmedName = _editName.Trim();
+
+        if (string.IsNullOrEmpty(trimmedName))
         {
-            { x => x.SubmitLabel, "Save" },
-            { x => x.InitialName, _board.Name }
-        };
-
-        var options = BoardFormDialog.DefaultOptions;
-
-        var dialog = await DialogService.ShowAsync<BoardFormDialog>("Edit board name", parameters, options);
-        var result = await dialog.Result;
-
-        if (result is not { Canceled: false, Data: string name })
+            Snackbar.Add("Board name is required.", Severity.Error);
             return;
+        }
+
+        if (trimmedName.Length > 100)
+        {
+            Snackbar.Add("Board name must not exceed 100 characters.", Severity.Error);
+            return;
+        }
+
+        if (string.Equals(trimmedName, _board.Name, StringComparison.Ordinal))
+        {
+            CancelNameEdit();
+            return;
+        }
+
+        _isSavingName = true;
 
         try
         {
-            _board = await BoardApiService.UpdateBoardAsync(Id, name);
+            _board = await BoardApiService.UpdateBoardAsync(Id, trimmedName);
+            _isEditingName = false;
             Snackbar.Add("Board updated.", Severity.Success);
         }
         catch (ApiServiceException ex)
         {
             Snackbar.ShowApiError(ex);
+        }
+        finally
+        {
+            _isSavingName = false;
         }
     }
 
@@ -146,7 +254,7 @@
     {
         var parameters = new DialogParameters<ConfirmDialog>
         {
-            { x => x.Message, $"Delete board \"{_board?.Name}\"? This action cannot be undone." },
+            { x => x.Message, $"Delete board \"{_board?.Name}\"?{Environment.NewLine}This action cannot be undone." },
             { x => x.ConfirmLabel, "Delete" }
         };
 

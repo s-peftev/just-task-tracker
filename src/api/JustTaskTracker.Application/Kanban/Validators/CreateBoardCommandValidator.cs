@@ -9,7 +9,6 @@ public class CreateBoardCommandValidator : AbstractValidator<CreateBoardCommand>
     {
         RuleFor(x => x.Name)
             .NotEmpty()
-            .MinimumLength(3)
             .MaximumLength(100);
     }
 }

@@ -12,7 +12,6 @@ public class UpdateBoardCommandValidator : AbstractValidator<UpdateBoardCommand>
 
         RuleFor(x => x.Name)
             .NotEmpty()
-            .MinimumLength(3)
             .MaximumLength(100);
     }
 }

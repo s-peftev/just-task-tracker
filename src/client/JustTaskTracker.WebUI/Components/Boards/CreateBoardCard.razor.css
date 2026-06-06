@@ -1,0 +1,28 @@
+.board-create-card {
+    width: 100%;
+    height: 108px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.75rem;
+    box-sizing: border-box;
+    cursor: pointer;
+    color: var(--jtt-color-text-body);
+    font-family: var(--jtt-font-family-sans);
+    font-size: var(--jtt-font-size-body);
+    font-weight: var(--jtt-font-weight-body);
+    line-height: 1.25;
+    text-align: center;
+    background: rgba(255, 255, 255, 0.10);
+    border: none;
+    border-radius: 0.5rem;
+    box-shadow:
+        0 0 0 1px #00000000,
+        0 1px 1px #01040480,
+        0 0 1px #01040480;
+    transition: opacity 0.15s;
+}
+
+.board-create-card:hover {
+    opacity: 0.9;
+}

@@ -11,7 +11,7 @@ namespace JustTaskTracker.WebUI.Services.Kanban.Stores;
 /// </summary>
 internal sealed class BoardStore(IBoardApiService boardApiService) : IBoardStore
 {
-    public const int PageSize = 8;
+    public const int PageSize = 23;
 
     private readonly Dictionary<Guid, BoardMemberRole> _roleCache = [];
 

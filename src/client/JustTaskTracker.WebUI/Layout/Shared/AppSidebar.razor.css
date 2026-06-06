@@ -76,7 +76,7 @@
     padding: 0 2rem;
 }
 
-.sidebar__tab {
+::deep .sidebar__tab {
     display: block;
     width: 100%;
     box-sizing: border-box;
@@ -88,12 +88,12 @@
     transition: background 0.2s, border-color 0.2s, opacity 0.2s;
 }
 
-.sidebar__tab:hover:not(.sidebar__tab--active) {
+::deep .sidebar__tab:hover:not(.sidebar__tab--active) {
     opacity: 0.85;
 }
 
-.sidebar__tab--active {
-    background: rgba(255, 255, 255, 0.10);
+::deep .sidebar__tab--active {
+    background: rgba(97, 179, 216, 0.10);
     backdrop-filter: blur(12px);
     color: #fff;
     border-color: rgba(255, 255, 255, 0.20);
@@ -101,7 +101,7 @@
     opacity: 1;
 }
 
-.sidebar__tab--active:hover {
+::deep .sidebar__tab--active:hover {
     background: rgba(255, 255, 255, 0.20);
     border-color: rgba(255, 255, 255, 0.40);
 }

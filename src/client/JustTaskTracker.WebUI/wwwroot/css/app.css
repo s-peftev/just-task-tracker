@@ -85,7 +85,7 @@ html, body {
 
 /* Glass button — applied via Class= on MudButton (outside scope isolation) */
 .btn-glass {
-    background: rgba(255, 255, 255, 0.10) !important;
+    background: rgba(97, 179, 216, 0.10) !important;
     backdrop-filter: blur(12px) !important;
     color: #fff !important;
     border: 1px solid rgba(255, 255, 255, 0.20) !important;
@@ -98,7 +98,7 @@ html, body {
 }
 
 .btn-glass:hover {
-    background: rgba(255, 255, 255, 0.20) !important;
+    background: rgba(97, 179, 216, 0.15) !important;
     border-color: rgba(255, 255, 255, 0.40) !important;
 }
 

@@ -5,13 +5,15 @@
     flex-direction: column;
     justify-content: space-between;
     text-align: left;
-    padding: 1.75rem;
     cursor: pointer;
     color: inherit;
     background-color: var(--jtt-color-background-surface);
     border: none;
-    border-radius: 0;
-    box-shadow: none;
+    border-radius: 0.5rem;
+    box-shadow:
+        0 0 0 1px #00000000,
+        0 1px 1px #01040480,
+        0 0 1px #01040480;
     position: relative;
     z-index: 1;
     transition: opacity 0.15s;
@@ -23,39 +25,54 @@
 
 .board-card__body {
     display: flex;
-    flex: 1;
-    align-items: flex-start;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-end;
+    gap: 0.25rem;
+    height: 72px;
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    box-sizing: border-box;
+    background: radial-gradient(
+        circle at left,
+        rgba(255, 255, 255, 0.10),
+        rgba(97, 179, 216, 0.10)
+    );
+    border-radius: 0.5rem 0.5rem 0 0;
 }
 
-.board-card__name {
+.board-card__meta {
     margin: 0;
-    font-size: 1.6rem;
-    font-weight: 700;
-    line-height: 1.25;
-    color: rgba(255, 255, 255, 0.92);
-    word-break: break-word;
-    display: -webkit-box;
-    -webkit-line-clamp: 4;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-}
-
-.board-card__footer {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.75rem;
-    padding-top: 1rem;
-}
-
-.board-card__owner {
+    max-width: 100%;
     font-size: 0.8rem;
+    line-height: 1.25;
     color: var(--jtt-color-text-body);
+    text-align: right;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-.board-card__role {
-    flex-shrink: 0;
+.board-card__meta-label {
+    margin-right: 0.25rem;
+}
+
+.board-card__footer {
+    height: 36px;
+    width: 100%;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.board-card__name {
+    display: block;
+    margin: 0.5rem;
+    min-width: 0;
+    font-size: var(--jtt-font-size-body);
+    font-weight: var(--jtt-font-weight-body);
+    line-height: 20px;
+    color: var(--jtt-sidebar-user-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }

@@ -39,7 +39,7 @@ else if (ProfileStore.IsLoaded && ProfileStore.Profile is { } profile)
                         <MudAlert Severity="Severity.Error">@error</MudAlert>
                     </div>
                 }
-                else if (BoardStore.Boards.Count == 0)
+                else if (BoardStore.Boards.Count == 0 && !CanCreateBoard)
                 {
                     <div class="dashboard__state">
                         <p class="dashboard__empty">You don't have any boards yet.</p>
@@ -48,6 +48,11 @@ else if (ProfileStore.IsLoaded && ProfileStore.Profile is { } profile)
                 else
                 {
                     <div class="dashboard__grid">
+                        @if (CanCreateBoard)
+                        {
+                            <CreateBoardCard OnClick="CreateBoardAsync" />
+                        }
+
                         @foreach (var board in BoardStore.Boards)
                         {
                             <BoardCard Board="board" OnClick="OpenBoard" />
@@ -57,35 +62,23 @@ else if (ProfileStore.IsLoaded && ProfileStore.Profile is { } profile)
             </div>
 
             <footer class="dashboard__footer">
-                <div class="dashboard__footer-start">
-                    @if (CanCreateBoard)
-                    {
-                        <button type="button" class="btn-noir" @onclick="CreateBoardAsync">
-                            <span>+ Create board</span>
-                        </button>
-                    }
+                <div class="dashboard__pager">
+                    <button type="button"
+                            class="btn-noir"
+                            disabled="@(BoardStore.CurrentPage <= 1 || BoardStore.IsLoading)"
+                            @onclick="() => ChangePageAsync(BoardStore.CurrentPage - 1)">
+                        <span>Prev</span>
+                    </button>
+                    <span class="dashboard__pager-info">
+                        Page @BoardStore.CurrentPage of @(Math.Max(BoardStore.Pagination.TotalPages, 1))
+                    </span>
+                    <button type="button"
+                            class="btn-noir"
+                            disabled="@(BoardStore.CurrentPage >= Math.Max(BoardStore.Pagination.TotalPages, 1) || BoardStore.IsLoading)"
+                            @onclick="() => ChangePageAsync(BoardStore.CurrentPage + 1)">
+                        <span>Next</span>
+                    </button>
                 </div>
-
-                @if (BoardStore.Pagination.TotalPages > 1)
-                {
-                    <div class="dashboard__pager">
-                        <button type="button"
-                                class="btn-noir"
-                                disabled="@(BoardStore.CurrentPage <= 1 || BoardStore.IsLoading)"
-                                @onclick="() => ChangePageAsync(BoardStore.CurrentPage - 1)">
-                            <span>Prev</span>
-                        </button>
-                        <span class="dashboard__pager-info">
-                            Page @BoardStore.CurrentPage of @BoardStore.Pagination.TotalPages
-                        </span>
-                        <button type="button"
-                                class="btn-noir"
-                                disabled="@(BoardStore.CurrentPage >= BoardStore.Pagination.TotalPages || BoardStore.IsLoading)"
-                                @onclick="() => ChangePageAsync(BoardStore.CurrentPage + 1)">
-                            <span>Next</span>
-                        </button>
-                    </div>
-                }
             </footer>
         </section>
     </div>

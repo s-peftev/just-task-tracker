@@ -1,0 +1,10 @@
+<button type="button" class="board-create-card" @onclick="OnClickHandler">
+    Create new board
+</button>
+
+@code {
+    [Parameter]
+    public EventCallback OnClick { get; set; }
+
+    private Task OnClickHandler() => OnClick.InvokeAsync();
+}

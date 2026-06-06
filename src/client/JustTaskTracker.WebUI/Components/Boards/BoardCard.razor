@@ -2,15 +2,18 @@
 
 <button type="button" class="board-card" @onclick="OnClickHandler">
     <div class="board-card__body">
-        <h3 class="board-card__name">@Board.Name</h3>
+        <p class="board-card__meta">
+            <span class="board-card__meta-label">Board creator:</span>
+            <span class="board-card__meta-value">@OwnerDisplayName</span>
+        </p>
+        <p class="board-card__meta">
+            <span class="board-card__meta-label">Your role:</span>
+            <span class="board-card__meta-value">@Board.UserRole</span>
+        </p>
     </div>
 
     <div class="board-card__footer">
-        @if (Board.Owner is { } owner)
-        {
-            <span class="board-card__owner">@(owner.DisplayName ?? owner.Email)</span>
-        }
-        <span class="board-card__role">@Board.UserRole</span>
+        <span class="board-card__name" title="@Board.Name">@Board.Name</span>
     </div>
 </button>
 
@@ -22,4 +25,9 @@
     public EventCallback<BoardLookupDto> OnClick { get; set; }
 
     private Task OnClickHandler() => OnClick.InvokeAsync(Board);
+
+    private string OwnerDisplayName =>
+        Board.Owner is { } owner
+            ? owner.DisplayName ?? owner.Email
+            : "—";
 }

@@ -85,14 +85,8 @@
     flex-shrink: 0;
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-end;
     gap: 1rem;
-    flex-wrap: wrap;
-}
-
-.dashboard__footer-start {
-    display: flex;
-    align-items: center;
 }
 
 .dashboard__pager {

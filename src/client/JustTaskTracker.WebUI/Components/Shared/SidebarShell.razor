@@ -1,0 +1,51 @@
+@implements IDisposable
+@inject IProfileStore ProfileStore
+@inject NavigationManager Navigation
+
+@if (ProfileStore.IsLoading && !ProfileStore.IsLoaded)
+{
+    <div class="sidebar-shell sidebar-shell--center">
+        <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+    </div>
+}
+else if (ProfileStore.IsLoaded && ProfileStore.Profile is { } profile)
+{
+    <div class="sidebar-shell">
+        <div class="sidebar-shell__sidebar">
+            <AppSidebar Profile="profile" />
+        </div>
+
+        <section class="sidebar-shell__content @(CenterContent ? "sidebar-shell__content--center" : null)">
+            @ChildContent
+        </section>
+    </div>
+}
+else if (ProfileStore.ErrorMessage is { } error)
+{
+    <div class="sidebar-shell sidebar-shell--center">
+        <MudAlert Severity="Severity.Error">@error</MudAlert>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    [Parameter]
+    public bool CenterContent { get; set; }
+
+    protected override void OnInitialized() =>
+        ProfileStore.StateChanged += OnStoreStateChanged;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ProfileStore.EnsureLoadedAsync();
+
+        if (ProfileStore.RequiresLogin)
+            Navigation.NavigateTo("/login");
+    }
+
+    public void Dispose() => ProfileStore.StateChanged -= OnStoreStateChanged;
+
+    private void OnStoreStateChanged() => InvokeAsync(StateHasChanged);
+}

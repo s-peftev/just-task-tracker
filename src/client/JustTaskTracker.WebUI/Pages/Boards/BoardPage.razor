@@ -57,27 +57,10 @@
             </div>
 
             <div class="board-page__controls">
-                <button type="button" class="btn-noir" @onclick="ShowMembersComingSoon">
-                    <span>Members</span>
-                </button>
-
-                @if (IsOwner)
-                {
-                    <button type="button" class="btn-noir btn-noir--danger" @onclick="DeleteBoardAsync">
-                        <span>Delete</span>
-                    </button>
-                }
-
-                <button type="button"
-                        class="board-page__menu-btn"
-                        aria-label="Board menu"
-                        @onclick="ShowBoardMenuComingSoon">
-                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <circle cx="5" cy="12" r="1.5" fill="currentColor" />
-                        <circle cx="12" cy="12" r="1.5" fill="currentColor" />
-                        <circle cx="19" cy="12" r="1.5" fill="currentColor" />
-                    </svg>
-                </button>
+                <BoardPageMenu IsOwner="IsOwner"
+                               OnMembersClick="ShowMembersComingSoon"
+                               OnLeaveBoardClick="ShowLeaveBoardComingSoon"
+                               OnDeleteBoardClick="DeleteBoardAsync" />
 
                 <button type="button"
                         class="board-page__close-btn"
@@ -169,8 +152,8 @@
     private void ShowMembersComingSoon() =>
         Snackbar.Add("Members management is coming soon.", Severity.Info);
 
-    private void ShowBoardMenuComingSoon() =>
-        Snackbar.Add("Board menu is coming soon.", Severity.Info);
+    private void ShowLeaveBoardComingSoon() =>
+        Snackbar.Add("Leave board is coming soon.", Severity.Info);
 
     private void ShowColumnsComingSoon() =>
         Snackbar.Add("Column creation is coming soon.", Severity.Info);

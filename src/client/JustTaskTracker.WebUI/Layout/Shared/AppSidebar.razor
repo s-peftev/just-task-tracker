@@ -1,79 +1,89 @@
 @using JustTaskTracker.WebUI.Infrastructure
+@implements IDisposable
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthState
 @inject IProfileStore ProfileStore
 @inject IBoardStore BoardStore
 @inject IJSRuntime Js
 
-<aside class="sidebar">
-    <div class="sidebar__profile">
-        <div class="sidebar__avatar text-sidebar-user" aria-hidden="true">
-            <span>@AvatarLetter</span>
+@if (ProfileStore.Profile is { } profile)
+{
+    <aside class="sidebar">
+        <div class="sidebar__profile">
+            <div class="sidebar__avatar text-sidebar-user" aria-hidden="true">
+                <span>@GetAvatarLetter(profile)</span>
+            </div>
+
+            <div class="sidebar__info">
+                <p class="sidebar__name text-sidebar-user">@(profile.DisplayName ?? profile.Email)</p>
+                <p class="sidebar__email text-sidebar-user">@profile.Email</p>
+
+                @if (profile.Roles.Count > 0)
+                {
+                    <div class="sidebar__roles">
+                        @foreach (var role in profile.Roles)
+                        {
+                            <span class="sidebar__role text-sidebar-user">@role</span>
+                        }
+                    </div>
+                }
+            </div>
         </div>
 
-        <div class="sidebar__info">
-            <p class="sidebar__name text-sidebar-user">@(Profile.DisplayName ?? Profile.Email)</p>
-            <p class="sidebar__email text-sidebar-user">@Profile.Email</p>
+        <div class="sidebar__divider" role="separator" />
 
-            @if (Profile.Roles.Count > 0)
-            {
-                <div class="sidebar__roles">
-                    @foreach (var role in Profile.Roles)
-                    {
-                        <span class="sidebar__role text-sidebar-user">@role</span>
-                    }
-                </div>
-            }
+        <nav class="sidebar__nav" aria-label="Main sections">
+            <NavLink href="/dashboard"
+                     class="sidebar__tab text-sidebar-tab"
+                     ActiveClass="sidebar__tab--active"
+                     Match="NavLinkMatch.All">
+                Dashboard
+            </NavLink>
+            <NavLink href="/calls"
+                     class="sidebar__tab text-sidebar-tab"
+                     ActiveClass="sidebar__tab--active">
+                Calls
+            </NavLink>
+            <NavLink href="/ai-assistant"
+                     class="sidebar__tab text-sidebar-tab"
+                     ActiveClass="sidebar__tab--active">
+                AI Assistant
+            </NavLink>
+            <NavLink href="/subscriptions"
+                     class="sidebar__tab text-sidebar-tab"
+                     ActiveClass="sidebar__tab--active">
+                Subscriptions
+            </NavLink>
+        </nav>
+
+        <div class="sidebar__footer">
+            <button type="button"
+                    class="sidebar__footer-action text-sidebar-tab"
+                    @onclick="SwitchMicrosoftAccount">
+                Switch Microsoft account
+            </button>
+            <button type="button"
+                    class="sidebar__footer-action text-sidebar-tab"
+                    @onclick="Logout">
+                Log out
+            </button>
         </div>
-    </div>
-
-    <div class="sidebar__divider" role="separator" />
-
-    <nav class="sidebar__nav" aria-label="Main sections">
-        <NavLink href="/dashboard"
-                 class="sidebar__tab text-sidebar-tab"
-                 ActiveClass="sidebar__tab--active"
-                 Match="NavLinkMatch.All">
-            Dashboard
-        </NavLink>
-        <NavLink href="/calls"
-                 class="sidebar__tab text-sidebar-tab"
-                 ActiveClass="sidebar__tab--active">
-            Calls
-        </NavLink>
-        <NavLink href="/ai-assistant"
-                 class="sidebar__tab text-sidebar-tab"
-                 ActiveClass="sidebar__tab--active">
-            AI Assistant
-        </NavLink>
-        <NavLink href="/subscriptions"
-                 class="sidebar__tab text-sidebar-tab"
-                 ActiveClass="sidebar__tab--active">
-            Subscriptions
-        </NavLink>
-    </nav>
-
-    <div class="sidebar__footer">
-        <button type="button"
-                class="sidebar__footer-action text-sidebar-tab"
-                @onclick="SwitchMicrosoftAccount">
-            Switch Microsoft account
-        </button>
-        <button type="button"
-                class="sidebar__footer-action text-sidebar-tab"
-                @onclick="Logout">
-            Log out
-        </button>
-    </div>
-</aside>
+    </aside>
+}
 
 @code {
-    [Parameter, EditorRequired]
-    public UserWithRolesDto Profile { get; set; } = default!;
+    protected override void OnInitialized() =>
+        ProfileStore.StateChanged += OnProfileStoreStateChanged;
 
-    private char AvatarLetter =>
+    public void Dispose() =>
+        ProfileStore.StateChanged -= OnProfileStoreStateChanged;
+
+    private void OnProfileStoreStateChanged() =>
+        InvokeAsync(StateHasChanged);
+
+    private static char GetAvatarLetter(Domain.Auth.UserWithRolesDto profile) =>
         char.ToUpperInvariant(
-            (Profile.DisplayName ?? Profile.Email) is { Length: > 0 } source
+            (profile.DisplayName ?? profile.Email) is { Length: > 0 } source
                 ? source[0]
                 : '?');
 

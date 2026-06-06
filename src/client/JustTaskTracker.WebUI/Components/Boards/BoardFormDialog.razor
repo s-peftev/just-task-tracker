@@ -3,7 +3,7 @@
 <MudDialog Class="board-form-dialog" ActionsClass="board-form-dialog__actions">
     <DialogContent>
         <form id="@FormId" @onsubmit="HandleSubmitAsync" @onsubmit:preventDefault="true">
-            <div class="board-form-dialog__field" @onfocusout="OnFieldFocusOutAsync">
+            <div @onfocusout="OnFieldFocusOutAsync">
                 <MudTextField @bind-Value="_model.Name"
                               @bind-Value:after="OnNameChangedAsync"
                               Label="Board name"

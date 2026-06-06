@@ -1,14 +1,14 @@
 @using JustTaskTracker.WebUI.Domain.Kanban
 
-<button type="button" class="board-card" @onclick="OnClickHandler">
+<button type="button" class="board-card card-elevated" @onclick="OnClickHandler">
     <div class="board-card__body">
         <p class="board-card__meta">
             <span class="board-card__meta-label">Board creator:</span>
-            <span class="board-card__meta-value">@OwnerDisplayName</span>
+            @OwnerDisplayName
         </p>
         <p class="board-card__meta">
             <span class="board-card__meta-label">Your role:</span>
-            <span class="board-card__meta-value">@Board.UserRole</span>
+            @Board.UserRole
         </p>
     </div>
 

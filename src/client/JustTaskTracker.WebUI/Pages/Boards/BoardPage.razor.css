@@ -22,7 +22,7 @@
     justify-content: space-between;
     gap: 1rem;
     padding: 0 1.5rem;
-    background-color: rgba(150, 150, 150, 0.2);
+    background-color: var(--jtt-overlay-neutral-20);
     position: relative;
     z-index: 2;
 }
@@ -35,12 +35,9 @@
 }
 
 .board-page__title {
-    margin: 0;
     min-width: 0;
     max-width: 100%;
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: rgba(255, 255, 255, 0.95);
+    color: var(--jtt-text-primary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -49,24 +46,23 @@
 .board-page__title--editable {
     cursor: pointer;
     padding: var(--board-page-title-padding-block) var(--board-page-title-padding-inline);
-    border-radius: 0.25rem;
+    border-radius: var(--jtt-radius-sm);
     transition: background-color 0.2s;
 }
 
 .board-page__title--editable:hover {
-    background-color: rgba(255, 255, 255, 0.2);
+    background-color: var(--jtt-overlay-white-20);
 }
 
 .board-page__title-field {
     display: inline-block;
     position: relative;
     max-width: 100%;
-    vertical-align: top;
 }
 
 .board-page__title-field > * {
-    font-size: 1.25rem;
-    font-weight: 700;
+    font-size: var(--jtt-font-size-section);
+    font-weight: var(--jtt-font-weight-strong);
     line-height: 1.2;
     font-family: inherit;
     box-sizing: border-box;
@@ -88,19 +84,18 @@
 .board-page__title-input {
     position: absolute;
     inset: 0;
-    width: 100%;
     min-width: 0;
     margin: 0;
     padding: var(--board-page-title-padding-block) var(--board-page-title-padding-inline);
-    border: 2px solid rgba(255, 255, 255, 0.23);
-    border-radius: 0.25rem;
-    background: var(--jtt-color-background-surface);
-    color: rgba(255, 255, 255, 0.95);
+    border: 2px solid var(--jtt-stroke-muted);
+    border-radius: var(--jtt-radius-sm);
+    background: var(--jtt-surface-raised);
+    color: var(--jtt-text-primary);
     outline: none;
 }
 
 .board-page__title-input:focus {
-    border-color: rgba(97, 179, 216, 0.55);
+    border-color: var(--jtt-stroke-accent-strong);
 }
 
 .board-page__controls {
@@ -108,36 +103,6 @@
     display: flex;
     align-items: center;
     gap: 0.75rem;
-}
-
-.board-page__close-btn {
-    flex-shrink: 0;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 2rem;
-    height: 2rem;
-    padding: 0;
-    border: 1px solid #fff;
-    border-radius: 50%;
-    background: transparent;
-    color: #fff;
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
-
-.board-page__close-btn:hover {
-    background-color: rgba(255, 255, 255, 0.2);
-}
-
-.board-page__close-btn:active {
-    background-color: rgba(255, 255, 255, 0.28);
-}
-
-.board-page__close-btn svg {
-    width: 0.875rem;
-    height: 0.875rem;
-    display: block;
 }
 
 .board-page__content {
@@ -150,7 +115,7 @@
     margin-top: calc(-1 * var(--board-page-header-height));
     padding-top: calc(var(--board-page-header-height) + var(--board-page-content-gap));
     overflow: hidden;
-    background-color: rgba(97, 179, 216, 0.10);
+    background-color: var(--jtt-overlay-accent-10);
 }
 
 .board-page__body {
@@ -169,41 +134,8 @@
 
 .board-page__column-slot {
     flex-shrink: 0;
-    list-style: none;
 }
 
 .board-page__add-column-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
     width: 272px;
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0.75rem 1rem;
-    border: 1px solid rgb(255, 255, 255);
-    border-radius: 0.5rem;
-    background: rgba(255, 255, 255, 0.10);
-    color: rgba(255, 255, 255, 0.95);
-    font-family: inherit;
-    font-size: var(--jtt-font-size-body);
-    font-weight: var(--jtt-font-weight-body);
-    line-height: 1.2;
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
-
-.board-page__add-column-btn:hover {
-    background: rgba(255, 255, 255, 0.16);
-}
-
-.board-page__state {
-    flex: 1 1 0;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 1.25rem;
-    padding: 1.5rem;
-    overflow: hidden;
 }

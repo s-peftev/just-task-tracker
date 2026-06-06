@@ -12,13 +12,13 @@
 <div class="board-page">
     @if (_isLoading)
     {
-        <div class="board-page__state">
+        <div class="page-state page-state--stacked">
             <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
         </div>
     }
     else if (_errorMessage is { } error)
     {
-        <div class="board-page__state">
+        <div class="page-state page-state--stacked">
             <MudAlert Severity="Severity.Error">@error</MudAlert>
             <button type="button" class="btn-noir" @onclick="GoToDashboard">
                 <span>Back to dashboard</span>
@@ -45,14 +45,14 @@
                 }
                 else if (IsOwner)
                 {
-                    <h1 class="board-page__title board-page__title--editable"
+                    <h1 class="text-section-title board-page__title board-page__title--editable"
                         @onclick="StartNameEdit">
                         @board.Name
                     </h1>
                 }
                 else
                 {
-                    <h1 class="board-page__title">@board.Name</h1>
+                    <h1 class="text-section-title board-page__title">@board.Name</h1>
                 }
             </div>
 
@@ -63,7 +63,7 @@
                                OnDeleteBoardClick="DeleteBoardAsync" />
 
                 <button type="button"
-                        class="board-page__close-btn"
+                        class="btn-icon btn-icon--round btn-icon--sm"
                         aria-label="Back to dashboard"
                         @onclick="GoToDashboard">
                     <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -81,13 +81,11 @@
                 @if (CanManageColumns)
                 {
                     <li class="board-page__column-slot">
-                        <div class="board-page__add-column">
-                            <button type="button"
-                                    class="board-page__add-column-btn"
-                                    @onclick="ShowColumnsComingSoon">
-                                + Add column
-                            </button>
-                        </div>
+                        <button type="button"
+                                class="btn-glass-white board-page__add-column-btn"
+                                @onclick="ShowColumnsComingSoon">
+                            + Add column
+                        </button>
                     </li>
                 }
             </ul>

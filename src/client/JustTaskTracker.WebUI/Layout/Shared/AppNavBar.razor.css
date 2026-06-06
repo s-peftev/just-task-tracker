@@ -1,8 +1,7 @@
 .jtt-nav {
     flex-shrink: 0;
     width: 100%;
-    background-color: var(--jtt-color-background-surface);
-    box-shadow: none;
+    background-color: var(--jtt-surface-raised);
     position: relative;
     z-index: 10;
 }
@@ -21,7 +20,7 @@
     font-size: 1.25rem;
     font-weight: 700;
     letter-spacing: -0.025em;
-    color: #fff;
+    color: var(--jtt-text-strong);
     text-decoration: none;
     cursor: pointer;
     user-select: none;
@@ -30,5 +29,5 @@
 }
 
 .jtt-nav__logo:hover {
-    color: rgba(255, 255, 255, 0.8);
+    color: var(--jtt-text-muted);
 }

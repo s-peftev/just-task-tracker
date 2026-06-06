@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using JustTaskTracker.WebUI.Domain.Auth;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.WebAssembly.Authentication;
@@ -118,5 +119,31 @@ public static class MicrosoftAuthNavigation
         }
 
         return user.Identity?.Name ?? string.Empty;
+    }
+
+    /// <summary>
+    /// Returns false when cached profile email does not match any email-like claim on the token.
+    /// Used to detect stale profile data after an MS account switch.
+    /// </summary>
+    public static bool ProfileMatchesAuth(UserWithRolesDto profile, ClaimsPrincipal user)
+    {
+        foreach (var claimType in new[]
+        {
+            "preferred_username",
+            ClaimTypes.Email,
+            ClaimTypes.Upn,
+            "email",
+            "unique_name"
+        })
+        {
+            var value = user.FindFirst(claimType)?.Value;
+            if (!string.IsNullOrWhiteSpace(value) &&
+                value.Equals(profile.Email, StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+
+        var identifier = GetAccountIdentifier(user);
+        return identifier.Contains('@') &&
+               identifier.Equals(profile.Email, StringComparison.OrdinalIgnoreCase);
     }
 }

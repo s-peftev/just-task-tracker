@@ -8,13 +8,8 @@
     text-align: left;
     cursor: pointer;
     color: inherit;
-    background-color: var(--jtt-color-background-surface);
+    background-color: var(--jtt-surface-raised);
     border: none;
-    border-radius: 0.5rem;
-    box-shadow:
-        0 0 0 1px #00000000,
-        0 1px 1px #01040480,
-        0 0 1px #01040480;
     position: relative;
     z-index: 1;
     transition: opacity 0.15s;
@@ -36,10 +31,10 @@
     box-sizing: border-box;
     background: radial-gradient(
         circle at left,
-        rgba(255, 255, 255, 0.10),
-        rgba(97, 179, 216, 0.10)
+        var(--jtt-overlay-white-10),
+        var(--jtt-overlay-accent-10)
     );
-    border-radius: 0.5rem 0.5rem 0 0;
+    border-radius: var(--jtt-radius-md) var(--jtt-radius-md) 0 0;
 }
 
 .board-card__meta {
@@ -47,7 +42,7 @@
     max-width: 100%;
     font-size: 0.8rem;
     line-height: 1.25;
-    color: var(--jtt-color-text-body);
+    color: var(--jtt-text-body);
     text-align: right;
     white-space: nowrap;
     overflow: hidden;
@@ -72,7 +67,7 @@
     font-size: var(--jtt-font-size-body);
     font-weight: var(--jtt-font-weight-body);
     line-height: 20px;
-    color: var(--jtt-sidebar-user-color);
+    color: var(--jtt-text-body);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;

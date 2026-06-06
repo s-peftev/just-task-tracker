@@ -123,12 +123,7 @@
             { x => x.InitialName, _board.Name }
         };
 
-        var options = new DialogOptions
-        {
-            CloseOnEscapeKey = true,
-            MaxWidth = MaxWidth.ExtraSmall,
-            FullWidth = true
-        };
+        var options = BoardFormDialog.DefaultOptions;
 
         var dialog = await DialogService.ShowAsync<BoardFormDialog>("Edit board name", parameters, options);
         var result = await dialog.Result;
@@ -155,12 +150,7 @@
             { x => x.ConfirmLabel, "Delete" }
         };
 
-        var options = new DialogOptions
-        {
-            CloseOnEscapeKey = true,
-            MaxWidth = MaxWidth.ExtraSmall,
-            FullWidth = true
-        };
+        var options = ConfirmDialog.DefaultOptions;
 
         var dialog = await DialogService.ShowAsync<ConfirmDialog>("Delete board", parameters, options);
         var result = await dialog.Result;

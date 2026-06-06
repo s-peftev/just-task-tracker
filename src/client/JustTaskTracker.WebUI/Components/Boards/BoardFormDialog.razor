@@ -1,28 +1,37 @@
-@using FluentValidation
 @using JustTaskTracker.WebUI.Validation
 
-<MudDialog>
+<MudDialog Class="board-form-dialog" ActionsClass="board-form-dialog__actions">
     <DialogContent>
-        <MudForm @ref="_form" Model="_model" Validation="ValidateValue" ValidationDelay="0">
+        <div class="board-form-dialog__field" @onfocusout="OnFieldFocusOutAsync">
             <MudTextField @bind-Value="_model.Name"
-                          For="@(() => _model.Name)"
-                          Immediate="true"
+                          @bind-Value:after="OnNameChangedAsync"
                           Label="Board name"
                           Variant="Variant.Outlined"
                           Counter="100"
                           MaxLength="100"
-                          AutoFocus="true" />
-        </MudForm>
+                          AutoFocus="true"
+                          Required="false"
+                          OnlyValidateIfDirty="true"
+                          Error="_showValidation && _nameError is not null"
+                          ErrorText="@(_showValidation ? _nameError : null)" />
+        </div>
     </DialogContent>
     <DialogActions>
-        <MudButton Class="btn-glass" OnClick="Cancel">Cancel</MudButton>
-        <MudButton Class="login-ms-btn" OnClick="SubmitAsync" Disabled="_isSubmitting">
+        <MudButton Class="btn-dialog-cancel btn-dialog-action" OnClick="Cancel">Cancel</MudButton>
+        <MudButton Class="btn-glass btn-dialog-action" OnClick="SubmitAsync" Disabled="_isSubmitting">
             @SubmitLabel
         </MudButton>
     </DialogActions>
 </MudDialog>
 
 @code {
+    public static DialogOptions DefaultOptions { get; } = new()
+    {
+        CloseOnEscapeKey = true,
+        MaxWidth = MaxWidth.ExtraSmall,
+        FullWidth = true
+    };
+
     [CascadingParameter]
     private IMudDialogInstance MudDialog { get; set; } = default!;
 
@@ -34,17 +43,37 @@
 
     private readonly BoardFormModel _model = new();
     private readonly BoardFormModelValidator _validator = new();
-    private MudForm _form = default!;
     private bool _isSubmitting;
+    private bool _showValidation;
+    private bool _isDirty;
+    private string? _nameError;
 
     protected override void OnInitialized() =>
         _model.Name = InitialName ?? string.Empty;
 
+    private async Task OnNameChangedAsync()
+    {
+        _isDirty = true;
+
+        if (_showValidation)
+            await ValidateNameAsync();
+    }
+
+    private async Task OnFieldFocusOutAsync(FocusEventArgs _)
+    {
+        if (_showValidation || !_isDirty)
+            return;
+
+        _showValidation = true;
+        await ValidateNameAsync();
+    }
+
     private async Task SubmitAsync()
     {
-        await _form.Validate();
+        _showValidation = true;
+        await ValidateNameAsync();
 
-        if (!_form.IsValid)
+        if (_nameError is not null)
             return;
 
         _isSubmitting = true;
@@ -53,13 +82,17 @@
 
     private void Cancel() => MudDialog.Cancel();
 
-    private Func<object, string, Task<IEnumerable<string>>> ValidateValue => async (model, propertyName) =>
+    private async Task ValidateNameAsync()
     {
-        var result = await _validator.ValidateAsync(
-            ValidationContext<BoardFormModel>.CreateWithOptions((BoardFormModel)model, x => x.IncludeProperties(propertyName)));
+        if (!_showValidation)
+        {
+            _nameError = null;
+            return;
+        }
 
-        return result.IsValid
-            ? []
-            : result.Errors.Select(e => e.ErrorMessage);
-    };
+        var result = await _validator.ValidateAsync(_model);
+        _nameError = result.Errors
+            .FirstOrDefault(e => e.PropertyName == nameof(BoardFormModel.Name))
+            ?.ErrorMessage;
+    }
 }

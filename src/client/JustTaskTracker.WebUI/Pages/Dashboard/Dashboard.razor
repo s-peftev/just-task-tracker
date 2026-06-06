@@ -146,14 +146,9 @@ else if (ProfileStore.ErrorMessage is { } profileError)
             { x => x.SubmitLabel, "Create" }
         };
 
-        var options = new DialogOptions
-        {
-            CloseOnEscapeKey = true,
-            MaxWidth = MaxWidth.ExtraSmall,
-            FullWidth = true
-        };
+        var options = BoardFormDialog.DefaultOptions;
 
-        var dialog = await DialogService.ShowAsync<BoardFormDialog>("Create board", parameters, options);
+        var dialog = await DialogService.ShowAsync<BoardFormDialog>("Create new board", parameters, options);
         var result = await dialog.Result;
 
         if (result is not { Canceled: false, Data: string name })

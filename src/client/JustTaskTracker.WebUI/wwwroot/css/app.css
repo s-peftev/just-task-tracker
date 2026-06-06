@@ -98,6 +98,73 @@ html, body {
     font-size: 1rem !important;
 }
 
+.btn-dialog-cancel {
+    background: rgba(255, 255, 255, 0.10) !important;
+    color: #fff !important;
+    border: 1px solid rgba(255, 255, 255, 0.10) !important;
+    border-radius: 0.5rem !important;
+    font-weight: 400 !important;
+    text-transform: none !important;
+    box-shadow: none !important;
+    letter-spacing: normal !important;
+    transition: background 0.2s, border-color 0.2s !important;
+}
+
+.btn-dialog-cancel:hover {
+    background: rgba(255, 255, 255, 0.16) !important;
+    border-color: rgba(255, 255, 255, 0.20) !important;
+}
+
+.btn-dialog-danger {
+    background: rgba(255, 122, 122, 0.10) !important;
+    backdrop-filter: blur(12px) !important;
+    color: #ff7a7a !important;
+    border: 1px solid rgba(255, 122, 122, 0.20) !important;
+    border-radius: 0.5rem !important;
+    font-weight: 400 !important;
+    text-transform: none !important;
+    box-shadow: none !important;
+    letter-spacing: normal !important;
+    transition: background 0.2s, border-color 0.2s !important;
+}
+
+.btn-dialog-danger:hover {
+    background: rgba(255, 122, 122, 0.15) !important;
+    border-color: rgba(255, 122, 122, 0.40) !important;
+}
+
+.btn-dialog-action {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    width: 100% !important;
+}
+
+.mud-dialog.board-form-dialog {
+    background-color: rgba(255, 255, 255, 0.10) !important;
+    backdrop-filter: blur(12px);
+    border-radius: 0.5rem !important;
+    box-shadow:
+        0 0 0 1px #00000000,
+        0 1px 1px #01040480,
+        0 0 1px #01040480 !important;
+}
+
+.board-form-dialog__actions {
+    display: flex !important;
+    gap: 0.75rem !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+.board-form-dialog .mud-input.mud-input-outlined:focus-within > .mud-input-outlined-border,
+.board-form-dialog .mud-input.mud-input-outlined:focus-within .mud-shrink > .mud-input-outlined-border {
+    border-color: rgba(97, 179, 216, 0.20) !important;
+}
+
+.board-form-dialog .mud-input-control:not(.mud-input-error) .mud-input:focus-within ~ label.mud-input-label.mud-input-label-inputcontrol {
+    color: var(--jtt-color-text-body-secondary) !important;
+}
+
 /* Microsoft login button — applied via Class= on MudButton */
 .login-ms-btn {
     background: #bef264 !important;

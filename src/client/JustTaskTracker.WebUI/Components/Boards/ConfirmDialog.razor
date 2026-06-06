@@ -1,18 +1,25 @@
-<MudDialog>
+<MudDialog Class="board-form-dialog" ActionsClass="board-form-dialog__actions">
     <DialogContent>
         <MudText Typo="Typo.body1" Style="color: rgba(255,255,255,0.80);">
             @Message
         </MudText>
     </DialogContent>
     <DialogActions>
-        <MudButton Class="btn-glass" OnClick="Cancel">@CancelLabel</MudButton>
-        <MudButton Color="Color.Error" Variant="Variant.Filled" OnClick="Confirm">
+        <MudButton Class="btn-dialog-cancel btn-dialog-action" OnClick="Cancel">@CancelLabel</MudButton>
+        <MudButton Class="btn-dialog-danger btn-dialog-action" OnClick="Confirm">
             @ConfirmLabel
         </MudButton>
     </DialogActions>
 </MudDialog>
 
 @code {
+    public static DialogOptions DefaultOptions { get; } = new()
+    {
+        CloseOnEscapeKey = true,
+        MaxWidth = MaxWidth.ExtraSmall,
+        FullWidth = true
+    };
+
     [CascadingParameter]
     private IMudDialogInstance MudDialog { get; set; } = default!;
 

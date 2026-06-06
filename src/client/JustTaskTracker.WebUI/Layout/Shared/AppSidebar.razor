@@ -1,32 +1,43 @@
 @inject NavigationManager Navigation
+@inject IProfileStore ProfileStore
+@inject IBoardStore BoardStore
 
-<aside class="sidebar card-surface-grain">
+<aside class="sidebar">
     <div class="sidebar__profile">
-        <div class="sidebar__avatar" aria-hidden="true">
+        <div class="sidebar__avatar text-sidebar-user" aria-hidden="true">
             <span>@AvatarLetter</span>
         </div>
 
         <div class="sidebar__info">
-            <p class="sidebar__name">@(Profile.DisplayName ?? Profile.Email)</p>
-            <p class="sidebar__email">@Profile.Email</p>
+            <p class="sidebar__name text-sidebar-user">@(Profile.DisplayName ?? Profile.Email)</p>
+            <p class="sidebar__email text-sidebar-user">@Profile.Email</p>
 
             @if (Profile.Roles.Count > 0)
             {
                 <div class="sidebar__roles">
                     @foreach (var role in Profile.Roles)
                     {
-                        <span class="sidebar__role">@role</span>
+                        <span class="sidebar__role text-sidebar-user">@role</span>
                     }
                 </div>
             }
         </div>
     </div>
 
-    <hr class="sidebar__divider" />
+    <div class="sidebar__divider" role="separator" />
 
     <nav class="sidebar__nav" aria-label="Main sections">
-        <a href="/dashboard" class="sidebar__tab sidebar__tab--active">Dashboard</a>
+        <NavLink href="/dashboard"
+                 class="sidebar__tab text-sidebar-tab"
+                 ActiveClass="sidebar__tab--active"
+                 Match="NavLinkMatch.All">
+            Dashboard
+        </NavLink>
     </nav>
+
+    <div class="sidebar__footer">
+        <button type="button" class="sidebar__logout text-sidebar-tab" @onclick="Logout">Log out</button>
+    </div>
 </aside>
 
 @code {
@@ -38,4 +49,11 @@
             (Profile.DisplayName ?? Profile.Email) is { Length: > 0 } source
                 ? source[0]
                 : '?');
+
+    private void Logout()
+    {
+        ProfileStore.Reset();
+        BoardStore.Reset();
+        Navigation.NavigateToLogout("authentication/logout");
+    }
 }

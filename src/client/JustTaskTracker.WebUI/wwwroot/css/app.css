@@ -3,88 +3,71 @@ html, body {
     margin: 0;
     padding: 0;
     height: 100%;
-    background-color: #0F1212;
+    overflow: hidden;
+    background-color: var(--jtt-color-background-app);
     font-family: 'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif;
     color: rgba(255, 255, 255, 0.87);
 }
 
 #app {
-    min-height: 100vh;
+    height: 100%;
 }
 
 /* ─── Shared design tokens ─── */
 
-/* Card with grain texture — used in Login and Dashboard */
-.card-surface-grain {
-    position: relative;
-    isolation: isolate;
-    background-color: rgb(28 28 30 / 0.95);
-    border: 1px solid rgb(60 90 30 / 0.30);
-    border-radius: 1.5rem;
+/* Reusable body text — sans-serif, muted foreground */
+.text-body {
+    color: var(--jtt-color-text-body);
+    font-family: var(--jtt-font-family-sans);
+    font-size: var(--jtt-font-size-body);
+    font-weight: var(--jtt-font-weight-body);
+    line-height: 1.4;
 }
 
-.card-surface-grain::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    pointer-events: none;
-    z-index: 0;
-    opacity: 0.12;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3CfeContrast amount='1.5'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-    background-size: 180px 180px;
+/* Sidebar — user profile block (name, email, roles, avatar letter) */
+.text-sidebar-user {
+    color: var(--jtt-sidebar-user-color);
+    font-family: var(--jtt-sidebar-user-font-family);
+    font-size: var(--jtt-sidebar-user-font-size);
+    font-weight: var(--jtt-sidebar-user-font-weight);
+    line-height: var(--jtt-sidebar-user-line-height);
 }
 
-.card-surface-grain > * {
-    position: relative;
-    z-index: 1;
+/* Sidebar — navigation tabs and footer actions */
+.text-sidebar-tab {
+    color: var(--jtt-sidebar-tab-color);
+    font-family: var(--jtt-sidebar-tab-font-family);
+    font-size: var(--jtt-sidebar-tab-font-size);
+    font-weight: var(--jtt-sidebar-tab-font-weight);
+    line-height: var(--jtt-sidebar-tab-line-height);
 }
 
-/* Noir button — black surface with grain noise; used for board actions / pagination */
+/* Flat action button — dashboard / board page controls */
 .btn-noir {
-    position: relative;
-    isolation: isolate;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
-    background-color: rgb(28 28 30 / 0.95);
-    border: 1px solid rgb(60 90 30 / 0.30);
-    border-radius: 0.75rem;
-    color: rgba(255, 255, 255, 0.87);
+    background: var(--jtt-color-background-surface);
+    border: none;
+    border-radius: 0;
+    color: var(--jtt-color-text-body);
     padding: 0.6rem 1.25rem;
     font-family: inherit;
-    font-size: 0.9rem;
-    font-weight: 500;
+    font-size: var(--jtt-font-size-body);
+    font-weight: var(--jtt-font-weight-body);
     line-height: 1.2;
     cursor: pointer;
     text-decoration: none;
-    transition: border-color 0.2s, background-color 0.2s, transform 0.1s;
-}
-
-.btn-noir::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    pointer-events: none;
-    z-index: 0;
-    opacity: 0.12;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3CfeContrast amount='1.5'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-    background-size: 180px 180px;
-}
-
-.btn-noir > * {
-    position: relative;
-    z-index: 1;
+    transition: opacity 0.2s;
 }
 
 .btn-noir:hover:not(:disabled) {
-    border-color: rgb(149 205 65 / 0.55);
+    opacity: 0.85;
 }
 
 .btn-noir:active:not(:disabled) {
-    transform: scale(0.98);
+    opacity: 0.7;
 }
 
 .btn-noir:disabled {
@@ -93,18 +76,11 @@ html, body {
 }
 
 .btn-noir--danger {
-    border-color: rgb(220 70 70 / 0.40);
     color: #ff7a7a;
 }
 
 .btn-noir--danger:hover:not(:disabled) {
-    border-color: rgb(220 70 70 / 0.85);
-    background-color: rgb(40 22 22 / 0.95);
-}
-
-.btn-noir--active {
-    border-color: rgb(149 205 65 / 0.65);
-    color: #bef264;
+    opacity: 0.85;
 }
 
 /* Glass button — applied via Class= on MudButton (outside scope isolation) */
@@ -163,6 +139,31 @@ html, body {
 }
 
 :root {
+    /* App shell */
+    --jtt-navbar-height: 3.5rem;
+    --jtt-color-background-app: #1F1F21;
+    --jtt-color-background-surface: #18191A;
+
+    /* Reusable body text */
+    --jtt-color-text-body: #CECFD2;
+    --jtt-font-family-sans: 'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    --jtt-font-size-body: 16px;
+    --jtt-font-weight-body: 500;
+
+    /* Sidebar — user info */
+    --jtt-sidebar-user-color: #CECFD2;
+    --jtt-sidebar-user-font-family: var(--jtt-font-family-sans);
+    --jtt-sidebar-user-font-size: 14px;
+    --jtt-sidebar-user-font-weight: 400;
+    --jtt-sidebar-user-line-height: 1.4;
+
+    /* Sidebar — nav tabs */
+    --jtt-sidebar-tab-color: #CECFD2;
+    --jtt-sidebar-tab-font-family: var(--jtt-font-family-sans);
+    --jtt-sidebar-tab-font-size: 16px;
+    --jtt-sidebar-tab-font-weight: 500;
+    --jtt-sidebar-tab-line-height: 1.4;
+
     --mud-palette-background: transparent;
     --mud-palette-surface: rgba(28, 28, 30, 0.95);
     --mud-palette-appbar-background: transparent;

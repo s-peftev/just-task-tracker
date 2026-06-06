@@ -1,38 +1,10 @@
-@inject NavigationManager Navigation
-@inject IProfileStore ProfileStore
-@inject IBoardStore BoardStore
-
 <header class="jtt-nav">
+
     <nav class="jtt-nav__inner">
-        <div class="jtt-nav__brand">
-            <a href="/" class="jtt-nav__logo">JustTaskTracker</a>
-        </div>
-        <div class="jtt-nav__actions">
-            <AuthorizeView>
-                <Authorized>
-                    <MudButton Variant="Variant.Text"
-                               Class="btn-glass"
-                               OnClick="Logout">
-                        Logout
-                    </MudButton>
-                </Authorized>
-                <NotAuthorized>
-                    <MudButton Variant="Variant.Text"
-                               Class="btn-glass"
-                               Href="/login">
-                        Log In
-                    </MudButton>
-                </NotAuthorized>
-            </AuthorizeView>
-        </div>
+
+        <a href="/" class="jtt-nav__logo">JustTaskTracker</a>
+
     </nav>
+
 </header>
 
-@code {
-    private void Logout()
-    {
-        ProfileStore.Reset();
-        BoardStore.Reset();
-        Navigation.NavigateToLogout("authentication/logout");
-    }
-}

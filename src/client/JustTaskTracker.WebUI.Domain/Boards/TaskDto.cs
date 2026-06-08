@@ -5,8 +5,8 @@ namespace JustTaskTracker.WebUI.Domain.Boards;
 public record TaskDto(
     Guid Id,
     string Title,
-    string? Description,
+    UserDto Reporter,
     int Position,
     DateTime CreatedAtUtc,
-    UserDto? Assignee,
-    UserDto Reporter);
+    string? Description,
+    UserDto? Assignee);

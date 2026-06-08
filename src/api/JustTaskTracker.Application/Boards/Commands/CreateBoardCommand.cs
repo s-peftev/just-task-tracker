@@ -26,7 +26,7 @@ public class CreateBoardCommandHandler(
         var user = await userRepository.GetUserByAzureAOIAsync(currentUserAccessor.AzureAdObjectId, ct);
 
         if (user is null)
-            return Result<BoardDetailsDto>.Failure(GeneralErrors.BusinessLogicError);
+            return Result<BoardDetailsDto>.Failure(GeneralErrors.Unauthorized);
 
         await unitOfWork.BeginTransactionAsync(ct);
 

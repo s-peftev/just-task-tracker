@@ -76,13 +76,13 @@ public class BoardRepository(JustTaskTrackerDbContext context)
                             .Select(t => new TaskDto(
                                 t.Id,
                                 t.Title,
-                                t.Description,
                                 t.Position,
                                 t.CreatedAtUtc,
+                                new UserDto(t.Reporter.Id, t.Reporter.Email, t.Reporter.DisplayName),
+                                t.Description,
                                 t.AssigneeId == null
                                     ? null
-                                    : new UserDto(t.Assignee!.Id, t.Assignee.Email, t.Assignee.DisplayName),
-                                new UserDto(t.Reporter.Id, t.Reporter.Email, t.Reporter.DisplayName)))))))
+                                    : new UserDto(t.Assignee!.Id, t.Assignee.Email, t.Assignee.DisplayName)))))))
             .FirstOrDefaultAsync(ct);
 
     public async Task<PagedList<BoardLookupDto>> GetBoardsByUserAzureAOIAsync(Guid azureAdObjectId, int pageNumber, int pageSize, CancellationToken ct = default) =>
@@ -122,13 +122,13 @@ public class BoardRepository(JustTaskTrackerDbContext context)
                     x.Board.Name,
                     x.Board.CreatedAtUtc,
                     x.Board.Members
-                        .Where(m => m.Role == BoardMemberRole.Owner)
-                        .Select(m => new UserDto(m.User.Id, m.User.Email, m.User.DisplayName))
-                        .FirstOrDefault(),
-                    x.Board.Members
                         .Where(m => m.User.AzureAdObjectId == azureAdObjectId)
                         .Select(m => m.Role)
-                        .First()),
+                        .First(),
+                    x.Board.Members
+                        .Where(m => m.Role == BoardMemberRole.Owner)
+                        .Select(m => new UserDto(m.User.Id, m.User.Email, m.User.DisplayName))
+                        .FirstOrDefault()),
                 pageNumber,
                 pageSize,
                 ct);

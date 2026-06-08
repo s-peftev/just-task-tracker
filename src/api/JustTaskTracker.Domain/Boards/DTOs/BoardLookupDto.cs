@@ -7,5 +7,5 @@ public record BoardLookupDto(
     Guid Id,
     string Name,
     DateTime CreatedAtUtc,
-    UserDto? Owner,
-    BoardMemberRole UserRole);
+    BoardMemberRole UserRole,
+    UserDto? Owner);

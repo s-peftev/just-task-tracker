@@ -3,6 +3,7 @@ using JustTaskTracker.Application.Common.Interfaces.Utils;
 using JustTaskTracker.Domain.Auth.Entities;
 using JustTaskTracker.Domain.Common.Interfaces;
 using JustTaskTracker.Domain.Boards.Entities;
+using JustTaskTracker.Persistence.Common.Configurations;
 using Microsoft.EntityFrameworkCore;
 using System.Reflection;
 
@@ -24,6 +25,7 @@ public class JustTaskTrackerDbContext(
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(JustTaskTrackerDbContext).Assembly);
 
+        BaseEntityConfiguration.Apply(modelBuilder);
         ConfigureSoftDeleteFilters(modelBuilder);
     }
 
@@ -55,6 +57,7 @@ public class JustTaskTrackerDbContext(
             if (entry.Entity is ISoftDeletable deletable && entry.State == EntityState.Deleted)
             {
                 entry.State = EntityState.Modified;
+                deletable.IsDeleted = true;
                 deletable.DeletedAtUtc = utcNow;
                 deletable.DeletedBy = currentUserId;
 
@@ -100,6 +103,6 @@ public class JustTaskTrackerDbContext(
 
     private static void ConfigureSoftDeleteFilter<TEntity>(ModelBuilder modelBuilder) where TEntity : class, ISoftDeletable
     {
-        modelBuilder.Entity<TEntity>().HasQueryFilter(e => e.DeletedAtUtc == null);
+        modelBuilder.Entity<TEntity>().HasQueryFilter(e => !e.IsDeleted);
     }
 }

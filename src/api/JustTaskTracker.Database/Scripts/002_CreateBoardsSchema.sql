@@ -6,10 +6,14 @@ CREATE TABLE [dbo].[Boards]
     [CreatedBy]          NVARCHAR(450)    NULL,
     [LastModifiedAtUtc]  DATETIME2(7)     NULL,
     [LastModifiedBy]     NVARCHAR(450)    NULL,
+    [IsDeleted]          BIT              NOT NULL DEFAULT (0),
     [DeletedAtUtc]       DATETIME2(7)     NULL,
     [DeletedBy]          NVARCHAR(450)    NULL,
 
-    CONSTRAINT [PK_Boards] PRIMARY KEY CLUSTERED ([Id])
+    CONSTRAINT [PK_Boards] PRIMARY KEY CLUSTERED ([Id]),
+    CONSTRAINT [CK_Boards_SoftDelete] CHECK (
+        ([IsDeleted] = 0 AND [DeletedAtUtc] IS NULL) OR
+        ([IsDeleted] = 1 AND [DeletedAtUtc] IS NOT NULL))
 );
 GO
 
@@ -49,24 +53,28 @@ CREATE TABLE [dbo].[Columns]
     [CreatedBy]          NVARCHAR(450)    NULL,
     [LastModifiedAtUtc]  DATETIME2(7)     NULL,
     [LastModifiedBy]     NVARCHAR(450)    NULL,
+    [IsDeleted]          BIT              NOT NULL DEFAULT (0),
     [DeletedAtUtc]       DATETIME2(7)     NULL,
     [DeletedBy]          NVARCHAR(450)    NULL,
 
     CONSTRAINT [PK_Columns] PRIMARY KEY CLUSTERED ([Id]),
     CONSTRAINT [FK_Columns_Boards_BoardId]
         FOREIGN KEY ([BoardId]) REFERENCES [dbo].[Boards] ([Id])
-        ON DELETE CASCADE
+        ON DELETE CASCADE,
+    CONSTRAINT [CK_Columns_SoftDelete] CHECK (
+        ([IsDeleted] = 0 AND [DeletedAtUtc] IS NULL) OR
+        ([IsDeleted] = 1 AND [DeletedAtUtc] IS NOT NULL))
 );
 GO
 
 CREATE INDEX [IX_Columns_BoardId_Position_Active]
     ON [dbo].[Columns] ([BoardId], [Position])
-    WHERE [DeletedAtUtc] IS NULL;
+    WHERE [IsDeleted] = 0;
 GO
 
 CREATE UNIQUE INDEX [UQ_Columns_BoardId_Name_Active]
     ON [dbo].[Columns] ([BoardId], [Name])
-    WHERE [DeletedAtUtc] IS NULL;
+    WHERE [IsDeleted] = 0;
 GO
 
 CREATE TABLE [dbo].[BoardTasks]
@@ -82,6 +90,7 @@ CREATE TABLE [dbo].[BoardTasks]
     [CreatedBy]          NVARCHAR(450)    NULL,
     [LastModifiedAtUtc]  DATETIME2(7)     NULL,
     [LastModifiedBy]     NVARCHAR(450)    NULL,
+    [IsDeleted]          BIT              NOT NULL DEFAULT (0),
     [DeletedAtUtc]       DATETIME2(7)     NULL,
     [DeletedBy]          NVARCHAR(450)    NULL,
 
@@ -94,11 +103,14 @@ CREATE TABLE [dbo].[BoardTasks]
         ON DELETE NO ACTION,
     CONSTRAINT [FK_BoardTasks_Users_ReporterId]
         FOREIGN KEY ([ReporterId]) REFERENCES [dbo].[Users] ([Id])
-        ON DELETE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT [CK_BoardTasks_SoftDelete] CHECK (
+        ([IsDeleted] = 0 AND [DeletedAtUtc] IS NULL) OR
+        ([IsDeleted] = 1 AND [DeletedAtUtc] IS NOT NULL))
 );
 GO
 
 CREATE INDEX [IX_BoardTasks_ColumnId_Position_Active]
     ON [dbo].[BoardTasks] ([ColumnId], [Position])
-    WHERE [DeletedAtUtc] IS NULL;
+    WHERE [IsDeleted] = 0;
 GO

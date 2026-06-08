@@ -18,10 +18,10 @@ public class ColumnConfiguration : IEntityTypeConfiguration<Column>
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasIndex(c => new { c.BoardId, c.Position })
-            .HasFilter("[DeletedAtUtc] IS NULL");
+            .HasFilter("[IsDeleted] = 0");
 
         builder.HasIndex(c => new { c.BoardId, c.Name })
             .IsUnique()
-            .HasFilter("[DeletedAtUtc] IS NULL");
+            .HasFilter("[IsDeleted] = 0");
     }
 }

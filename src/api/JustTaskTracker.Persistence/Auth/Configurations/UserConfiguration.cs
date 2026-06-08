@@ -13,10 +13,10 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
 
         builder.HasIndex(u => u.AzureAdObjectId)
             .IsUnique()
-            .HasFilter("[DeletedAtUtc] IS NULL");
+            .HasFilter("[IsDeleted] = 0");
 
         builder.HasIndex(u => u.Email)
             .IsUnique()
-            .HasFilter("[DeletedAtUtc] IS NULL");
+            .HasFilter("[IsDeleted] = 0");
     }
 }

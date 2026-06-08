@@ -10,6 +10,6 @@ public class BoardMember
     public DateTime JoinedAtUtc { get; set; } = DateTime.UtcNow;
     public BoardMemberRole Role { get; set; }
 
-    public Board Board { get; set; } = null!;
-    public User User { get; set; } = null!;
+    public Board? Board { get; set; }
+    public User? User { get; set; }
 }

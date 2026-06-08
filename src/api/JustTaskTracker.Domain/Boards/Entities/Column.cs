@@ -8,6 +8,6 @@ public class Column : BaseEntity<Guid>
     public required string Name { get; set; }
     public int Position { get; set; }
 
-    public Board Board { get; set; } = null!;
+    public Board? Board { get; set; }
     public ICollection<BoardTask> Tasks { get; set; } = [];
 }

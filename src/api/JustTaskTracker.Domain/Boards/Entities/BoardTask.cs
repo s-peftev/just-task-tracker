@@ -12,7 +12,7 @@ public class BoardTask : BaseEntity<Guid>
     public Guid? AssigneeId { get; set; }
     public required Guid ReporterId { get; init; }
 
-    public Column Column { get; set; } = null!;
+    public Column? Column { get; set; }
     public User? Assignee { get; set; }
-    public User Reporter { get; set; } = null!;
+    public User? Reporter { get; set; }
 }

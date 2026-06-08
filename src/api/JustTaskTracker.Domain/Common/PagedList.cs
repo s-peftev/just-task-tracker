@@ -11,8 +11,7 @@ public class PagedList<T>
         {
             CurrentPage = pageNumber,
             PageSize = pageSize,
-            TotalCount = totalCount,
-            TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
+            TotalCount = totalCount
         };
 
         Items = items;
@@ -30,6 +29,5 @@ public class PaginationMetadata
 {
     public int CurrentPage { get; init; }
     public int PageSize { get; init; }
-    public int TotalPages { get; init; }
     public int TotalCount { get; init; }
 }

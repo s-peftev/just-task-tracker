@@ -1,24 +1,13 @@
-.login-scene {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 100svh;
-    padding: 1rem;
-    position: relative;
-    z-index: 2;
-}
-
 .login-card {
     max-width: 28rem;
     width: 100%;
     padding: 2.5rem;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.80);
 }
 
 .login-card__title {
     font-family: 'Copperplate', 'Georgia', 'Times New Roman', serif;
     font-size: 2.25rem;
-    color: rgba(255, 255, 255, 0.95);
+    color: var(--jtt-text-primary);
     text-align: center;
     margin: 0 0 2rem;
     font-weight: 400;

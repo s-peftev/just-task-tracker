@@ -1,4 +1,6 @@
-﻿using JustTaskTracker.Application.Common.Interfaces;
+﻿using JustTaskTracker.Application.Common.Constants;
+using JustTaskTracker.Application.Common.Interfaces;
+using JustTaskTracker.Domain.Auth.Constants;
 using JustTaskTracker.Infrastructure.Auth;
 using JustTaskTracker.Infrastructure.Auth.Constants;
 using JustTaskTracker.Infrastructure.Common.Constants;
@@ -38,6 +40,11 @@ internal static class AuthenticationModule
                 options.TokenValidationParameters.RoleClaimType = EntraClaimTypes.Roles;
                 options.TokenValidationParameters.NameClaimType = EntraClaimTypes.ObjectId;
             });
+
+        services.AddAuthorizationBuilder()
+            .AddPolicy(AuthorizationPolicies.IsAppAdmin, policy => policy.RequireRole(Roles.Admin.ToString()))
+            .AddPolicy(AuthorizationPolicies.IsAppContributor, policy => policy.RequireRole(Roles.Admin.ToString(), Roles.User.ToString()))
+            .AddPolicy(AuthorizationPolicies.IsAppMember, policy => policy.RequireRole(Roles.Admin.ToString(), Roles.User.ToString(), Roles.Guest.ToString()));
 
         return services;
     }

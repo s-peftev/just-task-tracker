@@ -1,7 +1,68 @@
 @page "/authentication/{action}"
+@layout EmptyLayout
+@using JustTaskTracker.WebUI.Infrastructure
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IJSRuntime Js
 
-<RemoteAuthenticatorView Action="@Action" />
+<RemoteAuthenticatorView Action="@Action" OnLogOutSucceeded="HandleLogOutSucceeded" />
 
 @code {
     [Parameter] public string? Action { get; set; }
+
+    private bool _logoutFallbackStarted;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || Action != RemoteAuthenticationActions.LogOutCallback || _logoutFallbackStarted)
+            return;
+
+        _logoutFallbackStarted = true;
+        await EnsureLogoutRedirectAsync();
+    }
+
+    private async Task HandleLogOutSucceeded(RemoteAuthenticationState state)
+    {
+        await Js.InvokeVoidAsync("sessionStorage.removeItem", MicrosoftAuthNavigation.LogoutReturnUrlStorageKey);
+
+        var returnUrl = string.IsNullOrWhiteSpace(state.ReturnUrl) ? "/" : state.ReturnUrl;
+        Navigation.NavigateTo(returnUrl, replace: true);
+    }
+
+    private async Task EnsureLogoutRedirectAsync()
+    {
+        // MSAL sometimes completes logout with OperationCompleted and skips OnLogOutSucceeded.
+        await Task.Delay(500);
+
+        for (var attempt = 0; attempt < 15; attempt++)
+        {
+            if (!Navigation.Uri.Contains("logout-callback", StringComparison.OrdinalIgnoreCase))
+                return;
+
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            if (authState.User.Identity?.IsAuthenticated != true)
+            {
+                await RedirectAfterLogoutAsync();
+                return;
+            }
+
+            await Task.Delay(200);
+        }
+
+        if (Navigation.Uri.Contains("logout-callback", StringComparison.OrdinalIgnoreCase))
+            await RedirectAfterLogoutAsync();
+    }
+
+    private async Task RedirectAfterLogoutAsync()
+    {
+        var returnUrl = await Js.InvokeAsync<string?>(
+            "sessionStorage.getItem",
+            MicrosoftAuthNavigation.LogoutReturnUrlStorageKey);
+
+        returnUrl = string.IsNullOrWhiteSpace(returnUrl) ? "/" : returnUrl;
+
+        await Js.InvokeVoidAsync("sessionStorage.removeItem", MicrosoftAuthNavigation.LogoutReturnUrlStorageKey);
+        Navigation.NavigateTo(returnUrl, replace: true);
+    }
 }

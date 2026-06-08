@@ -30,9 +30,8 @@ public class LoginCommandHandler(
         return Result<UserWithRolesDto>.Success(new UserWithRolesDto(
             user.Id,
             user.Email,
-            user.DisplayName,
-            rolesFromToken
-        ));
+            rolesFromToken,
+            user.DisplayName));
     }
 
     private User CreateUser()

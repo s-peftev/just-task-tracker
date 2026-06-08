@@ -1,0 +1,74 @@
+.board-card {
+    width: 100%;
+    min-width: 0;
+    height: 108px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    text-align: left;
+    cursor: pointer;
+    color: inherit;
+    background-color: var(--jtt-surface-raised);
+    border: none;
+    position: relative;
+    z-index: 1;
+    transition: opacity 0.15s;
+}
+
+.board-card:hover {
+    opacity: 0.9;
+}
+
+.board-card__body {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-end;
+    gap: 0.25rem;
+    height: 72px;
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    box-sizing: border-box;
+    background: radial-gradient(
+        circle at left,
+        var(--jtt-overlay-white-10),
+        var(--jtt-overlay-accent-10)
+    );
+    border-radius: var(--jtt-radius-md) var(--jtt-radius-md) 0 0;
+}
+
+.board-card__meta {
+    margin: 0;
+    max-width: 100%;
+    font-size: 0.8rem;
+    line-height: 1.25;
+    color: var(--jtt-text-body);
+    text-align: right;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.board-card__meta-label {
+    margin-right: 0.25rem;
+}
+
+.board-card__footer {
+    height: 36px;
+    width: 100%;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.board-card__name {
+    display: block;
+    margin: 0.5rem;
+    min-width: 0;
+    font-size: var(--jtt-font-size-body);
+    font-weight: var(--jtt-font-weight-body);
+    line-height: 20px;
+    color: var(--jtt-text-body);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}

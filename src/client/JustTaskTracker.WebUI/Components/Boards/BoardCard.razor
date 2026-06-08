@@ -1,0 +1,33 @@
+@using JustTaskTracker.WebUI.Domain.Boards
+
+<button type="button" class="board-card card-elevated" @onclick="OnClickHandler">
+    <div class="board-card__body">
+        <p class="board-card__meta">
+            <span class="board-card__meta-label">Board creator:</span>
+            @OwnerDisplayName
+        </p>
+        <p class="board-card__meta">
+            <span class="board-card__meta-label">Your role:</span>
+            @Board.UserRole
+        </p>
+    </div>
+
+    <div class="board-card__footer">
+        <span class="board-card__name" title="@Board.Name">@Board.Name</span>
+    </div>
+</button>
+
+@code {
+    [Parameter, EditorRequired]
+    public BoardLookupDto Board { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback<BoardLookupDto> OnClick { get; set; }
+
+    private Task OnClickHandler() => OnClick.InvokeAsync(Board);
+
+    private string OwnerDisplayName =>
+        Board.Owner is { } owner
+            ? owner.DisplayName ?? owner.Email
+            : "—";
+}

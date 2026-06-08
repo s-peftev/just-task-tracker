@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
     <ProjectReference Include="..\JustTaskTracker.Application\JustTaskTracker.Application.csproj" />
@@ -7,6 +7,11 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.8" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Boards\Configurations\" />
+    <Folder Include="Boards\Repositories\" />
   </ItemGroup>
 
   <PropertyGroup>

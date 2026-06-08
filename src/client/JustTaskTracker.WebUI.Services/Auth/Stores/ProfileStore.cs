@@ -17,6 +17,9 @@ internal sealed class ProfileStore(IAuthApiService authApiService) : IProfileSto
     // Tracks the single in-flight load Task shared across concurrent callers.
     private Task? _inFlightLoad;
 
+    // Incremented on Reset/force refresh so stale in-flight loads cannot commit.
+    private int _loadGeneration;
+
     public UserWithRolesDto? Profile { get; private set; }
     public bool IsLoading { get; private set; }
     public bool IsLoaded { get; private set; }
@@ -33,6 +36,7 @@ internal sealed class ProfileStore(IAuthApiService authApiService) : IProfileSto
 
     public void Reset()
     {
+        _loadGeneration++;
         Profile = null;
         IsLoading = false;
         IsLoaded = false;
@@ -52,6 +56,7 @@ internal sealed class ProfileStore(IAuthApiService authApiService) : IProfileSto
             return;
 
         Task loadTask;
+        var profileClearedForRefresh = false;
 
         // The CancellationToken is passed only to the lock-acquisition step so
         // that a caller can give up waiting for the semaphore without affecting
@@ -63,10 +68,17 @@ internal sealed class ProfileStore(IAuthApiService authApiService) : IProfileSto
             if (!forceRefresh && IsLoaded)
                 return;
 
-            // Start a new load only when there is no in-flight one.
-            // On forceRefresh, _inFlightLoad is already null (cleared in finally
-            // of the previous load), so this always starts a fresh task.
-            _inFlightLoad ??= LoadProfileAsync();
+            if (forceRefresh)
+            {
+                _loadGeneration++;
+                Profile = null;
+                IsLoaded = false;
+                profileClearedForRefresh = true;
+            }
+
+            if (forceRefresh || _inFlightLoad is null || _inFlightLoad.IsCompleted)
+                _inFlightLoad = LoadProfileAsync(_loadGeneration);
+
             loadTask = _inFlightLoad;
         }
         finally
@@ -74,12 +86,15 @@ internal sealed class ProfileStore(IAuthApiService authApiService) : IProfileSto
             _sync.Release();
         }
 
+        if (profileClearedForRefresh)
+            NotifyStateChanged();
+
         // WaitAsync lets each caller cancel their own wait independently.
         // The underlying loadTask keeps running for any other waiters.
         await loadTask.WaitAsync(ct);
     }
 
-    private async Task LoadProfileAsync()
+    private async Task LoadProfileAsync(int generation)
     {
         IsLoading = true;
         ErrorMessage = null;
@@ -96,6 +111,9 @@ internal sealed class ProfileStore(IAuthApiService authApiService) : IProfileSto
             // in the application database; LoginAsync provisions and returns them.
             profile ??= await authApiService.LoginAsync(CancellationToken.None);
 
+            if (IsStaleGeneration(generation))
+                return;
+
             Profile = profile;
             IsLoaded = true;
             RequiresLogin = false;
@@ -103,6 +121,9 @@ internal sealed class ProfileStore(IAuthApiService authApiService) : IProfileSto
         catch (ApiServiceException ex) when (
             ex.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
         {
+            if (IsStaleGeneration(generation))
+                return;
+
             // A valid MSAL token was rejected by the API (audience/scope mismatch,
             // revoked consent, etc.). Signal components to redirect to /login.
             Profile = null;
@@ -112,6 +133,9 @@ internal sealed class ProfileStore(IAuthApiService authApiService) : IProfileSto
         }
         catch (Exception ex)
         {
+            if (IsStaleGeneration(generation))
+                return;
+
             // Network errors, 5xx, unexpected exceptions.
             Profile = null;
             IsLoaded = false;
@@ -120,7 +144,8 @@ internal sealed class ProfileStore(IAuthApiService authApiService) : IProfileSto
         }
         finally
         {
-            IsLoading = false;
+            if (!IsStaleGeneration(generation))
+                IsLoading = false;
 
             // Clear the in-flight reference under lock so a subsequent EnsureLoadedAsync
             // or RefreshAsync call can start a fresh load (e.g. after an error).
@@ -128,7 +153,8 @@ internal sealed class ProfileStore(IAuthApiService authApiService) : IProfileSto
             await _sync.WaitAsync(CancellationToken.None);
             try
             {
-                _inFlightLoad = null;
+                if (!IsStaleGeneration(generation))
+                    _inFlightLoad = null;
             }
             finally
             {
@@ -139,6 +165,8 @@ internal sealed class ProfileStore(IAuthApiService authApiService) : IProfileSto
             NotifyStateChanged();
         }
     }
+
+    private bool IsStaleGeneration(int generation) => generation != _loadGeneration;
 
     private void NotifyStateChanged() => StateChanged?.Invoke();
 }

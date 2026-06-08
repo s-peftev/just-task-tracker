@@ -9,6 +9,7 @@ public abstract class BaseEntity<TId> : IAuditable, ISoftDeletable
     public string? CreatedBy { get; set; }
     public DateTime? LastModifiedAtUtc { get; set; }
     public string? LastModifiedBy { get; set; }
+    public bool IsDeleted { get; set; }
     public DateTime? DeletedAtUtc { get; set; }
     public string? DeletedBy { get; set; }
 }

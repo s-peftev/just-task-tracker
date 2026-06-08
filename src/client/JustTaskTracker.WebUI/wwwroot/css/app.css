@@ -1,52 +1,271 @@
+/* ─── Design tokens ─── */
+:root {
+    --jtt-navbar-height: 3.5rem;
+
+    /* Solid surfaces */
+    --jtt-surface-app: #1F1F21;
+    --jtt-surface-raised: #18191A;
+
+    /* Translucent overlays */
+    --jtt-overlay-accent-10: rgba(97, 179, 216, 0.10);
+    --jtt-overlay-accent-15: rgba(97, 179, 216, 0.15);
+    --jtt-overlay-neutral-20: rgba(150, 150, 150, 0.2);
+    --jtt-overlay-white-08: rgba(255, 255, 255, 0.08);
+    --jtt-overlay-white-10: rgba(255, 255, 255, 0.10);
+    --jtt-overlay-white-16: rgba(255, 255, 255, 0.16);
+    --jtt-overlay-white-20: rgba(255, 255, 255, 0.20);
+    --jtt-overlay-white-28: rgba(255, 255, 255, 0.28);
+    --jtt-overlay-danger-10: rgba(255, 122, 122, 0.10);
+    --jtt-overlay-danger-15: rgba(255, 122, 122, 0.15);
+
+    /* Strokes */
+    --jtt-stroke-subtle: rgba(255, 255, 255, 0.10);
+    --jtt-stroke-default: rgba(255, 255, 255, 0.20);
+    --jtt-stroke-strong: rgba(255, 255, 255, 0.40);
+    --jtt-stroke-muted: rgba(255, 255, 255, 0.23);
+    --jtt-stroke-separator: rgba(255, 255, 255, 0.12);
+    --jtt-stroke-accent: rgba(97, 179, 216, 0.20);
+    --jtt-stroke-accent-strong: rgba(97, 179, 216, 0.55);
+    --jtt-stroke-solid: rgb(255, 255, 255);
+    --jtt-stroke-danger: rgb(255, 122, 122);
+    --jtt-stroke-danger-soft: rgba(255, 122, 122, 0.20);
+    --jtt-stroke-danger-strong: rgba(255, 122, 122, 0.40);
+
+    /* Text */
+    --jtt-text-strong: #fff;
+    --jtt-text-primary: rgba(255, 255, 255, 0.95);
+    --jtt-text-body: #CECFD2;
+    --jtt-text-muted: rgba(255, 255, 255, 0.75);
+    --jtt-text-subtle: rgba(255, 255, 255, 0.65);
+    --jtt-text-faint: rgba(255, 255, 255, 0.55);
+    --jtt-text-accent: rgba(97, 179, 216, 0.65);
+    --jtt-text-danger: #ff7a7a;
+    --jtt-text-on-app: rgba(255, 255, 255, 0.87);
+
+    /* Typography */
+    --jtt-font-family-sans: 'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    --jtt-font-size-body: 16px;
+    --jtt-font-size-section: 1.25rem;
+    --jtt-font-weight-body: 500;
+    --jtt-font-weight-strong: 700;
+
+    /* Shape & elevation */
+    --jtt-radius-sm: 0.25rem;
+    --jtt-radius-md: 0.5rem;
+    --jtt-shadow-elevated: 0 0 0 1px #0000, 0 1px 1px #01040480, 0 0 1px #01040480;
+    --jtt-shadow-panel: 0 8px 28px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.08);
+
+    /* Sidebar typography (size/weight only — color uses shared text tokens) */
+    --jtt-sidebar-user-font-size: 14px;
+    --jtt-sidebar-user-font-weight: 400;
+    --jtt-sidebar-user-line-height: 1.4;
+    --jtt-sidebar-tab-font-size: 16px;
+    --jtt-sidebar-tab-font-weight: 500;
+    --jtt-sidebar-tab-line-height: 1.4;
+
+    /* MudBlazor palette */
+    --mud-palette-background: transparent;
+    --mud-palette-surface: rgba(28, 28, 30, 0.95);
+    --mud-palette-appbar-background: transparent;
+    --mud-palette-text-primary: var(--jtt-text-on-app);
+    --mud-palette-text-secondary: rgba(255, 255, 255, 0.60);
+}
+
 /* ─── Base ─── */
 html, body {
     margin: 0;
     padding: 0;
     height: 100%;
-    background-color: #0F1212;
-    font-family: 'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-    color: rgba(255, 255, 255, 0.87);
+    overflow: hidden;
+    background-color: var(--jtt-surface-app);
+    font-family: var(--jtt-font-family-sans);
+    color: var(--jtt-text-on-app);
 }
 
 #app {
-    min-height: 100vh;
+    height: 100%;
 }
 
-/* ─── Shared design tokens ─── */
-
-/* Card with grain texture — used in Login and Dashboard */
-.card-surface-grain {
-    position: relative;
-    isolation: isolate;
-    background-color: rgb(28 28 30 / 0.95);
-    border: 1px solid rgb(60 90 30 / 0.30);
-    border-radius: 1.5rem;
+/* ─── Typography utilities ─── */
+.text-sidebar-user {
+    color: var(--jtt-text-body);
+    font-family: var(--jtt-font-family-sans);
+    font-size: var(--jtt-sidebar-user-font-size);
+    font-weight: var(--jtt-sidebar-user-font-weight);
+    line-height: var(--jtt-sidebar-user-line-height);
 }
 
-.card-surface-grain::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    pointer-events: none;
-    z-index: 0;
-    opacity: 0.12;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3CfeContrast amount='1.5'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-    background-size: 180px 180px;
+.text-sidebar-tab {
+    color: var(--jtt-text-body);
+    font-family: var(--jtt-font-family-sans);
+    font-size: var(--jtt-sidebar-tab-font-size);
+    font-weight: var(--jtt-sidebar-tab-font-weight);
+    line-height: var(--jtt-sidebar-tab-line-height);
 }
 
-.card-surface-grain > * {
-    position: relative;
-    z-index: 1;
+.text-section-title {
+    margin: 0;
+    font-size: var(--jtt-font-size-section);
+    font-weight: var(--jtt-font-weight-strong);
+    color: var(--jtt-text-strong);
 }
 
-/* Glass button — applied via Class= on MudButton (outside scope isolation) */
+.text-empty {
+    margin: 0;
+    font-size: 1.1rem;
+    color: var(--jtt-text-faint);
+}
+
+.text-meta-subtle {
+    font-size: 0.85rem;
+    color: var(--jtt-text-subtle);
+    white-space: nowrap;
+}
+
+/* ─── Layout utilities ─── */
+.page-centered {
+    display: flex;
+    flex: 1 1 0;
+    min-height: 0;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    box-sizing: border-box;
+}
+
+.page-centered--raised {
+    background-color: var(--jtt-surface-raised);
+}
+
+.page-state {
+    flex: 1 1 0;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.page-state--stacked {
+    flex-direction: column;
+    gap: 1.25rem;
+    padding: 1.5rem;
+    overflow: hidden;
+}
+
+/* ─── Buttons ─── */
+.btn-noir {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: var(--jtt-surface-raised);
+    border: none;
+    border-radius: 0;
+    color: var(--jtt-text-body);
+    padding: 0.6rem 1.25rem;
+    font-family: inherit;
+    font-size: var(--jtt-font-size-body);
+    font-weight: var(--jtt-font-weight-body);
+    line-height: 1.2;
+    cursor: pointer;
+    text-decoration: none;
+    transition: opacity 0.2s;
+}
+
+.btn-noir:hover:not(:disabled) {
+    opacity: 0.85;
+}
+
+.btn-noir:active:not(:disabled) {
+    opacity: 0.7;
+}
+
+.btn-noir:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.btn-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    border: none;
+    border-radius: var(--jtt-radius-sm);
+    background: transparent;
+    color: var(--jtt-text-strong);
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.btn-icon:hover {
+    background-color: var(--jtt-overlay-white-20);
+}
+
+.btn-icon--subtle:hover {
+    background-color: var(--jtt-overlay-white-10);
+}
+
+.btn-icon--round {
+    border: 1px solid var(--jtt-stroke-solid);
+    border-radius: 50%;
+}
+
+.btn-icon--round:active {
+    background-color: var(--jtt-overlay-white-28);
+}
+
+.btn-icon svg {
+    display: block;
+}
+
+.btn-icon--sm svg {
+    width: 0.875rem;
+    height: 0.875rem;
+}
+
+.btn-icon--md svg {
+    width: 1.125rem;
+    height: 1.125rem;
+}
+
+.btn-glass-white {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--jtt-stroke-solid);
+    border-radius: var(--jtt-radius-md);
+    background: var(--jtt-overlay-white-10);
+    color: var(--jtt-text-primary);
+    font-family: inherit;
+    font-size: var(--jtt-font-size-body);
+    font-weight: var(--jtt-font-weight-body);
+    line-height: 1.2;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.btn-glass-white:hover {
+    background: var(--jtt-overlay-white-16);
+}
+
+.card-elevated {
+    border-radius: var(--jtt-radius-md);
+    box-shadow: var(--jtt-shadow-elevated);
+}
+
+/* Glass button — MudButton (outside scope isolation) */
 .btn-glass {
-    background: rgba(255, 255, 255, 0.10) !important;
+    background: var(--jtt-overlay-accent-10) !important;
     backdrop-filter: blur(12px) !important;
-    color: #fff !important;
-    border: 1px solid rgba(255, 255, 255, 0.20) !important;
-    border-radius: 0.5rem !important;
+    color: var(--jtt-text-strong) !important;
+    border: 1px solid var(--jtt-stroke-default) !important;
+    border-radius: var(--jtt-radius-md) !important;
     font-weight: 400 !important;
     text-transform: none !important;
     box-shadow: none !important;
@@ -55,8 +274,8 @@ html, body {
 }
 
 .btn-glass:hover {
-    background: rgba(255, 255, 255, 0.20) !important;
-    border-color: rgba(255, 255, 255, 0.40) !important;
+    background: var(--jtt-overlay-accent-15) !important;
+    border-color: var(--jtt-stroke-strong) !important;
 }
 
 .btn-glass--hero {
@@ -64,43 +283,123 @@ html, body {
     font-size: 1rem !important;
 }
 
-/* Microsoft login button — applied via Class= on MudButton */
-.login-ms-btn {
-    background: #bef264 !important;
-    color: #1a1a1a !important;
-    border: none !important;
-    border-radius: 1rem !important;
-    height: 3.5rem !important;
-    font-size: 1.05rem !important;
-    font-weight: 700 !important;
+.btn-dialog-cancel {
+    background: var(--jtt-overlay-white-10) !important;
+    color: var(--jtt-text-strong) !important;
+    border: 1px solid var(--jtt-stroke-subtle) !important;
+    border-radius: var(--jtt-radius-md) !important;
+    font-weight: 400 !important;
     text-transform: none !important;
+    box-shadow: none !important;
     letter-spacing: normal !important;
-    box-shadow: 0 10px 30px -10px rgba(149, 205, 65, 0.40) !important;
-    transition: background 0.2s, transform 0.1s !important;
+    transition: background 0.2s, border-color 0.2s !important;
 }
 
-.login-ms-btn:hover {
-    background: #d9f99d !important;
+.btn-dialog-cancel:hover {
+    background: var(--jtt-overlay-white-16) !important;
+    border-color: var(--jtt-stroke-default) !important;
 }
 
-.login-ms-btn:active {
-    transform: scale(0.98);
+.btn-dialog-danger {
+    background: var(--jtt-overlay-danger-10) !important;
+    backdrop-filter: blur(12px) !important;
+    color: var(--jtt-text-danger) !important;
+    border: 1px solid var(--jtt-stroke-danger-soft) !important;
+    border-radius: var(--jtt-radius-md) !important;
+    font-weight: 400 !important;
+    text-transform: none !important;
+    box-shadow: none !important;
+    letter-spacing: normal !important;
+    transition: background 0.2s, border-color 0.2s !important;
 }
 
-/* ─── MudBlazor: dark-mode overrides ─── */
-/* MudColor parser accepts only hex/rgba(r,g,b,a), so transparency
-   and surface colors are set here rather than in the C# palette. */
+.btn-dialog-danger:hover {
+    background: var(--jtt-overlay-danger-15) !important;
+    border-color: var(--jtt-stroke-danger-strong) !important;
+}
+
+.btn-dialog-action {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    width: 100% !important;
+}
+
+/* ─── Dialogs ─── */
+.mud-dialog.board-form-dialog {
+    background-color: var(--jtt-overlay-white-10) !important;
+    backdrop-filter: blur(12px);
+    border-radius: var(--jtt-radius-md) !important;
+    overflow: hidden !important;
+    box-shadow: var(--jtt-shadow-elevated) !important;
+}
+
+.board-form-dialog__actions {
+    display: flex !important;
+    gap: 0.75rem !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+.board-form-dialog .mud-dialog-content {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    overflow: hidden !important;
+    max-height: none !important;
+}
+
+.board-form-dialog .confirm-dialog__message {
+    white-space: pre-line;
+    max-width: 100%;
+}
+
+.board-form-dialog .mud-input.mud-input-outlined:focus-within > .mud-input-outlined-border,
+.board-form-dialog .mud-input.mud-input-outlined:focus-within .mud-shrink > .mud-input-outlined-border {
+    border-color: var(--jtt-stroke-accent) !important;
+}
+
+.board-form-dialog .mud-input-control:not(.mud-input-error) .mud-input:focus-within ~ label.mud-input-label.mud-input-label-inputcontrol {
+    color: var(--jtt-text-accent) !important;
+}
+
+/* ─── MudBlazor overrides ─── */
 .mud-layout,
 .mud-main-content {
     background: transparent !important;
 }
 
-:root {
-    --mud-palette-background: transparent;
-    --mud-palette-surface: rgba(28, 28, 30, 0.95);
-    --mud-palette-appbar-background: transparent;
-    --mud-palette-text-primary: rgba(255, 255, 255, 0.87);
-    --mud-palette-text-secondary: rgba(255, 255, 255, 0.60);
+.mud-progress-circular.mud-primary-text {
+    color: var(--jtt-text-accent) !important;
+}
+
+.mud-snackbar.mud-alert-filled-success,
+.mud-snackbar.mud-alert-filled-info,
+.mud-snackbar.mud-alert-filled-error {
+    backdrop-filter: blur(12px);
+    color: var(--jtt-text-strong) !important;
+    border-radius: var(--jtt-radius-md);
+    box-shadow: none;
+}
+
+.mud-snackbar.mud-alert-filled-success {
+    background-color: var(--jtt-overlay-accent-10) !important;
+    border: 1px solid var(--jtt-stroke-default);
+}
+
+.mud-snackbar.mud-alert-filled-info {
+    background-color: var(--jtt-overlay-white-10) !important;
+    border: 1px solid var(--jtt-stroke-default);
+}
+
+.mud-snackbar.mud-alert-filled-error {
+    background-color: var(--jtt-overlay-danger-15) !important;
+    border: 1px solid var(--jtt-stroke-danger);
+}
+
+.mud-snackbar.mud-alert-filled-success .mud-snackbar-icon,
+.mud-snackbar.mud-alert-filled-info .mud-snackbar-icon,
+.mud-snackbar.mud-alert-filled-error .mud-snackbar-icon {
+    color: var(--jtt-text-strong);
 }
 
 /* ─── Blazor loading + error UI ─── */
@@ -157,7 +456,7 @@ h1:focus {
 }
 
 .loading-progress circle:last-child {
-    stroke: #95CD41;
+    stroke: var(--jtt-text-accent);
     stroke-dasharray: calc(3.141 * var(--blazor-load-percentage, 0%) * 0.8), 500%;
     transition: stroke-dasharray 0.05s ease-in-out;
 }

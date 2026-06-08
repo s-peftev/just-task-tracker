@@ -1,5 +1,6 @@
 using JustTaskTracker.API.Configurators;
 using JustTaskTracker.API.Filters;
+using JustTaskTracker.API.Handlers;
 using JustTaskTracker.API.Middleware;
 using JustTaskTracker.Application.DI;
 using JustTaskTracker.Infrastructure.Common.Constants;
@@ -13,6 +14,7 @@ builder.AddServiceDefaults();
 
 builder.Services.AddControllers(options =>
 {
+    options.Filters.Add<PaginationValidationFilter>();
     options.Filters.Add<ApiResponseEnvelopeFilter>();
 
     options.Conventions.Add(new PrefixConventionConfigurator("api"));
@@ -22,6 +24,9 @@ builder.Services.AddApplication();
 builder.Services.AddPersistence(builder.Configuration);
 builder.Services.AddInfrastructure(builder.Configuration);
 
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
+
 SerilogConfigurator.Configure(builder.Configuration);
 builder.Host.UseSerilog();
 
@@ -30,7 +35,7 @@ var app = builder.Build();
 app.MapDefaultEndpoints();
 
 app.UseMiddleware<CorrelationIdMiddleware>();
-app.UseExceptionHandler(_ => { });
+app.UseExceptionHandler();
 app.UseHttpsRedirection();
 app.UseCors(CorsPolicies.DefaultCorsPolicy);
 

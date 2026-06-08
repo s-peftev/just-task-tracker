@@ -1,16 +1,18 @@
 @page "/login"
+@using JustTaskTracker.WebUI.Infrastructure
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthState
 
 <PageTitle>Log In — JustTaskTracker</PageTitle>
 
-<section class="login-scene">
-    <div class="card-surface-grain login-card">
+<section class="page-centered page-centered--raised">
+    <div class="login-card">
         <h1 class="login-card__title">Log in</h1>
-        <MudButton Variant="Variant.Filled"
+        <MudButton Variant="Variant.Text"
+                   Size="Size.Large"
                    FullWidth="true"
                    StartIcon="@Icons.Custom.Brands.Microsoft"
-                   Class="login-ms-btn"
+                   Class="btn-glass btn-glass--hero"
                    OnClick="BeginLogin">
             Log in with Microsoft
         </MudButton>
@@ -18,12 +20,22 @@
 </section>
 
 @code {
+    [SupplyParameterFromQuery(Name = MicrosoftAuthNavigation.AutoSignInQueryParam)]
+    public bool AutoSignIn { get; set; }
+
     protected override async Task OnInitializedAsync()
     {
         var state = await AuthState.GetAuthenticationStateAsync();
         if (state.User.Identity?.IsAuthenticated == true)
+        {
             Navigation.NavigateTo("/dashboard");
+            return;
+        }
+
+        if (AutoSignIn)
+            BeginLogin();
     }
 
-    private void BeginLogin() => Navigation.NavigateToLogin("authentication/login");
+    private void BeginLogin() =>
+        MicrosoftAuthNavigation.NavigateToMicrosoftLogin(Navigation);
 }

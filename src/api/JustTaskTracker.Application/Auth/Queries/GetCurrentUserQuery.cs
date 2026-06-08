@@ -26,9 +26,8 @@ public class GetCurrentUserQueryHandler(
         var userWithRoles = new UserWithRolesDto(
             userDto.Id,
             userDto.Email,
-            userDto.DisplayName,
-            rolesFromToken
-        );
+            rolesFromToken,
+            userDto.DisplayName);
 
         return Result<UserWithRolesDto>.Success(userWithRoles);
     }

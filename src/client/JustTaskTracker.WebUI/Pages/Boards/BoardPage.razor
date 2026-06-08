@@ -1,0 +1,261 @@
+@page "/boards/{Id:guid}"
+@attribute [Authorize]
+@using JustTaskTracker.WebUI.Infrastructure
+@using JustTaskTracker.WebUI.Services.Exceptions
+@inject IBoardApiService BoardApiService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+
+<PageTitle>@(_board?.Name ?? "Board") — JustTaskTracker</PageTitle>
+
+<div class="board-page">
+    @if (_isLoading)
+    {
+        <div class="page-state page-state--stacked">
+            <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+        </div>
+    }
+    else if (_errorMessage is { } error)
+    {
+        <div class="page-state page-state--stacked">
+            <MudAlert Severity="Severity.Error">@error</MudAlert>
+            <button type="button" class="btn-noir" @onclick="GoToDashboard">
+                <span>Back to dashboard</span>
+            </button>
+        </div>
+    }
+    else if (_board is { } board)
+    {
+        <header class="board-page__header">
+            <div class="board-page__title-area">
+                @if (_isEditingName)
+                {
+                    <div class="board-page__title-field">
+                        <span class="board-page__title-sizer">@_editName</span>
+                        <input @ref="_titleInputRef"
+                               class="board-page__title-input"
+                               type="text"
+                               maxlength="100"
+                               @bind="_editName"
+                               @bind:event="oninput"
+                               @onkeydown="OnTitleKeyDownAsync"
+                               @onblur="OnTitleBlurAsync" />
+                    </div>
+                }
+                else if (IsOwner)
+                {
+                    <h1 class="text-section-title board-page__title board-page__title--editable"
+                        @onclick="StartNameEdit">
+                        @board.Name
+                    </h1>
+                }
+                else
+                {
+                    <h1 class="text-section-title board-page__title">@board.Name</h1>
+                }
+            </div>
+
+            <div class="board-page__controls">
+                <BoardPageMenu IsOwner="IsOwner"
+                               OnMembersClick="ShowMembersComingSoon"
+                               OnLeaveBoardClick="ShowLeaveBoardComingSoon"
+                               OnDeleteBoardClick="DeleteBoardAsync" />
+
+                <button type="button"
+                        class="btn-icon btn-icon--round btn-icon--sm"
+                        aria-label="Back to dashboard"
+                        @onclick="GoToDashboard">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path d="M18 6L6 18M6 6l12 12"
+                              stroke="currentColor"
+                              stroke-width="2"
+                              stroke-linecap="round" />
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <section class="board-page__content">
+            <ul class="board-page__body">
+                @if (CanManageColumns)
+                {
+                    <li class="board-page__column-slot">
+                        <button type="button"
+                                class="btn-glass-white board-page__add-column-btn"
+                                @onclick="ShowColumnsComingSoon">
+                            + Add column
+                        </button>
+                    </li>
+                }
+            </ul>
+        </section>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private BoardDetailsDto? _board;
+    private bool _isLoading = true;
+    private string? _errorMessage;
+    private bool _isEditingName;
+    private bool _isSavingName;
+    private bool _focusTitleInput;
+    private string _editName = string.Empty;
+    private ElementReference _titleInputRef;
+
+    private bool IsOwner => _board?.UserRole == BoardMemberRole.Owner;
+    private bool CanManageColumns => _board?.UserRole is BoardMemberRole.Owner or BoardMemberRole.Admin;
+
+    protected override async Task OnParametersSetAsync() =>
+        await LoadAsync();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!_focusTitleInput)
+            return;
+
+        _focusTitleInput = false;
+        await _titleInputRef.FocusAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _isLoading = true;
+        _errorMessage = null;
+        StateHasChanged();
+
+        try
+        {
+            _board = await BoardApiService.GetBoardByIdAsync(Id);
+        }
+        catch (ApiServiceException ex)
+        {
+            _board = null;
+            _errorMessage = ex.Error?.Details is { Count: > 0 } details
+                ? string.Join(" ", details)
+                : ex.Message;
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void GoToDashboard() => Navigation.NavigateTo("/dashboard");
+
+    private void ShowMembersComingSoon() =>
+        Snackbar.Add("Members management is coming soon.", Severity.Info);
+
+    private void ShowLeaveBoardComingSoon() =>
+        Snackbar.Add("Leave board is coming soon.", Severity.Info);
+
+    private void ShowColumnsComingSoon() =>
+        Snackbar.Add("Column creation is coming soon.", Severity.Info);
+
+    private void StartNameEdit()
+    {
+        if (!IsOwner || _board is null || _isEditingName)
+            return;
+
+        _editName = _board.Name;
+        _isEditingName = true;
+        _focusTitleInput = true;
+    }
+
+    private void CancelNameEdit()
+    {
+        _isEditingName = false;
+        _editName = _board?.Name ?? string.Empty;
+    }
+
+    private async Task OnTitleKeyDownAsync(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            await SaveBoardNameAsync();
+        else if (e.Key == "Escape")
+            CancelNameEdit();
+    }
+
+    private async Task OnTitleBlurAsync()
+    {
+        if (!_isEditingName)
+            return;
+
+        await SaveBoardNameAsync();
+    }
+
+    private async Task SaveBoardNameAsync()
+    {
+        if (!_isEditingName || _board is null || _isSavingName)
+            return;
+
+        var trimmedName = _editName.Trim();
+
+        if (string.IsNullOrEmpty(trimmedName))
+        {
+            Snackbar.Add("Board name is required.", Severity.Error);
+            return;
+        }
+
+        if (trimmedName.Length > 100)
+        {
+            Snackbar.Add("Board name must not exceed 100 characters.", Severity.Error);
+            return;
+        }
+
+        if (string.Equals(trimmedName, _board.Name, StringComparison.Ordinal))
+        {
+            CancelNameEdit();
+            return;
+        }
+
+        _isSavingName = true;
+
+        try
+        {
+            _board = await BoardApiService.UpdateBoardAsync(Id, trimmedName);
+            _isEditingName = false;
+            Snackbar.Add("Board updated.", Severity.Success);
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+        finally
+        {
+            _isSavingName = false;
+        }
+    }
+
+    private async Task DeleteBoardAsync()
+    {
+        var parameters = new DialogParameters<ConfirmDialog>
+        {
+            { x => x.Message, $"Delete board \"{_board?.Name}\"?{Environment.NewLine}This action cannot be undone." },
+            { x => x.ConfirmLabel, "Delete" }
+        };
+
+        var options = ConfirmDialog.DefaultOptions;
+
+        var dialog = await DialogService.ShowAsync<ConfirmDialog>("Delete board", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is not { Canceled: false, Data: true })
+            return;
+
+        try
+        {
+            await BoardApiService.DeleteBoardAsync(Id);
+            Snackbar.Add("Board deleted.", Severity.Success);
+            Navigation.NavigateTo("/dashboard");
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+    }
+}

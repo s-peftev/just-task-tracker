@@ -1,0 +1,123 @@
+.sidebar {
+    box-sizing: border-box;
+    width: 300px;
+    height: 100%;
+    min-height: 0;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 1rem 0 0;
+    background-color: var(--jtt-surface-raised);
+    overflow: hidden;
+    position: relative;
+    z-index: 1;
+}
+
+.sidebar__profile {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    padding: 0 2rem;
+}
+
+.sidebar__avatar {
+    width: 7.5rem;
+    height: 7.5rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--jtt-overlay-accent-10);
+    user-select: none;
+}
+
+.sidebar__avatar span {
+    font-size: 2.5rem;
+    line-height: 1;
+}
+
+.sidebar__info {
+    width: 100%;
+    text-align: center;
+}
+
+.sidebar__name,
+.sidebar__email,
+.sidebar__role {
+    margin: 0;
+    word-break: break-word;
+}
+
+.sidebar__email {
+    margin-top: 0.25rem;
+}
+
+.sidebar__roles {
+    margin-top: 0.75rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: center;
+}
+
+.sidebar__divider {
+    margin: 1.5rem 2rem;
+    border-top: 1px solid var(--jtt-stroke-separator);
+}
+
+.sidebar__nav {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0 2rem;
+}
+
+::deep .sidebar__tab {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.625rem 1rem;
+    text-align: left;
+    text-decoration: none;
+    border: 1px solid transparent;
+    border-radius: var(--jtt-radius-md);
+    transition: background 0.2s, border-color 0.2s, opacity 0.2s;
+}
+
+::deep .sidebar__tab:hover:not(.sidebar__tab--active) {
+    color: var(--jtt-text-accent);
+}
+
+::deep .sidebar__tab--active {
+    background: var(--jtt-overlay-accent-10);
+    backdrop-filter: blur(12px);
+    color: var(--jtt-text-strong);
+    border-color: var(--jtt-stroke-default);
+    opacity: 1;
+}
+
+.sidebar__footer {
+    margin-top: auto;
+    border-top: 1px solid var(--jtt-stroke-separator);
+    padding: 1rem 2rem 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.sidebar__footer-action {
+    display: block;
+    width: 100%;
+    padding: 0.5rem 0;
+    text-align: left;
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.sidebar__footer-action:hover {
+    color: var(--jtt-text-accent);
+}

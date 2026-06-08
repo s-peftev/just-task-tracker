@@ -1,6 +1,6 @@
 using JustTaskTracker.WebUI.Domain.Common;
-using JustTaskTracker.WebUI.Domain.Kanban;
-using JustTaskTracker.WebUI.Domain.Kanban.Requests;
+using JustTaskTracker.WebUI.Domain.Boards;
+using JustTaskTracker.WebUI.Domain.Boards.Requests;
 using JustTaskTracker.WebUI.Services.Api.Models;
 using Refit;
 

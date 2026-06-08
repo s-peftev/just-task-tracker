@@ -1,9 +1,9 @@
 using JustTaskTracker.Application.Auth.Repositories;
 using JustTaskTracker.Application.Common.Interfaces.Persistence;
-using JustTaskTracker.Application.Kanban.Repositories;
+using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Persistence.Auth.Repositories;
 using JustTaskTracker.Persistence.Common;
-using JustTaskTracker.Persistence.Kanban.Repositories;
+using JustTaskTracker.Persistence.Boards.Repositories;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace JustTaskTracker.Persistence.DI.Modules;

@@ -1,7 +1,7 @@
-﻿using JustTaskTracker.API.Extensions;
+using JustTaskTracker.API.Extensions;
 using JustTaskTracker.Application.Common.Constants;
-using JustTaskTracker.Application.Kanban.Commands;
-using JustTaskTracker.Application.Kanban.Queries;
+using JustTaskTracker.Application.Boards.Commands;
+using JustTaskTracker.Application.Boards.Queries;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -18,8 +18,8 @@
 
   <ItemGroup>
     <Folder Include="Common\Behaviors\" />
-    <Folder Include="Kanban\Validators\" />
-    <Folder Include="Kanban\Repositories\" />
+    <Folder Include="Boards\Validators\" />
+    <Folder Include="Boards\Repositories\" />
   </ItemGroup>
 
 </Project>

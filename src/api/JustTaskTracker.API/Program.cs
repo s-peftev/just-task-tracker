@@ -14,7 +14,7 @@ builder.AddServiceDefaults();
 
 builder.Services.AddControllers(options =>
 {
-    options.Filters.Add<PaginationNormalizationFilter>();
+    options.Filters.Add<PaginationValidationFilter>();
     options.Filters.Add<ApiResponseEnvelopeFilter>();
 
     options.Conventions.Add(new PrefixConventionConfigurator("api"));

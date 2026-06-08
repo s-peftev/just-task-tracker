@@ -16,7 +16,11 @@ public class GetBoardsForCurrentUserQueryHandler(
 {
     public async Task<Result<PagedList<BoardLookupDto>>> Handle(GetBoardsForCurrentUserQuery request, CancellationToken ct)
     {
-        var boards = await boardRepository.GetBoardsByUserAzureAOIAsync(currentUser.AzureAdObjectId, request.PageNumber, request.PageSize, ct);
+        var boards = await boardRepository.GetBoardsByUserAzureAOIAsync(
+            currentUser.AzureAdObjectId,
+            request.PageNumber!.Value,
+            request.PageSize!.Value,
+            ct);
 
         return Result<PagedList<BoardLookupDto>>.Success(boards);
     }

@@ -8,9 +8,32 @@ namespace JustTaskTracker.Persistence.Boards.Repositories;
 public class ColumnRepository(JustTaskTrackerDbContext context)
     : Repository<Column, Guid>(context), IColumnRepository
 {
+    public async Task<Column?> GetByBoardIdAndIdAsync(
+        Guid boardId,
+        Guid columnId,
+        CancellationToken ct = default) =>
+        await _dbSet
+            .FirstOrDefaultAsync(c => c.BoardId == boardId && c.Id == columnId, ct);
+
     public async Task<IReadOnlyList<string>> GetNamesByBoardIdAsync(Guid boardId, CancellationToken ct = default) =>
         await _dbSet
             .Where(c => c.BoardId == boardId)
             .Select(c => c.Name)
             .ToListAsync(ct);
+
+    public async Task<bool> NameExistsAsync(
+        Guid boardId,
+        string name,
+        Guid? excludeColumnId = null,
+        CancellationToken ct = default)
+    {
+        var query = _dbSet.Where(c => c.BoardId == boardId);
+
+        if (excludeColumnId.HasValue)
+            query = query.Where(c => c.Id != excludeColumnId.Value);
+
+        return await query.AnyAsync(
+            c => c.Name.ToLower() == name.ToLower(),
+            ct);
+    }
 }

@@ -86,6 +86,7 @@ public class BoardRepository(JustTaskTrackerDbContext context)
                                 t.AssigneeId == null
                                     ? null
                                     : new UserDto(t.Assignee!.Id, t.Assignee.Email, t.Assignee.DisplayName)))))))
+            .AsSplitQuery()
             .FirstOrDefaultAsync(ct);
 
     public async Task<PagedList<BoardLookupDto>> GetBoardsByUserAzureAOIAsync(

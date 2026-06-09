@@ -1,6 +1,9 @@
-using JustTaskTracker.WebUI.Domain.Common;
 using JustTaskTracker.WebUI.Domain.Boards;
 using JustTaskTracker.WebUI.Domain.Boards.Enums;
+using JustTaskTracker.WebUI.Domain.Boards.Enums.SearchFields;
+using JustTaskTracker.WebUI.Domain.Boards.Requests;
+using JustTaskTracker.WebUI.Domain.Common.Pagination;
+using JustTaskTracker.WebUI.Domain.Common.Searching;
 using JustTaskTracker.WebUI.Services.Abstractions.Boards;
 
 namespace JustTaskTracker.WebUI.Services.Boards.Stores;
@@ -12,12 +15,16 @@ namespace JustTaskTracker.WebUI.Services.Boards.Stores;
 internal sealed class BoardStore(IBoardApiService boardApiService) : IBoardStore
 {
     public const int PageSize = 23;
+    private const int SearchDebounceMilliseconds = 300;
 
     private readonly Dictionary<Guid, BoardMemberRole> _roleCache = [];
+    private CancellationTokenSource? _loadCts;
+    private CancellationTokenSource? _searchDebounceCts;
 
     public IReadOnlyList<BoardLookupDto> Boards { get; private set; } = [];
     public PaginationMetadata Pagination { get; private set; } = new();
     public int CurrentPage { get; private set; } = 1;
+    public string SearchText { get; private set; } = string.Empty;
     public bool IsLoading { get; private set; }
     public bool IsLoaded { get; private set; }
     public string? ErrorMessage { get; private set; }
@@ -29,20 +36,60 @@ internal sealed class BoardStore(IBoardApiService boardApiService) : IBoardStore
         if (IsLoaded && pageNumber == CurrentPage && !IsLoading)
             return Task.CompletedTask;
 
-        return LoadInternalAsync(pageNumber, ct);
+        return LoadInternalAsync(pageNumber, SearchText, ct);
+    }
+
+    public async Task SetSearchAsync(string searchText, CancellationToken ct = default)
+    {
+        SearchText = searchText;
+        NotifyStateChanged();
+
+        CancelSearchDebounce();
+
+        var debounceCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        _searchDebounceCts = debounceCts;
+
+        try
+        {
+            await Task.Delay(SearchDebounceMilliseconds, debounceCts.Token);
+            await LoadInternalAsync(1, searchText, ct);
+        }
+        catch (OperationCanceledException) when (debounceCts.IsCancellationRequested)
+        {
+            // Superseded by a newer keystroke or reset.
+        }
+        finally
+        {
+            if (ReferenceEquals(_searchDebounceCts, debounceCts))
+            {
+                debounceCts.Dispose();
+                _searchDebounceCts = null;
+            }
+            else
+            {
+                debounceCts.Dispose();
+            }
+        }
     }
 
     public Task RefreshAsync(CancellationToken ct = default) =>
-        LoadInternalAsync(CurrentPage, ct);
+        LoadInternalAsync(CurrentPage, SearchText, ct);
 
     public BoardMemberRole? GetCachedRole(Guid boardId) =>
         _roleCache.TryGetValue(boardId, out var role) ? role : null;
 
     public void Reset()
     {
+        CancelSearchDebounce();
+
+        _loadCts?.Cancel();
+        _loadCts?.Dispose();
+        _loadCts = null;
+
         Boards = [];
         Pagination = new PaginationMetadata();
         CurrentPage = 1;
+        SearchText = string.Empty;
         IsLoading = false;
         IsLoaded = false;
         ErrorMessage = null;
@@ -50,15 +97,30 @@ internal sealed class BoardStore(IBoardApiService boardApiService) : IBoardStore
         NotifyStateChanged();
     }
 
-    private async Task LoadInternalAsync(int pageNumber, CancellationToken ct)
+    private async Task LoadInternalAsync(int pageNumber, string searchText, CancellationToken ct)
     {
+        _loadCts?.Cancel();
+        _loadCts?.Dispose();
+
+        var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        _loadCts = linkedCts;
+
         IsLoading = true;
         ErrorMessage = null;
         NotifyStateChanged();
 
         try
         {
-            var page = await boardApiService.GetMyBoardsAsync(pageNumber, PageSize, ct);
+            TextSearchOptions<BoardSearchField>? textSearch = string.IsNullOrWhiteSpace(searchText)
+                ? null
+                : new TextSearchOptions<BoardSearchField>(searchText);
+
+            var request = new GetBoardsForCurrentUserRequest(textSearch)
+            {
+                PageNumber = pageNumber,
+                PageSize = PageSize,
+            };
+            var page = await boardApiService.GetMyBoardsAsync(request, linkedCts.Token);
 
             Boards = page.Items;
             Pagination = page.Metadata;
@@ -68,6 +130,10 @@ internal sealed class BoardStore(IBoardApiService boardApiService) : IBoardStore
             foreach (var board in page.Items)
                 _roleCache[board.Id] = board.UserRole;
         }
+        catch (OperationCanceledException) when (linkedCts.IsCancellationRequested)
+        {
+            // Superseded by a newer search/page request.
+        }
         catch (Exception ex)
         {
             // ApiServiceException carries the server message; other exceptions (network, etc.) fall through here too.
@@ -75,9 +141,25 @@ internal sealed class BoardStore(IBoardApiService boardApiService) : IBoardStore
         }
         finally
         {
-            IsLoading = false;
-            NotifyStateChanged();
+            if (ReferenceEquals(_loadCts, linkedCts))
+            {
+                IsLoading = false;
+                linkedCts.Dispose();
+                _loadCts = null;
+                NotifyStateChanged();
+            }
+            else
+            {
+                linkedCts.Dispose();
+            }
         }
+    }
+
+    private void CancelSearchDebounce()
+    {
+        _searchDebounceCts?.Cancel();
+        _searchDebounceCts?.Dispose();
+        _searchDebounceCts = null;
     }
 
     private void NotifyStateChanged() => StateChanged?.Invoke();

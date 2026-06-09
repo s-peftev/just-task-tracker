@@ -1,10 +1,41 @@
 @using JustTaskTracker.WebUI.Domain.Boards
 @using JustTaskTracker.WebUI.Domain.Boards.Enums
 @using JustTaskTracker.WebUI.Domain.Boards.Authorization
+@using JustTaskTracker.WebUI.Infrastructure
+@using JustTaskTracker.WebUI.Services.Abstractions.Boards
+@using JustTaskTracker.WebUI.Services.Exceptions
 
 <article class="board-column">
     <header class="board-column__header">
-        <h2 class="board-column__title" title="@Column.Name">@Column.Name</h2>
+        <div class="board-column__title-area">
+            @if (_isEditingName)
+            {
+                <div class="board-column__title-field">
+                    <span class="board-column__title-sizer">@_editName</span>
+                    <input @ref="_titleInputRef"
+                           class="board-column__title-input"
+                           type="text"
+                           maxlength="50"
+                           @bind="_editName"
+                           @bind:event="oninput"
+                           @onkeydown="OnTitleKeyDownAsync"
+                           @onblur="OnTitleBlurAsync" />
+                </div>
+            }
+            else if (CanRenameColumn)
+            {
+                <h2 class="board-column__title board-column__title--editable"
+                    title="@Column.Name"
+                    @onclick="StartNameEdit">
+                    @Column.Name
+                </h2>
+            }
+            else
+            {
+                <h2 class="board-column__title" title="@Column.Name">@Column.Name</h2>
+            }
+        </div>
+
         <div class="board-column__header-actions">
             <span class="board-column__count">@Column.BoardTasks.Count</span>
             @if (CanDeleteColumn)
@@ -41,20 +72,121 @@
 </article>
 
 @code {
+    private const int MaxNameLength = 50;
+
     [Parameter, EditorRequired]
     public ColumnDto Column { get; set; } = default!;
 
     [Parameter, EditorRequired]
     public BoardMemberRole UserRole { get; set; }
 
+    [Inject]
+    private IBoardApiService BoardApiService { get; set; } = default!;
+
+    [Inject]
+    private IBoardDetailsStore BoardDetailsStore { get; set; } = default!;
+
+    [Inject]
+    private ISnackbar Snackbar { get; set; } = default!;
+
+    private bool _isEditingName;
+    private bool _isSavingName;
+    private bool _focusTitleInput;
+    private string _editName = string.Empty;
+    private ElementReference _titleInputRef;
+
+    private bool CanRenameColumn => BoardRolePermissions.CanManageColumns(UserRole);
+
     private bool CanDeleteColumn => BoardRolePermissions.CanManageColumns(UserRole);
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!_focusTitleInput)
+            return;
+
+        _focusTitleInput = false;
+        await _titleInputRef.FocusAsync();
+    }
+
+    private void StartNameEdit()
+    {
+        if (!CanRenameColumn || _isEditingName)
+            return;
+
+        _editName = Column.Name;
+        _isEditingName = true;
+        _focusTitleInput = true;
+    }
+
+    private void CancelNameEdit()
+    {
+        _isEditingName = false;
+        _editName = Column.Name;
+    }
+
+    private async Task OnTitleKeyDownAsync(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            await SaveColumnNameAsync();
+        else if (e.Key == "Escape")
+            CancelNameEdit();
+    }
+
+    private async Task OnTitleBlurAsync()
+    {
+        if (!_isEditingName)
+            return;
+
+        await SaveColumnNameAsync();
+    }
+
+    private async Task SaveColumnNameAsync()
+    {
+        if (!_isEditingName || _isSavingName || BoardDetailsStore.BoardId is not { } boardId)
+            return;
+
+        var trimmedName = _editName.Trim();
+
+        if (string.IsNullOrEmpty(trimmedName))
+        {
+            Snackbar.Add("Column name is required.", Severity.Error);
+            return;
+        }
+
+        if (trimmedName.Length > MaxNameLength)
+        {
+            Snackbar.Add($"Column name must not exceed {MaxNameLength} characters.", Severity.Error);
+            return;
+        }
+
+        if (string.Equals(trimmedName, Column.Name, StringComparison.Ordinal))
+        {
+            CancelNameEdit();
+            return;
+        }
+
+        _isSavingName = true;
+
+        try
+        {
+            await BoardApiService.UpdateColumnAsync(boardId, Column.Id, trimmedName);
+            BoardDetailsStore.UpdateColumnName(Column.Id, trimmedName);
+            _isEditingName = false;
+            Snackbar.Add("Column updated.", Severity.Success);
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+        finally
+        {
+            _isSavingName = false;
+        }
+    }
 
     private void OnDeleteClick() =>
         Snackbar.Add("Column deletion is coming soon.", Severity.Info);
 
     private void OnAddTaskClick() =>
         Snackbar.Add("Task creation is coming soon.", Severity.Info);
-
-    [Inject]
-    private ISnackbar Snackbar { get; set; } = default!;
 }

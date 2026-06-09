@@ -10,6 +10,7 @@ public interface IBoardApiService
     Task<BoardDetailsDto> GetBoardByIdAsync(Guid boardId, CancellationToken ct = default);
     Task<BoardDetailsDto> CreateBoardAsync(string name, CancellationToken ct = default);
     Task UpdateBoardAsync(Guid boardId, string name, CancellationToken ct = default);
+    Task UpdateColumnAsync(Guid boardId, Guid columnId, string name, CancellationToken ct = default);
     Task DeleteBoardAsync(Guid boardId, CancellationToken ct = default);
     Task<ColumnDto> CreateColumnAsync(Guid boardId, string name, CancellationToken ct = default);
 }

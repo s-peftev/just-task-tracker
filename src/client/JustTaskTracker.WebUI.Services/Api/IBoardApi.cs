@@ -32,4 +32,11 @@ internal interface IBoardApi
         Guid boardId,
         [Body] SaveColumnRequest request,
         CancellationToken ct = default);
+
+    [Put("/api/boards/{boardId}/columns/{columnId}")]
+    Task<IApiResponse<ApiEnvelope<object>>> UpdateColumnAsync(
+        Guid boardId,
+        Guid columnId,
+        [Body] SaveColumnRequest request,
+        CancellationToken ct = default);
 }

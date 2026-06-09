@@ -21,5 +21,7 @@ public interface IBoardDetailsStore
 
     void UpdateBoardName(string name);
 
+    void UpdateColumnName(Guid columnId, string name);
+
     void Reset();
 }

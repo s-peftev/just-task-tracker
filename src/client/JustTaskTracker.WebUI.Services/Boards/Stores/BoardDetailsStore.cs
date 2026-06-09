@@ -66,6 +66,19 @@ internal sealed class BoardDetailsStore(IBoardApiService boardApiService) : IBoa
         NotifyStateChanged();
     }
 
+    public void UpdateColumnName(Guid columnId, string name)
+    {
+        if (Board is null)
+            return;
+
+        var columns = Board.Columns
+            .Select(column => column.Id == columnId ? column with { Name = name } : column)
+            .ToList();
+
+        Board = Board with { Columns = columns };
+        NotifyStateChanged();
+    }
+
     public void Reset()
     {
         BoardId = null;

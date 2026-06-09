@@ -34,7 +34,7 @@ public class CreateColumnCommandHandler(
             return Result<ColumnDto>.Failure(GeneralErrors.Forbidden);
 
         var name = request.Name.Trim();
-        var existingNames = await columnRepository.GetNamesByBoardIdAsync(request.BoardId, ct);
+        var existingNames = await columnRepository.GetNameListByBoardIdAsync(request.BoardId, ct);
 
         if (existingNames.Any(existingName =>
                 string.Equals(existingName, name, StringComparison.OrdinalIgnoreCase)))

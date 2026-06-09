@@ -14,4 +14,9 @@ public static class ColumnsErrors
         nameof(CannotMoveTasksToSameColumn),
         ErrorType.Business,
         ["Tasks cannot be moved to the column being deleted."]);
+
+    public static readonly Error InvalidOrder = new(
+        nameof(InvalidOrder),
+        ErrorType.Validation,
+        ["Column order must include every column on the board exactly once."]);
 }

@@ -76,7 +76,7 @@ public class DeleteColumnCommandHandler(
 
         columnRepository.Remove(column);
 
-        var columnsToReposition = await columnRepository.GetWithPositionGreaterThanAsync(
+        var columnsToReposition = await columnRepository.GetListWithPositionGreaterThanAsync(
             request.BoardId,
             column.Position,
             ct);

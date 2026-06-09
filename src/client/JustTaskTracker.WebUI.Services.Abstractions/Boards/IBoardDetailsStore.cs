@@ -1,5 +1,6 @@
 using JustTaskTracker.WebUI.Domain.Boards;
 using JustTaskTracker.WebUI.Domain.Boards.Enums;
+using JustTaskTracker.WebUI.Domain.Boards.Requests;
 
 namespace JustTaskTracker.WebUI.Services.Abstractions.Boards;
 
@@ -22,6 +23,8 @@ public interface IBoardDetailsStore
     void UpdateBoardName(string name);
 
     void UpdateColumnName(Guid columnId, string name);
+
+    Task DeleteColumnAsync(Guid columnId, DeleteColumnRequest request, CancellationToken ct = default);
 
     void Reset();
 }

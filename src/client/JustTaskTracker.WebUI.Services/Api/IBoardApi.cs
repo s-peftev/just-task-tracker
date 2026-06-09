@@ -28,15 +28,11 @@ internal interface IBoardApi
     Task<IApiResponse<ApiEnvelope<object>>> DeleteAsync(Guid id, CancellationToken ct = default);
 
     [Post("/api/boards/{boardId}/columns")]
-    Task<IApiResponse<ApiEnvelope<ColumnDto>>> CreateColumnAsync(
-        Guid boardId,
-        [Body] SaveColumnRequest request,
-        CancellationToken ct = default);
+    Task<IApiResponse<ApiEnvelope<ColumnDto>>> CreateColumnAsync(Guid boardId, [Body] SaveColumnRequest request, CancellationToken ct = default);
 
     [Put("/api/boards/{boardId}/columns/{columnId}")]
-    Task<IApiResponse<ApiEnvelope<object>>> UpdateColumnAsync(
-        Guid boardId,
-        Guid columnId,
-        [Body] SaveColumnRequest request,
-        CancellationToken ct = default);
+    Task<IApiResponse<ApiEnvelope<object>>> UpdateColumnAsync(Guid boardId, Guid columnId, [Body] SaveColumnRequest request, CancellationToken ct = default);
+
+    [Delete("/api/boards/{boardId}/columns/{columnId}")]
+    Task<IApiResponse<ApiEnvelope<object>>> DeleteColumnAsync(Guid boardId, Guid columnId, [Body] DeleteColumnRequest request, CancellationToken ct = default);
 }

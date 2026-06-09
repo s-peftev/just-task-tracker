@@ -1,4 +1,6 @@
 using JustTaskTracker.WebUI.Domain.Boards;
+using JustTaskTracker.WebUI.Domain.Boards.Enums;
+using JustTaskTracker.WebUI.Domain.Boards.Requests;
 using JustTaskTracker.WebUI.Services.Abstractions.Boards;
 using JustTaskTracker.WebUI.Services.Exceptions;
 
@@ -57,6 +59,18 @@ internal sealed class BoardDetailsStore(IBoardApiService boardApiService) : IBoa
         return column;
     }
 
+    public async Task DeleteColumnAsync(Guid columnId, DeleteColumnRequest request, CancellationToken ct = default)
+    {
+        if (BoardId is not { } boardId || Board is null)
+            throw new InvalidOperationException("Board details are not loaded.");
+
+        var column = Board.Columns.FirstOrDefault(c => c.Id == columnId)
+            ?? throw new InvalidOperationException("Column was not found in the loaded board.");
+
+        await boardApiService.DeleteColumnAsync(boardId, columnId, request, ct);
+        ApplyColumnDeletion(column, request);
+    }
+
     public void UpdateBoardName(string name)
     {
         if (Board is null)
@@ -86,6 +100,81 @@ internal sealed class BoardDetailsStore(IBoardApiService boardApiService) : IBoa
         IsLoading = false;
         ErrorMessage = null;
         NotifyStateChanged();
+    }
+
+    private void ApplyColumnDeletion(ColumnDto deletedColumn, DeleteColumnRequest request)
+    {
+        if (Board is null)
+            return;
+
+        var columns = Board.Columns.ToList();
+        var deletedPosition = deletedColumn.Position;
+
+        if (request.TasksDisposition == DeleteColumnTasksDisposition.MoveToColumn
+            && deletedColumn.BoardTasks.Count > 0
+            && request.TargetColumnId is { } targetColumnId)
+        {
+            columns = MoveTasksLocally(
+                columns,
+                deletedColumn.BoardTasks,
+                targetColumnId,
+                request.MovePlacement!.Value);
+        }
+
+        columns = columns
+            .Where(column => column.Id != deletedColumn.Id)
+            .Select(column => column.Position > deletedPosition
+                ? column with { Position = column.Position - 1 }
+                : column)
+            .OrderBy(column => column.Position)
+            .ToList();
+
+        Board = Board with { Columns = columns };
+        NotifyStateChanged();
+    }
+
+    private static List<ColumnDto> MoveTasksLocally(
+        List<ColumnDto> columns,
+        IReadOnlyList<TaskDto> tasksToMove,
+        Guid targetColumnId,
+        ColumnTaskMovePlacement placement)
+    {
+        var targetColumn = columns.First(column => column.Id == targetColumnId);
+        var targetTasks = targetColumn.BoardTasks.ToList();
+        IReadOnlyList<TaskDto> updatedTargetTasks;
+
+        if (placement == ColumnTaskMovePlacement.Start)
+        {
+            var offset = tasksToMove.Count;
+            var shiftedTargetTasks = targetTasks
+                .Select(task => task with { Position = task.Position + offset })
+                .ToList();
+            var movedTasks = tasksToMove
+                .Select((task, index) => task with { Position = index })
+                .ToList();
+
+            updatedTargetTasks = movedTasks
+                .Concat(shiftedTargetTasks)
+                .OrderBy(task => task.Position)
+                .ToList();
+        }
+        else
+        {
+            var startPosition = targetTasks.Count;
+            var movedTasks = tasksToMove
+                .Select((task, index) => task with { Position = startPosition + index })
+                .ToList();
+
+            updatedTargetTasks = targetTasks
+                .Concat(movedTasks)
+                .ToList();
+        }
+
+        return columns
+            .Select(column => column.Id == targetColumnId
+                ? column with { BoardTasks = updatedTargetTasks }
+                : column)
+            .ToList();
     }
 
     private void AddColumn(ColumnDto column)

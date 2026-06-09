@@ -1,7 +1,10 @@
 @using JustTaskTracker.WebUI.Domain.Boards
 @using JustTaskTracker.WebUI.Domain.Boards.Enums
 @using JustTaskTracker.WebUI.Domain.Boards.Authorization
+@using JustTaskTracker.WebUI.Domain.Boards.Requests
 @using JustTaskTracker.WebUI.Infrastructure
+@using JustTaskTracker.WebUI.Components.Shared
+@using JustTaskTracker.WebUI.Components.Shared.Forms
 @using JustTaskTracker.WebUI.Services.Abstractions.Boards
 @using JustTaskTracker.WebUI.Services.Exceptions
 
@@ -43,7 +46,7 @@
                 <button type="button"
                         class="btn-icon btn-icon--sm board-column__delete"
                         aria-label="Delete column"
-                        @onclick="OnDeleteClick">
+                        @onclick="DeleteColumnAsync">
                     <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                         <path d="M18 6L6 18M6 6l12 12"
                               stroke="currentColor"
@@ -88,6 +91,9 @@
 
     [Inject]
     private ISnackbar Snackbar { get; set; } = default!;
+
+    [Inject]
+    private IDialogService DialogService { get; set; } = default!;
 
     private bool _isEditingName;
     private bool _isSavingName;
@@ -184,8 +190,38 @@
         }
     }
 
-    private void OnDeleteClick() =>
-        Snackbar.Add("Column deletion is coming soon.", Severity.Info);
+    private async Task DeleteColumnAsync()
+    {
+        if (BoardDetailsStore.Board is null)
+            return;
+
+        var otherColumns = BoardDetailsStore.Board.Columns
+            .Where(column => column.Id != Column.Id)
+            .OrderBy(column => column.Position)
+            .ToList();
+
+        var dialog = await DialogService.ShowResourceFormAsync(
+            "Delete column",
+            "Delete",
+            DeleteColumnForm.FormId,
+            DeleteColumnForm.Render(Column, otherColumns),
+            submitButtonClass: "btn-dialog-danger btn-dialog-action");
+
+        var result = await dialog.Result;
+
+        if (result is not { Canceled: false, Data: DeleteColumnRequest request })
+            return;
+
+        try
+        {
+            await BoardDetailsStore.DeleteColumnAsync(Column.Id, request);
+            Snackbar.Add($"Column \"{Column.Name}\" deleted.", Severity.Success);
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+    }
 
     private void OnAddTaskClick() =>
         Snackbar.Add("Task creation is coming soon.", Severity.Info);

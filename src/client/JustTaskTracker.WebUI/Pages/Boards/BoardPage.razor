@@ -248,15 +248,14 @@
 
     private async Task DeleteBoardAsync()
     {
-        var parameters = new DialogParameters<ConfirmDialog>
-        {
-            { x => x.Message, $"Delete board \"{BoardDetailsStore.Board?.Name}\"?{Environment.NewLine}This action cannot be undone." },
-            { x => x.ConfirmLabel, "Delete" }
-        };
+        var message =
+            $"Delete board \"{BoardDetailsStore.Board?.Name}\"?{Environment.NewLine}This action cannot be undone.";
 
-        var options = ConfirmDialog.DefaultOptions;
+        var dialog = await DialogService.ShowConfirmResourceAsync(
+            "Delete board",
+            message,
+            confirmLabel: "Delete");
 
-        var dialog = await DialogService.ShowAsync<ConfirmDialog>("Delete board", parameters, options);
         var result = await dialog.Result;
 
         if (result is not { Canceled: false, Data: true })

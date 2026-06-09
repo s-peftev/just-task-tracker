@@ -5,12 +5,12 @@ public enum BoardMemberRole : byte
     // Full access: profile, members, columns, tasks
     Owner = 1,
 
-    // Manage members and columns/tasks; cannot delete board
+    // Manage members and columns/tasks; cannot delete/rename board
     Admin = 2,
 
-    // Create/edit tasks; view board
-    User = 3,
+    // Manage columns/tasks; cannot delete/rename board
+    ScrumMaster = 3,
 
-    // Read-only
-    Viewer = 4
+    // Move and comment tasks only
+    User = 4
 }

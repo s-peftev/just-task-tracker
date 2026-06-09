@@ -3,8 +3,8 @@ using JustTaskTracker.Application.Common.Interfaces.Persistence;
 using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Domain.Common.Results;
 using JustTaskTracker.Domain.Common.Results.Errors;
+using JustTaskTracker.Domain.Boards.Authorization;
 using JustTaskTracker.Domain.Boards.DTOs;
-using JustTaskTracker.Domain.Boards.Enums;
 using MediatR;
 
 namespace JustTaskTracker.Application.Boards.Commands;
@@ -27,8 +27,8 @@ public class UpdateBoardCommandHandler(
         if (board is null)
             return Result<BoardDetailsDto>.Failure(GeneralErrors.NotFound);
 
-        if (userRole != BoardMemberRole.Owner)
-            return Result<BoardDetailsDto>.Failure(GeneralErrors.Unauthorized);
+        if (userRole is not { } role || !BoardRolePermissions.CanRenameBoard(role))
+            return Result<BoardDetailsDto>.Failure(GeneralErrors.Forbidden);
 
         board.Name = request.Name;
 

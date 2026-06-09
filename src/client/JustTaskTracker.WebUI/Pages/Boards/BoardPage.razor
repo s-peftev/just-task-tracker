@@ -43,7 +43,7 @@
                                @onblur="OnTitleBlurAsync" />
                     </div>
                 }
-                else if (IsOwner)
+                else if (CanRenameBoard)
                 {
                     <h1 class="text-section-title board-page__title board-page__title--editable"
                         @onclick="StartNameEdit">
@@ -57,7 +57,7 @@
             </div>
 
             <div class="board-page__controls">
-                <BoardPageMenu IsOwner="IsOwner"
+                <BoardPageMenu UserRole="board.UserRole"
                                OnMembersClick="ShowMembersComingSoon"
                                OnLeaveBoardClick="ShowLeaveBoardComingSoon"
                                OnDeleteBoardClick="DeleteBoardAsync" />
@@ -106,8 +106,11 @@
     private string _editName = string.Empty;
     private ElementReference _titleInputRef;
 
-    private bool IsOwner => _board?.UserRole == BoardMemberRole.Owner;
-    private bool CanManageColumns => _board?.UserRole is BoardMemberRole.Owner or BoardMemberRole.Admin;
+    private bool CanRenameBoard =>
+        _board is { UserRole: var role } && BoardRolePermissions.CanRenameBoard(role);
+
+    private bool CanManageColumns =>
+        _board is { UserRole: var role } && BoardRolePermissions.CanManageColumns(role);
 
     protected override async Task OnParametersSetAsync() =>
         await LoadAsync();
@@ -158,7 +161,7 @@
 
     private void StartNameEdit()
     {
-        if (!IsOwner || _board is null || _isEditingName)
+        if (!CanRenameBoard || _board is null || _isEditingName)
             return;
 
         _editName = _board.Name;

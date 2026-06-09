@@ -28,35 +28,24 @@ public class CreateBoardCommandHandler(
         if (user is null)
             return Result<BoardDetailsDto>.Failure(GeneralErrors.Unauthorized);
 
-        await unitOfWork.BeginTransactionAsync(ct);
+        var board = new Board { Name = request.Name };
+        boardRepository.Add(board);
 
-        try
+        boardRepository.AddMember(new BoardMember
         {
-            var board = new Board { Name = request.Name };
-            boardRepository.Add(board);
+            BoardId = board.Id,
+            UserId = user.Id,
+            Role = BoardMemberRole.Owner
+        });
 
-            boardRepository.AddMember(new BoardMember
-            {
-                BoardId = board.Id,
-                UserId = user.Id,
-                Role = BoardMemberRole.Owner
-            });
+        await unitOfWork.SaveChangesAsync(ct);
 
-            await unitOfWork.SaveChangesAsync(ct);
-            await unitOfWork.CommitTransactionAsync(ct);
-
-            return Result<BoardDetailsDto>.Success(new BoardDetailsDto(
-                board.Id,
-                board.Name,
-                board.CreatedAtUtc,
-                BoardMemberRole.Owner,
-                [new UserDto(user.Id, user.Email, user.DisplayName)],
-                []));
-        }
-        catch
-        {
-            await unitOfWork.RollbackTransactionAsync(ct);
-            throw;
-        }
+        return Result<BoardDetailsDto>.Success(new BoardDetailsDto(
+            board.Id,
+            board.Name,
+            board.CreatedAtUtc,
+            BoardMemberRole.Owner,
+            [new UserDto(user.Id, user.Email, user.DisplayName)],
+            []));
     }
 }

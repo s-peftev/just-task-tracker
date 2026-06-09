@@ -1,0 +1,60 @@
+@using JustTaskTracker.WebUI.Domain.Boards
+@using JustTaskTracker.WebUI.Domain.Boards.Enums
+@using JustTaskTracker.WebUI.Domain.Boards.Authorization
+
+<article class="board-column">
+    <header class="board-column__header">
+        <h2 class="board-column__title" title="@Column.Name">@Column.Name</h2>
+        <div class="board-column__header-actions">
+            <span class="board-column__count">@Column.BoardTasks.Count</span>
+            @if (CanDeleteColumn)
+            {
+                <button type="button"
+                        class="btn-icon btn-icon--sm board-column__delete"
+                        aria-label="Delete column"
+                        @onclick="OnDeleteClick">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path d="M18 6L6 18M6 6l12 12"
+                              stroke="currentColor"
+                              stroke-width="2"
+                              stroke-linecap="round" />
+                    </svg>
+                </button>
+            }
+        </div>
+    </header>
+
+    <div class="board-column__tasks">
+        @foreach (var task in Column.BoardTasks.OrderBy(t => t.Position))
+        {
+            @* Task cards will render here *@
+        }
+    </div>
+
+    <footer class="board-column__footer">
+        <button type="button"
+                class="board-column__add-task"
+                @onclick="OnAddTaskClick">
+            + Add task
+        </button>
+    </footer>
+</article>
+
+@code {
+    [Parameter, EditorRequired]
+    public ColumnDto Column { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public BoardMemberRole UserRole { get; set; }
+
+    private bool CanDeleteColumn => BoardRolePermissions.CanManageColumns(UserRole);
+
+    private void OnDeleteClick() =>
+        Snackbar.Add("Column deletion is coming soon.", Severity.Info);
+
+    private void OnAddTaskClick() =>
+        Snackbar.Add("Task creation is coming soon.", Severity.Info);
+
+    [Inject]
+    private ISnackbar Snackbar { get; set; } = default!;
+}

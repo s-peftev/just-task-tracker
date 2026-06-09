@@ -114,14 +114,11 @@
 
     private async Task CreateBoardAsync()
     {
-        var parameters = new DialogParameters<BoardFormDialog>
-        {
-            { x => x.SubmitLabel, "Create" }
-        };
-
-        var options = BoardFormDialog.DefaultOptions;
-
-        var dialog = await DialogService.ShowAsync<BoardFormDialog>("Create new board", parameters, options);
+        var dialog = await DialogService.ShowResourceFormAsync(
+            "Create new board",
+            "Create",
+            CreateBoardForm.FormId,
+            CreateBoardForm.Render());
         var result = await dialog.Result;
 
         if (result is not { Canceled: false, Data: string name })

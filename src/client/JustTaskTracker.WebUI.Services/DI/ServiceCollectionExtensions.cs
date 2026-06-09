@@ -9,11 +9,20 @@ using JustTaskTracker.WebUI.Services.Boards.Stores;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Refit;
+using System.Text.Json;
 
 namespace JustTaskTracker.WebUI.Services.DI;
 
 public static class ServiceCollectionExtensions
 {
+    private static readonly RefitSettings RefitSettings = new()
+    {
+        ContentSerializer = new SystemTextJsonContentSerializer(new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        })
+    };
+
     public static IServiceCollection AddWebUIServices(this IServiceCollection services, IConfiguration configuration)
     {
         services.Configure<ApiClientOptions>(configuration.GetSection(ApiClientOptions.SectionName));
@@ -21,11 +30,11 @@ public static class ServiceCollectionExtensions
 
         services.AddScoped<ApiAuthorizationMessageHandler>();
 
-        services.AddRefitClient<IAuthApi>()
+        services.AddRefitClient<IAuthApi>(RefitSettings)
             .ConfigureHttpClient(c => c.BaseAddress = new Uri(options.BaseUrl))
             .AddHttpMessageHandler<ApiAuthorizationMessageHandler>();
 
-        services.AddRefitClient<IBoardApi>()
+        services.AddRefitClient<IBoardApi>(RefitSettings)
             .ConfigureHttpClient(c => c.BaseAddress = new Uri(options.BaseUrl))
             .AddHttpMessageHandler<ApiAuthorizationMessageHandler>();
 
@@ -34,6 +43,7 @@ public static class ServiceCollectionExtensions
 
         services.AddScoped<IBoardApiService, BoardApiService>();
         services.AddScoped<IBoardStore, BoardStore>();
+        services.AddScoped<IBoardDetailsStore, BoardDetailsStore>();
 
         return services;
     }

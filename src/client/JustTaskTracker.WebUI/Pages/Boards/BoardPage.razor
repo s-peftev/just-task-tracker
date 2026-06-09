@@ -1,22 +1,24 @@
 @page "/boards/{Id:guid}"
 @attribute [Authorize]
+@implements IDisposable
 @using JustTaskTracker.WebUI.Infrastructure
 @using JustTaskTracker.WebUI.Services.Exceptions
 @inject IBoardApiService BoardApiService
+@inject IBoardDetailsStore BoardDetailsStore
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
 
-<PageTitle>@(_board?.Name ?? "Board") — JustTaskTracker</PageTitle>
+<PageTitle>@(BoardDetailsStore.Board?.Name ?? "Board") — JustTaskTracker</PageTitle>
 
 <div class="board-page">
-    @if (_isLoading)
+    @if (BoardDetailsStore.IsLoading && BoardDetailsStore.Board is null)
     {
         <div class="page-state page-state--stacked">
             <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
         </div>
     }
-    else if (_errorMessage is { } error)
+    else if (BoardDetailsStore.ErrorMessage is { } error)
     {
         <div class="page-state page-state--stacked">
             <MudAlert Severity="Severity.Error">@error</MudAlert>
@@ -25,7 +27,7 @@
             </button>
         </div>
     }
-    else if (_board is { } board)
+    else if (BoardDetailsStore.Board is { } board)
     {
         <header class="board-page__header">
             <div class="board-page__title-area">
@@ -78,12 +80,19 @@
 
         <section class="board-page__content">
             <ul class="board-page__body">
+                @foreach (var column in board.Columns.OrderBy(c => c.Position))
+                {
+                    <li class="board-page__column-item">
+                        <BoardColumn Column="column" UserRole="board.UserRole" />
+                    </li>
+                }
+
                 @if (CanManageColumns)
                 {
                     <li class="board-page__column-slot">
                         <button type="button"
                                 class="btn-glass-white board-page__add-column-btn"
-                                @onclick="ShowColumnsComingSoon">
+                                @onclick="CreateColumnAsync">
                             + Add column
                         </button>
                     </li>
@@ -97,9 +106,6 @@
     [Parameter]
     public Guid Id { get; set; }
 
-    private BoardDetailsDto? _board;
-    private bool _isLoading = true;
-    private string? _errorMessage;
     private bool _isEditingName;
     private bool _isSavingName;
     private bool _focusTitleInput;
@@ -107,13 +113,16 @@
     private ElementReference _titleInputRef;
 
     private bool CanRenameBoard =>
-        _board is { UserRole: var role } && BoardRolePermissions.CanRenameBoard(role);
+        BoardDetailsStore.Board is { UserRole: var role } && BoardRolePermissions.CanRenameBoard(role);
 
     private bool CanManageColumns =>
-        _board is { UserRole: var role } && BoardRolePermissions.CanManageColumns(role);
+        BoardDetailsStore.Board is { UserRole: var role } && BoardRolePermissions.CanManageColumns(role);
 
-    protected override async Task OnParametersSetAsync() =>
-        await LoadAsync();
+    protected override void OnInitialized() =>
+        BoardDetailsStore.StateChanged += OnStoreStateChanged;
+
+    protected override Task OnParametersSetAsync() =>
+        BoardDetailsStore.LoadAsync(Id);
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -124,29 +133,11 @@
         await _titleInputRef.FocusAsync();
     }
 
-    private async Task LoadAsync()
-    {
-        _isLoading = true;
-        _errorMessage = null;
-        StateHasChanged();
+    public void Dispose() =>
+        BoardDetailsStore.StateChanged -= OnStoreStateChanged;
 
-        try
-        {
-            _board = await BoardApiService.GetBoardByIdAsync(Id);
-        }
-        catch (ApiServiceException ex)
-        {
-            _board = null;
-            _errorMessage = ex.Error?.Details is { Count: > 0 } details
-                ? string.Join(" ", details)
-                : ex.Message;
-        }
-        finally
-        {
-            _isLoading = false;
-            StateHasChanged();
-        }
-    }
+    private void OnStoreStateChanged() =>
+        InvokeAsync(StateHasChanged);
 
     private void GoToDashboard() => Navigation.NavigateTo("/dashboard");
 
@@ -156,15 +147,35 @@
     private void ShowLeaveBoardComingSoon() =>
         Snackbar.Add("Leave board is coming soon.", Severity.Info);
 
-    private void ShowColumnsComingSoon() =>
-        Snackbar.Add("Column creation is coming soon.", Severity.Info);
+    private async Task CreateColumnAsync()
+    {
+        var dialog = await DialogService.ShowResourceFormAsync(
+            "Create new column",
+            "Create",
+            CreateColumnForm.FormId,
+            CreateColumnForm.Render());
+        var result = await dialog.Result;
+
+        if (result is not { Canceled: false, Data: string name })
+            return;
+
+        try
+        {
+            var column = await BoardDetailsStore.CreateColumnAsync(name);
+            Snackbar.Add($"Column \"{column.Name}\" created.", Severity.Success);
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+    }
 
     private void StartNameEdit()
     {
-        if (!CanRenameBoard || _board is null || _isEditingName)
+        if (!CanRenameBoard || BoardDetailsStore.Board is null || _isEditingName)
             return;
 
-        _editName = _board.Name;
+        _editName = BoardDetailsStore.Board.Name;
         _isEditingName = true;
         _focusTitleInput = true;
     }
@@ -172,7 +183,7 @@
     private void CancelNameEdit()
     {
         _isEditingName = false;
-        _editName = _board?.Name ?? string.Empty;
+        _editName = BoardDetailsStore.Board?.Name ?? string.Empty;
     }
 
     private async Task OnTitleKeyDownAsync(KeyboardEventArgs e)
@@ -193,7 +204,7 @@
 
     private async Task SaveBoardNameAsync()
     {
-        if (!_isEditingName || _board is null || _isSavingName)
+        if (!_isEditingName || BoardDetailsStore.Board is null || _isSavingName)
             return;
 
         var trimmedName = _editName.Trim();
@@ -210,7 +221,7 @@
             return;
         }
 
-        if (string.Equals(trimmedName, _board.Name, StringComparison.Ordinal))
+        if (string.Equals(trimmedName, BoardDetailsStore.Board.Name, StringComparison.Ordinal))
         {
             CancelNameEdit();
             return;
@@ -220,7 +231,8 @@
 
         try
         {
-            _board = await BoardApiService.UpdateBoardAsync(Id, trimmedName);
+            var board = await BoardApiService.UpdateBoardAsync(Id, trimmedName);
+            BoardDetailsStore.ReplaceBoard(board);
             _isEditingName = false;
             Snackbar.Add("Board updated.", Severity.Success);
         }
@@ -238,7 +250,7 @@
     {
         var parameters = new DialogParameters<ConfirmDialog>
         {
-            { x => x.Message, $"Delete board \"{_board?.Name}\"?{Environment.NewLine}This action cannot be undone." },
+            { x => x.Message, $"Delete board \"{BoardDetailsStore.Board?.Name}\"?{Environment.NewLine}This action cannot be undone." },
             { x => x.ConfirmLabel, "Delete" }
         };
 

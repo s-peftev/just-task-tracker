@@ -12,6 +12,7 @@
     --jtt-overlay-neutral-20: rgba(150, 150, 150, 0.2);
     --jtt-overlay-white-08: rgba(255, 255, 255, 0.08);
     --jtt-overlay-white-10: rgba(255, 255, 255, 0.10);
+    --jtt-overlay-white-15: rgba(255, 255, 255, 0.15);
     --jtt-overlay-white-16: rgba(255, 255, 255, 0.16);
     --jtt-overlay-white-20: rgba(255, 255, 255, 0.20);
     --jtt-overlay-white-28: rgba(255, 255, 255, 0.28);
@@ -52,6 +53,7 @@
     /* Shape & elevation */
     --jtt-radius-sm: 0.25rem;
     --jtt-radius-md: 0.5rem;
+    --jtt-radius-lg: 0.75rem;
     --jtt-shadow-elevated: 0 0 0 1px #0000, 0 1px 1px #01040480, 0 0 1px #01040480;
     --jtt-shadow-panel: 0 8px 28px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.08);
 
@@ -325,6 +327,7 @@ html, body {
 }
 
 /* ─── Dialogs ─── */
+.mud-dialog.resource-form-dialog,
 .mud-dialog.board-form-dialog {
     background-color: var(--jtt-overlay-white-10) !important;
     backdrop-filter: blur(12px);
@@ -333,6 +336,7 @@ html, body {
     box-shadow: var(--jtt-shadow-elevated) !important;
 }
 
+.resource-form-dialog__actions,
 .board-form-dialog__actions {
     display: flex !important;
     gap: 0.75rem !important;
@@ -340,6 +344,7 @@ html, body {
     box-sizing: border-box !important;
 }
 
+.resource-form-dialog .mud-dialog-content,
 .board-form-dialog .mud-dialog-content {
     min-width: 0;
     overflow-wrap: anywhere;
@@ -348,16 +353,20 @@ html, body {
     max-height: none !important;
 }
 
+.resource-form-dialog .confirm-dialog__message,
 .board-form-dialog .confirm-dialog__message {
     white-space: pre-line;
     max-width: 100%;
 }
 
+.resource-form-dialog .mud-input.mud-input-outlined:focus-within > .mud-input-outlined-border,
+.resource-form-dialog .mud-input.mud-input-outlined:focus-within .mud-shrink > .mud-input-outlined-border,
 .board-form-dialog .mud-input.mud-input-outlined:focus-within > .mud-input-outlined-border,
 .board-form-dialog .mud-input.mud-input-outlined:focus-within .mud-shrink > .mud-input-outlined-border {
     border-color: var(--jtt-stroke-accent) !important;
 }
 
+.resource-form-dialog .mud-input-control:not(.mud-input-error) .mud-input:focus-within ~ label.mud-input-label.mud-input-label-inputcontrol,
 .board-form-dialog .mud-input-control:not(.mud-input-error) .mud-input:focus-within ~ label.mud-input-label.mud-input-label-inputcontrol {
     color: var(--jtt-text-accent) !important;
 }

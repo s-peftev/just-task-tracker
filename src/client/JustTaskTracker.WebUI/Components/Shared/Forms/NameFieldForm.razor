@@ -1,0 +1,97 @@
+@using JustTaskTracker.WebUI.Validation
+
+<form id="@FormId" @onsubmit="SubmitAsync" @onsubmit:preventDefault="true">
+    <div @onfocusout="OnFieldFocusOutAsync">
+        <MudTextField @bind-Value="_model.Name"
+                      @bind-Value:after="OnNameChangedAsync"
+                      Label="@FieldLabel"
+                      Variant="Variant.Outlined"
+                      Counter="@MaxLength"
+                      MaxLength="@MaxLength"
+                      AutoFocus="true"
+                      Required="false"
+                      OnlyValidateIfDirty="true"
+                      Error="_showValidation && _nameError is not null"
+                      ErrorText="@(_showValidation ? _nameError : null)" />
+    </div>
+</form>
+
+@code {
+    [Parameter, EditorRequired]
+    public string FormId { get; set; } = default!;
+
+    [Parameter]
+    public string FieldLabel { get; set; } = "Name";
+
+    [Parameter]
+    public int MaxLength { get; set; } = 100;
+
+    [Parameter]
+    public string? InitialName { get; set; }
+
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private readonly NameFormModel _model = new();
+    private NameFormModelValidator? _validator;
+    private bool _showValidation;
+    private bool _isDirty;
+    private string? _nameError;
+
+    protected override void OnInitialized()
+    {
+        _model.Name = InitialName ?? string.Empty;
+        _validator = new NameFormModelValidator(MaxLength, FieldLabel);
+    }
+
+    private async Task OnNameChangedAsync()
+    {
+        _isDirty = true;
+
+        if (_showValidation)
+            await ValidateNameAsync();
+    }
+
+    private async Task OnFieldFocusOutAsync(FocusEventArgs _)
+    {
+        if (_showValidation || !_isDirty)
+            return;
+
+        _showValidation = true;
+        await ValidateNameAsync();
+    }
+
+    private async Task SubmitAsync()
+    {
+        _showValidation = true;
+        await ValidateNameAsync();
+
+        if (_nameError is not null)
+            return;
+
+        var trimmedName = _model.Name.Trim();
+
+        if (InitialName is not null &&
+            string.Equals(trimmedName, InitialName.Trim(), StringComparison.Ordinal))
+        {
+            MudDialog.Cancel();
+            return;
+        }
+
+        MudDialog.Close(DialogResult.Ok(trimmedName));
+    }
+
+    private async Task ValidateNameAsync()
+    {
+        if (!_showValidation || _validator is null)
+        {
+            _nameError = null;
+            return;
+        }
+
+        var result = await _validator.ValidateAsync(_model);
+        _nameError = result.Errors
+            .FirstOrDefault(e => e.PropertyName == nameof(NameFormModel.Name))
+            ?.ErrorMessage;
+    }
+}

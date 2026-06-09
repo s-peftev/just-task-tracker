@@ -50,4 +50,11 @@ internal class BoardApiService(IBoardApi api) : IBoardApiService
 
         ApiResponseGuard.EnsureSuccess(response);
     }
+
+    public async Task<ColumnDto> CreateColumnAsync(Guid boardId, string name, CancellationToken ct = default)
+    {
+        var response = await api.CreateColumnAsync(boardId, new SaveColumnRequest(name), ct);
+
+        return ApiResponseGuard.Unwrap(response);
+    }
 }

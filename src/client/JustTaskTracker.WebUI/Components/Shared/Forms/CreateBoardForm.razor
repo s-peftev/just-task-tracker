@@ -1,0 +1,11 @@
+<NameFieldForm FormId="@FormId" FieldLabel="Board name" MaxLength="100" />
+
+@code {
+    public const string FormId = "create-board-form";
+
+    public static RenderFragment Render() => builder =>
+    {
+        builder.OpenComponent<CreateBoardForm>(0);
+        builder.CloseComponent();
+    };
+}

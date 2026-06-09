@@ -1,4 +1,4 @@
-﻿namespace JustTaskTracker.Domain.Common;
+﻿namespace JustTaskTracker.Domain.Common.Pagination;
 
 public abstract record PaginatedRequest
 {

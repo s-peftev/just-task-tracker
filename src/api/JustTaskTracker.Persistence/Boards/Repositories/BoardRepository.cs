@@ -76,7 +76,7 @@ public class BoardRepository(JustTaskTrackerDbContext context)
                         c.Position,
                         c.Tasks
                             .OrderBy(t => t.Position)
-                            .Select(t => new TaskDto(
+                            .Select(t => new BoardTaskDto(
                                 t.Id,
                                 t.Title,
                                 t.Position,

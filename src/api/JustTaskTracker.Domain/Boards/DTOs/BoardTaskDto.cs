@@ -2,7 +2,7 @@ using JustTaskTracker.Domain.Auth.DTOs;
 
 namespace JustTaskTracker.Domain.Boards.DTOs;
 
-public record TaskDto(
+public record BoardTaskDto(
     Guid Id,
     string Title,
     int Position,

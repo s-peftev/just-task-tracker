@@ -3,13 +3,16 @@ using JustTaskTracker.Application.Boards.Commands;
 
 namespace JustTaskTracker.Application.Boards.Validators;
 
-public class CreateBoardCommandValidator : AbstractValidator<CreateBoardCommand>
+public class CreateColumnCommandValidator : AbstractValidator<CreateColumnCommand>
 {
-    public CreateBoardCommandValidator()
+    public CreateColumnCommandValidator()
     {
+        RuleFor(x => x.BoardId)
+            .NotEmpty();
+
         RuleFor(x => x.Name)
             .Must(name => !string.IsNullOrWhiteSpace(name))
             .WithMessage("'Name' must not be empty.")
-            .MaximumLength(100);
+            .MaximumLength(50);
     }
 }

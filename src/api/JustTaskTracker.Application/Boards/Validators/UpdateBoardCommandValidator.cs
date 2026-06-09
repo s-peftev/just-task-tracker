@@ -11,7 +11,8 @@ public class UpdateBoardCommandValidator : AbstractValidator<UpdateBoardCommand>
             .NotEmpty();
 
         RuleFor(x => x.Name)
-            .NotEmpty()
+            .Must(name => !string.IsNullOrWhiteSpace(name))
+            .WithMessage("'Name' must not be empty.")
             .MaximumLength(100);
     }
 }

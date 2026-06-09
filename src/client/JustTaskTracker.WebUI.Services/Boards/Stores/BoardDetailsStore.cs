@@ -57,10 +57,12 @@ internal sealed class BoardDetailsStore(IBoardApiService boardApiService) : IBoa
         return column;
     }
 
-    public void ReplaceBoard(BoardDetailsDto board)
+    public void UpdateBoardName(string name)
     {
-        BoardId = board.Id;
-        Board = board;
+        if (Board is null)
+            return;
+
+        Board = Board with { Name = name };
         NotifyStateChanged();
     }
 

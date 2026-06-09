@@ -37,11 +37,11 @@ internal class BoardApiService(IBoardApi api) : IBoardApiService
         return ApiResponseGuard.Unwrap(response);
     }
 
-    public async Task<BoardDetailsDto> UpdateBoardAsync(Guid boardId, string name, CancellationToken ct = default)
+    public async Task UpdateBoardAsync(Guid boardId, string name, CancellationToken ct = default)
     {
         var response = await api.UpdateAsync(boardId, new SaveBoardRequest(name), ct);
 
-        return ApiResponseGuard.Unwrap(response);
+        ApiResponseGuard.EnsureSuccess(response);
     }
 
     public async Task DeleteBoardAsync(Guid boardId, CancellationToken ct = default)

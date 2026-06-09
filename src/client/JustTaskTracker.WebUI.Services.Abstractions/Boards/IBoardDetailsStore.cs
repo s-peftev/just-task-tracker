@@ -19,7 +19,7 @@ public interface IBoardDetailsStore
 
     Task<ColumnDto> CreateColumnAsync(string name, CancellationToken ct = default);
 
-    void ReplaceBoard(BoardDetailsDto board);
+    void UpdateBoardName(string name);
 
     void Reset();
 }

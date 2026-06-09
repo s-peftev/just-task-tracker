@@ -4,20 +4,19 @@ using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Domain.Common.Results;
 using JustTaskTracker.Domain.Common.Results.Errors;
 using JustTaskTracker.Domain.Boards.Authorization;
-using JustTaskTracker.Domain.Boards.DTOs;
 using MediatR;
 
 namespace JustTaskTracker.Application.Boards.Commands;
 
-public record UpdateBoardCommand(Guid BoardId, string Name) : IRequest<Result<BoardDetailsDto>>;
+public record UpdateBoardCommand(Guid BoardId, string Name) : IRequest<Result>;
 
 public class UpdateBoardCommandHandler(
     ICurrentUserAccessor currentUserAccessor,
     IBoardRepository boardRepository,
     IUnitOfWork unitOfWork)
-    : IRequestHandler<UpdateBoardCommand, Result<BoardDetailsDto>>
+    : IRequestHandler<UpdateBoardCommand, Result>
 {
-    public async Task<Result<BoardDetailsDto>> Handle(UpdateBoardCommand request, CancellationToken ct)
+    public async Task<Result> Handle(UpdateBoardCommand request, CancellationToken ct)
     {
         var (board, userRole) = await boardRepository.GetBoardWithUserRoleAsync(
             request.BoardId,
@@ -25,20 +24,20 @@ public class UpdateBoardCommandHandler(
             ct);
 
         if (board is null)
-            return Result<BoardDetailsDto>.Failure(GeneralErrors.NotFound);
+            return Result.Failure(GeneralErrors.NotFound);
 
         if (userRole is not { } role || !BoardRolePermissions.CanRenameBoard(role))
-            return Result<BoardDetailsDto>.Failure(GeneralErrors.Forbidden);
+            return Result.Failure(GeneralErrors.Forbidden);
 
-        board.Name = request.Name;
+        var name = request.Name.Trim();
+
+        if (string.Equals(board.Name, name, StringComparison.OrdinalIgnoreCase))
+            return Result.Success();
+
+        board.Name = name;
 
         await unitOfWork.SaveChangesAsync(ct);
 
-        var details = await boardRepository.GetBoardDetailsByIdAsync(
-            request.BoardId,
-            currentUserAccessor.AzureAdObjectId,
-            ct);
-
-        return Result<BoardDetailsDto>.Success(details!);
+        return Result.Success();
     }
 }

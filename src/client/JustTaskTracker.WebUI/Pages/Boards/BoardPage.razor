@@ -231,8 +231,8 @@
 
         try
         {
-            var board = await BoardApiService.UpdateBoardAsync(Id, trimmedName);
-            BoardDetailsStore.ReplaceBoard(board);
+            await BoardApiService.UpdateBoardAsync(Id, trimmedName);
+            BoardDetailsStore.UpdateBoardName(trimmedName);
             _isEditingName = false;
             Snackbar.Add("Board updated.", Severity.Success);
         }

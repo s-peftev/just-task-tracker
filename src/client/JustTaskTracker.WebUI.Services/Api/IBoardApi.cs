@@ -22,7 +22,7 @@ internal interface IBoardApi
     Task<IApiResponse<ApiEnvelope<BoardDetailsDto>>> CreateAsync([Body] SaveBoardRequest request, CancellationToken ct = default);
 
     [Put("/api/boards/{id}")]
-    Task<IApiResponse<ApiEnvelope<BoardDetailsDto>>> UpdateAsync(Guid id, [Body] SaveBoardRequest request, CancellationToken ct = default);
+    Task<IApiResponse<ApiEnvelope<object>>> UpdateAsync(Guid id, [Body] SaveBoardRequest request, CancellationToken ct = default);
 
     [Delete("/api/boards/{id}")]
     Task<IApiResponse<ApiEnvelope<object>>> DeleteAsync(Guid id, CancellationToken ct = default);

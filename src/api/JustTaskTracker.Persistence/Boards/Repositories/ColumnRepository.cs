@@ -36,4 +36,13 @@ public class ColumnRepository(JustTaskTrackerDbContext context)
             c => c.Name.ToLower() == name.ToLower(),
             ct);
     }
+
+    public async Task<IReadOnlyList<Column>> GetWithPositionGreaterThanAsync(
+        Guid boardId,
+        int position,
+        CancellationToken ct = default) =>
+        await _dbSet
+            .Where(c => c.BoardId == boardId && c.Position > position)
+            .OrderBy(c => c.Position)
+            .ToListAsync(ct);
 }

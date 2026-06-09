@@ -25,6 +25,9 @@ public abstract class Repository<TEntity, TId> : IRepository<TEntity, TId>
     public virtual async Task<TEntity?> GetByIdAsync(TId id, CancellationToken ct = default) =>
         await _dbSet.FindAsync([id], cancellationToken: ct);
 
+    public virtual void Remove(TEntity entity) =>
+        _dbSet.Remove(entity);
+
     public virtual async Task<bool> RemoveByIdAsync(TId id, CancellationToken ct = default)
     {
         var entity = await GetByIdAsync(id, ct);

@@ -14,4 +14,9 @@ public interface IColumnRepository : IRepository<Column, Guid>
         string name,
         Guid? excludeColumnId = null,
         CancellationToken ct = default);
+
+    Task<IReadOnlyList<Column>> GetWithPositionGreaterThanAsync(
+        Guid boardId,
+        int position,
+        CancellationToken ct = default);
 }

@@ -36,4 +36,21 @@ public class ColumnsController(ISender sender) : ControllerBase
             () => NoContent(),
             error => error.CreateErrorResponse());
     }
+
+    [HttpDelete("{id:guid}")]
+    [Authorize(Policy = AuthorizationPolicies.IsAppMember)]
+    public async Task<IActionResult> Delete(
+        Guid boardId,
+        Guid id,
+        [FromBody] DeleteColumnCommand request,
+        CancellationToken ct)
+    {
+        var result = await sender.Send(
+            request with { BoardId = boardId, ColumnId = id },
+            ct);
+
+        return result.Match(
+            () => NoContent(),
+            error => error.CreateErrorResponse());
+    }
 }

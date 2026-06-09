@@ -5,7 +5,7 @@ namespace JustTaskTracker.Domain.Boards.Entities;
 
 public class BoardTask : BaseEntity<Guid>
 {
-    public required Guid ColumnId { get; init; }
+    public required Guid ColumnId { get; set; }
     public required string Title { get; set; }
     public string? Description { get; set; }
     public int Position { get; set; }

@@ -9,4 +9,9 @@ public static class ColumnsErrors
         nameof(DuplicateName),
         ErrorType.Business,
         ["A column with this name already exists on the board."]);
+
+    public static readonly Error CannotMoveTasksToSameColumn = new(
+        nameof(CannotMoveTasksToSameColumn),
+        ErrorType.Business,
+        ["Tasks cannot be moved to the column being deleted."]);
 }

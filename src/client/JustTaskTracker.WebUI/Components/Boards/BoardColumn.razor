@@ -9,7 +9,7 @@
 @using JustTaskTracker.WebUI.Services.Exceptions
 
 <article class="board-column">
-    <header class="board-column__header">
+    <header class="board-column__header @(CanReorderColumn ? "board-column__header--draggable" : null)">
         <div class="board-column__title-area">
             @if (_isEditingName)
             {
@@ -29,7 +29,8 @@
             {
                 <h2 class="board-column__title board-column__title--editable"
                     title="@Column.Name"
-                    @onclick="StartNameEdit">
+                    @onpointerdown="OnTitlePointerDown"
+                    @onpointerup="OnTitlePointerUp">
                     @Column.Name
                 </h2>
             }
@@ -76,6 +77,7 @@
 
 @code {
     private const int MaxNameLength = 50;
+    private const double TitleClickMoveThresholdPx = 5;
 
     [Parameter, EditorRequired]
     public ColumnDto Column { get; set; } = default!;
@@ -100,10 +102,14 @@
     private bool _focusTitleInput;
     private string _editName = string.Empty;
     private ElementReference _titleInputRef;
+    private double? _titlePointerDownX;
+    private double? _titlePointerDownY;
 
     private bool CanRenameColumn => BoardRolePermissions.CanManageColumns(UserRole);
 
     private bool CanDeleteColumn => BoardRolePermissions.CanManageColumns(UserRole);
+
+    private bool CanReorderColumn => BoardRolePermissions.CanManageColumns(UserRole);
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -122,6 +128,32 @@
         _editName = Column.Name;
         _isEditingName = true;
         _focusTitleInput = true;
+    }
+
+    private void OnTitlePointerDown(PointerEventArgs e)
+    {
+        _titlePointerDownX = e.ClientX;
+        _titlePointerDownY = e.ClientY;
+    }
+
+    private void OnTitlePointerUp(PointerEventArgs e)
+    {
+        if (!CanRenameColumn || _isEditingName)
+            return;
+
+        if (_titlePointerDownX is not { } startX || _titlePointerDownY is not { } startY)
+            return;
+
+        _titlePointerDownX = null;
+        _titlePointerDownY = null;
+
+        var movedX = Math.Abs(e.ClientX - startX);
+        var movedY = Math.Abs(e.ClientY - startY);
+
+        if (movedX > TitleClickMoveThresholdPx || movedY > TitleClickMoveThresholdPx)
+            return;
+
+        StartNameEdit();
     }
 
     private void CancelNameEdit()

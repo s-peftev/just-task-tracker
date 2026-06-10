@@ -117,6 +117,16 @@
     padding-top: calc(var(--board-page-header-height) + var(--board-page-content-gap));
     overflow: hidden;
     background-color: var(--jtt-overlay-accent-10);
+    cursor: grab;
+}
+
+.board-page__content--panning {
+    cursor: grabbing;
+    user-select: none;
+}
+
+.board-page__content--panning * {
+    cursor: grabbing !important;
 }
 
 .board-page__body {
@@ -125,10 +135,11 @@
     min-height: 0;
     overflow-x: auto;
     overflow-y: hidden;
-    list-style: none;
     margin: 0;
     padding: 1rem 1.5rem;
     display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
     align-items: flex-start;
     gap: 1rem;
     box-sizing: border-box;

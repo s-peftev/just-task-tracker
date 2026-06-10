@@ -480,3 +480,31 @@ h1:focus {
 .loading-progress-text::after {
     content: var(--blazor-load-percentage-text, "Loading");
 }
+
+/* ─── Board page: column DnD (BlazorSortable) ─── */
+.board-page__columns-sortable {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: flex-start;
+    gap: 1rem;
+    flex: 0 0 auto;
+    min-width: min-content;
+}
+
+.board-page__body .sortable-draggable {
+    flex-shrink: 0;
+    display: flex;
+    align-items: flex-start;
+    max-height: 100%;
+    min-height: 0;
+}
+
+.board-page__body .board-page__column-ghost {
+    visibility: visible;
+    opacity: 0.35;
+}
+
+.board-page__body .board-page__column-drag {
+    opacity: 0.9;
+}

@@ -71,4 +71,14 @@ internal class BoardApiService(IBoardApi api) : IBoardApiService
 
         return ApiResponseGuard.Unwrap(response);
     }
+
+    public async Task ReorderColumnsAsync(
+        Guid boardId,
+        IReadOnlyList<Guid> columnIds,
+        CancellationToken ct = default)
+    {
+        var response = await api.ReorderColumnsAsync(boardId, new ReorderColumnsRequest(columnIds), ct);
+
+        ApiResponseGuard.EnsureSuccess(response);
+    }
 }

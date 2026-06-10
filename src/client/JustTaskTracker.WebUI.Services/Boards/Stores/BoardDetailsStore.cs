@@ -93,6 +93,32 @@ internal sealed class BoardDetailsStore(IBoardApiService boardApiService) : IBoa
         NotifyStateChanged();
     }
 
+    public async Task ReorderColumnsAsync(IReadOnlyList<Guid> columnIds, CancellationToken ct = default)
+    {
+        if (BoardId is not { } boardId || Board is null)
+            throw new InvalidOperationException("Board details are not loaded.");
+
+        var previousOrder = Board.Columns
+            .OrderBy(column => column.Position)
+            .Select(column => column.Id)
+            .ToList();
+
+        if (columnIds.SequenceEqual(previousOrder))
+            return;
+
+        ApplyColumnOrder(columnIds);
+
+        try
+        {
+            await boardApiService.ReorderColumnsAsync(boardId, columnIds, ct);
+        }
+        catch
+        {
+            ApplyColumnOrder(previousOrder);
+            throw;
+        }
+    }
+
     public void Reset()
     {
         BoardId = null;
@@ -188,6 +214,21 @@ internal sealed class BoardDetailsStore(IBoardApiService boardApiService) : IBoa
             .ToList();
 
         Board = Board with { Columns = columns };
+        NotifyStateChanged();
+    }
+
+    private void ApplyColumnOrder(IReadOnlyList<Guid> columnIds)
+    {
+        if (Board is null)
+            return;
+
+        var columnsById = Board.Columns.ToDictionary(column => column.Id);
+
+        var reorderedColumns = columnIds
+            .Select((columnId, index) => columnsById[columnId] with { Position = index })
+            .ToList();
+
+        Board = Board with { Columns = reorderedColumns };
         NotifyStateChanged();
     }
 

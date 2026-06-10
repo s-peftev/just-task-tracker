@@ -1,13 +1,16 @@
 @page "/boards/{Id:guid}"
 @attribute [Authorize]
-@implements IDisposable
+@implements IAsyncDisposable
 @using JustTaskTracker.WebUI.Infrastructure
 @using JustTaskTracker.WebUI.Services.Exceptions
+@using BlazorSortable
+@using Microsoft.JSInterop
 @inject IBoardApiService BoardApiService
 @inject IBoardDetailsStore BoardDetailsStore
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
+@inject IJSRuntime Js
 
 <PageTitle>@(BoardDetailsStore.Board?.Name ?? "Board") — JustTaskTracker</PageTitle>
 
@@ -78,26 +81,40 @@
             </div>
         </header>
 
-        <section class="board-page__content">
-            <ul class="board-page__body">
-                @foreach (var column in board.Columns.OrderBy(c => c.Position))
-                {
-                    <li class="board-page__column-item">
-                        <BoardColumn Column="column" UserRole="board.UserRole" />
-                    </li>
-                }
+        <section @ref="_contentRef" class="board-page__content">
+            <div @ref="_scrollBodyRef" class="board-page__body">
+                <Sortable TItem="ColumnDto"
+                          Items="_sortableColumns"
+                          ItemKeySelector="GetColumnKey"
+                          Handle=".board-column__header--draggable"
+                          Filter=".board-column__delete, .board-column__title-field, .board-column__title-input"
+                          Delay="0"
+                          DelayOnTouchOnly="true"
+                          FallbackTolerance="5"
+                          Disabled="@(!CanManageColumns || _isReorderingColumns)"
+                          Class="board-page__columns-sortable"
+                          Style="display:flex;flex-direction:row;flex-wrap:nowrap;align-items:flex-start;gap:1rem;flex:0 0 auto;min-width:min-content;"
+                          GhostClass="board-page__column-ghost"
+                          DragClass="board-page__column-drag"
+                          Scroll="false"
+                          OnUpdate="OnColumnsReorderedAsync">
+                    <div class="board-page__column-item">
+                        <BoardColumn Column="@context"
+                                     UserRole="board.UserRole" />
+                    </div>
+                </Sortable>
 
                 @if (CanManageColumns)
                 {
-                    <li class="board-page__column-slot">
+                    <div class="board-page__column-slot">
                         <button type="button"
                                 class="btn-glass-white board-page__add-column-btn"
                                 @onclick="CreateColumnAsync">
                             + Add column
                         </button>
-                    </li>
+                    </div>
                 }
-            </ul>
+            </div>
         </section>
     }
 </div>
@@ -108,9 +125,16 @@
 
     private bool _isEditingName;
     private bool _isSavingName;
+    private bool _isReorderingColumns;
     private bool _focusTitleInput;
     private string _editName = string.Empty;
     private ElementReference _titleInputRef;
+    private ElementReference _contentRef;
+    private ElementReference _scrollBodyRef;
+    private readonly List<ColumnDto> _sortableColumns = [];
+    private IJSObjectReference? _panScrollModule;
+    private IJSObjectReference? _panScrollHandle;
+    private bool _panScrollAttached;
 
     private bool CanRenameBoard =>
         BoardDetailsStore.Board is { UserRole: var role } && BoardRolePermissions.CanRenameBoard(role);
@@ -121,23 +145,104 @@
     protected override void OnInitialized() =>
         BoardDetailsStore.StateChanged += OnStoreStateChanged;
 
-    protected override Task OnParametersSetAsync() =>
-        BoardDetailsStore.LoadAsync(Id);
+    protected override async Task OnParametersSetAsync()
+    {
+        await BoardDetailsStore.LoadAsync(Id);
+        SyncSortableColumnsFromStore();
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!_focusTitleInput)
-            return;
+        if (_focusTitleInput)
+        {
+            _focusTitleInput = false;
+            await _titleInputRef.FocusAsync();
+        }
 
-        _focusTitleInput = false;
-        await _titleInputRef.FocusAsync();
+        if (BoardDetailsStore.Board is not null && !_panScrollAttached)
+            await EnsurePanScrollAttachedAsync();
     }
 
-    public void Dispose() =>
+    public async ValueTask DisposeAsync()
+    {
         BoardDetailsStore.StateChanged -= OnStoreStateChanged;
 
-    private void OnStoreStateChanged() =>
+        if (_panScrollHandle is not null)
+        {
+            await _panScrollHandle.InvokeVoidAsync("dispose");
+            await _panScrollHandle.DisposeAsync();
+        }
+
+        if (_panScrollModule is not null)
+            await _panScrollModule.DisposeAsync();
+    }
+
+    private async Task EnsurePanScrollAttachedAsync()
+    {
+        _panScrollModule ??= await Js.InvokeAsync<IJSObjectReference>("import", "./js/boardPanScroll.js");
+        _panScrollHandle = await _panScrollModule.InvokeAsync<IJSObjectReference>(
+            "attach",
+            _contentRef,
+            _scrollBodyRef);
+        _panScrollAttached = true;
+    }
+
+    private void OnStoreStateChanged()
+    {
+        SyncSortableColumnsFromStore();
         InvokeAsync(StateHasChanged);
+    }
+
+    private void SyncSortableColumnsFromStore()
+    {
+        if (BoardDetailsStore.Board is null)
+        {
+            _sortableColumns.Clear();
+            return;
+        }
+
+        var ordered = BoardDetailsStore.Board.Columns
+            .OrderBy(column => column.Position)
+            .ToList();
+
+        if (_sortableColumns.Count == ordered.Count
+            && _sortableColumns.Zip(ordered).All(pair => pair.First.Id == pair.Second.Id))
+        {
+            for (var i = 0; i < ordered.Count; i++)
+                _sortableColumns[i] = ordered[i];
+
+            return;
+        }
+
+        _sortableColumns.Clear();
+        _sortableColumns.AddRange(ordered);
+    }
+
+    private static string GetColumnKey(ColumnDto column) => column.Id.ToString();
+
+    private async Task OnColumnsReorderedAsync(SortableEventArgs<ColumnDto> args)
+    {
+        if (!CanManageColumns || _isReorderingColumns)
+            return;
+
+        var columnIds = _sortableColumns.Select(column => column.Id).ToList();
+
+        _isReorderingColumns = true;
+
+        try
+        {
+            await BoardDetailsStore.ReorderColumnsAsync(columnIds);
+        }
+        catch (ApiServiceException ex)
+        {
+            SyncSortableColumnsFromStore();
+            Snackbar.ShowApiError(ex);
+        }
+        finally
+        {
+            _isReorderingColumns = false;
+        }
+    }
 
     private void GoToDashboard() => Navigation.NavigateTo("/dashboard");
 

@@ -1,4 +1,5 @@
-﻿using JustTaskTracker.Application.Boards.Repositories;
+﻿using FluentValidation;
+using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Interfaces;
 using JustTaskTracker.Application.Common.Interfaces.Persistence;
 using JustTaskTracker.Domain.Boards.Authorization;
@@ -58,5 +59,19 @@ public class CreateColumnCommandHandler(
             column.Name,
             column.Position,
             []));
+    }
+}
+
+public class CreateColumnCommandValidator : AbstractValidator<CreateColumnCommand>
+{
+    public CreateColumnCommandValidator()
+    {
+        RuleFor(x => x.BoardId)
+            .NotEmpty();
+
+        RuleFor(x => x.Name)
+            .Must(name => !string.IsNullOrWhiteSpace(name))
+            .WithMessage("'Name' must not be empty.")
+            .MaximumLength(50);
     }
 }

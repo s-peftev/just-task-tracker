@@ -1,11 +1,14 @@
-using JustTaskTracker.Application.Common.Interfaces;
+using FluentValidation;
 using JustTaskTracker.Application.Boards.Repositories;
-using JustTaskTracker.Domain.Common.Results;
+using JustTaskTracker.Application.Common.Interfaces;
+using JustTaskTracker.Application.Common.Options;
+using JustTaskTracker.Application.Common.Validators;
 using JustTaskTracker.Domain.Boards.DTOs;
-using MediatR;
 using JustTaskTracker.Domain.Boards.Enums.SearchFields;
-using JustTaskTracker.Domain.Common.Searching;
 using JustTaskTracker.Domain.Common.Pagination;
+using JustTaskTracker.Domain.Common.Results;
+using JustTaskTracker.Domain.Common.Searching;
+using MediatR;
 
 namespace JustTaskTracker.Application.Boards.Queries;
 
@@ -26,5 +29,19 @@ public class GetBoardsForCurrentUserQueryHandler(
             ct);
 
         return Result<PagedList<BoardLookupDto>>.Success(boards);
+    }
+}
+
+public class GetBoardsForCurrentUserQueryValidator : AbstractValidator<GetBoardsForCurrentUserQuery>
+{
+    public GetBoardsForCurrentUserQueryValidator(ValidationSettings validationSettings)
+    {
+        var maxBoardNameSearchLength = validationSettings.Boards.MaxNameSearchLength;
+
+        When(x => x.TextSearchOptions is not null, () =>
+        {
+            RuleFor(x => x.TextSearchOptions!)
+                .SetValidator(new TextSearchOptionsValidator<BoardSearchField>(maxBoardNameSearchLength));
+        });
     }
 }

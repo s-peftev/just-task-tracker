@@ -1,12 +1,15 @@
 ﻿using FluentValidation;
 using JustTaskTracker.Application.Common.Behaviors;
+using JustTaskTracker.Application.Common.Constants;
+using JustTaskTracker.Application.Common.Options;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace JustTaskTracker.Application.DI;
 
 public static class ApplicationServiceCollectionExtensions
 {
-    public static IServiceCollection AddApplication(this IServiceCollection services)
+    public static IServiceCollection AddApplication(this IServiceCollection services, IConfiguration configuration)
     {
         var assembly = typeof(ApplicationServiceCollectionExtensions).Assembly;
 
@@ -19,6 +22,12 @@ public static class ApplicationServiceCollectionExtensions
 
         ValidatorOptions.Global.LanguageManager.Enabled = false;
         services.AddValidatorsFromAssembly(assembly);
+
+        var validationSettingsOptions = configuration
+            .GetSection(ConfigSections.ValidationSettings)
+            .Get<ValidationSettings>() ?? new ValidationSettings();
+
+        services.AddSingleton(validationSettingsOptions);
 
         return services;
     }

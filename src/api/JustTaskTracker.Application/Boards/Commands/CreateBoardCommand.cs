@@ -1,13 +1,14 @@
+using FluentValidation;
 using JustTaskTracker.Application.Auth.Repositories;
+using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Interfaces;
 using JustTaskTracker.Application.Common.Interfaces.Persistence;
-using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Domain.Auth.DTOs;
-using JustTaskTracker.Domain.Common.Results;
-using JustTaskTracker.Domain.Common.Results.Errors;
 using JustTaskTracker.Domain.Boards.DTOs;
 using JustTaskTracker.Domain.Boards.Entities;
 using JustTaskTracker.Domain.Boards.Enums;
+using JustTaskTracker.Domain.Common.Results;
+using JustTaskTracker.Domain.Common.Results.Errors;
 using MediatR;
 
 namespace JustTaskTracker.Application.Boards.Commands;
@@ -47,5 +48,16 @@ public class CreateBoardCommandHandler(
             BoardMemberRole.Owner,
             [new UserDto(user.Id, user.Email, user.DisplayName)],
             []));
+    }
+}
+
+public class CreateBoardCommandValidator : AbstractValidator<CreateBoardCommand>
+{
+    public CreateBoardCommandValidator()
+    {
+        RuleFor(x => x.Name)
+            .Must(name => !string.IsNullOrWhiteSpace(name))
+            .WithMessage("'Name' must not be empty.")
+            .MaximumLength(100);
     }
 }

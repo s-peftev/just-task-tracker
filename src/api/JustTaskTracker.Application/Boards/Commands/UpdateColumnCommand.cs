@@ -1,4 +1,5 @@
-﻿using JustTaskTracker.Application.Boards.Repositories;
+﻿using FluentValidation;
+using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Interfaces;
 using JustTaskTracker.Application.Common.Interfaces.Persistence;
 using JustTaskTracker.Domain.Boards.Authorization;
@@ -52,5 +53,22 @@ public class UpdateColumnCommandHandler(
         await unitOfWork.SaveChangesAsync(ct);
 
         return Result.Success();
+    }
+}
+
+public class UpdateColumnCommandValidator : AbstractValidator<UpdateColumnCommand>
+{
+    public UpdateColumnCommandValidator()
+    {
+        RuleFor(x => x.BoardId)
+            .NotEmpty();
+
+        RuleFor(x => x.ColumnId)
+            .NotEmpty();
+
+        RuleFor(x => x.Name)
+            .Must(name => !string.IsNullOrWhiteSpace(name))
+            .WithMessage("'Name' must not be empty.")
+            .MaximumLength(50);
     }
 }

@@ -1,9 +1,10 @@
+using FluentValidation;
+using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Interfaces;
 using JustTaskTracker.Application.Common.Interfaces.Persistence;
-using JustTaskTracker.Application.Boards.Repositories;
+using JustTaskTracker.Domain.Boards.Authorization;
 using JustTaskTracker.Domain.Common.Results;
 using JustTaskTracker.Domain.Common.Results.Errors;
-using JustTaskTracker.Domain.Boards.Authorization;
 using MediatR;
 
 namespace JustTaskTracker.Application.Boards.Commands;
@@ -39,5 +40,19 @@ public class UpdateBoardCommandHandler(
         await unitOfWork.SaveChangesAsync(ct);
 
         return Result.Success();
+    }
+}
+
+public class UpdateBoardCommandValidator : AbstractValidator<UpdateBoardCommand>
+{
+    public UpdateBoardCommandValidator()
+    {
+        RuleFor(x => x.BoardId)
+            .NotEmpty();
+
+        RuleFor(x => x.Name)
+            .Must(name => !string.IsNullOrWhiteSpace(name))
+            .WithMessage("'Name' must not be empty.")
+            .MaximumLength(100);
     }
 }

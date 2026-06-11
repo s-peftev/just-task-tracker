@@ -1,7 +1,15 @@
 .board-page {
     --board-page-header-height: 4rem;
     --board-page-content-gap: 0.75rem;
+    --board-page-body-padding-block: 1rem;
     --board-column-width: 272px;
+    --board-column-max-height: calc(
+        100dvh
+        - var(--jtt-navbar-height)
+        - var(--board-page-header-height)
+        - var(--board-page-content-gap)
+        - (2 * var(--board-page-body-padding-block))
+    );
     --board-page-title-padding-block: 0.25rem;
     --board-page-title-padding-inline: 0.5rem;
     flex: 1 1 0;
@@ -130,7 +138,7 @@
     overflow-x: auto;
     overflow-y: hidden;
     margin: 0;
-    padding: 1rem 1.5rem;
+    padding: var(--board-page-body-padding-block) 1.5rem;
     display: flex;
     flex-direction: row;
     flex-wrap: nowrap;
@@ -143,12 +151,10 @@
 .board-page__column-slot {
     flex-shrink: 0;
     display: flex;
-    max-height: 100%;
+    flex-direction: column;
+    max-height: var(--board-column-max-height);
     min-height: 0;
-}
-
-.board-page__column-item {
-    align-items: flex-start;
+    align-self: flex-start;
 }
 
 .board-page__add-column-btn {

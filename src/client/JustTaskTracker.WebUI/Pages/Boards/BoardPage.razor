@@ -93,7 +93,7 @@
                           FallbackTolerance="5"
                           Disabled="@(!CanManageColumns || _isReorderingColumns)"
                           Class="board-page__columns-sortable"
-                          Style="display:flex;flex-direction:row;flex-wrap:nowrap;align-items:flex-start;gap:1rem;flex:0 0 auto;min-width:min-content;"
+                          Style="display:flex;flex-direction:row;flex-wrap:nowrap;align-items:flex-start;align-self:stretch;gap:1rem;height:100%;max-height:100%;min-height:0;flex:1 1 auto;min-width:min-content;box-sizing:border-box;"
                           GhostClass="board-page__column-ghost"
                           DragClass="board-page__column-drag"
                           Scroll="false"

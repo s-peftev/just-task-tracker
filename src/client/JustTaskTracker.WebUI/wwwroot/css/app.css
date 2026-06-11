@@ -371,6 +371,12 @@ html, body {
     color: var(--jtt-text-accent) !important;
 }
 
+.resource-form-dialog .mud-radio-group .mud-primary-text,
+.resource-form-dialog .mud-radio .mud-button-root.mud-icon-button,
+.resource-form-dialog .mud-radio .mud-radio-content {
+    color: var(--jtt-text-accent) !important;
+}
+
 /* ─── MudBlazor overrides ─── */
 .mud-layout,
 .mud-main-content {
@@ -487,16 +493,23 @@ h1:focus {
     flex-direction: row;
     flex-wrap: nowrap;
     align-items: flex-start;
+    align-self: stretch;
     gap: 1rem;
-    flex: 0 0 auto;
+    height: 100%;
+    max-height: 100%;
+    min-height: 0;
     min-width: min-content;
+    flex: 1 1 auto;
+    box-sizing: border-box;
 }
 
 .board-page__body .sortable-draggable {
     flex-shrink: 0;
     display: flex;
-    align-items: flex-start;
-    max-height: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    align-self: flex-start;
+    max-height: var(--board-column-max-height);
     min-height: 0;
 }
 

@@ -8,5 +8,5 @@ public class DeleteColumnFormModel
 
     public Guid? TargetColumnId { get; set; }
 
-    public ColumnTaskMovePlacement? MovePlacement { get; set; }
+    public ColumnTaskMovePlacement? MovePlacement { get; set; } = ColumnTaskMovePlacement.Start;
 }

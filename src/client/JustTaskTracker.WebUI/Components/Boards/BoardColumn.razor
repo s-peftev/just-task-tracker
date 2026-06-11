@@ -7,6 +7,8 @@
 @using JustTaskTracker.WebUI.Components.Shared.Forms
 @using JustTaskTracker.WebUI.Services.Abstractions.Boards
 @using JustTaskTracker.WebUI.Services.Exceptions
+@using Microsoft.JSInterop
+@inject IJSRuntime Js
 
 <article class="board-column">
     <header class="board-column__header @(CanReorderColumn ? "board-column__header--draggable" : null)">
@@ -59,7 +61,8 @@
         </div>
     </header>
 
-    <div class="board-column__tasks @(_hasTaskContent ? "board-column__tasks--filled" : null)">
+    <div @ref="_tasksListRef"
+         class="board-column__tasks @(_hasTaskContent ? "board-column__tasks--filled" : null)">
         @foreach (var task in Column.BoardTasks.OrderBy(t => t.Position))
         {
             <BoardTaskCard Task="task" OnTaskClick="OnTaskClick" />
@@ -127,6 +130,10 @@
     private bool _focusTaskTitleInput;
     private string _newTaskTitle = string.Empty;
     private ElementReference _taskTitleInputRef;
+    private ElementReference _tasksListRef;
+    private bool _scrollTasksToBottom;
+    private int _expectedTaskCountAfterCreate;
+    private IJSObjectReference? _tasksScrollModule;
 
     private bool CanRenameColumn => BoardRolePermissions.CanManageColumns(UserRole);
 
@@ -150,6 +157,13 @@
         {
             _focusTaskTitleInput = false;
             await _taskTitleInputRef.FocusAsync();
+        }
+
+        if (_scrollTasksToBottom && Column.BoardTasks.Count >= _expectedTaskCountAfterCreate)
+        {
+            _scrollTasksToBottom = false;
+            _tasksScrollModule ??= await Js.InvokeAsync<IJSObjectReference>("import", "./js/boardColumnTasks.js");
+            await _tasksScrollModule.InvokeVoidAsync("scrollToBottom", _tasksListRef);
         }
     }
 
@@ -347,8 +361,10 @@
 
         try
         {
+            _expectedTaskCountAfterCreate = Column.BoardTasks.Count + 1;
             await BoardDetailsStore.CreateTaskAsync(Column.Id, trimmedTitle);
             CancelAddTask();
+            _scrollTasksToBottom = true;
         }
         catch (ApiServiceException ex)
         {

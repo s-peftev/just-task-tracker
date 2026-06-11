@@ -1,23 +1,23 @@
+using FluentValidation;
+using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Interfaces;
 using JustTaskTracker.Application.Common.Interfaces.Persistence;
-using JustTaskTracker.Application.Boards.Repositories;
+using JustTaskTracker.Domain.Boards.Authorization;
 using JustTaskTracker.Domain.Common.Results;
 using JustTaskTracker.Domain.Common.Results.Errors;
-using JustTaskTracker.Domain.Boards.DTOs;
-using JustTaskTracker.Domain.Boards.Enums;
 using MediatR;
 
 namespace JustTaskTracker.Application.Boards.Commands;
 
-public record UpdateBoardCommand(Guid BoardId, string Name) : IRequest<Result<BoardDetailsDto>>;
+public record UpdateBoardCommand(Guid BoardId, string Name) : IRequest<Result>;
 
 public class UpdateBoardCommandHandler(
     ICurrentUserAccessor currentUserAccessor,
     IBoardRepository boardRepository,
     IUnitOfWork unitOfWork)
-    : IRequestHandler<UpdateBoardCommand, Result<BoardDetailsDto>>
+    : IRequestHandler<UpdateBoardCommand, Result>
 {
-    public async Task<Result<BoardDetailsDto>> Handle(UpdateBoardCommand request, CancellationToken ct)
+    public async Task<Result> Handle(UpdateBoardCommand request, CancellationToken ct)
     {
         var (board, userRole) = await boardRepository.GetBoardWithUserRoleAsync(
             request.BoardId,
@@ -25,20 +25,34 @@ public class UpdateBoardCommandHandler(
             ct);
 
         if (board is null)
-            return Result<BoardDetailsDto>.Failure(GeneralErrors.NotFound);
+            return Result.Failure(GeneralErrors.NotFound);
 
-        if (userRole != BoardMemberRole.Owner)
-            return Result<BoardDetailsDto>.Failure(GeneralErrors.Unauthorized);
+        if (userRole is not { } role || !BoardRolePermissions.CanRenameBoard(role))
+            return Result.Failure(GeneralErrors.Forbidden);
 
-        board.Name = request.Name;
+        var name = request.Name.Trim();
+
+        if (string.Equals(board.Name, name, StringComparison.OrdinalIgnoreCase))
+            return Result.Success();
+
+        board.Name = name;
 
         await unitOfWork.SaveChangesAsync(ct);
 
-        var details = await boardRepository.GetBoardDetailsByIdAsync(
-            request.BoardId,
-            currentUserAccessor.AzureAdObjectId,
-            ct);
+        return Result.Success();
+    }
+}
 
-        return Result<BoardDetailsDto>.Success(details!);
+public class UpdateBoardCommandValidator : AbstractValidator<UpdateBoardCommand>
+{
+    public UpdateBoardCommandValidator()
+    {
+        RuleFor(x => x.BoardId)
+            .NotEmpty();
+
+        RuleFor(x => x.Name)
+            .Must(name => !string.IsNullOrWhiteSpace(name))
+            .WithMessage("'Name' must not be empty.")
+            .MaximumLength(100);
     }
 }

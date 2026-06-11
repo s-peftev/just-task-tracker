@@ -1,3 +1,4 @@
+using BlazorSortable;
 using JustTaskTracker.WebUI;
 using JustTaskTracker.WebUI.Services.Configuration;
 using JustTaskTracker.WebUI.Services.DI;
@@ -17,6 +18,12 @@ builder.Services.AddMudServices(config =>
     config.SnackbarConfiguration.PreventDuplicates = false;
 });
 builder.Services.AddWebUIServices(builder.Configuration);
+builder.Services.AddSortable(options =>
+{
+    options.Defaults.Delay = 0;
+    options.Defaults.DelayOnTouchOnly = true;
+    options.Defaults.FallbackTolerance = 5;
+});
 
 var apiOptions = builder.Configuration.GetSection(ApiClientOptions.SectionName).Get<ApiClientOptions>()!;
 

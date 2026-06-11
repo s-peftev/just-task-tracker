@@ -36,7 +36,7 @@ internal class AuthApiService(IAuthApi api) : IAuthApiService
             throw new ApiServiceException(
                 response.StatusCode,
                 envelope?.Error,
-                envelope?.Error?.Code ?? "Unexpected API error");
+                ApiResponseGuard.ResolveMessage(envelope?.Error));
         }
 
         return envelope.Data;

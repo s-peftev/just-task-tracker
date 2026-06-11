@@ -1,0 +1,66 @@
+<MudDialog Class="resource-form-dialog" ActionsClass="resource-form-dialog__actions">
+    <DialogContent>
+        @ChildContent
+    </DialogContent>
+    <DialogActions>
+        <MudButton Class="btn-dialog-cancel btn-dialog-action"
+                   ButtonType="ButtonType.Button"
+                   OnClick="Cancel">
+            @CancelLabel
+        </MudButton>
+        @if (UseFormSubmit)
+        {
+            <MudButton Class="@SubmitButtonClass"
+                       ButtonType="ButtonType.Submit"
+                       form="@FormId"
+                       Disabled="@DisableSubmit">
+                @SubmitLabel
+            </MudButton>
+        }
+        else
+        {
+            <MudButton Class="@SubmitButtonClass"
+                       ButtonType="ButtonType.Button"
+                       Disabled="@DisableSubmit"
+                       OnClick="ConfirmWithoutForm">
+                @SubmitLabel
+            </MudButton>
+        }
+    </DialogActions>
+</MudDialog>
+
+@code {
+    public static DialogOptions DefaultOptions { get; } = new()
+    {
+        CloseOnEscapeKey = true,
+        MaxWidth = MaxWidth.ExtraSmall,
+        FullWidth = true
+    };
+
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    [Parameter]
+    public string FormId { get; set; } = "resource-form";
+
+    [Parameter]
+    public string SubmitLabel { get; set; } = "Save";
+
+    [Parameter]
+    public string CancelLabel { get; set; } = "Cancel";
+
+    [Parameter]
+    public string SubmitButtonClass { get; set; } = "btn-glass btn-dialog-action";
+
+    [Parameter]
+    public bool DisableSubmit { get; set; }
+
+    private bool UseFormSubmit => !string.IsNullOrEmpty(FormId);
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void ConfirmWithoutForm() => MudDialog.Close(DialogResult.Ok(true));
+}

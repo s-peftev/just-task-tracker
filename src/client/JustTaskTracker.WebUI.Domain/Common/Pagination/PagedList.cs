@@ -1,4 +1,4 @@
-namespace JustTaskTracker.WebUI.Domain.Common;
+namespace JustTaskTracker.WebUI.Domain.Common.Pagination;
 
 public class PagedList<T>
 {

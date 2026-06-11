@@ -23,6 +23,8 @@ public class BoardMemberConfiguration : IEntityTypeConfiguration<BoardMember>
             .HasForeignKey(m => m.UserId)
             .OnDelete(DeleteBehavior.NoAction);
 
+        builder.HasQueryFilter(m => !m.Board!.IsDeleted && !m.User!.IsDeleted);
+
         builder.HasIndex(m => m.UserId);
 
         builder.HasIndex(m => m.BoardId)

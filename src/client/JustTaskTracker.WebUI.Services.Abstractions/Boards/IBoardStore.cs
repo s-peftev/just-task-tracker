@@ -1,6 +1,6 @@
-using JustTaskTracker.WebUI.Domain.Common;
 using JustTaskTracker.WebUI.Domain.Boards;
 using JustTaskTracker.WebUI.Domain.Boards.Enums;
+using JustTaskTracker.WebUI.Domain.Common.Pagination;
 
 namespace JustTaskTracker.WebUI.Services.Abstractions.Boards;
 
@@ -14,6 +14,7 @@ public interface IBoardStore
     IReadOnlyList<BoardLookupDto> Boards { get; }
     PaginationMetadata Pagination { get; }
     int CurrentPage { get; }
+    string SearchText { get; }
     bool IsLoading { get; }
     bool IsLoaded { get; }
     string? ErrorMessage { get; }
@@ -22,6 +23,9 @@ public interface IBoardStore
 
     /// <summary>Loads the given page. No-ops if the same page is already loaded and no refresh is forced.</summary>
     Task LoadAsync(int pageNumber, CancellationToken ct = default);
+
+    /// <summary>Updates the name search filter and reloads page 1 after a short debounce.</summary>
+    Task SetSearchAsync(string searchText, CancellationToken ct = default);
 
     /// <summary>Reloads the current page from the API.</summary>
     Task RefreshAsync(CancellationToken ct = default);

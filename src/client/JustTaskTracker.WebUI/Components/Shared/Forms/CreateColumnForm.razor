@@ -1,0 +1,11 @@
+<NameFieldForm FormId="@FormId" FieldLabel="Column name" MaxLength="50" />
+
+@code {
+    public const string FormId = "create-column-form";
+
+    public static RenderFragment Render() => builder =>
+    {
+        builder.OpenComponent<CreateColumnForm>(0);
+        builder.CloseComponent();
+    };
+}

@@ -8,7 +8,6 @@
 
   <ItemGroup>
     <Folder Include="Boards\Entities\" />
-    <Folder Include="Boards\Enums\" />
   </ItemGroup>
 
 </Project>

@@ -2,23 +2,85 @@
     display: flex;
     flex-direction: column;
     flex: 1 1 0;
+    width: 100%;
+    min-width: 0;
     min-height: 0;
     overflow: hidden;
     gap: 1rem;
+    container-type: inline-size;
+    container-name: dashboard;
 }
 
 .dashboard__header {
+    --dashboard-header-inline-gap: 1rem;
+    --dashboard-header-title-gap: 2rem;
+
     flex-shrink: 0;
-    display: flex;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    display: grid;
+    grid-template-columns: auto auto 1fr;
     align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
+    column-gap: var(--dashboard-header-inline-gap);
+    row-gap: var(--dashboard-header-inline-gap);
+}
+
+.dashboard__header .text-section-title {
+    margin: 0 calc(var(--dashboard-header-title-gap) - var(--dashboard-header-inline-gap)) 0 0;
+}
+
+.dashboard__search-input {
+    flex: 0 0 auto;
+    width: 40ch;
+    max-width: min(40ch, 100%);
+    margin: 0;
+    padding: 0.25rem 0.5rem;
+    box-sizing: border-box;
+    font-size: var(--jtt-font-size-section);
+    font-weight: var(--jtt-font-weight-strong);
+    line-height: 1.2;
+    font-family: inherit;
+    border: 2px solid var(--jtt-stroke-muted);
+    border-radius: var(--jtt-radius-sm);
+    background: var(--jtt-surface-raised);
+    color: var(--jtt-text-primary);
+    outline: none;
+}
+
+.dashboard__search-input::placeholder {
+    color: var(--jtt-text-muted);
+    font-size: var(--jtt-font-size-body);
+    font-weight: 400;
+}
+
+.dashboard__search-input:focus {
+    border-color: var(--jtt-stroke-accent-strong);
 }
 
 .dashboard__pager {
+    grid-column: 3;
+    justify-self: end;
     display: flex;
     align-items: center;
     gap: 0.75rem;
+}
+
+@container dashboard (max-width: 44rem) {
+    .dashboard__header {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .dashboard__header .text-section-title,
+    .dashboard__search-input,
+    .dashboard__pager {
+        grid-column: 1;
+        justify-self: start;
+    }
+
+    .dashboard__header .text-section-title {
+        margin-right: 0;
+    }
 }
 
 .dashboard__boards {

@@ -1,22 +1,27 @@
 @page "/boards/{Id:guid}"
 @attribute [Authorize]
+@implements IAsyncDisposable
 @using JustTaskTracker.WebUI.Infrastructure
 @using JustTaskTracker.WebUI.Services.Exceptions
+@using BlazorSortable
+@using Microsoft.JSInterop
 @inject IBoardApiService BoardApiService
+@inject IBoardDetailsStore BoardDetailsStore
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
+@inject IJSRuntime Js
 
-<PageTitle>@(_board?.Name ?? "Board") — JustTaskTracker</PageTitle>
+<PageTitle>@(BoardDetailsStore.Board?.Name ?? "Board") — JustTaskTracker</PageTitle>
 
 <div class="board-page">
-    @if (_isLoading)
+    @if (BoardDetailsStore.IsLoading && BoardDetailsStore.Board is null)
     {
         <div class="page-state page-state--stacked">
             <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
         </div>
     }
-    else if (_errorMessage is { } error)
+    else if (BoardDetailsStore.ErrorMessage is { } error)
     {
         <div class="page-state page-state--stacked">
             <MudAlert Severity="Severity.Error">@error</MudAlert>
@@ -25,7 +30,7 @@
             </button>
         </div>
     }
-    else if (_board is { } board)
+    else if (BoardDetailsStore.Board is { } board)
     {
         <header class="board-page__header">
             <div class="board-page__title-area">
@@ -43,7 +48,7 @@
                                @onblur="OnTitleBlurAsync" />
                     </div>
                 }
-                else if (IsOwner)
+                else if (CanRenameBoard)
                 {
                     <h1 class="text-section-title board-page__title board-page__title--editable"
                         @onclick="StartNameEdit">
@@ -57,7 +62,7 @@
             </div>
 
             <div class="board-page__controls">
-                <BoardPageMenu IsOwner="IsOwner"
+                <BoardPageMenu UserRole="board.UserRole"
                                OnMembersClick="ShowMembersComingSoon"
                                OnLeaveBoardClick="ShowLeaveBoardComingSoon"
                                OnDeleteBoardClick="DeleteBoardAsync" />
@@ -76,19 +81,40 @@
             </div>
         </header>
 
-        <section class="board-page__content">
-            <ul class="board-page__body">
+        <section @ref="_contentRef" class="board-page__content">
+            <div @ref="_scrollBodyRef" class="board-page__body">
+                <Sortable TItem="ColumnDto"
+                          Items="_sortableColumns"
+                          ItemKeySelector="GetColumnKey"
+                          Handle=".board-column__header--draggable"
+                          Filter=".board-column__delete, .board-column__title-field, .board-column__title-input"
+                          Delay="0"
+                          DelayOnTouchOnly="true"
+                          FallbackTolerance="5"
+                          Disabled="@(!CanManageColumns || _isReorderingColumns)"
+                          Class="board-page__columns-sortable"
+                          Style="display:flex;flex-direction:row;flex-wrap:nowrap;align-items:flex-start;gap:1rem;flex:0 0 auto;min-width:min-content;"
+                          GhostClass="board-page__column-ghost"
+                          DragClass="board-page__column-drag"
+                          Scroll="false"
+                          OnUpdate="OnColumnsReorderedAsync">
+                    <div class="board-page__column-item">
+                        <BoardColumn Column="@context"
+                                     UserRole="board.UserRole" />
+                    </div>
+                </Sortable>
+
                 @if (CanManageColumns)
                 {
-                    <li class="board-page__column-slot">
+                    <div class="board-page__column-slot">
                         <button type="button"
                                 class="btn-glass-white board-page__add-column-btn"
-                                @onclick="ShowColumnsComingSoon">
+                                @onclick="CreateColumnAsync">
                             + Add column
                         </button>
-                    </li>
+                    </div>
                 }
-            </ul>
+            </div>
         </section>
     }
 </div>
@@ -97,51 +123,124 @@
     [Parameter]
     public Guid Id { get; set; }
 
-    private BoardDetailsDto? _board;
-    private bool _isLoading = true;
-    private string? _errorMessage;
     private bool _isEditingName;
     private bool _isSavingName;
+    private bool _isReorderingColumns;
     private bool _focusTitleInput;
     private string _editName = string.Empty;
     private ElementReference _titleInputRef;
+    private ElementReference _contentRef;
+    private ElementReference _scrollBodyRef;
+    private readonly List<ColumnDto> _sortableColumns = [];
+    private IJSObjectReference? _panScrollModule;
+    private IJSObjectReference? _panScrollHandle;
+    private bool _panScrollAttached;
 
-    private bool IsOwner => _board?.UserRole == BoardMemberRole.Owner;
-    private bool CanManageColumns => _board?.UserRole is BoardMemberRole.Owner or BoardMemberRole.Admin;
+    private bool CanRenameBoard =>
+        BoardDetailsStore.Board is { UserRole: var role } && BoardRolePermissions.CanRenameBoard(role);
 
-    protected override async Task OnParametersSetAsync() =>
-        await LoadAsync();
+    private bool CanManageColumns =>
+        BoardDetailsStore.Board is { UserRole: var role } && BoardRolePermissions.CanManageColumns(role);
+
+    protected override void OnInitialized() =>
+        BoardDetailsStore.StateChanged += OnStoreStateChanged;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await BoardDetailsStore.LoadAsync(Id);
+        SyncSortableColumnsFromStore();
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!_focusTitleInput)
-            return;
+        if (_focusTitleInput)
+        {
+            _focusTitleInput = false;
+            await _titleInputRef.FocusAsync();
+        }
 
-        _focusTitleInput = false;
-        await _titleInputRef.FocusAsync();
+        if (BoardDetailsStore.Board is not null && !_panScrollAttached)
+            await EnsurePanScrollAttachedAsync();
     }
 
-    private async Task LoadAsync()
+    public async ValueTask DisposeAsync()
     {
-        _isLoading = true;
-        _errorMessage = null;
-        StateHasChanged();
+        BoardDetailsStore.StateChanged -= OnStoreStateChanged;
+
+        if (_panScrollHandle is not null)
+        {
+            await _panScrollHandle.InvokeVoidAsync("dispose");
+            await _panScrollHandle.DisposeAsync();
+        }
+
+        if (_panScrollModule is not null)
+            await _panScrollModule.DisposeAsync();
+    }
+
+    private async Task EnsurePanScrollAttachedAsync()
+    {
+        _panScrollModule ??= await Js.InvokeAsync<IJSObjectReference>("import", "./js/boardPanScroll.js");
+        _panScrollHandle = await _panScrollModule.InvokeAsync<IJSObjectReference>(
+            "attach",
+            _contentRef,
+            _scrollBodyRef);
+        _panScrollAttached = true;
+    }
+
+    private void OnStoreStateChanged()
+    {
+        SyncSortableColumnsFromStore();
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void SyncSortableColumnsFromStore()
+    {
+        if (BoardDetailsStore.Board is null)
+        {
+            _sortableColumns.Clear();
+            return;
+        }
+
+        var ordered = BoardDetailsStore.Board.Columns
+            .OrderBy(column => column.Position)
+            .ToList();
+
+        if (_sortableColumns.Count == ordered.Count
+            && _sortableColumns.Zip(ordered).All(pair => pair.First.Id == pair.Second.Id))
+        {
+            for (var i = 0; i < ordered.Count; i++)
+                _sortableColumns[i] = ordered[i];
+
+            return;
+        }
+
+        _sortableColumns.Clear();
+        _sortableColumns.AddRange(ordered);
+    }
+
+    private static string GetColumnKey(ColumnDto column) => column.Id.ToString();
+
+    private async Task OnColumnsReorderedAsync(SortableEventArgs<ColumnDto> args)
+    {
+        if (!CanManageColumns || _isReorderingColumns)
+            return;
+
+        var columnIds = _sortableColumns.Select(column => column.Id).ToList();
+
+        _isReorderingColumns = true;
 
         try
         {
-            _board = await BoardApiService.GetBoardByIdAsync(Id);
+            await BoardDetailsStore.ReorderColumnsAsync(columnIds);
         }
         catch (ApiServiceException ex)
         {
-            _board = null;
-            _errorMessage = ex.Error?.Details is { Count: > 0 } details
-                ? string.Join(" ", details)
-                : ex.Message;
+            SyncSortableColumnsFromStore();
+            Snackbar.ShowApiError(ex);
         }
         finally
         {
-            _isLoading = false;
-            StateHasChanged();
+            _isReorderingColumns = false;
         }
     }
 
@@ -153,15 +252,35 @@
     private void ShowLeaveBoardComingSoon() =>
         Snackbar.Add("Leave board is coming soon.", Severity.Info);
 
-    private void ShowColumnsComingSoon() =>
-        Snackbar.Add("Column creation is coming soon.", Severity.Info);
+    private async Task CreateColumnAsync()
+    {
+        var dialog = await DialogService.ShowResourceFormAsync(
+            "Create new column",
+            "Create",
+            CreateColumnForm.FormId,
+            CreateColumnForm.Render());
+        var result = await dialog.Result;
+
+        if (result is not { Canceled: false, Data: string name })
+            return;
+
+        try
+        {
+            var column = await BoardDetailsStore.CreateColumnAsync(name);
+            Snackbar.Add($"Column \"{column.Name}\" created.", Severity.Success);
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+    }
 
     private void StartNameEdit()
     {
-        if (!IsOwner || _board is null || _isEditingName)
+        if (!CanRenameBoard || BoardDetailsStore.Board is null || _isEditingName)
             return;
 
-        _editName = _board.Name;
+        _editName = BoardDetailsStore.Board.Name;
         _isEditingName = true;
         _focusTitleInput = true;
     }
@@ -169,7 +288,7 @@
     private void CancelNameEdit()
     {
         _isEditingName = false;
-        _editName = _board?.Name ?? string.Empty;
+        _editName = BoardDetailsStore.Board?.Name ?? string.Empty;
     }
 
     private async Task OnTitleKeyDownAsync(KeyboardEventArgs e)
@@ -190,7 +309,7 @@
 
     private async Task SaveBoardNameAsync()
     {
-        if (!_isEditingName || _board is null || _isSavingName)
+        if (!_isEditingName || BoardDetailsStore.Board is null || _isSavingName)
             return;
 
         var trimmedName = _editName.Trim();
@@ -207,7 +326,7 @@
             return;
         }
 
-        if (string.Equals(trimmedName, _board.Name, StringComparison.Ordinal))
+        if (string.Equals(trimmedName, BoardDetailsStore.Board.Name, StringComparison.Ordinal))
         {
             CancelNameEdit();
             return;
@@ -217,7 +336,8 @@
 
         try
         {
-            _board = await BoardApiService.UpdateBoardAsync(Id, trimmedName);
+            await BoardApiService.UpdateBoardAsync(Id, trimmedName);
+            BoardDetailsStore.UpdateBoardName(trimmedName);
             _isEditingName = false;
             Snackbar.Add("Board updated.", Severity.Success);
         }
@@ -233,15 +353,14 @@
 
     private async Task DeleteBoardAsync()
     {
-        var parameters = new DialogParameters<ConfirmDialog>
-        {
-            { x => x.Message, $"Delete board \"{_board?.Name}\"?{Environment.NewLine}This action cannot be undone." },
-            { x => x.ConfirmLabel, "Delete" }
-        };
+        var message =
+            $"Delete board \"{BoardDetailsStore.Board?.Name}\"?{Environment.NewLine}This action cannot be undone.";
 
-        var options = ConfirmDialog.DefaultOptions;
+        var dialog = await DialogService.ShowConfirmResourceAsync(
+            "Delete board",
+            message,
+            confirmLabel: "Delete");
 
-        var dialog = await DialogService.ShowAsync<ConfirmDialog>("Delete board", parameters, options);
         var result = await dialog.Result;
 
         if (result is not { Canceled: false, Data: true })

@@ -52,7 +52,7 @@ public class BoardsController(ISender sender) : ControllerBase
         var result = await sender.Send(request with { BoardId = id }, ct);
 
         return result.Match(
-            data => Ok(data),
+            () => NoContent(),
             error => error.CreateErrorResponse());
     }
 

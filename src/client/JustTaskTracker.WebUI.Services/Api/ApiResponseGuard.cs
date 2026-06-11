@@ -1,3 +1,4 @@
+using System.Text.Json;
 using JustTaskTracker.WebUI.Services.Api.Models;
 using JustTaskTracker.WebUI.Services.Exceptions;
 using Refit;
@@ -10,22 +11,84 @@ namespace JustTaskTracker.WebUI.Services.Api;
 /// </summary>
 internal static class ApiResponseGuard
 {
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true
+    };
+
     public static T Unwrap<T>(IApiResponse<ApiEnvelope<T>> response)
     {
         var envelope = response.Content;
 
-        if (!response.IsSuccessStatusCode || envelope is { Success: false } || envelope is null || envelope.Data is null)
-            throw ToException(response, envelope);
+        if (response.IsSuccessStatusCode &&
+            envelope is { Success: true, Data: not null })
+        {
+            return envelope.Data;
+        }
 
-        return envelope.Data;
+        throw ToException(response, envelope);
     }
 
     public static void EnsureSuccess<T>(IApiResponse<ApiEnvelope<T>> response)
     {
-        if (!response.IsSuccessStatusCode)
-            throw ToException(response, response.Content);
+        if (response.IsSuccessStatusCode &&
+            response.Content is not { Success: false })
+        {
+            return;
+        }
+
+        throw ToException(response, response.Content);
     }
 
-    private static ApiServiceException ToException<T>(IApiResponse<ApiEnvelope<T>> response, ApiEnvelope<T>? envelope) =>
-        new(response.StatusCode, envelope?.Error, envelope?.Error?.Code ?? "Unexpected API error");
+    private static ApiServiceException ToException<T>(
+        IApiResponse<ApiEnvelope<T>> response,
+        ApiEnvelope<T>? envelope)
+    {
+        var error = ResolveError(response, envelope);
+
+        return new ApiServiceException(
+            response.StatusCode,
+            error,
+            ResolveMessage(error));
+    }
+
+    private static ApiError? ResolveError<T>(
+        IApiResponse<ApiEnvelope<T>> response,
+        ApiEnvelope<T>? envelope)
+    {
+        if (envelope?.Error is { } envelopeError)
+            return envelopeError;
+
+        return TryParseErrorFromBody(response);
+    }
+
+    private static ApiError? TryParseErrorFromBody<T>(IApiResponse<ApiEnvelope<T>> response)
+    {
+        var json = response.Error?.Content;
+
+        if (string.IsNullOrWhiteSpace(json))
+            return null;
+
+        try
+        {
+            return JsonSerializer.Deserialize<ApiEnvelopeJson>(json, JsonOptions)?.Error;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    public static string ResolveMessage(ApiError? error)
+    {
+        if (error?.Details is { Count: > 0 } details)
+            return string.Join(" ", details);
+
+        if (!string.IsNullOrWhiteSpace(error?.Code))
+            return error.Code;
+
+        return "Unexpected API error";
+    }
+
+    private sealed record ApiEnvelopeJson(bool Success, JsonElement? Data, ApiError? Error);
 }

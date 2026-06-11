@@ -1,6 +1,6 @@
 namespace JustTaskTracker.WebUI.Validation;
 
-public class BoardFormModel
+public class NameFormModel
 {
     public string Name { get; set; } = string.Empty;
 }

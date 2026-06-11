@@ -1,5 +1,5 @@
 using JustTaskTracker.API.Extensions;
-using JustTaskTracker.Domain.Common;
+using JustTaskTracker.Domain.Common.Pagination;
 using JustTaskTracker.Domain.Common.Results.Errors;
 using JustTaskTracker.Infrastructure.Common.Options;
 using Microsoft.AspNetCore.Mvc.Filters;

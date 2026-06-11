@@ -22,7 +22,7 @@ CREATE TABLE [dbo].[BoardMembers]
     [BoardId]            UNIQUEIDENTIFIER NOT NULL,
     [UserId]             UNIQUEIDENTIFIER NOT NULL,
     [JoinedAtUtc]        DATETIME2(7)     NOT NULL DEFAULT (SYSUTCDATETIME()),
-    [Role]               TINYINT          NOT NULL, -- 1 = Owner, 2 = Admin, 3 = User, 4 = Viewer
+    [Role]               TINYINT          NOT NULL, -- 1 = Owner, 2 = Admin, 3 = ScrumMaster, 4 = User
 
     CONSTRAINT [PK_BoardMembers] PRIMARY KEY CLUSTERED ([BoardId], [UserId]),
     CONSTRAINT [FK_BoardMembers_Boards_BoardId]

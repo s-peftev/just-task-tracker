@@ -20,7 +20,7 @@ builder.Services.AddControllers(options =>
     options.Conventions.Add(new PrefixConventionConfigurator("api"));
 });
 
-builder.Services.AddApplication();
+builder.Services.AddApplication(builder.Configuration);
 builder.Services.AddPersistence(builder.Configuration);
 builder.Services.AddInfrastructure(builder.Configuration);
 

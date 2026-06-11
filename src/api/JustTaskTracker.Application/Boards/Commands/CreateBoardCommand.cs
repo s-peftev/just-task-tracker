@@ -1,13 +1,14 @@
+using FluentValidation;
 using JustTaskTracker.Application.Auth.Repositories;
+using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Interfaces;
 using JustTaskTracker.Application.Common.Interfaces.Persistence;
-using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Domain.Auth.DTOs;
-using JustTaskTracker.Domain.Common.Results;
-using JustTaskTracker.Domain.Common.Results.Errors;
 using JustTaskTracker.Domain.Boards.DTOs;
 using JustTaskTracker.Domain.Boards.Entities;
 using JustTaskTracker.Domain.Boards.Enums;
+using JustTaskTracker.Domain.Common.Results;
+using JustTaskTracker.Domain.Common.Results.Errors;
 using MediatR;
 
 namespace JustTaskTracker.Application.Boards.Commands;
@@ -28,35 +29,35 @@ public class CreateBoardCommandHandler(
         if (user is null)
             return Result<BoardDetailsDto>.Failure(GeneralErrors.Unauthorized);
 
-        await unitOfWork.BeginTransactionAsync(ct);
+        var board = new Board { Name = request.Name };
+        boardRepository.Add(board);
 
-        try
+        boardRepository.AddMember(new BoardMember
         {
-            var board = new Board { Name = request.Name };
-            boardRepository.Add(board);
+            BoardId = board.Id,
+            UserId = user.Id,
+            Role = BoardMemberRole.Owner
+        });
 
-            boardRepository.AddMember(new BoardMember
-            {
-                BoardId = board.Id,
-                UserId = user.Id,
-                Role = BoardMemberRole.Owner
-            });
+        await unitOfWork.SaveChangesAsync(ct);
 
-            await unitOfWork.SaveChangesAsync(ct);
-            await unitOfWork.CommitTransactionAsync(ct);
+        return Result<BoardDetailsDto>.Success(new BoardDetailsDto(
+            board.Id,
+            board.Name,
+            board.CreatedAtUtc,
+            BoardMemberRole.Owner,
+            [new UserDto(user.Id, user.Email, user.DisplayName)],
+            []));
+    }
+}
 
-            return Result<BoardDetailsDto>.Success(new BoardDetailsDto(
-                board.Id,
-                board.Name,
-                board.CreatedAtUtc,
-                BoardMemberRole.Owner,
-                [new UserDto(user.Id, user.Email, user.DisplayName)],
-                []));
-        }
-        catch
-        {
-            await unitOfWork.RollbackTransactionAsync(ct);
-            throw;
-        }
+public class CreateBoardCommandValidator : AbstractValidator<CreateBoardCommand>
+{
+    public CreateBoardCommandValidator()
+    {
+        RuleFor(x => x.Name)
+            .Must(name => !string.IsNullOrWhiteSpace(name))
+            .WithMessage("'Name' must not be empty.")
+            .MaximumLength(100);
     }
 }

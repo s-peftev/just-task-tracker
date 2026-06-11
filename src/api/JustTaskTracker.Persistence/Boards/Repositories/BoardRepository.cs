@@ -1,9 +1,12 @@
 using JustTaskTracker.Application.Boards.Repositories;
+using JustTaskTracker.Application.Common.Helpers;
 using JustTaskTracker.Domain.Auth.DTOs;
-using JustTaskTracker.Domain.Common;
 using JustTaskTracker.Domain.Boards.DTOs;
 using JustTaskTracker.Domain.Boards.Entities;
 using JustTaskTracker.Domain.Boards.Enums;
+using JustTaskTracker.Domain.Boards.Enums.SearchFields;
+using JustTaskTracker.Domain.Common.Pagination;
+using JustTaskTracker.Domain.Common.Searching;
 using JustTaskTracker.Persistence.Common;
 using JustTaskTracker.Persistence.Common.Extentions;
 using Microsoft.EntityFrameworkCore;
@@ -24,7 +27,7 @@ public class BoardRepository(JustTaskTrackerDbContext context)
             {
                 Board = b,
                 UserRole = b.Members
-                    .Where(m => m.User.AzureAdObjectId == azureAdObjectId)
+                    .Where(m => m.User!.AzureAdObjectId == azureAdObjectId)
                     .Select(m => (BoardMemberRole?)m.Role)
                     .FirstOrDefault()
             })
@@ -39,7 +42,7 @@ public class BoardRepository(JustTaskTrackerDbContext context)
             .Where(b => b.Id == boardId)
             .Select(b => new
             {
-                IsMember = b.Members.Any(m => m.User.AzureAdObjectId == azureAdObjectId)
+                IsMember = b.Members.Any(m => m.User!.AzureAdObjectId == azureAdObjectId)
             })
             .FirstOrDefaultAsync(ct);
 
@@ -59,12 +62,12 @@ public class BoardRepository(JustTaskTrackerDbContext context)
                 b.Name,
                 b.CreatedAtUtc,
                 b.Members
-                    .Where(m => m.User.AzureAdObjectId == azureAdObjectId)
+                    .Where(m => m.User!.AzureAdObjectId == azureAdObjectId)
                     .Select(m => m.Role)
                     .First(),
                 b.Members
                     .OrderBy(m => m.JoinedAtUtc)
-                    .Select(m => new UserDto(m.User.Id, m.User.Email, m.User.DisplayName)),
+                    .Select(m => new UserDto(m.User!.Id, m.User.Email, m.User.DisplayName)),
                 b.Columns
                     .OrderBy(c => c.Position)
                     .Select(c => new ColumnDto(
@@ -73,21 +76,31 @@ public class BoardRepository(JustTaskTrackerDbContext context)
                         c.Position,
                         c.Tasks
                             .OrderBy(t => t.Position)
-                            .Select(t => new TaskDto(
+                            .Select(t => new BoardTaskDto(
                                 t.Id,
                                 t.Title,
                                 t.Position,
                                 t.CreatedAtUtc,
-                                new UserDto(t.Reporter.Id, t.Reporter.Email, t.Reporter.DisplayName),
+                                new UserDto(t.Reporter!.Id, t.Reporter.Email, t.Reporter.DisplayName),
                                 t.Description,
                                 t.AssigneeId == null
                                     ? null
                                     : new UserDto(t.Assignee!.Id, t.Assignee.Email, t.Assignee.DisplayName)))))))
+            .AsSplitQuery()
             .FirstOrDefaultAsync(ct);
 
-    public async Task<PagedList<BoardLookupDto>> GetBoardsByUserAzureAOIAsync(Guid azureAdObjectId, int pageNumber, int pageSize, CancellationToken ct = default) =>
-        await _dbSet
-            .Where(b => b.Members.Any(m => m.User.AzureAdObjectId == azureAdObjectId))
+    public async Task<PagedList<BoardLookupDto>> GetBoardsByUserAzureAOIAsync(
+        Guid azureAdObjectId,
+        int pageNumber,
+        int pageSize,
+        TextSearchOptions<BoardSearchField>? textSearchOptions = null,
+        CancellationToken ct = default)
+    {
+        var fields = SearchFieldsResolver.Resolve(textSearchOptions?.SearchIn, BoardSearchFields.Map);
+
+        return await _dbSet
+            .Where(b => b.Members.Any(m => m.User!.AzureAdObjectId == azureAdObjectId))
+            .ApplyTextSearch(textSearchOptions?.Search, fields)
             .Select(b => new
             {
                 Board = b,
@@ -122,14 +135,16 @@ public class BoardRepository(JustTaskTrackerDbContext context)
                     x.Board.Name,
                     x.Board.CreatedAtUtc,
                     x.Board.Members
-                        .Where(m => m.User.AzureAdObjectId == azureAdObjectId)
+                        .Where(m => m.User!.AzureAdObjectId == azureAdObjectId)
                         .Select(m => m.Role)
                         .First(),
                     x.Board.Members
                         .Where(m => m.Role == BoardMemberRole.Owner)
-                        .Select(m => new UserDto(m.User.Id, m.User.Email, m.User.DisplayName))
+                        .Select(m => new UserDto(m.User!.Id, m.User.Email, m.User.DisplayName))
                         .FirstOrDefault()),
                 pageNumber,
                 pageSize,
                 ct);
+    }
+         
 }

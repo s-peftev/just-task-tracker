@@ -1,4 +1,4 @@
-using JustTaskTracker.Domain.Common;
+using JustTaskTracker.Domain.Common.Pagination;
 using JustTaskTracker.Domain.Common.Results;
 using System.Collections;
 using System.Reflection;

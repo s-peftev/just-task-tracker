@@ -1,4 +1,4 @@
-﻿using JustTaskTracker.Domain.Common;
+﻿using JustTaskTracker.Domain.Common.Pagination;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 
@@ -64,5 +64,72 @@ public static class QueryableExtensions
             .ToListAsync(ct);
 
         return new PagedList<TResult>(pageNumber, pageSize, totalCount, items);
+    }
+
+    /// <summary>
+    /// Applies a text search filter to the given <see cref="IQueryable{TItem}"/> based on the specified fields.
+    /// </summary>
+    /// <typeparam name="TItem">The entity type of the query.</typeparam>
+    /// <param name="query">The source query to filter.</param>
+    /// <param name="search">The search string to match. If null or whitespace, the query is returned unmodified.</param>
+    /// <param name="fields">
+    /// The collection of string fields to search in. Each field is an expression selecting a string property from <typeparamref name="TItem"/>.
+    /// If empty, the query is returned unmodified.
+    /// </param>
+    /// <returns>
+    /// A filtered <see cref="IQueryable{TItem}"/> where any of the specified fields contain the search string, ignoring null values.
+    /// Multiple fields are combined with logical OR.
+    /// </returns>
+    public static IQueryable<TItem> ApplyTextSearch<TItem>(this IQueryable<TItem> query, string? search, IReadOnlyCollection<Expression<Func<TItem, string?>>> fields)
+    {
+        if (string.IsNullOrWhiteSpace(search) || fields.Count == 0)
+            return query;
+
+        string parameterName = fields.First().Parameters.FirstOrDefault()?.Name ?? "x";
+
+        var parameter = Expression.Parameter(typeof(TItem), parameterName);
+        Expression? body = null;
+
+        foreach (var field in fields)
+        {
+            var replaced = ReplaceParameter(field, parameter);
+
+            var notNull = Expression.NotEqual(
+                replaced,
+                Expression.Constant(null, typeof(string))
+            );
+
+            var contains = Expression.Call(
+                replaced,
+                nameof(string.Contains),
+                Type.EmptyTypes,
+                Expression.Constant(search)
+            );
+
+            var condition = Expression.AndAlso(notNull, contains);
+
+            body = body is null
+                ? condition
+                : Expression.OrElse(body, condition);
+        }
+
+        var lambda = Expression.Lambda<Func<TItem, bool>>(body!, parameter);
+
+        return query.Where(lambda);
+    }
+
+    private static Expression ReplaceParameter<T>(Expression<Func<T, string?>> expr, ParameterExpression parameter)
+    {
+        return new ParameterReplaceVisitor(expr.Parameters[0], parameter)
+            .Visit(expr.Body)!;
+    }
+
+    private sealed class ParameterReplaceVisitor(ParameterExpression from, ParameterExpression to) : ExpressionVisitor
+    {
+        private readonly ParameterExpression _from = from;
+        private readonly ParameterExpression _to = to;
+
+        protected override Expression VisitParameter(ParameterExpression node)
+            => node == _from ? _to : base.VisitParameter(node);
     }
 }

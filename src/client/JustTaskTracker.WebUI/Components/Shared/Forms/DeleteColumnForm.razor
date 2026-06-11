@@ -1,0 +1,168 @@
+@using JustTaskTracker.WebUI.Domain.Boards
+@using JustTaskTracker.WebUI.Domain.Boards.Enums
+@using JustTaskTracker.WebUI.Domain.Boards.Requests
+@using JustTaskTracker.WebUI.Validation
+
+<form id="@FormId" @onsubmit="SubmitAsync" @onsubmit:preventDefault="true">
+    <MudText Class="confirm-dialog__message delete-column-form__message"
+             Typo="Typo.body1"
+             Style="white-space: pre-line;">
+        @($"Delete column \"{Column.Name}\"?{Environment.NewLine}This action cannot be undone.")
+    </MudText>
+
+    @if (HasTasks)
+    {
+        <fieldset class="delete-column-form__fieldset" disabled="@(!CanChooseTaskDisposition)">
+            <legend class="delete-column-form__legend">Tasks in this column</legend>
+
+            <MudRadioGroup T="DeleteColumnTasksDisposition"
+                           @bind-Value="_model.TasksDisposition"
+                           Disabled="@(!CanChooseTaskDisposition)">
+                <MudRadio T="DeleteColumnTasksDisposition"
+                          Value="DeleteColumnTasksDisposition.DeleteWithColumn"
+                          Color="Color.Primary">
+                    Delete tasks with the column
+                </MudRadio>
+                <MudRadio T="DeleteColumnTasksDisposition"
+                          Value="DeleteColumnTasksDisposition.MoveToColumn"
+                          Color="Color.Primary"
+                          Disabled="@(!CanMoveTasks)">
+                    Move tasks to another column
+                </MudRadio>
+            </MudRadioGroup>
+
+            @if (_model.TasksDisposition == DeleteColumnTasksDisposition.MoveToColumn)
+            {
+                <MudSelect @bind-Value="_model.TargetColumnId"
+                           Label="Target column"
+                           Variant="Variant.Outlined"
+                           Disabled="@(!CanMoveTasks)"
+                           Required="true"
+                           Error="_showValidation && _targetColumnError is not null"
+                           ErrorText="@(_showValidation ? _targetColumnError : null)">
+                    @foreach (var otherColumn in OtherColumns)
+                    {
+                        <MudSelectItem Value="otherColumn.Id">@otherColumn.Name</MudSelectItem>
+                    }
+                </MudSelect>
+
+                <MudRadioGroup T="ColumnTaskMovePlacement?"
+                               @bind-Value="_model.MovePlacement"
+                               Disabled="@(!CanMoveTasks)"
+                               Class="delete-column-form__placement">
+                    <MudRadio T="ColumnTaskMovePlacement?"
+                              Value="ColumnTaskMovePlacement.Start"
+                              Color="Color.Primary">
+                        Beginning of the column
+                    </MudRadio>
+                    <MudRadio T="ColumnTaskMovePlacement?"
+                              Value="ColumnTaskMovePlacement.End"
+                              Color="Color.Primary">
+                        End of the column
+                    </MudRadio>
+                </MudRadioGroup>
+            }
+        </fieldset>
+
+        @if (_showValidation && _validationError is not null)
+        {
+            <MudText Typo="Typo.caption" Color="Color.Error" Class="delete-column-form__validation-error">
+                @_validationError
+            </MudText>
+        }
+    }
+    else
+    {
+        <MudText Class="delete-column-form__empty-tasks"
+                 Typo="Typo.body2">
+            This column has no tasks.
+        </MudText>
+    }
+</form>
+
+@code {
+    public const string FormId = "delete-column-form";
+
+    [Parameter, EditorRequired]
+    public ColumnDto Column { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<ColumnDto> OtherColumns { get; set; } = [];
+
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private readonly DeleteColumnFormModel _model = new();
+    private DeleteColumnFormModelValidator? _validator;
+    private bool _showValidation;
+    private string? _targetColumnError;
+    private string? _validationError;
+
+    private bool HasTasks => Column.BoardTasks.Count > 0;
+
+    private bool CanMoveTasks => HasTasks && OtherColumns.Count > 0;
+
+    private bool CanChooseTaskDisposition => HasTasks;
+
+    protected override void OnInitialized()
+    {
+        _validator = new DeleteColumnFormModelValidator(HasTasks, OtherColumns.Count > 0);
+
+        if (!CanMoveTasks && _model.TasksDisposition == DeleteColumnTasksDisposition.MoveToColumn)
+            _model.TasksDisposition = DeleteColumnTasksDisposition.DeleteWithColumn;
+    }
+
+    public static RenderFragment Render(ColumnDto column, IReadOnlyList<ColumnDto> otherColumns) => builder =>
+    {
+        builder.OpenComponent<DeleteColumnForm>(0);
+        builder.AddAttribute(1, nameof(Column), column);
+        builder.AddAttribute(2, nameof(OtherColumns), otherColumns);
+        builder.CloseComponent();
+    };
+
+    private async Task SubmitAsync()
+    {
+        _showValidation = true;
+        await ValidateAsync();
+
+        if (_targetColumnError is not null || _validationError is not null)
+            return;
+
+        var request = BuildRequest();
+        MudDialog.Close(DialogResult.Ok(request));
+    }
+
+    private DeleteColumnRequest BuildRequest()
+    {
+        if (!HasTasks)
+        {
+            return new DeleteColumnRequest(DeleteColumnTasksDisposition.DeleteWithColumn);
+        }
+
+        if (_model.TasksDisposition == DeleteColumnTasksDisposition.DeleteWithColumn)
+        {
+            return new DeleteColumnRequest(DeleteColumnTasksDisposition.DeleteWithColumn);
+        }
+
+        return new DeleteColumnRequest(
+            DeleteColumnTasksDisposition.MoveToColumn,
+            _model.TargetColumnId,
+            _model.MovePlacement);
+    }
+
+    private async Task ValidateAsync()
+    {
+        if (_validator is null)
+        {
+            _targetColumnError = null;
+            _validationError = null;
+            return;
+        }
+
+        var result = await _validator.ValidateAsync(_model);
+        _targetColumnError = result.Errors
+            .FirstOrDefault(e => e.PropertyName == nameof(DeleteColumnFormModel.TargetColumnId))
+            ?.ErrorMessage;
+        _validationError = result.Errors.FirstOrDefault()?.ErrorMessage;
+    }
+}

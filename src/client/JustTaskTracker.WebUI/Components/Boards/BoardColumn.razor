@@ -1,0 +1,260 @@
+@using JustTaskTracker.WebUI.Domain.Boards
+@using JustTaskTracker.WebUI.Domain.Boards.Enums
+@using JustTaskTracker.WebUI.Domain.Boards.Authorization
+@using JustTaskTracker.WebUI.Domain.Boards.Requests
+@using JustTaskTracker.WebUI.Infrastructure
+@using JustTaskTracker.WebUI.Components.Shared
+@using JustTaskTracker.WebUI.Components.Shared.Forms
+@using JustTaskTracker.WebUI.Services.Abstractions.Boards
+@using JustTaskTracker.WebUI.Services.Exceptions
+
+<article class="board-column">
+    <header class="board-column__header @(CanReorderColumn ? "board-column__header--draggable" : null)">
+        <div class="board-column__title-area">
+            @if (_isEditingName)
+            {
+                <div class="board-column__title-field">
+                    <span class="board-column__title-sizer">@_editName</span>
+                    <input @ref="_titleInputRef"
+                           class="board-column__title-input"
+                           type="text"
+                           maxlength="50"
+                           @bind="_editName"
+                           @bind:event="oninput"
+                           @onkeydown="OnTitleKeyDownAsync"
+                           @onblur="OnTitleBlurAsync" />
+                </div>
+            }
+            else if (CanRenameColumn)
+            {
+                <h2 class="board-column__title board-column__title--editable"
+                    title="@Column.Name"
+                    @onpointerdown="OnTitlePointerDown"
+                    @onpointerup="OnTitlePointerUp">
+                    @Column.Name
+                </h2>
+            }
+            else
+            {
+                <h2 class="board-column__title" title="@Column.Name">@Column.Name</h2>
+            }
+        </div>
+
+        <div class="board-column__header-actions">
+            <span class="board-column__count">@Column.BoardTasks.Count</span>
+            @if (CanDeleteColumn)
+            {
+                <button type="button"
+                        class="btn-icon btn-icon--sm board-column__delete"
+                        aria-label="Delete column"
+                        @onclick="DeleteColumnAsync">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path d="M18 6L6 18M6 6l12 12"
+                              stroke="currentColor"
+                              stroke-width="2"
+                              stroke-linecap="round" />
+                    </svg>
+                </button>
+            }
+        </div>
+    </header>
+
+    <div class="board-column__tasks">
+        @foreach (var task in Column.BoardTasks.OrderBy(t => t.Position))
+        {
+            @* Task cards will render here *@
+        }
+    </div>
+
+    <footer class="board-column__footer">
+        <button type="button"
+                class="board-column__add-task"
+                @onclick="OnAddTaskClick">
+            + Add task
+        </button>
+    </footer>
+</article>
+
+@code {
+    private const int MaxNameLength = 50;
+    private const double TitleClickMoveThresholdPx = 5;
+
+    [Parameter, EditorRequired]
+    public ColumnDto Column { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public BoardMemberRole UserRole { get; set; }
+
+    [Inject]
+    private IBoardApiService BoardApiService { get; set; } = default!;
+
+    [Inject]
+    private IBoardDetailsStore BoardDetailsStore { get; set; } = default!;
+
+    [Inject]
+    private ISnackbar Snackbar { get; set; } = default!;
+
+    [Inject]
+    private IDialogService DialogService { get; set; } = default!;
+
+    private bool _isEditingName;
+    private bool _isSavingName;
+    private bool _focusTitleInput;
+    private string _editName = string.Empty;
+    private ElementReference _titleInputRef;
+    private double? _titlePointerDownX;
+    private double? _titlePointerDownY;
+
+    private bool CanRenameColumn => BoardRolePermissions.CanManageColumns(UserRole);
+
+    private bool CanDeleteColumn => BoardRolePermissions.CanManageColumns(UserRole);
+
+    private bool CanReorderColumn => BoardRolePermissions.CanManageColumns(UserRole);
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!_focusTitleInput)
+            return;
+
+        _focusTitleInput = false;
+        await _titleInputRef.FocusAsync();
+    }
+
+    private void StartNameEdit()
+    {
+        if (!CanRenameColumn || _isEditingName)
+            return;
+
+        _editName = Column.Name;
+        _isEditingName = true;
+        _focusTitleInput = true;
+    }
+
+    private void OnTitlePointerDown(PointerEventArgs e)
+    {
+        _titlePointerDownX = e.ClientX;
+        _titlePointerDownY = e.ClientY;
+    }
+
+    private void OnTitlePointerUp(PointerEventArgs e)
+    {
+        if (!CanRenameColumn || _isEditingName)
+            return;
+
+        if (_titlePointerDownX is not { } startX || _titlePointerDownY is not { } startY)
+            return;
+
+        _titlePointerDownX = null;
+        _titlePointerDownY = null;
+
+        var movedX = Math.Abs(e.ClientX - startX);
+        var movedY = Math.Abs(e.ClientY - startY);
+
+        if (movedX > TitleClickMoveThresholdPx || movedY > TitleClickMoveThresholdPx)
+            return;
+
+        StartNameEdit();
+    }
+
+    private void CancelNameEdit()
+    {
+        _isEditingName = false;
+        _editName = Column.Name;
+    }
+
+    private async Task OnTitleKeyDownAsync(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            await SaveColumnNameAsync();
+        else if (e.Key == "Escape")
+            CancelNameEdit();
+    }
+
+    private async Task OnTitleBlurAsync()
+    {
+        if (!_isEditingName)
+            return;
+
+        await SaveColumnNameAsync();
+    }
+
+    private async Task SaveColumnNameAsync()
+    {
+        if (!_isEditingName || _isSavingName || BoardDetailsStore.BoardId is not { } boardId)
+            return;
+
+        var trimmedName = _editName.Trim();
+
+        if (string.IsNullOrEmpty(trimmedName))
+        {
+            Snackbar.Add("Column name is required.", Severity.Error);
+            return;
+        }
+
+        if (trimmedName.Length > MaxNameLength)
+        {
+            Snackbar.Add($"Column name must not exceed {MaxNameLength} characters.", Severity.Error);
+            return;
+        }
+
+        if (string.Equals(trimmedName, Column.Name, StringComparison.Ordinal))
+        {
+            CancelNameEdit();
+            return;
+        }
+
+        _isSavingName = true;
+
+        try
+        {
+            await BoardApiService.UpdateColumnAsync(boardId, Column.Id, trimmedName);
+            BoardDetailsStore.UpdateColumnName(Column.Id, trimmedName);
+            _isEditingName = false;
+            Snackbar.Add("Column updated.", Severity.Success);
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+        finally
+        {
+            _isSavingName = false;
+        }
+    }
+
+    private async Task DeleteColumnAsync()
+    {
+        if (BoardDetailsStore.Board is null)
+            return;
+
+        var otherColumns = BoardDetailsStore.Board.Columns
+            .Where(column => column.Id != Column.Id)
+            .OrderBy(column => column.Position)
+            .ToList();
+
+        var dialog = await DialogService.ShowResourceFormAsync(
+            "Delete column",
+            "Delete",
+            DeleteColumnForm.FormId,
+            DeleteColumnForm.Render(Column, otherColumns),
+            submitButtonClass: "btn-dialog-danger btn-dialog-action");
+
+        var result = await dialog.Result;
+
+        if (result is not { Canceled: false, Data: DeleteColumnRequest request })
+            return;
+
+        try
+        {
+            await BoardDetailsStore.DeleteColumnAsync(Column.Id, request);
+            Snackbar.Add($"Column \"{Column.Name}\" deleted.", Severity.Success);
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+    }
+
+    private void OnAddTaskClick() =>
+        Snackbar.Add("Task creation is coming soon.", Severity.Info);
+}

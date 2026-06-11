@@ -3,7 +3,7 @@ using JustTaskTracker.Application.Common.Interfaces.Persistence;
 using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Domain.Common.Results;
 using JustTaskTracker.Domain.Common.Results.Errors;
-using JustTaskTracker.Domain.Boards.Enums;
+using JustTaskTracker.Domain.Boards.Authorization;
 using MediatR;
 
 namespace JustTaskTracker.Application.Boards.Commands;
@@ -26,8 +26,8 @@ public class DeleteBoardCommandHandler(
         if (board is null)
             return Result.Failure(GeneralErrors.NotFound);
 
-        if (userRole != BoardMemberRole.Owner)
-            return Result.Failure(GeneralErrors.Unauthorized);
+        if (userRole is not { } role || !BoardRolePermissions.CanDeleteBoard(role))
+            return Result.Failure(GeneralErrors.Forbidden);
 
         await boardRepository.RemoveByIdAsync(request.BoardId, ct);
         await unitOfWork.SaveChangesAsync(ct);

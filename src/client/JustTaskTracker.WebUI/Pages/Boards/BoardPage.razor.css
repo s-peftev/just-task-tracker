@@ -1,6 +1,7 @@
 .board-page {
     --board-page-header-height: 4rem;
     --board-page-content-gap: 0.75rem;
+    --board-column-width: 272px;
     --board-page-title-padding-block: 0.25rem;
     --board-page-title-padding-inline: 0.5rem;
     flex: 1 1 0;
@@ -116,26 +117,46 @@
     padding-top: calc(var(--board-page-header-height) + var(--board-page-content-gap));
     overflow: hidden;
     background-color: var(--jtt-overlay-accent-10);
+    cursor: grab;
+}
+
+.board-page__content--panning {
+    cursor: grabbing;
+    user-select: none;
+}
+
+.board-page__content--panning * {
+    cursor: grabbing !important;
 }
 
 .board-page__body {
     position: relative;
     height: 100%;
     min-height: 0;
-    overflow: hidden;
-    list-style: none;
+    overflow-x: auto;
+    overflow-y: hidden;
     margin: 0;
     padding: 1rem 1.5rem;
     display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
     align-items: flex-start;
     gap: 1rem;
     box-sizing: border-box;
 }
 
+.board-page__column-item,
 .board-page__column-slot {
     flex-shrink: 0;
+    display: flex;
+    max-height: 100%;
+    min-height: 0;
+}
+
+.board-page__column-item {
+    align-items: flex-start;
 }
 
 .board-page__add-column-btn {
-    width: 272px;
+    width: var(--board-column-width);
 }

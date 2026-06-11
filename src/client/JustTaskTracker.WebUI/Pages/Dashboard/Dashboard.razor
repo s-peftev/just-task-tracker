@@ -15,6 +15,12 @@
     <div class="dashboard">
         <header class="dashboard__header">
             <h2 class="text-section-title">Boards</h2>
+            <input class="dashboard__search-input"
+                   type="search"
+                   maxlength="40"
+                   placeholder="Search boards by name"
+                   value="@BoardStore.SearchText"
+                   @oninput="OnSearchInputAsync" />
             <div class="dashboard__pager">
                 <button type="button"
                         class="btn-noir"
@@ -103,16 +109,16 @@
     private async Task ChangePageAsync(int pageNumber) =>
         await BoardStore.LoadAsync(pageNumber);
 
+    private Task OnSearchInputAsync(ChangeEventArgs e) =>
+        BoardStore.SetSearchAsync(e.Value?.ToString() ?? string.Empty);
+
     private async Task CreateBoardAsync()
     {
-        var parameters = new DialogParameters<BoardFormDialog>
-        {
-            { x => x.SubmitLabel, "Create" }
-        };
-
-        var options = BoardFormDialog.DefaultOptions;
-
-        var dialog = await DialogService.ShowAsync<BoardFormDialog>("Create new board", parameters, options);
+        var dialog = await DialogService.ShowResourceFormAsync(
+            "Create new board",
+            "Create",
+            CreateBoardForm.FormId,
+            CreateBoardForm.Render());
         var result = await dialog.Result;
 
         if (result is not { Canceled: false, Data: string name })

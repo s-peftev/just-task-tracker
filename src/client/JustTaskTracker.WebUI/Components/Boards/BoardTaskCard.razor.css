@@ -1,0 +1,28 @@
+.board-task-card {
+    display: block;
+    width: 100%;
+    margin: 0;
+    padding: 0.5rem 0.625rem;
+    border: none;
+    border-radius: var(--jtt-radius-md);
+    background-color: var(--jtt-overlay-white-10);
+    color: var(--jtt-text-primary);
+    font: inherit;
+    font-size: var(--jtt-font-size-body);
+    line-height: 1.35;
+    text-align: left;
+    cursor: pointer;
+    box-shadow: 0 1px 0 var(--jtt-stroke-subtle);
+    transition: background-color 0.15s;
+}
+
+.board-task-card:hover {
+    background-color: var(--jtt-overlay-white-10);
+}
+
+.board-task-card__title {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    word-break: break-word;
+}

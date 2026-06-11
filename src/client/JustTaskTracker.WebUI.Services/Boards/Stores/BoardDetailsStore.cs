@@ -59,6 +59,17 @@ internal sealed class BoardDetailsStore(IBoardApiService boardApiService) : IBoa
         return column;
     }
 
+    public async Task<TaskDto> CreateTaskAsync(Guid columnId, string title, CancellationToken ct = default)
+    {
+        if (BoardId is not { } boardId || Board is null)
+            throw new InvalidOperationException("Board details are not loaded.");
+
+        var task = await boardApiService.CreateTaskAsync(boardId, columnId, title, ct);
+        AddTask(columnId, task);
+
+        return task;
+    }
+
     public async Task DeleteColumnAsync(Guid columnId, DeleteColumnRequest request, CancellationToken ct = default)
     {
         if (BoardId is not { } boardId || Board is null)
@@ -211,6 +222,27 @@ internal sealed class BoardDetailsStore(IBoardApiService boardApiService) : IBoa
         var columns = Board.Columns
             .Append(column)
             .OrderBy(c => c.Position)
+            .ToList();
+
+        Board = Board with { Columns = columns };
+        NotifyStateChanged();
+    }
+
+    private void AddTask(Guid columnId, TaskDto task)
+    {
+        if (Board is null)
+            return;
+
+        var columns = Board.Columns
+            .Select(column => column.Id == columnId
+                ? column with
+                {
+                    BoardTasks = column.BoardTasks
+                        .Append(task)
+                        .OrderBy(t => t.Position)
+                        .ToList()
+                }
+                : column)
             .ToList();
 
         Board = Board with { Columns = columns };

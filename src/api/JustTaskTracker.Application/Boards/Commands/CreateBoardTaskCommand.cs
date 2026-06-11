@@ -3,11 +3,9 @@ using JustTaskTracker.Application.Auth.Repositories;
 using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Interfaces;
 using JustTaskTracker.Application.Common.Interfaces.Persistence;
-using JustTaskTracker.Domain.Auth.DTOs;
 using JustTaskTracker.Domain.Boards.Authorization;
 using JustTaskTracker.Domain.Boards.DTOs;
 using JustTaskTracker.Domain.Boards.Entities;
-using JustTaskTracker.Domain.Boards.Errors;
 using JustTaskTracker.Domain.Common.Results;
 using JustTaskTracker.Domain.Common.Results.Errors;
 using MediatR;
@@ -17,9 +15,7 @@ namespace JustTaskTracker.Application.Boards.Commands;
 public record CreateBoardTaskCommand(
     Guid BoardId,
     Guid ColumnId,
-    string Title,
-    string? Description,
-    Guid? AssigneeId) 
+    string Title) 
     : IRequest<Result<BoardTaskDto>>;
 
 public class CreateBoardTaskCommandHandler(
@@ -54,23 +50,7 @@ public class CreateBoardTaskCommandHandler(
         if (currentUser is null)
             return Result<BoardTaskDto>.Failure(GeneralErrors.Unauthorized);
 
-        UserDto? assigneeDto = null;
-
-        if (request.AssigneeId is { } assigneeId)
-        {
-            assigneeDto = await boardRepository.GetBoardMemberUserDtoAsync(
-                request.BoardId,
-                assigneeId,
-                ct);
-
-            if (assigneeDto is null)
-                return Result<BoardTaskDto>.Failure(BoardTasksErrors.AssigneeNotBoardMember);
-        }
-
         var title = request.Title.Trim();
-        var description = string.IsNullOrWhiteSpace(request.Description)
-            ? null
-            : request.Description.Trim();
 
         var position = await boardTaskRepository.GetCountByColumnIdAsync(request.ColumnId, ct);
 
@@ -78,10 +58,8 @@ public class CreateBoardTaskCommandHandler(
         {
             ColumnId = request.ColumnId,
             Title = title,
-            Description = description,
             Position = position,
-            ReporterId = currentUser.Id,
-            AssigneeId = request.AssigneeId
+            ReporterId = currentUser.Id
         };
 
         boardTaskRepository.Add(task);
@@ -94,8 +72,7 @@ public class CreateBoardTaskCommandHandler(
             task.Position,
             task.CreatedAtUtc,
             currentUser,
-            task.Description,
-            assigneeDto));
+            task.Description));
     }
 }
 
@@ -113,13 +90,5 @@ public class CreateBoardTaskCommandValidator : AbstractValidator<CreateBoardTask
             .Must(title => !string.IsNullOrWhiteSpace(title))
             .WithMessage("'Title' must not be empty.")
             .MaximumLength(50);
-
-        RuleFor(x => x.Description)
-            .MaximumLength(500)
-            .When(x => x.Description is not null);
-
-        RuleFor(x => x.AssigneeId)
-            .Must(id => id != Guid.Empty)
-            .When(x => x.AssigneeId.HasValue);
     }
 }

@@ -59,24 +59,41 @@
         </div>
     </header>
 
-    <div class="board-column__tasks">
+    <div class="board-column__tasks @(_hasTaskContent ? "board-column__tasks--filled" : null)">
         @foreach (var task in Column.BoardTasks.OrderBy(t => t.Position))
         {
-            @* Task cards will render here *@
+            <BoardTaskCard Task="task" OnTaskClick="OnTaskClick" />
+        }
+
+        @if (_isAddingTask)
+        {
+            <textarea @ref="_taskTitleInputRef"
+                      class="board-column__add-task-input"
+                      rows="2"
+                      maxlength="50"
+                      placeholder="Enter a task title"
+                      @bind="_newTaskTitle"
+                      @bind:event="oninput"
+                      @onkeydown="OnTaskTitleKeyDownAsync"
+                      @onblur="OnTaskTitleBlurAsync"></textarea>
         }
     </div>
 
-    <footer class="board-column__footer">
-        <button type="button"
-                class="board-column__add-task"
-                @onclick="OnAddTaskClick">
-            + Add task
-        </button>
-    </footer>
+    @if (CanManageTasks && !_isAddingTask)
+    {
+        <footer class="board-column__footer">
+            <button type="button"
+                    class="board-column__add-task"
+                    @onclick="StartAddTask">
+                + Add task
+            </button>
+        </footer>
+    }
 </article>
 
 @code {
     private const int MaxNameLength = 50;
+    private const int MaxTaskTitleLength = 50;
     private const double TitleClickMoveThresholdPx = 5;
 
     [Parameter, EditorRequired]
@@ -105,19 +122,35 @@
     private double? _titlePointerDownX;
     private double? _titlePointerDownY;
 
+    private bool _isAddingTask;
+    private bool _isSavingTask;
+    private bool _focusTaskTitleInput;
+    private string _newTaskTitle = string.Empty;
+    private ElementReference _taskTitleInputRef;
+
     private bool CanRenameColumn => BoardRolePermissions.CanManageColumns(UserRole);
 
     private bool CanDeleteColumn => BoardRolePermissions.CanManageColumns(UserRole);
 
     private bool CanReorderColumn => BoardRolePermissions.CanManageColumns(UserRole);
 
+    private bool CanManageTasks => BoardRolePermissions.CanManageTasks(UserRole);
+
+    private bool _hasTaskContent => Column.BoardTasks.Count > 0 || _isAddingTask;
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!_focusTitleInput)
-            return;
+        if (_focusTitleInput)
+        {
+            _focusTitleInput = false;
+            await _titleInputRef.FocusAsync();
+        }
 
-        _focusTitleInput = false;
-        await _titleInputRef.FocusAsync();
+        if (_focusTaskTitleInput)
+        {
+            _focusTaskTitleInput = false;
+            await _taskTitleInputRef.FocusAsync();
+        }
     }
 
     private void StartNameEdit()
@@ -255,6 +288,78 @@
         }
     }
 
-    private void OnAddTaskClick() =>
-        Snackbar.Add("Task creation is coming soon.", Severity.Info);
+    private void StartAddTask()
+    {
+        if (!CanManageTasks || _isAddingTask)
+            return;
+
+        _newTaskTitle = string.Empty;
+        _isAddingTask = true;
+        _focusTaskTitleInput = true;
+    }
+
+    private void CancelAddTask()
+    {
+        _isAddingTask = false;
+        _newTaskTitle = string.Empty;
+    }
+
+    private async Task OnTaskTitleKeyDownAsync(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !e.ShiftKey)
+        {
+            await SaveTaskAsync();
+        }
+        else if (e.Key == "Escape")
+        {
+            CancelAddTask();
+        }
+    }
+
+    private async Task OnTaskTitleBlurAsync()
+    {
+        if (!_isAddingTask || _isSavingTask)
+            return;
+
+        await SaveTaskAsync();
+    }
+
+    private async Task SaveTaskAsync()
+    {
+        if (!_isAddingTask || _isSavingTask)
+            return;
+
+        var trimmedTitle = _newTaskTitle.Trim();
+
+        if (string.IsNullOrEmpty(trimmedTitle))
+        {
+            CancelAddTask();
+            return;
+        }
+
+        if (trimmedTitle.Length > MaxTaskTitleLength)
+        {
+            Snackbar.Add($"Task title must not exceed {MaxTaskTitleLength} characters.", Severity.Error);
+            return;
+        }
+
+        _isSavingTask = true;
+
+        try
+        {
+            await BoardDetailsStore.CreateTaskAsync(Column.Id, trimmedTitle);
+            CancelAddTask();
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+        finally
+        {
+            _isSavingTask = false;
+        }
+    }
+
+    private void OnTaskClick() =>
+        Snackbar.Add("Task details are coming soon.", Severity.Info);
 }

@@ -9,4 +9,4 @@ public record BoardTaskDto(
     DateTime CreatedAtUtc,
     UserDto Reporter,
     string? Description,
-    UserDto? Assignee);
+    UserDto? Assignee = null);

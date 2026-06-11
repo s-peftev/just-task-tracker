@@ -19,4 +19,6 @@ public interface IBoardApiService
         Guid boardId,
         IReadOnlyList<Guid> columnIds,
         CancellationToken ct = default);
+
+    Task<TaskDto> CreateTaskAsync(Guid boardId, Guid columnId, string title, CancellationToken ct = default);
 }

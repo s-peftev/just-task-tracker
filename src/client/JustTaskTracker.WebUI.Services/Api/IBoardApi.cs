@@ -41,4 +41,11 @@ internal interface IBoardApi
         Guid boardId,
         [Body] ReorderColumnsRequest request,
         CancellationToken ct = default);
+
+    [Post("/api/boards/{boardId}/columns/{columnId}/tasks")]
+    Task<IApiResponse<ApiEnvelope<TaskDto>>> CreateTaskAsync(
+        Guid boardId,
+        Guid columnId,
+        [Body] SaveTaskRequest request,
+        CancellationToken ct = default);
 }

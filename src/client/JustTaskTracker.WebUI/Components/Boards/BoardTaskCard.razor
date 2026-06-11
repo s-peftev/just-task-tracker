@@ -1,0 +1,17 @@
+@using JustTaskTracker.WebUI.Domain.Boards
+
+<button type="button"
+        class="board-task-card"
+        @onclick="OnClick">
+    <span class="board-task-card__title">@Task.Title</span>
+</button>
+
+@code {
+    [Parameter, EditorRequired]
+    public TaskDto Task { get; set; } = default!;
+
+    [Parameter]
+    public EventCallback OnTaskClick { get; set; }
+
+    private async Task OnClick() => await OnTaskClick.InvokeAsync();
+}

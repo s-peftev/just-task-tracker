@@ -76,16 +76,10 @@ public class BoardRepository(JustTaskTrackerDbContext context)
                         c.Position,
                         c.Tasks
                             .OrderBy(t => t.Position)
-                            .Select(t => new BoardTaskDto(
+                            .Select(t => new BoardTaskLookupDto(
                                 t.Id,
                                 t.Title,
-                                t.Position,
-                                t.CreatedAtUtc,
-                                new UserDto(t.Reporter!.Id, t.Reporter.Email, t.Reporter.DisplayName),
-                                t.Description,
-                                t.AssigneeId == null
-                                    ? null
-                                    : new UserDto(t.Assignee!.Id, t.Assignee.Email, t.Assignee.DisplayName)))))))
+                                t.Position))))))
             .AsSplitQuery()
             .FirstOrDefaultAsync(ct);
 

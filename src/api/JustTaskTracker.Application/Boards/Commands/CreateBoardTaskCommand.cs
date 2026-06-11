@@ -16,7 +16,7 @@ public record CreateBoardTaskCommand(
     Guid BoardId,
     Guid ColumnId,
     string Title) 
-    : IRequest<Result<BoardTaskDto>>;
+    : IRequest<Result<BoardTaskLookupDto>>;
 
 public class CreateBoardTaskCommandHandler(
     ICurrentUserAccessor currentUserAccessor,
@@ -25,9 +25,9 @@ public class CreateBoardTaskCommandHandler(
     IColumnRepository columnRepository,
     IBoardTaskRepository boardTaskRepository,
     IUnitOfWork unitOfWork)
-    : IRequestHandler<CreateBoardTaskCommand, Result<BoardTaskDto>>
+    : IRequestHandler<CreateBoardTaskCommand, Result<BoardTaskLookupDto>>
 {
-    public async Task<Result<BoardTaskDto>> Handle(CreateBoardTaskCommand request, CancellationToken ct)
+    public async Task<Result<BoardTaskLookupDto>> Handle(CreateBoardTaskCommand request, CancellationToken ct)
     {
         var (board, userRole) = await boardRepository.GetBoardWithUserRoleAsync(
             request.BoardId,
@@ -35,20 +35,20 @@ public class CreateBoardTaskCommandHandler(
             ct);
 
         if (board is null)
-            return Result<BoardTaskDto>.Failure(GeneralErrors.NotFound);
+            return Result<BoardTaskLookupDto>.Failure(GeneralErrors.NotFound);
 
         if (userRole is not { } role || !BoardRolePermissions.CanManageTasks(role))
-            return Result<BoardTaskDto>.Failure(GeneralErrors.Forbidden);
+            return Result<BoardTaskLookupDto>.Failure(GeneralErrors.Forbidden);
 
         if (!await columnRepository.ExistsByBoardIdAndIdAsync(request.BoardId, request.ColumnId, ct))
-            return Result<BoardTaskDto>.Failure(GeneralErrors.NotFound);
+            return Result<BoardTaskLookupDto>.Failure(GeneralErrors.NotFound);
 
         var currentUser = await userRepository.GetUserDtoByAzureAOIAsync(
             currentUserAccessor.AzureAdObjectId,
             ct);
 
         if (currentUser is null)
-            return Result<BoardTaskDto>.Failure(GeneralErrors.Unauthorized);
+            return Result<BoardTaskLookupDto>.Failure(GeneralErrors.Unauthorized);
 
         var title = request.Title.Trim();
 
@@ -66,13 +66,10 @@ public class CreateBoardTaskCommandHandler(
 
         await unitOfWork.SaveChangesAsync(ct);
 
-        return Result<BoardTaskDto>.Success(new BoardTaskDto(
+        return Result<BoardTaskLookupDto>.Success(new BoardTaskLookupDto(
             task.Id,
             task.Title,
-            task.Position,
-            task.CreatedAtUtc,
-            currentUser,
-            task.Description));
+            task.Position));
     }
 }
 

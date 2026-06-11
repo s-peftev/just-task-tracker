@@ -82,7 +82,7 @@ internal class BoardApiService(IBoardApi api) : IBoardApiService
         ApiResponseGuard.EnsureSuccess(response);
     }
 
-    public async Task<TaskDto> CreateTaskAsync(
+    public async Task<TaskLookupDto> CreateTaskAsync(
         Guid boardId,
         Guid columnId,
         string title,

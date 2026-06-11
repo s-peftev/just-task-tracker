@@ -20,7 +20,7 @@ public interface IBoardDetailsStore
 
     Task<ColumnDto> CreateColumnAsync(string name, CancellationToken ct = default);
 
-    Task<TaskDto> CreateTaskAsync(Guid columnId, string title, CancellationToken ct = default);
+    Task<TaskLookupDto> CreateTaskAsync(Guid columnId, string title, CancellationToken ct = default);
 
     void UpdateBoardName(string name);
 

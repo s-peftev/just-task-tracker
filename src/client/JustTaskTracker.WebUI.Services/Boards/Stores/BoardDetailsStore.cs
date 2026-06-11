@@ -59,7 +59,7 @@ internal sealed class BoardDetailsStore(IBoardApiService boardApiService) : IBoa
         return column;
     }
 
-    public async Task<TaskDto> CreateTaskAsync(Guid columnId, string title, CancellationToken ct = default)
+    public async Task<TaskLookupDto> CreateTaskAsync(Guid columnId, string title, CancellationToken ct = default)
     {
         if (BoardId is not { } boardId || Board is null)
             throw new InvalidOperationException("Board details are not loaded.");
@@ -172,13 +172,13 @@ internal sealed class BoardDetailsStore(IBoardApiService boardApiService) : IBoa
 
     private static List<ColumnDto> MoveTasksLocally(
         List<ColumnDto> columns,
-        IReadOnlyList<TaskDto> tasksToMove,
+        IReadOnlyList<TaskLookupDto> tasksToMove,
         Guid targetColumnId,
         ColumnTaskMovePlacement placement)
     {
         var targetColumn = columns.First(column => column.Id == targetColumnId);
         var targetTasks = targetColumn.BoardTasks.ToList();
-        IReadOnlyList<TaskDto> updatedTargetTasks;
+        IReadOnlyList<TaskLookupDto> updatedTargetTasks;
 
         if (placement == ColumnTaskMovePlacement.Start)
         {
@@ -228,7 +228,7 @@ internal sealed class BoardDetailsStore(IBoardApiService boardApiService) : IBoa
         NotifyStateChanged();
     }
 
-    private void AddTask(Guid columnId, TaskDto task)
+    private void AddTask(Guid columnId, TaskLookupDto task)
     {
         if (Board is null)
             return;

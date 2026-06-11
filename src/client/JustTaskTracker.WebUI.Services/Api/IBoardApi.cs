@@ -43,7 +43,7 @@ internal interface IBoardApi
         CancellationToken ct = default);
 
     [Post("/api/boards/{boardId}/columns/{columnId}/tasks")]
-    Task<IApiResponse<ApiEnvelope<TaskDto>>> CreateTaskAsync(
+    Task<IApiResponse<ApiEnvelope<TaskLookupDto>>> CreateTaskAsync(
         Guid boardId,
         Guid columnId,
         [Body] SaveTaskRequest request,

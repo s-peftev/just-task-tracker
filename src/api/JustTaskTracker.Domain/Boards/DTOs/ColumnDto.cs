@@ -4,4 +4,4 @@ public record ColumnDto(
     Guid Id,
     string Name,
     int Position,
-    IEnumerable<BoardTaskDto> BoardTasks);
+    IEnumerable<BoardTaskLookupDto> BoardTasks);

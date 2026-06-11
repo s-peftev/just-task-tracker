@@ -12,6 +12,9 @@ public class ColumnRepository(JustTaskTrackerDbContext context)
         await _dbSet
             .FirstOrDefaultAsync(c => c.BoardId == boardId && c.Id == columnId, ct);
 
+    public async Task<bool> ExistsByBoardIdAndIdAsync(Guid boardId, Guid columnId, CancellationToken ct = default) =>
+        await _dbSet.AnyAsync(c => c.BoardId == boardId && c.Id == columnId, ct);
+
     public async Task<IReadOnlyList<string>> GetNameListByBoardIdAsync(Guid boardId, CancellationToken ct = default) =>
         await _dbSet
             .Where(c => c.BoardId == boardId)

@@ -1,0 +1,12 @@
+using JustTaskTracker.Domain.Common.Enums;
+using JustTaskTracker.Domain.Common.Results;
+
+namespace JustTaskTracker.Domain.Boards.Errors;
+
+public static class BoardTasksErrors
+{
+    public static readonly Error AssigneeNotBoardMember = new(
+        nameof(AssigneeNotBoardMember),
+        ErrorType.Business,
+        ["The assignee must be a member of the board."]);
+}

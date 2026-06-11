@@ -1,4 +1,5 @@
 using JustTaskTracker.Application.Common.Interfaces.Persistence;
+using JustTaskTracker.Domain.Auth.DTOs;
 using JustTaskTracker.Domain.Boards.DTOs;
 using JustTaskTracker.Domain.Boards.Entities;
 using JustTaskTracker.Domain.Boards.Enums;
@@ -24,4 +25,6 @@ public interface IBoardRepository : IRepository<Board, Guid>
         int pageSize,
         TextSearchOptions<BoardSearchField>? textSearchOptions = null,
         CancellationToken ct = default);
+
+    Task<UserDto?> GetBoardMemberUserDtoAsync(Guid boardId, Guid userId, CancellationToken ct = default);
 }

@@ -146,5 +146,10 @@ public class BoardRepository(JustTaskTrackerDbContext context)
                 pageSize,
                 ct);
     }
-         
+
+    public async Task<UserDto?> GetBoardMemberUserDtoAsync(Guid boardId, Guid userId, CancellationToken ct = default) =>
+        await _context.BoardMembers
+            .Where(m => m.BoardId == boardId && m.UserId == userId)
+            .Select(m => new UserDto(m.User!.Id, m.User.Email, m.User.DisplayName))
+            .FirstOrDefaultAsync(ct);
 }

@@ -7,6 +7,8 @@ public interface IColumnRepository : IRepository<Column, Guid>
 {
     Task<Column?> GetByBoardIdAndIdAsync(Guid boardId, Guid columnId, CancellationToken ct = default);
 
+    Task<bool> ExistsByBoardIdAndIdAsync(Guid boardId, Guid columnId, CancellationToken ct = default);
+
     Task<IReadOnlyList<string>> GetNameListByBoardIdAsync(Guid boardId, CancellationToken ct = default);
 
     Task<bool> NameExistsAsync(Guid boardId, string name, Guid? excludeColumnId = null, CancellationToken ct = default);

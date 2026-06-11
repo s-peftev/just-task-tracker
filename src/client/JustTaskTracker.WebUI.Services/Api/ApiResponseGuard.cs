@@ -49,7 +49,7 @@ internal static class ApiResponseGuard
         return new ApiServiceException(
             response.StatusCode,
             error,
-            ResolveMessage(error));
+            ApiErrorMessages.ForUser(error, response.StatusCode));
     }
 
     private static ApiError? ResolveError<T>(
@@ -77,17 +77,6 @@ internal static class ApiResponseGuard
         {
             return null;
         }
-    }
-
-    public static string ResolveMessage(ApiError? error)
-    {
-        if (error?.Details is { Count: > 0 } details)
-            return string.Join(" ", details);
-
-        if (!string.IsNullOrWhiteSpace(error?.Code))
-            return error.Code;
-
-        return "Unexpected API error";
     }
 
     private sealed record ApiEnvelopeJson(bool Success, JsonElement? Data, ApiError? Error);

@@ -1,4 +1,4 @@
-﻿using JustTaskTracker.WebUI.Domain.Auth;
+using JustTaskTracker.WebUI.Domain.Auth;
 using JustTaskTracker.WebUI.Services.Abstractions.Auth;
 using JustTaskTracker.WebUI.Services.Api;
 using JustTaskTracker.WebUI.Services.Api.Models;
@@ -36,7 +36,7 @@ internal class AuthApiService(IAuthApi api) : IAuthApiService
             throw new ApiServiceException(
                 response.StatusCode,
                 envelope?.Error,
-                ApiResponseGuard.ResolveMessage(envelope?.Error));
+                ApiErrorMessages.ForUser(envelope?.Error, response.StatusCode));
         }
 
         return envelope.Data;

@@ -1,9 +1,10 @@
 using JustTaskTracker.Domain.Auth.Entities;
 using JustTaskTracker.Domain.Common;
+using JustTaskTracker.Domain.Common.Interfaces;
 
 namespace JustTaskTracker.Domain.Boards.Entities;
 
-public class BoardTask : BaseEntity<Guid>
+public class BoardTask : BaseEntity<Guid>, IPositionedEntity
 {
     public required Guid ColumnId { get; set; }
     public required string Title { get; set; }

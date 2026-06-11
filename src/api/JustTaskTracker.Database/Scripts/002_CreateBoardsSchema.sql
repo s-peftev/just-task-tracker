@@ -67,7 +67,7 @@ CREATE TABLE [dbo].[Columns]
 );
 GO
 
-CREATE INDEX [IX_Columns_BoardId_Position_Active]
+CREATE UNIQUE INDEX [UQ_Columns_BoardId_Position_Active]
     ON [dbo].[Columns] ([BoardId], [Position])
     WHERE [IsDeleted] = 0;
 GO
@@ -110,7 +110,7 @@ CREATE TABLE [dbo].[BoardTasks]
 );
 GO
 
-CREATE INDEX [IX_BoardTasks_ColumnId_Position_Active]
+CREATE UNIQUE INDEX [UQ_BoardTasks_ColumnId_Position_Active]
     ON [dbo].[BoardTasks] ([ColumnId], [Position])
     WHERE [IsDeleted] = 0;
 GO

@@ -6,7 +6,6 @@ using JustTaskTracker.Application.Common.Interfaces.Persistence;
 using JustTaskTracker.Domain.Boards.Authorization;
 using JustTaskTracker.Domain.Boards.Errors;
 using JustTaskTracker.Domain.Common.Results;
-using JustTaskTracker.Domain.Common.Results.Errors;
 using MediatR;
 
 namespace JustTaskTracker.Application.Boards.Commands;

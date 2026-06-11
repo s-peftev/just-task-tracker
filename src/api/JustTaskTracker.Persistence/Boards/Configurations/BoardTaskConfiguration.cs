@@ -27,6 +27,7 @@ public class BoardTaskConfiguration : IEntityTypeConfiguration<BoardTask>
             .OnDelete(DeleteBehavior.NoAction);
 
         builder.HasIndex(t => new { t.ColumnId, t.Position })
+            .IsUnique()
             .HasFilter("[IsDeleted] = 0");
     }
 }

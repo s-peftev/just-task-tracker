@@ -1,5 +1,6 @@
 ﻿using FluentValidation;
 using JustTaskTracker.Application.Auth.Repositories;
+using JustTaskTracker.Application.Boards.Authorization;
 using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Interfaces;
 using JustTaskTracker.Application.Common.Interfaces.Persistence;
@@ -29,16 +30,13 @@ public class CreateBoardTaskCommandHandler(
 {
     public async Task<Result<BoardTaskLookupDto>> Handle(CreateBoardTaskCommand request, CancellationToken ct)
     {
-        var (board, userRole) = await boardRepository.GetBoardWithUserRoleAsync(
+        var (boardExists, userRole) = await boardRepository.GetUserBoardRoleAsync(
             request.BoardId,
             currentUserAccessor.AzureAdObjectId,
             ct);
 
-        if (board is null)
-            return Result<BoardTaskLookupDto>.Failure(GeneralErrors.NotFound);
-
-        if (userRole is not { } role || !BoardRolePermissions.CanManageTasks(role))
-            return Result<BoardTaskLookupDto>.Failure(GeneralErrors.Forbidden);
+        if (BoardRoleAuthorization.EnsureBoardAccess(boardExists, userRole, BoardRolePermissions.CanManageTasks) is { } failure)
+            return Result<BoardTaskLookupDto>.Failure(failure.Error);
 
         if (!await columnRepository.ExistsByBoardIdAndIdAsync(request.BoardId, request.ColumnId, ct))
             return Result<BoardTaskLookupDto>.Failure(GeneralErrors.NotFound);

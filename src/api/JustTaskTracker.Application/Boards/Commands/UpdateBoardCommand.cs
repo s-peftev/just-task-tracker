@@ -1,4 +1,5 @@
 using FluentValidation;
+using JustTaskTracker.Application.Boards.Authorization;
 using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Interfaces;
 using JustTaskTracker.Application.Common.Interfaces.Persistence;
@@ -24,15 +25,12 @@ public class UpdateBoardCommandHandler(
             currentUserAccessor.AzureAdObjectId,
             ct);
 
-        if (board is null)
-            return Result.Failure(GeneralErrors.NotFound);
-
-        if (userRole is not { } role || !BoardRolePermissions.CanRenameBoard(role))
-            return Result.Failure(GeneralErrors.Forbidden);
+        if (BoardRoleAuthorization.EnsureBoardAccess(board is not null, userRole, BoardRolePermissions.CanRenameBoard) is { } failure)
+            return failure;
 
         var name = request.Name.Trim();
 
-        if (string.Equals(board.Name, name, StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(board!.Name, name, StringComparison.OrdinalIgnoreCase))
             return Result.Success();
 
         board.Name = name;

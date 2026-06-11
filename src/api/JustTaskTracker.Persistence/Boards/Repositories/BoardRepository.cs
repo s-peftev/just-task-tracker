@@ -19,6 +19,24 @@ public class BoardRepository(JustTaskTrackerDbContext context)
     public void AddMember(BoardMember member) =>
         _context.BoardMembers.Add(member);
 
+    public async Task<(bool BoardExists, BoardMemberRole? UserRole)> GetUserBoardRoleAsync(Guid boardId, Guid azureAdObjectId, CancellationToken ct = default)
+    {
+        var result = await _dbSet
+            .Where(b => b.Id == boardId)
+            .Select(b => new
+            {
+                UserRole = b.Members
+                    .Where(m => m.User!.AzureAdObjectId == azureAdObjectId)
+                    .Select(m => (BoardMemberRole?)m.Role)
+                    .FirstOrDefault()
+            })
+            .FirstOrDefaultAsync(ct);
+
+        return result is null
+            ? (false, null)
+            : (true, result.UserRole);
+    }
+
     public async Task<(Board? Board, BoardMemberRole? UserRole)> GetBoardWithUserRoleAsync(Guid boardId, Guid azureAdObjectId, CancellationToken ct = default)
     {
         var result = await _dbSet

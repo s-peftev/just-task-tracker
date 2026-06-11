@@ -1,4 +1,5 @@
 using FluentValidation;
+using JustTaskTracker.Application.Boards.Authorization;
 using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Interfaces;
 using JustTaskTracker.Application.Common.Interfaces.Persistence;
@@ -28,16 +29,13 @@ public class DeleteColumnCommandHandler(
 {
     public async Task<Result> Handle(DeleteColumnCommand request, CancellationToken ct)
     {
-        var (board, userRole) = await boardRepository.GetBoardWithUserRoleAsync(
+        var (boardExists, userRole) = await boardRepository.GetUserBoardRoleAsync(
             request.BoardId,
             currentUserAccessor.AzureAdObjectId,
             ct);
 
-        if (board is null)
-            return Result.Failure(GeneralErrors.NotFound);
-
-        if (userRole is not { } role || !BoardRolePermissions.CanManageColumns(role))
-            return Result.Failure(GeneralErrors.Forbidden);
+        if (BoardRoleAuthorization.EnsureBoardAccess(boardExists, userRole, BoardRolePermissions.CanManageColumns) is { } failure)
+            return failure;
 
         var column = await columnRepository.GetByBoardIdAndIdAsync(
             request.BoardId,

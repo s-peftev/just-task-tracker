@@ -1,3 +1,4 @@
+using JustTaskTracker.Application.Boards.Authorization;
 using JustTaskTracker.Application.Common.Interfaces;
 using JustTaskTracker.Application.Common.Interfaces.Persistence;
 using JustTaskTracker.Application.Boards.Repositories;
@@ -23,13 +24,10 @@ public class DeleteBoardCommandHandler(
             currentUserAccessor.AzureAdObjectId,
             ct);
 
-        if (board is null)
-            return Result.Failure(GeneralErrors.NotFound);
+        if (BoardRoleAuthorization.EnsureBoardAccess(board is not null, userRole, BoardRolePermissions.CanDeleteBoard) is { } failure)
+            return failure;
 
-        if (userRole is not { } role || !BoardRolePermissions.CanDeleteBoard(role))
-            return Result.Failure(GeneralErrors.Forbidden);
-
-        await boardRepository.RemoveByIdAsync(request.BoardId, ct);
+        boardRepository.Remove(board!);
         await unitOfWork.SaveChangesAsync(ct);
 
         return Result.Success();

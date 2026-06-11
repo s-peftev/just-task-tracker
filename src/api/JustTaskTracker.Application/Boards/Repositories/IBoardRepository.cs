@@ -13,6 +13,8 @@ public interface IBoardRepository : IRepository<Board, Guid>
 {
     void AddMember(BoardMember member);
 
+    Task<(bool BoardExists, BoardMemberRole? UserRole)> GetUserBoardRoleAsync(Guid boardId, Guid azureAdObjectId, CancellationToken ct = default);
+
     Task<(Board? Board, BoardMemberRole? UserRole)> GetBoardWithUserRoleAsync(Guid boardId, Guid azureAdObjectId, CancellationToken ct = default);
 
     Task<BoardAccessStatus> GetBoardAccessAsync(Guid boardId, Guid azureAdObjectId, CancellationToken ct = default);

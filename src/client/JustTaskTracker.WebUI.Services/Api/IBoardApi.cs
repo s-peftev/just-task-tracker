@@ -36,10 +36,11 @@ internal interface IBoardApi
     [Delete("/api/boards/{boardId}/columns/{columnId}")]
     Task<IApiResponse<ApiEnvelope<object>>> DeleteColumnAsync(Guid boardId, Guid columnId, [Body] DeleteColumnRequest request, CancellationToken ct = default);
 
-    [Put("/api/boards/{boardId}/columns/order")]
-    Task<IApiResponse<ApiEnvelope<object>>> ReorderColumnsAsync(
+    [Put("/api/boards/{boardId}/columns/{columnId}/position")]
+    Task<IApiResponse<ApiEnvelope<object>>> ReorderColumnAsync(
         Guid boardId,
-        [Body] ReorderColumnsRequest request,
+        Guid columnId,
+        [Body] ReorderColumnPositionRequest request,
         CancellationToken ct = default);
 
     [Post("/api/boards/{boardId}/columns/{columnId}/tasks")]

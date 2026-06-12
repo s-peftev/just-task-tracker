@@ -72,12 +72,13 @@ internal class BoardApiService(IBoardApi api) : IBoardApiService
         return ApiResponseGuard.Unwrap(response);
     }
 
-    public async Task ReorderColumnsAsync(
+    public async Task ReorderColumnAsync(
         Guid boardId,
-        IReadOnlyList<Guid> columnIds,
+        Guid columnId,
+        int position,
         CancellationToken ct = default)
     {
-        var response = await api.ReorderColumnsAsync(boardId, new ReorderColumnsRequest(columnIds), ct);
+        var response = await api.ReorderColumnAsync(boardId, columnId, new ReorderColumnPositionRequest(position), ct);
 
         ApiResponseGuard.EnsureSuccess(response);
     }

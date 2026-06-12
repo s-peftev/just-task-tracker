@@ -104,24 +104,32 @@ internal sealed class BoardDetailsStore(IBoardApiService boardApiService) : IBoa
         NotifyStateChanged();
     }
 
-    public async Task ReorderColumnsAsync(IReadOnlyList<Guid> columnIds, CancellationToken ct = default)
+    public async Task ReorderColumnAsync(Guid columnId, int position, CancellationToken ct = default)
     {
         if (BoardId is not { } boardId || Board is null)
             throw new InvalidOperationException("Board details are not loaded.");
 
-        var previousOrder = Board.Columns
+        var orderedColumns = Board.Columns
             .OrderBy(column => column.Position)
+            .ToList();
+
+        var currentIndex = orderedColumns.FindIndex(column => column.Id == columnId);
+
+        if (currentIndex < 0)
+            throw new InvalidOperationException("Column was not found on the board.");
+
+        if (currentIndex == position)
+            return;
+
+        var previousOrder = orderedColumns
             .Select(column => column.Id)
             .ToList();
 
-        if (columnIds.SequenceEqual(previousOrder))
-            return;
-
-        ApplyColumnOrder(columnIds);
+        ApplyColumnMove(columnId, position);
 
         try
         {
-            await boardApiService.ReorderColumnsAsync(boardId, columnIds, ct);
+            await boardApiService.ReorderColumnAsync(boardId, columnId, position, ct);
         }
         catch
         {
@@ -249,6 +257,23 @@ internal sealed class BoardDetailsStore(IBoardApiService boardApiService) : IBoa
         NotifyStateChanged();
     }
 
+    private void ApplyColumnMove(Guid columnId, int newIndex)
+    {
+        if (Board is null)
+            return;
+
+        var orderedColumns = Board.Columns
+            .OrderBy(column => column.Position)
+            .ToList();
+
+        var currentIndex = orderedColumns.FindIndex(boardColumn => boardColumn.Id == columnId);
+        var column = orderedColumns[currentIndex];
+        orderedColumns.RemoveAt(currentIndex);
+        orderedColumns.Insert(newIndex, column);
+
+        ApplyColumnOrder(orderedColumns.Select(boardColumn => boardColumn.Id).ToList());
+    }
+
     private void ApplyColumnOrder(IReadOnlyList<Guid> columnIds)
     {
         if (Board is null)
@@ -257,7 +282,7 @@ internal sealed class BoardDetailsStore(IBoardApiService boardApiService) : IBoa
         var columnsById = Board.Columns.ToDictionary(column => column.Id);
 
         var reorderedColumns = columnIds
-            .Select((columnId, index) => columnsById[columnId] with { Position = index })
+            .Select((id, index) => columnsById[id] with { Position = index })
             .ToList();
 
         Board = Board with { Columns = reorderedColumns };

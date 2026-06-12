@@ -224,13 +224,14 @@
         if (!CanManageColumns || _isReorderingColumns)
             return;
 
-        var columnIds = _sortableColumns.Select(column => column.Id).ToList();
+        if (args.OldIndex == args.NewIndex)
+            return;
 
         _isReorderingColumns = true;
 
         try
         {
-            await BoardDetailsStore.ReorderColumnsAsync(columnIds);
+            await BoardDetailsStore.ReorderColumnAsync(args.Item.Id, args.NewIndex);
         }
         catch (ApiServiceException ex)
         {

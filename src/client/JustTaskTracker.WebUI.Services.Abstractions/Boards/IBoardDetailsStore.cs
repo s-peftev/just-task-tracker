@@ -28,7 +28,7 @@ public interface IBoardDetailsStore
 
     Task DeleteColumnAsync(Guid columnId, DeleteColumnRequest request, CancellationToken ct = default);
 
-    Task ReorderColumnsAsync(IReadOnlyList<Guid> columnIds, CancellationToken ct = default);
+    Task ReorderColumnAsync(Guid columnId, int position, CancellationToken ct = default);
 
     void Reset();
 }

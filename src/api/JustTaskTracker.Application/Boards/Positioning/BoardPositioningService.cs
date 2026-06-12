@@ -37,6 +37,22 @@ internal sealed class BoardPositioningService(IUnitOfWork unitOfWork) : IBoardPo
     }
 
     /// <summary>
+    /// Renumbers entities to contiguous zero-based positions while preserving their current sort order by <see cref="IPositionedEntity.Position"/>.
+    /// </summary>
+    /// <param name="items">All tracked entities in the unique-index scope (for example remaining board columns after a deletion).</param>
+    public async Task ApplyCurrentOrderAsync<TEntity>(
+        IReadOnlyList<TEntity> items,
+        CancellationToken ct = default)
+        where TEntity : BaseEntity<Guid>, IPositionedEntity
+    {
+        ArgumentNullException.ThrowIfNull(items);
+
+        var orderedIds = GetOrderedIds(items);
+
+        await PersistOrderTwoPhaseAsync(items, orderedIds, ct);
+    }
+
+    /// <summary>
     /// Moves a task into another column at <paramref name="newIndex"/> with two-phase persistence per column scope.
     /// </summary>
     /// <param name="sourceTasks">All tracked tasks in the source column, including <paramref name="movedTask"/>.</param>

@@ -22,10 +22,10 @@ public class ColumnsController(ISender sender) : ControllerBase
             error => error.CreateErrorResponse());
     }
 
-    [HttpPut("order")]
-    public async Task<IActionResult> Reorder(Guid boardId, [FromBody] ReorderColumnsCommand request, CancellationToken ct)
+    [HttpPut("{id:guid}/position")]
+    public async Task<IActionResult> Reorder(Guid boardId, Guid id, [FromBody] ReorderColumnsCommand request, CancellationToken ct)
     {
-        var result = await sender.Send(request with { BoardId = boardId }, ct);
+        var result = await sender.Send(request with { BoardId = boardId, ColumnId = id }, ct);
 
         return result.Match(
             () => NoContent(),

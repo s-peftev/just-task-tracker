@@ -21,6 +21,14 @@ public interface IBoardPositioningService
         where TEntity : BaseEntity<Guid>, IPositionedEntity;
 
     /// <summary>
+    /// Renumbers entities to contiguous zero-based positions while preserving their current order by position.
+    /// </summary>
+    Task ApplyCurrentOrderAsync<TEntity>(
+        IReadOnlyList<TEntity> items,
+        CancellationToken ct = default)
+        where TEntity : BaseEntity<Guid>, IPositionedEntity;
+
+    /// <summary>
     /// Moves a task into another column at <paramref name="newIndex"/>. Use <see cref="MoveToIndexAsync"/> for reordering within the same column.
     /// </summary>
     Task MoveTaskToColumnAsync(

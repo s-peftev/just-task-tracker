@@ -1,5 +1,6 @@
 using FluentValidation;
 using JustTaskTracker.Application.Boards.Authorization;
+using JustTaskTracker.Application.Boards.Positioning;
 using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Interfaces;
 using JustTaskTracker.Application.Common.Interfaces.Persistence;
@@ -24,6 +25,7 @@ public class DeleteColumnCommandHandler(
     IBoardRepository boardRepository,
     IColumnRepository columnRepository,
     IBoardTaskRepository boardTaskRepository,
+    IBoardPositioningService boardPositioningService,
     IUnitOfWork unitOfWork)
     : IRequestHandler<DeleteColumnCommand, Result>
 {
@@ -45,7 +47,10 @@ public class DeleteColumnCommandHandler(
         if (column is null)
             return Result.Failure(GeneralErrors.NotFound);
 
+        var columns = await columnRepository.GetListByBoardIdAsync(request.BoardId, ct);
         var columnTasks = await boardTaskRepository.GetOrderedByColumnIdAsync(request.ColumnId, ct);
+
+        IReadOnlyList<BoardTask> targetTasks = [];
 
         if (request.TasksDisposition == DeleteColumnTasksDisposition.MoveToColumn)
         {
@@ -57,64 +62,46 @@ public class DeleteColumnCommandHandler(
             if (targetColumn is null)
                 return Result.Failure(GeneralErrors.NotFound);
 
-            if (request.MovePlacement == ColumnTaskMovePlacement.Start)
-            {
-                var targetTasks = await boardTaskRepository.GetOrderedByColumnIdAsync(targetColumn.Id, ct);
-                MoveTasksToStart(columnTasks, targetTasks, targetColumn.Id);
-            }
-            else if (request.MovePlacement == ColumnTaskMovePlacement.End)
-            {
-                var targetTaskCount = await boardTaskRepository.GetCountByColumnIdAsync(targetColumn.Id, ct);
-                MoveTasksToEnd(columnTasks, targetTaskCount, targetColumn.Id);
-            }
+            targetTasks = await boardTaskRepository.GetOrderedByColumnIdAsync(targetColumn.Id, ct);
         }
-        else if (columnTasks.Count > 0)
+
+        await unitOfWork.BeginTransactionAsync(ct);
+
+        try
         {
-            boardTaskRepository.RemoveRange(columnTasks);
+            if (request.TasksDisposition == DeleteColumnTasksDisposition.MoveToColumn)
+            {
+                await boardPositioningService.MoveTaskRangeToColumnAsync(
+                    columnTasks,
+                    targetTasks,
+                    request.TargetColumnId!.Value,
+                    request.MovePlacement!.Value,
+                    ct);
+            }
+            else if (columnTasks.Count > 0)
+            {
+                boardTaskRepository.RemoveRange(columnTasks);
+            }
+
+            columnRepository.Remove(column);
+
+            var remainingColumns = columns
+                .Where(boardColumn => boardColumn.Id != request.ColumnId)
+                .ToList();
+
+            if (remainingColumns.Count > 0)
+                await boardPositioningService.ApplyCurrentOrderAsync(remainingColumns, ct);
+
+            await unitOfWork.SaveChangesAsync(ct);
+            await unitOfWork.CommitTransactionAsync(ct);
         }
-
-        columnRepository.Remove(column);
-
-        var columnsToReposition = await columnRepository.GetListWithPositionGreaterThanAsync(
-            request.BoardId,
-            column.Position,
-            ct);
-
-        foreach (var columnToReposition in columnsToReposition)
-            columnToReposition.Position--;
-
-        await unitOfWork.SaveChangesAsync(ct);
+        catch
+        {
+            await unitOfWork.RollbackTransactionAsync(ct);
+            throw;
+        }
 
         return Result.Success();
-    }
-
-    private static void MoveTasksToStart(
-        IReadOnlyList<BoardTask> tasksToMove,
-        IReadOnlyList<BoardTask> targetTasks,
-        Guid targetColumnId)
-    {
-        var offset = tasksToMove.Count;
-
-        foreach (var targetTask in targetTasks)
-            targetTask.Position += offset;
-
-        for (var i = 0; i < tasksToMove.Count; i++)
-        {
-            tasksToMove[i].ColumnId = targetColumnId;
-            tasksToMove[i].Position = i;
-        }
-    }
-
-    private static void MoveTasksToEnd(
-        IReadOnlyList<BoardTask> tasksToMove,
-        int targetTaskCount,
-        Guid targetColumnId)
-    {
-        for (var i = 0; i < tasksToMove.Count; i++)
-        {
-            tasksToMove[i].ColumnId = targetColumnId;
-            tasksToMove[i].Position = targetTaskCount + i;
-        }
     }
 }
 

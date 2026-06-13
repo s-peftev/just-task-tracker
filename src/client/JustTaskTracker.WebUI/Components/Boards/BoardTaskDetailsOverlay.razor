@@ -1,44 +1,95 @@
+@using JustTaskTracker.WebUI.Domain.Boards.Authorization
+@using JustTaskTracker.WebUI.Domain.Boards.Enums
 @using JustTaskTracker.WebUI.Services.Abstractions.Boards
 @implements IDisposable
+@inject IBoardDetailsStore BoardDetailsStore
 @inject IBoardTaskStore BoardTaskStore
+@inject ISnackbar Snackbar
 
 <div class="board-task-overlay"
      role="dialog"
      aria-modal="true"
-     aria-label="@_dialogTitle"
+     aria-label="@GetColumnName()"
      @onkeydown="OnKeyDownAsync">
     <div class="board-task-overlay__backdrop @(DimBackground ? "board-task-overlay__backdrop--dim" : null)"
          @onclick="CloseAsync"></div>
 
     <div class="board-task-overlay__panel">
         <header class="board-task-overlay__header">
-            <h2 class="board-task-overlay__title">@_dialogTitle</h2>
-            <button type="button"
-                    class="btn-icon btn-icon--round btn-icon--sm board-task-overlay__close"
-                    aria-label="Close task"
-                    @onclick="CloseAsync">
-                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                    <path d="M18 6L6 18M6 6l12 12"
-                          stroke="currentColor"
-                          stroke-width="2"
-                          stroke-linecap="round" />
-                </svg>
-            </button>
+            <div class="board-task-overlay__header-title-area">
+                <h2 class="board-task-overlay__column-name">@GetColumnName()</h2>
+            </div>
+
+            <div class="board-task-overlay__header-controls">
+                @if (CanDeleteTask)
+                {
+                    <button type="button"
+                            class="board-task-overlay__delete-btn"
+                            @onclick="DeleteTaskAsync">
+                        Delete
+                    </button>
+                }
+
+                <button type="button"
+                        class="btn-icon btn-icon--round btn-icon--sm"
+                        aria-label="Close task"
+                        @onclick="CloseAsync">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path d="M18 6L6 18M6 6l12 12"
+                              stroke="currentColor"
+                              stroke-width="2"
+                              stroke-linecap="round" />
+                    </svg>
+                </button>
+            </div>
         </header>
 
-        <div class="board-task-overlay__body">
-            <BoardTaskDetailsPanel BoardId="BoardId"
-                                   ColumnId="ColumnId"
-                                   TaskId="TaskId" />
-        </div>
+        <div class="board-task-overlay__content">
+            <section class="board-task-overlay__task" aria-label="Task details">
+                <BoardTaskDetailsPanel BoardId="BoardId"
+                                       ColumnId="ColumnId"
+                                       TaskId="TaskId" />
+            </section>
 
-        <footer class="board-task-overlay__footer">
-            <button type="button"
-                    class="btn-dialog-cancel btn-dialog-action board-task-overlay__close-btn"
-                    @onclick="CloseAsync">
-                Close
-            </button>
-        </footer>
+            <aside class="board-task-overlay__comments" aria-label="Comments">
+                <header class="board-task-overlay__comments-header">
+                    <div class="board-task-overlay__comments-heading">
+                        <svg class="board-task-overlay__comments-icon"
+                             viewBox="0 0 24 24"
+                             aria-hidden="true"
+                             focusable="false">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+                                  stroke="currentColor"
+                                  stroke-width="2"
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                  fill="none" />
+                            <path d="M8 10h8"
+                                  stroke="currentColor"
+                                  stroke-width="2"
+                                  stroke-linecap="round" />
+                            <path d="M8 14h5"
+                                  stroke="currentColor"
+                                  stroke-width="2"
+                                  stroke-linecap="round" />
+                        </svg>
+                        <h3 class="board-task-overlay__comments-title">Comments</h3>
+                    </div>
+                </header>
+
+                <div class="board-task-overlay__comments-body">
+                    <button type="button"
+                            class="board-task-overlay__comment-compose"
+                            @onclick="ShowAddCommentComingSoon">
+                        Write a comment...
+                    </button>
+                </div>
+
+                <div class="board-task-overlay__comments-body">
+                    <p class="board-task-overlay__comments-placeholder">In development</p>
+                </div>
+            </aside>
+        </div>
     </div>
 </div>
 
@@ -58,31 +109,42 @@
     [Parameter, EditorRequired]
     public EventCallback OnClose { get; set; }
 
-    private string _dialogTitle = "Task";
-
     protected override void OnInitialized()
     {
-        BoardTaskStore.StateChanged += OnStoreStateChanged;
-        UpdateTitle();
+        BoardDetailsStore.StateChanged += OnBoardStoreStateChanged;
+        BoardTaskStore.StateChanged += OnTaskStoreStateChanged;
     }
 
     public void Dispose()
     {
-        BoardTaskStore.StateChanged -= OnStoreStateChanged;
+        BoardDetailsStore.StateChanged -= OnBoardStoreStateChanged;
+        BoardTaskStore.StateChanged -= OnTaskStoreStateChanged;
         BoardTaskStore.Reset();
     }
 
-    private void OnStoreStateChanged()
+    private bool CanDeleteTask =>
+        EffectiveUserRole is { } role && BoardRolePermissions.CanManageTasks(role);
+
+    private BoardMemberRole? EffectiveUserRole =>
+        BoardTaskStore.Task?.UserRole ?? BoardDetailsStore.Board?.UserRole;
+
+    private string GetColumnName() =>
+        BoardTaskStore.Task?.ColumnName
+        ?? BoardDetailsStore.Board?.Columns.FirstOrDefault(column => column.Id == ColumnId)?.Name
+        ?? "Column";
+
+    private void OnBoardStoreStateChanged() => InvokeAsync(StateHasChanged);
+
+    private void OnTaskStoreStateChanged() => InvokeAsync(StateHasChanged);
+
+    private Task DeleteTaskAsync()
     {
-        UpdateTitle();
-        InvokeAsync(StateHasChanged);
+        Snackbar.Add("Task deletion is coming soon.", Severity.Info);
+        return Task.CompletedTask;
     }
 
-    private void UpdateTitle()
-    {
-        _dialogTitle = BoardTaskStore.Task?.Title
-            ?? (BoardTaskStore.IsLoading ? "Loading…" : "Task");
-    }
+    private void ShowAddCommentComingSoon() =>
+        Snackbar.Add("Task comments are coming soon.", Severity.Info);
 
     private async Task CloseAsync() => await OnClose.InvokeAsync();
 

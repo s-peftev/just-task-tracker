@@ -1,29 +1,166 @@
-@using System.Text.Json
 @using JustTaskTracker.WebUI.Services.Abstractions.Boards
 @implements IDisposable
 @inject IBoardTaskStore BoardTaskStore
+@inject ISnackbar Snackbar
 
-@if (BoardTaskStore.IsLoading)
-{
-    <div class="board-task-details-panel__state">
-        <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
-    </div>
-}
-else if (BoardTaskStore.ErrorMessage is { } error)
-{
-    <MudAlert Severity="Severity.Error">@error</MudAlert>
-}
-else if (BoardTaskStore.Task is { } task)
-{
-    <pre class="board-task-details-panel__dump">@FormatTask(task)</pre>
-}
+<div class="board-task-details-panel">
+    @if (BoardTaskStore.IsLoading)
+    {
+        <div class="board-task-details-panel__state">
+            <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+        </div>
+    }
+    else if (BoardTaskStore.ErrorMessage is { } error)
+    {
+        <MudAlert Severity="Severity.Error">@error</MudAlert>
+    }
+    else if (BoardTaskStore.Task is { } task)
+    {
+        <div class="board-task-details-panel__blocks">
+            <section class="board-task-details-panel__block board-task-details-panel__block--title">
+                <div class="board-task-details-panel__title-row">
+                    <svg class="board-task-details-panel__section-icon board-task-details-panel__section-icon--title"
+                         viewBox="0 0 24 24"
+                         aria-hidden="true"
+                         focusable="false">
+                        <path d="M4 7V5h16v2"
+                              stroke="currentColor"
+                              stroke-width="2"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              fill="none" />
+                        <path d="M12 5v15"
+                              stroke="currentColor"
+                              stroke-width="2"
+                              stroke-linecap="round" />
+                        <path d="M8 20h8"
+                              stroke="currentColor"
+                              stroke-width="2"
+                              stroke-linecap="round" />
+                    </svg>
+                    <h3 class="board-task-details-panel__title">@task.Title</h3>
+                </div>
+            </section>
+
+            <section class="board-task-details-panel__block board-task-details-panel__block--users">
+                <div class="board-task-details-panel__reporter-row">
+                    <div class="board-task-details-panel__reporter-details">
+                        <span class="board-task-details-panel__user-name">@FormatUser(task.Reporter)</span>
+                        <span class="board-task-details-panel__reporter-meta">
+                            created this task @FormatCreatedAt(task.CreatedAtUtc)
+                        </span>
+                    </div>
+                </div>
+
+                <div class="board-task-details-panel__assignee-row">
+                    @if (CanManageAssignee(task))
+                    {
+                        <select class="board-task-details-panel__assignee-select @(task.Assignee is null ? "board-task-details-panel__assignee-select--unassigned" : null)"
+                                aria-label="Assignee"
+                                value="@GetAssigneeSelectValue(task)"
+                                @onchange="OnAssigneeSelectChanged">
+                            @if (task.Assignee is { } assignee)
+                            {
+                                <option value="@assignee.Id">@FormatUser(assignee)</option>
+                            }
+
+                            <option value="">Not assigned yet</option>
+                            <option disabled value="__in-development__">In development</option>
+                        </select>
+                    }
+                    else if (task.Assignee is { } assignee)
+                    {
+                        <span class="board-task-details-panel__assignee-text">@FormatUser(assignee)</span>
+                    }
+                    else
+                    {
+                        <span class="board-task-details-panel__assignee-text board-task-details-panel__assignee-text--unassigned">
+                            Not assigned yet
+                        </span>
+                    }
+                </div>
+            </section>
+
+            <section class="board-task-details-panel__block board-task-details-panel__block--description">
+                <header class="board-task-details-panel__section-header">
+                    <div class="board-task-details-panel__section-heading">
+                        <svg class="board-task-details-panel__section-icon"
+                             viewBox="0 0 24 24"
+                             aria-hidden="true"
+                             focusable="false">
+                            <path d="M4 6h16"
+                                  stroke="currentColor"
+                                  stroke-width="2"
+                                  stroke-linecap="round" />
+                            <path d="M4 12h10"
+                                  stroke="currentColor"
+                                  stroke-width="2"
+                                  stroke-linecap="round" />
+                            <path d="M4 18h6"
+                                  stroke="currentColor"
+                                  stroke-width="2"
+                                  stroke-linecap="round" />
+                        </svg>
+                        <h4 class="board-task-details-panel__section-title">Description</h4>
+                    </div>
+                    @if (!string.IsNullOrWhiteSpace(task.Description))
+                    {
+                        <button type="button"
+                                class="board-task-details-panel__action-btn"
+                                @onclick="ShowEditDescriptionComingSoon">
+                            Edit
+                        </button>
+                    }
+                </header>
+
+                <div class="board-task-details-panel__section-body">
+                    @if (string.IsNullOrWhiteSpace(task.Description))
+                    {
+                        <button type="button"
+                                class="board-task-details-panel__description-placeholder"
+                                @onclick="ShowEditDescriptionComingSoon">
+                            Add a more detailed description...
+                        </button>
+                    }
+                    else
+                    {
+                        <p class="board-task-details-panel__description-text">@task.Description</p>
+                    }
+                </div>
+            </section>
+
+            <section class="board-task-details-panel__block board-task-details-panel__block--attachments">
+                <header class="board-task-details-panel__section-header">
+                    <div class="board-task-details-panel__section-heading">
+                        <svg class="board-task-details-panel__section-icon"
+                             viewBox="0 0 24 24"
+                             aria-hidden="true"
+                             focusable="false">
+                            <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57a4 4 0 1 1 5.66 5.66l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"
+                                  stroke="currentColor"
+                                  stroke-width="2"
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                  fill="none" />
+                        </svg>
+                        <h4 class="board-task-details-panel__section-title">Attachments</h4>
+                    </div>
+                    <button type="button"
+                            class="board-task-details-panel__action-btn"
+                            @onclick="ShowAddAttachmentComingSoon">
+                        Add
+                    </button>
+                </header>
+
+                <div class="board-task-details-panel__section-body">
+                    <p class="board-task-details-panel__placeholder-text">In development</p>
+                </div>
+            </section>
+        </div>
+    }
+</div>
 
 @code {
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        WriteIndented = true
-    };
-
     [Parameter, EditorRequired]
     public Guid BoardId { get; set; }
 
@@ -54,6 +191,24 @@ else if (BoardTaskStore.Task is { } task)
 
     private void OnStoreStateChanged() => InvokeAsync(StateHasChanged);
 
-    private static string FormatTask(BoardTaskDetailsDto task) =>
-        JsonSerializer.Serialize(task, JsonOptions);
+    private static string FormatUser(UserDto user) =>
+        string.IsNullOrWhiteSpace(user.DisplayName) ? user.Email : $"{user.DisplayName} ({user.Email})";
+
+    private static string FormatCreatedAt(DateTime createdAtUtc) =>
+        createdAtUtc.ToLocalTime().ToString("g");
+
+    private static string GetAssigneeSelectValue(BoardTaskDetailsDto task) =>
+        task.Assignee?.Id.ToString() ?? string.Empty;
+
+    private static bool CanManageAssignee(BoardTaskDetailsDto task) =>
+        BoardRolePermissions.CanManageTasks(task.UserRole);
+
+    private void OnAssigneeSelectChanged(ChangeEventArgs _) =>
+        StateHasChanged();
+
+    private void ShowEditDescriptionComingSoon() =>
+        Snackbar.Add("Task description editing is coming soon.", Severity.Info);
+
+    private void ShowAddAttachmentComingSoon() =>
+        Snackbar.Add("Task attachments are coming soon.", Severity.Info);
 }

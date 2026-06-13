@@ -28,10 +28,12 @@ public class BoardTaskRepository(JustTaskTrackerDbContext context)
             .Select(task => new BoardTaskDetailsDto(
                 task.Id,
                 task.ColumnId,
+                task.Column!.Name,
                 task.Title,
                 task.Position,
                 task.CreatedAtUtc,
                 new UserDto(task.Reporter!.Id, task.Reporter.Email, task.Reporter.DisplayName),
+                default,
                 task.Description,
                 task.Assignee == null
                     ? null

@@ -6,6 +6,8 @@
     --jtt-surface-app: #1F1F21;
     --jtt-surface-raised: #18191A;
 
+    --jtt-surface-task-card: color-mix(in srgb, white 10%, var(--jtt-surface-raised));
+
     /* Translucent overlays */
     --jtt-overlay-accent-10: rgba(97, 179, 216, 0.10);
     --jtt-overlay-accent-15: rgba(97, 179, 216, 0.15);

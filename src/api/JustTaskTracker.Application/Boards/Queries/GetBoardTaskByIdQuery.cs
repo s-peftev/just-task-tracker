@@ -36,6 +36,6 @@ public class GetBoardTaskByIdQueryHandler(
         if (task is null)
             return Result<BoardTaskDetailsDto>.Failure(GeneralErrors.NotFound);
 
-        return Result<BoardTaskDetailsDto>.Success(task);
+        return Result<BoardTaskDetailsDto>.Success(task with { UserRole = userRole!.Value });
     }
 }

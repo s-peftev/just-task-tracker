@@ -122,14 +122,53 @@ internal class BoardApiService(IBoardApi api) : IBoardApiService
         return ApiResponseGuard.Unwrap(response);
     }
 
-    public async Task UpdateBoardTaskAsync(
+    public async Task UpdateBoardTaskTitleAsync(
         Guid boardId,
         Guid columnId,
         Guid taskId,
-        UpdateBoardTaskRequest request,
+        string title,
         CancellationToken ct = default)
     {
-        var response = await api.UpdateTaskAsync(boardId, columnId, taskId, request, ct);
+        var response = await api.UpdateTaskTitleAsync(
+            boardId,
+            columnId,
+            taskId,
+            new UpdateBoardTaskTitleRequest(title),
+            ct);
+
+        ApiResponseGuard.EnsureSuccess(response);
+    }
+
+    public async Task UpdateBoardTaskDescriptionAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid taskId,
+        string? description,
+        CancellationToken ct = default)
+    {
+        var response = await api.UpdateTaskDescriptionAsync(
+            boardId,
+            columnId,
+            taskId,
+            new UpdateBoardTaskDescriptionRequest(description),
+            ct);
+
+        ApiResponseGuard.EnsureSuccess(response);
+    }
+
+    public async Task UpdateBoardTaskAssigneeAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid taskId,
+        Guid? assigneeId,
+        CancellationToken ct = default)
+    {
+        var response = await api.UpdateTaskAssigneeAsync(
+            boardId,
+            columnId,
+            taskId,
+            new UpdateBoardTaskAssigneeRequest(assigneeId),
+            ct);
 
         ApiResponseGuard.EnsureSuccess(response);
     }

@@ -122,9 +122,14 @@ public class UpdateBoardTaskCommandValidator : AbstractValidator<UpdateBoardTask
         {
             RuleFor(x => x.Title.Value)
                 .Must(title => !string.IsNullOrWhiteSpace(title))
-                .WithMessage("'Title' must not be empty.")
-                .Must(title => title!.Trim().Length <= BoardTaskFieldLengths.MaxTitleLength)
-                .WithMessage($"'Title' must be {BoardTaskFieldLengths.MaxTitleLength} characters or fewer.");
+                .WithMessage("'Title' must not be empty.");
+
+            When(x => !string.IsNullOrWhiteSpace(x.Title.Value), () =>
+            {
+                RuleFor(x => x.Title.Value)
+                    .Must(title => title!.Trim().Length <= BoardTaskFieldLengths.MaxTitleLength)
+                    .WithMessage($"'Title' must be {BoardTaskFieldLengths.MaxTitleLength} characters or fewer.");
+            });
         });
 
         When(x => x.Description.IsSpecified && !string.IsNullOrWhiteSpace(x.Description.Value), () =>

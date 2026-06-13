@@ -1,5 +1,6 @@
 .board-task-overlay {
     --board-task-overlay-header-height: 4rem;
+    --board-task-overlay-max-height-inset: 2rem;
 
     position: fixed;
     top: var(--jtt-navbar-height);
@@ -33,7 +34,7 @@
     display: flex;
     flex-direction: column;
     width: min(72rem, 100%);
-    max-height: 100%;
+    max-height: calc(100% - var(--board-task-overlay-max-height-inset));
     pointer-events: auto;
     overflow: hidden;
     border-radius: var(--jtt-radius-lg);

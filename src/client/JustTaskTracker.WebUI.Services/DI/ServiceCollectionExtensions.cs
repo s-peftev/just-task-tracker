@@ -10,6 +10,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Refit;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace JustTaskTracker.WebUI.Services.DI;
 
@@ -19,7 +20,8 @@ public static class ServiceCollectionExtensions
     {
         ContentSerializer = new SystemTextJsonContentSerializer(new JsonSerializerOptions
         {
-            PropertyNameCaseInsensitive = true
+            PropertyNameCaseInsensitive = true,
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
         })
     };
 

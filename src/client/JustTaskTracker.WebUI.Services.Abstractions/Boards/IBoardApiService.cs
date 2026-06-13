@@ -36,10 +36,24 @@ public interface IBoardApiService
         Guid taskId,
         CancellationToken ct = default);
 
-    Task UpdateBoardTaskAsync(
+    Task UpdateBoardTaskTitleAsync(
         Guid boardId,
         Guid columnId,
         Guid taskId,
-        UpdateBoardTaskRequest request,
+        string title,
+        CancellationToken ct = default);
+
+    Task UpdateBoardTaskDescriptionAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid taskId,
+        string? description,
+        CancellationToken ct = default);
+
+    Task UpdateBoardTaskAssigneeAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid taskId,
+        Guid? assigneeId,
         CancellationToken ct = default);
 }

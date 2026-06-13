@@ -20,5 +20,7 @@ public interface IBoardTaskStore
 
     void UpdateTaskTitle(string title);
 
+    void UpdateTaskDescription(string? description);
+
     void Reset();
 }

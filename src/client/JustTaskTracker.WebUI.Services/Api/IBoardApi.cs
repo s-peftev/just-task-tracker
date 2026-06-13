@@ -49,10 +49,26 @@ internal interface IBoardApi
     Task<IApiResponse<ApiEnvelope<BoardTaskDetailsDto>>> GetTaskByIdAsync(Guid boardId, Guid columnId, Guid taskId, CancellationToken ct = default);
 
     [Patch("/api/boards/{boardId}/columns/{columnId}/tasks/{taskId}")]
-    Task<IApiResponse<ApiEnvelope<object>>> UpdateTaskAsync(
+    Task<IApiResponse<ApiEnvelope<object>>> UpdateTaskTitleAsync(
         Guid boardId,
         Guid columnId,
         Guid taskId,
-        [Body] UpdateBoardTaskRequest request,
+        [Body] UpdateBoardTaskTitleRequest request,
+        CancellationToken ct = default);
+
+    [Patch("/api/boards/{boardId}/columns/{columnId}/tasks/{taskId}")]
+    Task<IApiResponse<ApiEnvelope<object>>> UpdateTaskDescriptionAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid taskId,
+        [Body] UpdateBoardTaskDescriptionRequest request,
+        CancellationToken ct = default);
+
+    [Patch("/api/boards/{boardId}/columns/{columnId}/tasks/{taskId}")]
+    Task<IApiResponse<ApiEnvelope<object>>> UpdateTaskAssigneeAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid taskId,
+        [Body] UpdateBoardTaskAssigneeRequest request,
         CancellationToken ct = default);
 }

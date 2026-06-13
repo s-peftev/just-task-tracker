@@ -8,6 +8,12 @@ namespace JustTaskTracker.Persistence.Boards.Repositories;
 public class BoardTaskRepository(JustTaskTrackerDbContext context)
     : Repository<BoardTask, Guid>(context), IBoardTaskRepository
 {
+    public async Task<BoardTask?> GetByBoardIdAndIdAsync(Guid boardId, Guid boardTaskId, CancellationToken ct = default) =>
+        await _dbSet
+            .FirstOrDefaultAsync(
+                task => task.Id == boardTaskId && task.Column!.BoardId == boardId,
+                ct);
+
     public async Task<IReadOnlyList<BoardTask>> GetOrderedByColumnIdAsync(Guid columnId, CancellationToken ct = default) =>
         await _dbSet
             .Where(t => t.ColumnId == columnId)

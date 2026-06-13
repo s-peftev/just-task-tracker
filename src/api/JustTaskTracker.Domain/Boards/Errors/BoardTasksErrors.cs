@@ -9,4 +9,9 @@ public static class BoardTasksErrors
         nameof(AssigneeNotBoardMember),
         ErrorType.Business,
         ["The assignee must be a member of the board."]);
+
+    public static readonly Error InvalidPosition = new(
+        nameof(InvalidPosition),
+        ErrorType.Validation,
+        ["Task position is out of range."]);
 }

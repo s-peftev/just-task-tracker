@@ -21,4 +21,14 @@ public class BoardTasksController(ISender sender) : ControllerBase
             data => Ok(data),
             error => error.CreateErrorResponse());
     }
+
+    [HttpPut("{id:guid}/position")]
+    public async Task<IActionResult> Reorder(Guid boardId, Guid columnId, Guid id, [FromBody] ReorderBoardTaskCommand request, CancellationToken ct)
+    {
+        var result = await sender.Send(request with { BoardId = boardId, TargetColumnId = columnId, BoardTaskId = id }, ct);
+
+        return result.Match(
+            () => NoContent(),
+            error => error.CreateErrorResponse());
+    }
 }

@@ -1,0 +1,59 @@
+@using System.Text.Json
+@using JustTaskTracker.WebUI.Services.Abstractions.Boards
+@implements IDisposable
+@inject IBoardTaskStore BoardTaskStore
+
+@if (BoardTaskStore.IsLoading)
+{
+    <div class="board-task-details-panel__state">
+        <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+    </div>
+}
+else if (BoardTaskStore.ErrorMessage is { } error)
+{
+    <MudAlert Severity="Severity.Error">@error</MudAlert>
+}
+else if (BoardTaskStore.Task is { } task)
+{
+    <pre class="board-task-details-panel__dump">@FormatTask(task)</pre>
+}
+
+@code {
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        WriteIndented = true
+    };
+
+    [Parameter, EditorRequired]
+    public Guid BoardId { get; set; }
+
+    [Parameter, EditorRequired]
+    public Guid ColumnId { get; set; }
+
+    [Parameter, EditorRequired]
+    public Guid TaskId { get; set; }
+
+    protected override void OnInitialized() =>
+        BoardTaskStore.StateChanged += OnStoreStateChanged;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (BoardTaskStore.BoardId == BoardId
+            && BoardTaskStore.ColumnId == ColumnId
+            && BoardTaskStore.TaskId == TaskId
+            && (BoardTaskStore.Task is not null || BoardTaskStore.IsLoading))
+        {
+            return;
+        }
+
+        await BoardTaskStore.LoadAsync(BoardId, ColumnId, TaskId);
+    }
+
+    public void Dispose() =>
+        BoardTaskStore.StateChanged -= OnStoreStateChanged;
+
+    private void OnStoreStateChanged() => InvokeAsync(StateHasChanged);
+
+    private static string FormatTask(BoardTaskDetailsDto task) =>
+        JsonSerializer.Serialize(task, JsonOptions);
+}

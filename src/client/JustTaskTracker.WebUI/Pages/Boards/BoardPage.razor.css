@@ -160,3 +160,9 @@
 .board-page__add-column-btn {
     width: var(--board-column-width);
 }
+
+.board-page--task-only {
+    flex: 1 1 0;
+    min-height: calc(100dvh - var(--jtt-navbar-height));
+    background-color: var(--jtt-surface-app);
+}

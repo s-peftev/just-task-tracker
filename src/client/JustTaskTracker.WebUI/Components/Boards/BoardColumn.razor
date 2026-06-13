@@ -141,6 +141,9 @@
     [Inject]
     private IDialogService DialogService { get; set; } = default!;
 
+    [Inject]
+    private NavigationManager Navigation { get; set; } = default!;
+
     private bool _isEditingName;
     private bool _isSavingName;
     private bool _focusTitleInput;
@@ -435,12 +438,12 @@
         }
     }
 
-    private async Task OnTaskClickAsync(TaskLookupDto task)
+    private void OnTaskClickAsync(TaskLookupDto task)
     {
         if (BoardDetailsStore.BoardId is not { } boardId)
             return;
 
-        await DialogService.ShowBoardTaskDetailsAsync(boardId, Column.Id, task.Id, task.Title);
+        Navigation.NavigateTo(BoardTaskRoutes.GetTaskUrl(boardId, Column.Id, task.Id));
     }
 
     private static string GetTaskKey(TaskLookupDto task) => task.Id.ToString();

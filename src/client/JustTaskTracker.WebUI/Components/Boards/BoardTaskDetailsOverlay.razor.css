@@ -1,0 +1,76 @@
+.board-task-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1300;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 3rem 1rem 1rem;
+    box-sizing: border-box;
+    pointer-events: none;
+}
+
+.board-task-overlay__backdrop {
+    position: absolute;
+    inset: 0;
+    pointer-events: auto;
+}
+
+.board-task-overlay__backdrop--dim {
+    background-color: rgba(0, 0, 0, 0.64);
+}
+
+.board-task-overlay__panel {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    width: min(768px, 100%);
+    max-height: calc(100dvh - 4rem);
+    pointer-events: auto;
+    overflow: hidden;
+    border-radius: var(--jtt-radius-md);
+    background-color: var(--jtt-overlay-white-10);
+    backdrop-filter: blur(12px);
+    box-shadow: var(--jtt-shadow-elevated);
+}
+
+.board-task-overlay__header {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1rem 0.75rem 1.25rem;
+}
+
+.board-task-overlay__title {
+    min-width: 0;
+    margin: 0;
+    color: var(--jtt-text-primary);
+    font-size: 1.125rem;
+    font-weight: var(--jtt-font-weight-strong);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.board-task-overlay__body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    padding: 0 1.25rem 1rem;
+}
+
+.board-task-overlay__footer {
+    flex-shrink: 0;
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    padding: 0.75rem 1.25rem 1.25rem;
+}
+
+.board-task-overlay__close-btn {
+    width: auto !important;
+    min-width: 6rem;
+}

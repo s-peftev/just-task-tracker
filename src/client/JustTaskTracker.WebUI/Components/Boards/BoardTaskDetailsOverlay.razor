@@ -1,0 +1,94 @@
+@using JustTaskTracker.WebUI.Services.Abstractions.Boards
+@implements IDisposable
+@inject IBoardTaskStore BoardTaskStore
+
+<div class="board-task-overlay"
+     role="dialog"
+     aria-modal="true"
+     aria-label="@_dialogTitle"
+     @onkeydown="OnKeyDownAsync">
+    <div class="board-task-overlay__backdrop @(DimBackground ? "board-task-overlay__backdrop--dim" : null)"
+         @onclick="CloseAsync"></div>
+
+    <div class="board-task-overlay__panel">
+        <header class="board-task-overlay__header">
+            <h2 class="board-task-overlay__title">@_dialogTitle</h2>
+            <button type="button"
+                    class="btn-icon btn-icon--round btn-icon--sm board-task-overlay__close"
+                    aria-label="Close task"
+                    @onclick="CloseAsync">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path d="M18 6L6 18M6 6l12 12"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round" />
+                </svg>
+            </button>
+        </header>
+
+        <div class="board-task-overlay__body">
+            <BoardTaskDetailsPanel BoardId="BoardId"
+                                   ColumnId="ColumnId"
+                                   TaskId="TaskId" />
+        </div>
+
+        <footer class="board-task-overlay__footer">
+            <button type="button"
+                    class="btn-dialog-cancel btn-dialog-action board-task-overlay__close-btn"
+                    @onclick="CloseAsync">
+                Close
+            </button>
+        </footer>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public Guid BoardId { get; set; }
+
+    [Parameter, EditorRequired]
+    public Guid ColumnId { get; set; }
+
+    [Parameter, EditorRequired]
+    public Guid TaskId { get; set; }
+
+    [Parameter]
+    public bool DimBackground { get; set; } = true;
+
+    [Parameter, EditorRequired]
+    public EventCallback OnClose { get; set; }
+
+    private string _dialogTitle = "Task";
+
+    protected override void OnInitialized()
+    {
+        BoardTaskStore.StateChanged += OnStoreStateChanged;
+        UpdateTitle();
+    }
+
+    public void Dispose()
+    {
+        BoardTaskStore.StateChanged -= OnStoreStateChanged;
+        BoardTaskStore.Reset();
+    }
+
+    private void OnStoreStateChanged()
+    {
+        UpdateTitle();
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void UpdateTitle()
+    {
+        _dialogTitle = BoardTaskStore.Task?.Title
+            ?? (BoardTaskStore.IsLoading ? "Loading…" : "Task");
+    }
+
+    private async Task CloseAsync() => await OnClose.InvokeAsync();
+
+    private async Task OnKeyDownAsync(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape")
+            await CloseAsync();
+    }
+}

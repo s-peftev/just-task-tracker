@@ -4,6 +4,7 @@ using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Interfaces;
 using JustTaskTracker.Application.Common.Interfaces.Persistence;
 using JustTaskTracker.Domain.Boards.Authorization;
+using JustTaskTracker.Domain.Boards.Constants;
 using JustTaskTracker.Domain.Boards.Errors;
 using JustTaskTracker.Domain.Common.Results;
 using JustTaskTracker.Domain.Common.Results.Errors;
@@ -67,6 +68,6 @@ public class UpdateColumnCommandValidator : AbstractValidator<UpdateColumnComman
         RuleFor(x => x.Name)
             .Must(name => !string.IsNullOrWhiteSpace(name))
             .WithMessage("'Name' must not be empty.")
-            .MaximumLength(50);
+            .MaximumLength(ColumnFieldLengths.MaxNameLength);
     }
 }

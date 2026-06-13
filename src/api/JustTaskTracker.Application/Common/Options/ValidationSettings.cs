@@ -1,4 +1,6 @@
-﻿namespace JustTaskTracker.Application.Common.Options;
+﻿using JustTaskTracker.Domain.Boards.Constants;
+
+namespace JustTaskTracker.Application.Common.Options;
 
 public class ValidationSettings
 {
@@ -7,5 +9,5 @@ public class ValidationSettings
 
 public class BoardValidationSettings
 {
-    public int MaxNameSearchLength { get; set; } = 100;
+    public int MaxNameSearchLength { get; set; } = BoardFieldLengths.MaxNameLength;
 }

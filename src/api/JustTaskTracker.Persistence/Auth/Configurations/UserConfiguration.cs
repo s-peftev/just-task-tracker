@@ -1,3 +1,4 @@
+using JustTaskTracker.Domain.Auth.Constants;
 using JustTaskTracker.Domain.Auth.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -8,8 +9,8 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
 {
     public void Configure(EntityTypeBuilder<User> builder)
     {
-        builder.Property(u => u.Email).HasMaxLength(320);
-        builder.Property(u => u.DisplayName).HasMaxLength(256);
+        builder.Property(u => u.Email).HasMaxLength(UserFieldLengths.MaxEmailLength);
+        builder.Property(u => u.DisplayName).HasMaxLength(UserFieldLengths.MaxDisplayNameLength);
 
         builder.HasIndex(u => u.AzureAdObjectId)
             .IsUnique()

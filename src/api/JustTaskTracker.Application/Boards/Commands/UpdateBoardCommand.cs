@@ -4,6 +4,7 @@ using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Interfaces;
 using JustTaskTracker.Application.Common.Interfaces.Persistence;
 using JustTaskTracker.Domain.Boards.Authorization;
+using JustTaskTracker.Domain.Boards.Constants;
 using JustTaskTracker.Domain.Common.Results;
 using JustTaskTracker.Domain.Common.Results.Errors;
 using MediatR;
@@ -51,6 +52,6 @@ public class UpdateBoardCommandValidator : AbstractValidator<UpdateBoardCommand>
         RuleFor(x => x.Name)
             .Must(name => !string.IsNullOrWhiteSpace(name))
             .WithMessage("'Name' must not be empty.")
-            .MaximumLength(100);
+            .MaximumLength(BoardFieldLengths.MaxNameLength);
     }
 }

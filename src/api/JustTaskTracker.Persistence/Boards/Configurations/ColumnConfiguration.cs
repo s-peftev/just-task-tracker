@@ -1,3 +1,4 @@
+using JustTaskTracker.Domain.Boards.Constants;
 using JustTaskTracker.Domain.Boards.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -10,7 +11,7 @@ public class ColumnConfiguration : IEntityTypeConfiguration<Column>
     {
         builder.ToTable("Columns");
 
-        builder.Property(c => c.Name).HasMaxLength(50);
+        builder.Property(c => c.Name).HasMaxLength(ColumnFieldLengths.MaxNameLength);
 
         builder.HasOne(c => c.Board)
             .WithMany(b => b.Columns)

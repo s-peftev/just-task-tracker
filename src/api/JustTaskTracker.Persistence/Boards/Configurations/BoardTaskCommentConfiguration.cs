@@ -1,3 +1,4 @@
+using JustTaskTracker.Domain.Boards.Constants;
 using JustTaskTracker.Domain.Boards.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -8,7 +9,7 @@ public class BoardTaskCommentConfiguration : IEntityTypeConfiguration<BoardTaskC
 {
     public void Configure(EntityTypeBuilder<BoardTaskComment> builder)
     {
-        builder.Property(c => c.Body).HasMaxLength(2000);
+        builder.Property(c => c.Body).HasMaxLength(BoardTaskCommentFieldLengths.MaxBodyLength);
 
         builder.HasOne(c => c.BoardTask)
             .WithMany(t => t.Comments)

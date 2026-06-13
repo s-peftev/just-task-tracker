@@ -20,6 +20,7 @@ public class JustTaskTrackerDbContext(
     public DbSet<BoardMember> BoardMembers => Set<BoardMember>();
     public DbSet<Column> Columns => Set<Column>();
     public DbSet<BoardTask> BoardTasks => Set<BoardTask>();
+    public DbSet<BoardTaskComment> BoardTaskComments => Set<BoardTaskComment>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

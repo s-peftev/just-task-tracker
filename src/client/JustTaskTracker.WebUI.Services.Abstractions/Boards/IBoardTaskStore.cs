@@ -18,5 +18,7 @@ public interface IBoardTaskStore
 
     Task LoadAsync(Guid boardId, Guid columnId, Guid taskId, CancellationToken ct = default);
 
+    void UpdateTaskTitle(string title);
+
     void Reset();
 }

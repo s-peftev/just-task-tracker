@@ -69,6 +69,15 @@ internal sealed class BoardTaskStore(IBoardApiService boardApiService) : IBoardT
         }
     }
 
+    public void UpdateTaskTitle(string title)
+    {
+        if (Task is not { } task)
+            return;
+
+        Task = task with { Title = title };
+        NotifyStateChanged();
+    }
+
     public void Reset()
     {
         _loadCts?.Cancel();

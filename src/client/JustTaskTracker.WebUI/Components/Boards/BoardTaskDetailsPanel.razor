@@ -1,6 +1,12 @@
+@using JustTaskTracker.WebUI.Domain.Boards.Constants
+@using JustTaskTracker.WebUI.Domain.Boards.Requests
+@using JustTaskTracker.WebUI.Infrastructure
 @using JustTaskTracker.WebUI.Services.Abstractions.Boards
+@using JustTaskTracker.WebUI.Services.Exceptions
 @implements IDisposable
 @inject IBoardTaskStore BoardTaskStore
+@inject IBoardDetailsStore BoardDetailsStore
+@inject IBoardApiService BoardApiService
 @inject ISnackbar Snackbar
 
 <div class="board-task-details-panel">
@@ -38,7 +44,34 @@
                               stroke-width="2"
                               stroke-linecap="round" />
                     </svg>
-                    <h3 class="board-task-details-panel__title">@task.Title</h3>
+                    <div class="board-task-details-panel__title-area">
+                        @if (_isEditingTitle)
+                        {
+                            <div class="board-task-details-panel__title-field">
+                                <span class="board-task-details-panel__title-sizer">@_editTitle</span>
+                                <input @ref="_titleInputRef"
+                                       class="board-task-details-panel__title-input"
+                                       type="text"
+                                       maxlength="@BoardTaskFieldLengths.MaxTitleLength"
+                                       @bind="_editTitle"
+                                       @bind:event="oninput"
+                                       @onkeydown="OnTitleKeyDownAsync"
+                                       @onblur="OnTitleBlurAsync" />
+                            </div>
+                        }
+                        else if (CanManageTaskTitle(task))
+                        {
+                            <h3 class="board-task-details-panel__title board-task-details-panel__title--editable"
+                                title="@task.Title"
+                                @onclick="StartTitleEdit">
+                                @task.Title
+                            </h3>
+                        }
+                        else
+                        {
+                            <h3 class="board-task-details-panel__title" title="@task.Title">@task.Title</h3>
+                        }
+                    </div>
                 </div>
             </section>
 
@@ -170,8 +203,23 @@
     [Parameter, EditorRequired]
     public Guid TaskId { get; set; }
 
+    private bool _isEditingTitle;
+    private bool _isSavingTitle;
+    private bool _focusTitleInput;
+    private string _editTitle = string.Empty;
+    private ElementReference _titleInputRef;
+
     protected override void OnInitialized() =>
         BoardTaskStore.StateChanged += OnStoreStateChanged;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_focusTitleInput)
+        {
+            _focusTitleInput = false;
+            await _titleInputRef.FocusAsync();
+        }
+    }
 
     protected override async Task OnParametersSetAsync()
     {
@@ -202,6 +250,90 @@
 
     private static bool CanManageAssignee(BoardTaskDetailsDto task) =>
         BoardRolePermissions.CanManageTasks(task.UserRole);
+
+    private static bool CanManageTaskTitle(BoardTaskDetailsDto task) =>
+        BoardRolePermissions.CanManageTasks(task.UserRole);
+
+    private void StartTitleEdit()
+    {
+        if (BoardTaskStore.Task is not { } task || !CanManageTaskTitle(task) || _isEditingTitle)
+            return;
+
+        _editTitle = task.Title;
+        _isEditingTitle = true;
+        _focusTitleInput = true;
+    }
+
+    private void CancelTitleEdit()
+    {
+        _isEditingTitle = false;
+        _editTitle = BoardTaskStore.Task?.Title ?? string.Empty;
+    }
+
+    private async Task OnTitleKeyDownAsync(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            await SaveTaskTitleAsync();
+        else if (e.Key == "Escape")
+            CancelTitleEdit();
+    }
+
+    private async Task OnTitleBlurAsync()
+    {
+        if (!_isEditingTitle)
+            return;
+
+        await SaveTaskTitleAsync();
+    }
+
+    private async Task SaveTaskTitleAsync()
+    {
+        if (!_isEditingTitle || _isSavingTitle || BoardTaskStore.Task is not { } task)
+            return;
+
+        var trimmedTitle = _editTitle.Trim();
+
+        if (string.IsNullOrEmpty(trimmedTitle))
+        {
+            Snackbar.Add("Task title is required.", Severity.Error);
+            return;
+        }
+
+        if (trimmedTitle.Length > BoardTaskFieldLengths.MaxTitleLength)
+        {
+            Snackbar.Add($"Task title must not exceed {BoardTaskFieldLengths.MaxTitleLength} characters.", Severity.Error);
+            return;
+        }
+
+        if (string.Equals(trimmedTitle, task.Title, StringComparison.Ordinal))
+        {
+            CancelTitleEdit();
+            return;
+        }
+
+        _isSavingTitle = true;
+
+        try
+        {
+            await BoardApiService.UpdateBoardTaskAsync(
+                BoardId,
+                ColumnId,
+                TaskId,
+                new UpdateBoardTaskRequest(Title: trimmedTitle));
+
+            BoardTaskStore.UpdateTaskTitle(trimmedTitle);
+            BoardDetailsStore.UpdateTaskTitle(TaskId, trimmedTitle);
+            _isEditingTitle = false;
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+        finally
+        {
+            _isSavingTitle = false;
+        }
+    }
 
     private void OnAssigneeSelectChanged(ChangeEventArgs _) =>
         StateHasChanged();

@@ -27,6 +27,8 @@ public interface IBoardDetailsStore
 
     void UpdateColumnName(Guid columnId, string name);
 
+    void UpdateTaskTitle(Guid taskId, string title);
+
     Task DeleteColumnAsync(Guid columnId, DeleteColumnRequest request, CancellationToken ct = default);
 
     Task ReorderColumnAsync(Guid columnId, int position, CancellationToken ct = default);

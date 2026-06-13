@@ -105,6 +105,24 @@ internal sealed class BoardDetailsStore(IBoardApiService boardApiService) : IBoa
         NotifyStateChanged();
     }
 
+    public void UpdateTaskTitle(Guid taskId, string title)
+    {
+        if (Board is null)
+            return;
+
+        var columns = Board.Columns
+            .Select(column => column with
+            {
+                BoardTasks = column.BoardTasks
+                    .Select(task => task.Id == taskId ? task with { Title = title } : task)
+                    .ToList()
+            })
+            .ToList();
+
+        Board = Board with { Columns = columns };
+        NotifyStateChanged();
+    }
+
     public async Task ReorderColumnAsync(Guid columnId, int position, CancellationToken ct = default)
     {
         if (BoardId is not { } boardId || Board is null)

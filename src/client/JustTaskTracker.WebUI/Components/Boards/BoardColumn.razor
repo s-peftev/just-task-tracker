@@ -7,7 +7,9 @@
 @using JustTaskTracker.WebUI.Components.Shared.Forms
 @using JustTaskTracker.WebUI.Services.Abstractions.Boards
 @using JustTaskTracker.WebUI.Services.Exceptions
+@using BlazorSortable
 @using Microsoft.JSInterop
+@implements IDisposable
 @inject IJSRuntime Js
 
 <article class="board-column">
@@ -63,10 +65,32 @@
 
     <div @ref="_tasksListRef"
          class="board-column__tasks @(_hasTaskContent ? "board-column__tasks--filled" : null)">
-        @foreach (var task in Column.BoardTasks.OrderBy(t => t.Position))
-        {
-            <BoardTaskCard Task="task" OnTaskClick="OnTaskClick" />
-        }
+        <Sortable TItem="TaskLookupDto"
+                  @key="Column.Id"
+                  Id="@Column.Id.ToString()"
+                  Items="_sortableTasks"
+                  ItemKeySelector="GetTaskKey"
+                  Group="board-tasks"
+                  PullMode="SortablePullMode.True"
+                  PutMode="SortablePutMode.True"
+                  Handle=".board-task-card--draggable"
+                  Filter=".board-column__add-task-input"
+                  Delay="0"
+                  DelayOnTouchOnly="true"
+                  FallbackTolerance="5"
+                  Disabled="@(!CanMoveTasks || _isReorderingTasks || BoardDetailsStore.IsReorderingTasks)"
+                  Class="board-column__tasks-sortable"
+                  GhostClass="board-column__task-ghost"
+                  DragClass="board-column__task-drag"
+                  Scroll="false"
+                  OnUpdate="OnTaskSortableChangedAsync"
+                  OnAdd="OnTaskSortableChangedAsync">
+            <div class="board-column__task-item">
+                <BoardTaskCard Task="context"
+                               CanDrag="CanMoveTasks"
+                               OnTaskClick="OnTaskClick" />
+            </div>
+        </Sortable>
 
         @if (_isAddingTask)
         {
@@ -132,8 +156,10 @@
     private ElementReference _taskTitleInputRef;
     private ElementReference _tasksListRef;
     private bool _scrollTasksToBottom;
+    private bool _isReorderingTasks;
     private int _expectedTaskCountAfterCreate;
     private IJSObjectReference? _tasksScrollModule;
+    private readonly List<TaskLookupDto> _sortableTasks = [];
 
     private bool CanRenameColumn => BoardRolePermissions.CanManageColumns(UserRole);
 
@@ -143,7 +169,39 @@
 
     private bool CanManageTasks => BoardRolePermissions.CanManageTasks(UserRole);
 
+    private bool CanMoveTasks => BoardRolePermissions.CanMoveTasks(UserRole);
+
     private bool _hasTaskContent => Column.BoardTasks.Count > 0 || _isAddingTask;
+
+    protected override void OnInitialized() =>
+        BoardDetailsStore.StateChanged += OnBoardStateChanged;
+
+    protected override void OnParametersSet()
+    {
+        if (ShouldSkipSortableSync())
+            return;
+
+        SyncSortableTasksFromColumn();
+    }
+
+    public void Dispose() =>
+        BoardDetailsStore.StateChanged -= OnBoardStateChanged;
+
+    private void OnBoardStateChanged()
+    {
+        if (BoardDetailsStore.IsReorderingTasks)
+            return;
+
+        _isReorderingTasks = false;
+
+        if (!ShouldSkipSortableSync())
+            SyncSortableTasksFromColumn();
+
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private bool ShouldSkipSortableSync() =>
+        _isReorderingTasks || BoardDetailsStore.IsReorderingTasks;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -363,6 +421,7 @@
         {
             _expectedTaskCountAfterCreate = Column.BoardTasks.Count + 1;
             await BoardDetailsStore.CreateTaskAsync(Column.Id, trimmedTitle);
+            SyncSortableTasksFromColumn();
             CancelAddTask();
             _scrollTasksToBottom = true;
         }
@@ -378,4 +437,49 @@
 
     private void OnTaskClick() =>
         Snackbar.Add("Task details are coming soon.", Severity.Info);
+
+    private static string GetTaskKey(TaskLookupDto task) => task.Id.ToString();
+
+    private void SyncSortableTasksFromColumn()
+    {
+        var ordered = Column.BoardTasks
+            .OrderBy(task => task.Position)
+            .ToList();
+
+        _sortableTasks.Clear();
+        _sortableTasks.AddRange(ordered);
+    }
+
+    private async Task OnTaskSortableChangedAsync(SortableEventArgs<TaskLookupDto> args)
+    {
+        if (!CanMoveTasks || _isReorderingTasks || BoardDetailsStore.IsReorderingTasks)
+            return;
+
+        if (args.Operation == SortableChangeOperation.Remove)
+            return;
+
+        if (args.Operation == SortableChangeOperation.Update && args.OldIndex == args.NewIndex)
+            return;
+
+        if (args.Operation == SortableChangeOperation.Add && args.From.Id == args.To.Id)
+            return;
+
+        _isReorderingTasks = true;
+
+        try
+        {
+            await BoardDetailsStore.ReorderTaskAsync(args.Item.Id, Column.Id, args.NewIndex);
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+        finally
+        {
+            _isReorderingTasks = false;
+
+            if (!BoardDetailsStore.IsReorderingTasks)
+                SyncSortableTasksFromColumn();
+        }
+    }
 }

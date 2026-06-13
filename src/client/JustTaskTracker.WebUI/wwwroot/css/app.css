@@ -501,7 +501,7 @@ h1:focus {
     box-sizing: border-box;
 }
 
-.board-page__body .sortable-draggable {
+.board-page__body .board-page__columns-sortable > .sortable-draggable {
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
@@ -518,4 +518,33 @@ h1:focus {
 
 .board-page__body .board-page__column-drag {
     opacity: 0.9;
+}
+
+/* Task list DnD: Sortable root uses Class= on BlazorSortable (not BoardColumn scoped CSS) */
+.board-column__tasks-sortable {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    width: 100%;
+    min-height: 1.5rem;
+    flex: 1 1 auto;
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+.board-column__tasks-sortable > div {
+    width: 100%;
+    flex-shrink: 0;
+}
+
+.board-column__task-ghost {
+    opacity: 0.35;
+}
+
+.board-column__task-drag {
+    opacity: 0.9;
+}
+
+.board-column__task-drag .board-task-card {
+    cursor: grabbing;
 }

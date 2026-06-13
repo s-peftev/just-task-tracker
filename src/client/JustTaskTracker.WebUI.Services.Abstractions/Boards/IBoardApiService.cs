@@ -21,5 +21,12 @@ public interface IBoardApiService
         int position,
         CancellationToken ct = default);
 
+    Task ReorderTaskAsync(
+        Guid boardId,
+        Guid targetColumnId,
+        Guid taskId,
+        int position,
+        CancellationToken ct = default);
+
     Task<TaskLookupDto> CreateTaskAsync(Guid boardId, Guid columnId, string title, CancellationToken ct = default);
 }

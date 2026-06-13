@@ -83,6 +83,23 @@ internal class BoardApiService(IBoardApi api) : IBoardApiService
         ApiResponseGuard.EnsureSuccess(response);
     }
 
+    public async Task ReorderTaskAsync(
+        Guid boardId,
+        Guid targetColumnId,
+        Guid taskId,
+        int position,
+        CancellationToken ct = default)
+    {
+        var response = await api.ReorderTaskAsync(
+            boardId,
+            targetColumnId,
+            taskId,
+            new ReorderTaskPositionRequest(position),
+            ct);
+
+        ApiResponseGuard.EnsureSuccess(response);
+    }
+
     public async Task<TaskLookupDto> CreateTaskAsync(
         Guid boardId,
         Guid columnId,

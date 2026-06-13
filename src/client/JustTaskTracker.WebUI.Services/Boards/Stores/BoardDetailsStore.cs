@@ -12,6 +12,7 @@ internal sealed class BoardDetailsStore(IBoardApiService boardApiService) : IBoa
     public BoardDetailsDto? Board { get; private set; }
     public bool IsLoading { get; private set; }
     public string? ErrorMessage { get; private set; }
+    public bool IsReorderingTasks { get; private set; }
 
     public event Action? StateChanged;
 
@@ -138,6 +139,43 @@ internal sealed class BoardDetailsStore(IBoardApiService boardApiService) : IBoa
         }
     }
 
+    public async Task ReorderTaskAsync(Guid taskId, Guid targetColumnId, int position, CancellationToken ct = default)
+    {
+        if (BoardId is not { } boardId || Board is null)
+            throw new InvalidOperationException("Board details are not loaded.");
+
+        var sourceColumn = Board.Columns.FirstOrDefault(column => column.BoardTasks.Any(task => task.Id == taskId));
+
+        if (sourceColumn is null)
+            throw new InvalidOperationException("Task was not found on the loaded board.");
+
+        var task = sourceColumn.BoardTasks.First(t => t.Id == taskId);
+
+        if (sourceColumn.Id == targetColumnId && task.Position == position)
+            return;
+
+        IsReorderingTasks = true;
+
+        var snapshot = CaptureTaskOrderSnapshot();
+
+        ApplyTaskMove(taskId, targetColumnId, position);
+
+        try
+        {
+            await boardApiService.ReorderTaskAsync(boardId, targetColumnId, taskId, position, ct);
+        }
+        catch
+        {
+            RestoreTaskOrderSnapshot(snapshot);
+            throw;
+        }
+        finally
+        {
+            IsReorderingTasks = false;
+            NotifyStateChanged();
+        }
+    }
+
     public void Reset()
     {
         BoardId = null;
@@ -242,15 +280,19 @@ internal sealed class BoardDetailsStore(IBoardApiService boardApiService) : IBoa
             return;
 
         var columns = Board.Columns
-            .Select(column => column.Id == columnId
-                ? column with
-                {
-                    BoardTasks = column.BoardTasks
-                        .Append(task)
-                        .OrderBy(t => t.Position)
-                        .ToList()
-                }
-                : column)
+            .Select(column =>
+            {
+                if (column.Id != columnId)
+                    return column;
+
+                var tasks = column.BoardTasks
+                    .OrderBy(t => t.Position)
+                    .Append(task)
+                    .Select((t, index) => t with { Position = index })
+                    .ToList();
+
+                return column with { BoardTasks = tasks };
+            })
             .ToList();
 
         Board = Board with { Columns = columns };
@@ -288,6 +330,102 @@ internal sealed class BoardDetailsStore(IBoardApiService boardApiService) : IBoa
         Board = Board with { Columns = reorderedColumns };
         NotifyStateChanged();
     }
+
+    private void ApplyTaskMove(Guid taskId, Guid targetColumnId, int newIndex)
+    {
+        if (Board is null)
+            return;
+
+        var columns = Board.Columns.ToList();
+        var sourceColumn = columns.First(column => column.BoardTasks.Any(task => task.Id == taskId));
+        var movedTask = sourceColumn.BoardTasks.First(task => task.Id == taskId);
+
+        if (sourceColumn.Id == targetColumnId)
+        {
+            var orderedTasks = sourceColumn.BoardTasks
+                .OrderBy(task => task.Position)
+                .ToList();
+
+            orderedTasks.RemoveAll(task => task.Id == taskId);
+            orderedTasks.Insert(newIndex, movedTask);
+
+            var reorderedTasks = orderedTasks
+                .Select((task, index) => task with { Position = index })
+                .ToList();
+
+            columns = columns
+                .Select(column => column.Id == targetColumnId
+                    ? column with { BoardTasks = reorderedTasks }
+                    : column)
+                .ToList();
+        }
+        else
+        {
+            var sourceTasks = sourceColumn.BoardTasks
+                .Where(task => task.Id != taskId)
+                .OrderBy(task => task.Position)
+                .Select((task, index) => task with { Position = index })
+                .ToList();
+
+            var targetColumn = columns.First(column => column.Id == targetColumnId);
+            var targetTasks = targetColumn.BoardTasks
+                .OrderBy(task => task.Position)
+                .ToList();
+
+            targetTasks.Insert(newIndex, movedTask);
+
+            var reorderedTargetTasks = targetTasks
+                .Select((task, index) => task with { Position = index })
+                .ToList();
+
+            columns = columns
+                .Select(column =>
+                {
+                    if (column.Id == sourceColumn.Id)
+                        return column with { BoardTasks = sourceTasks };
+
+                    if (column.Id == targetColumnId)
+                        return column with { BoardTasks = reorderedTargetTasks };
+
+                    return column;
+                })
+                .ToList();
+        }
+
+        Board = Board with { Columns = columns };
+        NotifyStateChanged();
+    }
+
+    private TaskOrderSnapshot CaptureTaskOrderSnapshot()
+    {
+        if (Board is null)
+            throw new InvalidOperationException("Board details are not loaded.");
+
+        return new TaskOrderSnapshot(
+            Board.Columns
+                .Select(column => (column.Id, (IReadOnlyList<TaskLookupDto>)column.BoardTasks.ToList()))
+                .ToList());
+    }
+
+    private void RestoreTaskOrderSnapshot(TaskOrderSnapshot snapshot)
+    {
+        if (Board is null)
+            return;
+
+        var tasksByColumnId = snapshot.Columns.ToDictionary(entry => entry.ColumnId, entry => entry.Tasks);
+
+        Board = Board with
+        {
+            Columns = Board.Columns
+                .Select(column => column with { BoardTasks = tasksByColumnId[column.Id] })
+                .ToList()
+        };
+
+        NotifyStateChanged();
+    }
+
+    private sealed record TaskOrderSnapshot(
+        IReadOnlyList<(Guid ColumnId, IReadOnlyList<TaskLookupDto> Tasks)> Columns);
 
     private void NotifyStateChanged() => StateChanged?.Invoke();
 }

@@ -20,6 +20,15 @@
     background-color: var(--jtt-overlay-white-10);
 }
 
+.board-task-card--draggable {
+    touch-action: none;
+    user-select: none;
+}
+
+.board-task-card--draggable:active {
+    cursor: grabbing;
+}
+
 .board-task-card__title {
     display: block;
     overflow: hidden;

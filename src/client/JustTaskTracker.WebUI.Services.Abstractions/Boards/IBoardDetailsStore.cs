@@ -13,6 +13,7 @@ public interface IBoardDetailsStore
     BoardDetailsDto? Board { get; }
     bool IsLoading { get; }
     string? ErrorMessage { get; }
+    bool IsReorderingTasks { get; }
 
     event Action? StateChanged;
 
@@ -29,6 +30,8 @@ public interface IBoardDetailsStore
     Task DeleteColumnAsync(Guid columnId, DeleteColumnRequest request, CancellationToken ct = default);
 
     Task ReorderColumnAsync(Guid columnId, int position, CancellationToken ct = default);
+
+    Task ReorderTaskAsync(Guid taskId, Guid targetColumnId, int position, CancellationToken ct = default);
 
     void Reset();
 }

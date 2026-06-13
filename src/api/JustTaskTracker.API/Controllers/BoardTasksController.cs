@@ -42,4 +42,14 @@ public class BoardTasksController(ISender sender) : ControllerBase
             () => NoContent(),
             error => error.CreateErrorResponse());
     }
+
+    [HttpPatch("{id:guid}")]
+    public async Task<IActionResult> Update(Guid boardId, Guid columnId, Guid id, [FromBody] UpdateBoardTaskCommand request, CancellationToken ct)
+    {
+        var result = await sender.Send(request with { BoardId = boardId, ColumnId = columnId, BoardTaskId = id }, ct);
+
+        return result.Match(
+            () => NoContent(),
+            error => error.CreateErrorResponse());
+    }
 }

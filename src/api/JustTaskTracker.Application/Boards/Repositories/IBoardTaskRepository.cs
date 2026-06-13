@@ -1,4 +1,5 @@
 using JustTaskTracker.Application.Common.Interfaces.Persistence;
+using JustTaskTracker.Domain.Boards.DTOs;
 using JustTaskTracker.Domain.Boards.Entities;
 
 namespace JustTaskTracker.Application.Boards.Repositories;
@@ -6,6 +7,12 @@ namespace JustTaskTracker.Application.Boards.Repositories;
 public interface IBoardTaskRepository : IRepository<BoardTask, Guid>
 {
     Task<BoardTask?> GetByBoardIdAndIdAsync(Guid boardId, Guid boardTaskId, CancellationToken ct = default);
+
+    Task<BoardTaskDetailsDto?> GetDetailsByBoardIdAndColumnIdAndIdAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid boardTaskId,
+        CancellationToken ct = default);
 
     Task<IReadOnlyList<BoardTask>> GetOrderedByColumnIdAsync(Guid columnId, CancellationToken ct = default);
 

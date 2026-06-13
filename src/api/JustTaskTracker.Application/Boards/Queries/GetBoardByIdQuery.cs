@@ -1,9 +1,10 @@
-using JustTaskTracker.Application.Common.Interfaces;
+using JustTaskTracker.Application.Boards.Authorization;
 using JustTaskTracker.Application.Boards.Repositories;
+using JustTaskTracker.Application.Common.Interfaces;
+using JustTaskTracker.Domain.Boards.Authorization;
+using JustTaskTracker.Domain.Boards.DTOs;
 using JustTaskTracker.Domain.Common.Results;
 using JustTaskTracker.Domain.Common.Results.Errors;
-using JustTaskTracker.Domain.Boards.DTOs;
-using JustTaskTracker.Domain.Boards.Enums;
 using MediatR;
 
 namespace JustTaskTracker.Application.Boards.Queries;
@@ -17,18 +18,13 @@ public class GetBoardByIdQueryHandler(
 {
     public async Task<Result<BoardDetailsDto>> Handle(GetBoardByIdQuery request, CancellationToken ct)
     {
-        var access = await boardRepository.GetBoardAccessAsync(
+        var (boardExists, userRole) = await boardRepository.GetUserBoardRoleAsync(
             request.BoardId,
             currentUserAccessor.AzureAdObjectId,
             ct);
 
-        switch (access)
-        {
-            case BoardAccessStatus.NotFound:
-                return Result<BoardDetailsDto>.Failure(GeneralErrors.NotFound);
-            case BoardAccessStatus.Forbidden:
-                return Result<BoardDetailsDto>.Failure(GeneralErrors.Forbidden);
-        }
+        if (BoardRoleAuthorization.EnsureBoardAccess(boardExists, userRole, BoardRolePermissions.CanViewBoard) is { } failure)
+            return Result<BoardDetailsDto>.Failure(failure.Error);
 
         var board = await boardRepository.GetBoardDetailsByIdAsync(
             request.BoardId,

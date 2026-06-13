@@ -54,24 +54,6 @@ public class BoardRepository(JustTaskTrackerDbContext context)
         return (result?.Board, result?.UserRole);
     }
 
-    public async Task<BoardAccessStatus> GetBoardAccessAsync(Guid boardId, Guid azureAdObjectId, CancellationToken ct = default)
-    {
-        var access = await _dbSet
-            .Where(b => b.Id == boardId)
-            .Select(b => new
-            {
-                IsMember = b.Members.Any(m => m.User!.AzureAdObjectId == azureAdObjectId)
-            })
-            .FirstOrDefaultAsync(ct);
-
-        if (access is null)
-            return BoardAccessStatus.NotFound;
-
-        return access.IsMember
-            ? BoardAccessStatus.Allowed
-            : BoardAccessStatus.Forbidden;
-    }
-
     public async Task<BoardDetailsDto?> GetBoardDetailsByIdAsync(Guid boardId, Guid azureAdObjectId, CancellationToken ct = default) =>
         await _dbSet
             .Where(b => b.Id == boardId)

@@ -1,5 +1,6 @@
 ﻿using JustTaskTracker.API.Extensions;
 using JustTaskTracker.Application.Boards.Commands;
+using JustTaskTracker.Application.Boards.Queries;
 using JustTaskTracker.Application.Common.Constants;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -12,6 +13,16 @@ namespace JustTaskTracker.API.Controllers;
 [Authorize(Policy = AuthorizationPolicies.IsAppMember)]
 public class BoardTasksController(ISender sender) : ControllerBase
 {
+    [HttpGet("{id:guid}")]
+    public async Task<IActionResult> GetById(Guid boardId, Guid columnId, Guid id, CancellationToken ct)
+    {
+        var result = await sender.Send(new GetBoardTaskByIdQuery(boardId, columnId, id), ct);
+
+        return result.Match(
+            data => Ok(data),
+            error => error.CreateErrorResponse());
+    }
+
     [HttpPost]
     public async Task<IActionResult> Create(Guid boardId, Guid columnId, [FromBody] CreateBoardTaskCommand request, CancellationToken ct)
     {

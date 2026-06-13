@@ -1,0 +1,75 @@
+@using System.Text.Json
+@using JustTaskTracker.WebUI.Services.Abstractions.Boards
+@implements IDisposable
+@inject IBoardTaskStore BoardTaskStore
+
+<MudDialog Class="resource-form-dialog" ActionsClass="resource-form-dialog__actions">
+    <DialogContent>
+        @if (BoardTaskStore.IsLoading)
+        {
+            <div class="board-task-details-dialog__state">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+            </div>
+        }
+        else if (BoardTaskStore.ErrorMessage is { } error)
+        {
+            <MudAlert Severity="Severity.Error">@error</MudAlert>
+        }
+        else if (BoardTaskStore.Task is { } task)
+        {
+            <pre class="board-task-details-dialog__dump">@FormatTask(task)</pre>
+        }
+    </DialogContent>
+    <DialogActions>
+        <MudButton Class="btn-dialog-cancel btn-dialog-action"
+                   ButtonType="ButtonType.Button"
+                   OnClick="Close">
+            Close
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    public static DialogOptions DefaultOptions { get; } = new()
+    {
+        CloseOnEscapeKey = true,
+        MaxWidth = MaxWidth.Medium,
+        FullWidth = true
+    };
+
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        WriteIndented = true
+    };
+
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public Guid BoardId { get; set; }
+
+    [Parameter, EditorRequired]
+    public Guid ColumnId { get; set; }
+
+    [Parameter, EditorRequired]
+    public Guid TaskId { get; set; }
+
+    protected override void OnInitialized() =>
+        BoardTaskStore.StateChanged += OnStoreStateChanged;
+
+    protected override async Task OnInitializedAsync() =>
+        await BoardTaskStore.LoadAsync(BoardId, ColumnId, TaskId);
+
+    public void Dispose()
+    {
+        BoardTaskStore.StateChanged -= OnStoreStateChanged;
+        BoardTaskStore.Reset();
+    }
+
+    private void OnStoreStateChanged() => InvokeAsync(StateHasChanged);
+
+    private void Close() => MudDialog.Close();
+
+    private static string FormatTask(BoardTaskDetailsDto task) =>
+        JsonSerializer.Serialize(task, JsonOptions);
+}

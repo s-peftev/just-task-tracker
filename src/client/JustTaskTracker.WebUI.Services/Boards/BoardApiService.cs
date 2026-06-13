@@ -110,4 +110,15 @@ internal class BoardApiService(IBoardApi api) : IBoardApiService
 
         return ApiResponseGuard.Unwrap(response);
     }
+
+    public async Task<BoardTaskDetailsDto> GetBoardTaskByIdAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid taskId,
+        CancellationToken ct = default)
+    {
+        var response = await api.GetTaskByIdAsync(boardId, columnId, taskId, ct);
+
+        return ApiResponseGuard.Unwrap(response);
+    }
 }

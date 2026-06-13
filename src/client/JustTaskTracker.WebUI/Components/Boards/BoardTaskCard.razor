@@ -17,7 +17,7 @@
     public bool CanDrag { get; set; }
 
     [Parameter]
-    public EventCallback OnTaskClick { get; set; }
+    public EventCallback<TaskLookupDto> OnTaskClick { get; set; }
 
     private double? _pointerDownX;
     private double? _pointerDownY;
@@ -42,6 +42,6 @@
         if (movedX > ClickMoveThresholdPx || movedY > ClickMoveThresholdPx)
             return;
 
-        await OnTaskClick.InvokeAsync();
+        await OnTaskClick.InvokeAsync(Task);
     }
 }

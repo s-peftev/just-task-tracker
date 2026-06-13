@@ -88,7 +88,7 @@
             <div class="board-column__task-item">
                 <BoardTaskCard Task="context"
                                CanDrag="CanMoveTasks"
-                               OnTaskClick="OnTaskClick" />
+                               OnTaskClick="OnTaskClickAsync" />
             </div>
         </Sortable>
 
@@ -435,8 +435,13 @@
         }
     }
 
-    private void OnTaskClick() =>
-        Snackbar.Add("Task details are coming soon.", Severity.Info);
+    private async Task OnTaskClickAsync(TaskLookupDto task)
+    {
+        if (BoardDetailsStore.BoardId is not { } boardId)
+            return;
+
+        await DialogService.ShowBoardTaskDetailsAsync(boardId, Column.Id, task.Id, task.Title);
+    }
 
     private static string GetTaskKey(TaskLookupDto task) => task.Id.ToString();
 

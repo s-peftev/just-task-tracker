@@ -14,4 +14,9 @@ public static class BoardTasksErrors
         nameof(InvalidPosition),
         ErrorType.Validation,
         ["Task position is out of range."]);
+
+    public static readonly Error TooManyAttachments = new(
+        nameof(TooManyAttachments),
+        ErrorType.Business,
+        ["The maximum number of attachments for this task has been reached."]);
 }

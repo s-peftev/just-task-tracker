@@ -16,11 +16,23 @@ public class BoardTaskRepository(JustTaskTrackerDbContext context)
                 task => task.Id == boardTaskId && task.Column!.BoardId == boardId,
                 ct);
 
-    public async Task<BoardTaskDetailsDto?> GetDetailsByBoardIdAndColumnIdAndIdAsync(
+    public async Task<(BoardTask? Task, int AttachmentCount)> GetByBoardIdAndColumnIdAndIdWithAttachmentsCountAsync(
         Guid boardId,
         Guid columnId,
         Guid boardTaskId,
-        CancellationToken ct = default) =>
+        CancellationToken ct = default)
+    {
+        var row = await _dbSet
+            .Where(task => task.Id == boardTaskId
+                && task.ColumnId == columnId
+                && task.Column!.BoardId == boardId)
+            .Select(task => new { Task = task, AttachmentCount = task.Attachments.Count })
+            .FirstOrDefaultAsync(ct);
+
+        return row is null ? (null, 0) : (row.Task, row.AttachmentCount);
+    }
+
+    public async Task<BoardTaskDetailsDto?> GetDetailsByBoardIdAndColumnIdAndIdAsync(Guid boardId, Guid columnId, Guid boardTaskId, CancellationToken ct = default) =>
         await _dbSet
             .Where(task => task.Id == boardTaskId
                 && task.ColumnId == columnId

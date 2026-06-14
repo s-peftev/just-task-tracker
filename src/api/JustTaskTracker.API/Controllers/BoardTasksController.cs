@@ -62,4 +62,20 @@ public class BoardTasksController(ISender sender) : ControllerBase
             () => NoContent(),
             error => error.CreateErrorResponse());
     }
+
+    [HttpPost("{id:guid}/attachments")]
+    [Consumes("multipart/form-data")]
+    public async Task<IActionResult> UploadAttachment(
+        Guid boardId,
+        Guid columnId,
+        Guid id,
+        IFormFile file,
+        CancellationToken ct)
+    {
+        var result = await sender.Send(new UploadBoardTaskAttachmentCommand(boardId, columnId, id, file), ct);
+
+        return result.Match(
+            data => Ok(data),
+            error => error.CreateErrorResponse());
+    }
 }

@@ -64,12 +64,19 @@ public class BoardTasksController(ISender sender) : ControllerBase
     }
 
     [HttpGet("{id:guid}/comments")]
-    public async Task<IActionResult> GetComments(
-        Guid boardId,
-        Guid columnId,
-        Guid id,
-        [FromQuery] GetBoardTaskCommentsQuery request,
-        CancellationToken ct)
+    public async Task<IActionResult> GetComments(Guid boardId, Guid columnId, Guid id, [FromQuery] GetBoardTaskCommentsQuery request, CancellationToken ct)
+    {
+        var result = await sender.Send(
+            request with { BoardId = boardId, ColumnId = columnId, BoardTaskId = id },
+            ct);
+
+        return result.Match(
+            data => Ok(data),
+            error => error.CreateErrorResponse());
+    }
+
+    [HttpPost("{id:guid}/comments")]
+    public async Task<IActionResult> CreateComment(Guid boardId, Guid columnId, Guid id, [FromBody] CreateBoardTaskCommentCommand request, CancellationToken ct)
     {
         var result = await sender.Send(
             request with { BoardId = boardId, ColumnId = columnId, BoardTaskId = id },

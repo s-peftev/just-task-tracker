@@ -1,3 +1,4 @@
+using System.Net;
 using System.Text.Json;
 using JustTaskTracker.WebUI.Services.Api.Models;
 using JustTaskTracker.WebUI.Services.Exceptions;
@@ -38,6 +39,52 @@ internal static class ApiResponseGuard
         }
 
         throw ToException(response, response.Content);
+    }
+
+    public static async Task<(byte[] Content, string ContentType)> ReadBinarySuccessAsync(
+        HttpResponseMessage response,
+        CancellationToken ct = default)
+    {
+        if (response.IsSuccessStatusCode)
+        {
+            var contentType = response.Content.Headers.ContentType?.MediaType ?? "application/octet-stream";
+            var content = await response.Content.ReadAsByteArrayAsync(ct);
+
+            return (content, contentType);
+        }
+
+        throw await ToExceptionAsync(response, ct);
+    }
+
+    private static async Task<ApiServiceException> ToExceptionAsync(
+        HttpResponseMessage response,
+        CancellationToken ct)
+    {
+        var error = await TryParseErrorFromBodyAsync(response, ct);
+
+        return new ApiServiceException(
+            response.StatusCode,
+            error,
+            ApiErrorMessages.ForUser(error, response.StatusCode));
+    }
+
+    private static async Task<ApiError?> TryParseErrorFromBodyAsync(
+        HttpResponseMessage response,
+        CancellationToken ct)
+    {
+        var json = await response.Content.ReadAsStringAsync(ct);
+
+        if (string.IsNullOrWhiteSpace(json))
+            return null;
+
+        try
+        {
+            return JsonSerializer.Deserialize<ApiEnvelopeJson>(json, JsonOptions)?.Error;
+        }
+        catch
+        {
+            return null;
+        }
     }
 
     private static ApiServiceException ToException<T>(

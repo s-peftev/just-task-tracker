@@ -78,4 +78,12 @@ public interface IBoardApiService
         Guid taskId,
         Guid attachmentId,
         CancellationToken ct = default);
+
+    Task<BoardTaskAttachmentFile> DownloadBoardTaskAttachmentAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid taskId,
+        Guid attachmentId,
+        string fileName,
+        CancellationToken ct = default);
 }

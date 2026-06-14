@@ -410,6 +410,14 @@
     word-break: break-word;
 }
 
+.board-task-details-panel__attachment-actions {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.board-task-details-panel__attachment-download,
 .board-task-details-panel__attachment-delete {
     flex-shrink: 0;
 }

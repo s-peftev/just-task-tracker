@@ -217,4 +217,24 @@ internal class BoardApiService(IBoardApi api) : IBoardApiService
 
         ApiResponseGuard.EnsureSuccess(response);
     }
+
+    public async Task<BoardTaskAttachmentFile> DownloadBoardTaskAttachmentAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid taskId,
+        Guid attachmentId,
+        string fileName,
+        CancellationToken ct = default)
+    {
+        using var response = await api.DownloadTaskAttachmentAsync(
+            boardId,
+            columnId,
+            taskId,
+            attachmentId,
+            ct);
+
+        var (content, contentType) = await ApiResponseGuard.ReadBinarySuccessAsync(response, ct);
+
+        return new BoardTaskAttachmentFile(content, contentType, fileName);
+    }
 }

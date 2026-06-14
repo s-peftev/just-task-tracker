@@ -262,21 +262,50 @@
                                           title="@attachment.OriginalFileName">
                                         @attachment.OriginalFileName
                                     </span>
-                                    @if (CanManageTasks(task))
-                                    {
-                                        <button type="button"
-                                                class="btn-icon btn-icon--round btn-icon--sm board-task-details-panel__attachment-delete"
-                                                aria-label="@($"Delete {attachment.OriginalFileName}")"
-                                                disabled="@(_deletingAttachmentId == attachment.Id)"
-                                                @onclick="() => DeleteAttachmentAsync(attachment)">
-                                            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                                <path d="M18 6L6 18M6 6l12 12"
-                                                      stroke="currentColor"
-                                                      stroke-width="2"
-                                                      stroke-linecap="round" />
-                                            </svg>
-                                        </button>
-                                    }
+                                    <div class="board-task-details-panel__attachment-actions">
+                                        @if (CanDownloadAttachments(task))
+                                        {
+                                            <button type="button"
+                                                    class="btn-icon btn-icon--round btn-icon--sm board-task-details-panel__attachment-download"
+                                                    aria-label="@($"Download {attachment.OriginalFileName}")"
+                                                    disabled="@(_downloadingAttachmentId == attachment.Id)"
+                                                    @onclick="() => DownloadAttachmentAsync(attachment)">
+                                                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                                    <circle cx="12"
+                                                            cy="12"
+                                                            r="9"
+                                                            stroke="currentColor"
+                                                            stroke-width="2"
+                                                            fill="none" />
+                                                    <path d="M12 8v7"
+                                                          stroke="currentColor"
+                                                          stroke-width="2"
+                                                          stroke-linecap="round" />
+                                                    <path d="M9 12l3 3 3-3"
+                                                          stroke="currentColor"
+                                                          stroke-width="2"
+                                                          stroke-linecap="round"
+                                                          stroke-linejoin="round"
+                                                          fill="none" />
+                                                </svg>
+                                            </button>
+                                        }
+                                        @if (CanManageTasks(task))
+                                        {
+                                            <button type="button"
+                                                    class="btn-icon btn-icon--round btn-icon--sm board-task-details-panel__attachment-delete"
+                                                    aria-label="@($"Delete {attachment.OriginalFileName}")"
+                                                    disabled="@(_deletingAttachmentId == attachment.Id)"
+                                                    @onclick="() => DeleteAttachmentAsync(attachment)">
+                                                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                                    <path d="M18 6L6 18M6 6l12 12"
+                                                          stroke="currentColor"
+                                                          stroke-width="2"
+                                                          stroke-linecap="round" />
+                                                </svg>
+                                            </button>
+                                        }
+                                    </div>
                                 </li>
                             }
                         </ul>
@@ -321,6 +350,8 @@
     private bool _measureDescriptionOverflow;
 
     private Guid? _deletingAttachmentId;
+    private Guid? _downloadingAttachmentId;
+    private IJSObjectReference? _fileDownloadModule;
 
     protected override void OnInitialized() =>
         BoardTaskStore.StateChanged += OnStoreStateChanged;
@@ -373,8 +404,13 @@
         await BoardTaskStore.LoadAsync(BoardId, ColumnId, TaskId);
     }
 
-    public void Dispose() =>
+    public void Dispose()
+    {
         BoardTaskStore.StateChanged -= OnStoreStateChanged;
+
+        if (_fileDownloadModule is not null)
+            _ = _fileDownloadModule.DisposeAsync();
+    }
 
     private void OnStoreStateChanged()
     {
@@ -407,6 +443,9 @@
 
     private static bool CanManageTasks(BoardTaskDetailsDto task) =>
         BoardRolePermissions.CanManageTasks(task.UserRole);
+
+    private static bool CanDownloadAttachments(BoardTaskDetailsDto task) =>
+        BoardRolePermissions.CanDownloadAttachments(task.UserRole);
 
     private void StartTitleEdit()
     {
@@ -675,6 +714,40 @@
         catch (ApiServiceException ex)
         {
             Snackbar.ShowApiError(ex);
+        }
+    }
+
+    private async Task DownloadAttachmentAsync(BoardTaskAttachmentDto attachment)
+    {
+        if (BoardTaskStore.Task is not { } task || !CanDownloadAttachments(task) || _downloadingAttachmentId is not null)
+            return;
+
+        _downloadingAttachmentId = attachment.Id;
+
+        try
+        {
+            var file = await BoardApiService.DownloadBoardTaskAttachmentAsync(
+                BoardId,
+                ColumnId,
+                TaskId,
+                attachment.Id,
+                attachment.OriginalFileName);
+
+            _fileDownloadModule ??= await Js.InvokeAsync<IJSObjectReference>("import", "./js/fileDownload.js");
+
+            await _fileDownloadModule.InvokeVoidAsync(
+                "download",
+                file.FileName,
+                file.ContentType,
+                file.Content);
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+        finally
+        {
+            _downloadingAttachmentId = null;
         }
     }
 

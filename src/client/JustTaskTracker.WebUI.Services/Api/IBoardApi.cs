@@ -88,6 +88,14 @@ internal interface IBoardApi
         [AliasAs("file")] StreamPart file,
         CancellationToken ct = default);
 
+    [Get("/api/boards/{boardId}/columns/{columnId}/tasks/{taskId}/attachments/{attachmentId}")]
+    Task<HttpResponseMessage> DownloadTaskAttachmentAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid taskId,
+        Guid attachmentId,
+        CancellationToken ct = default);
+
     [Delete("/api/boards/{boardId}/columns/{columnId}/tasks/{taskId}/attachments/{attachmentId}")]
     Task<IApiResponse<ApiEnvelope<object>>> DeleteTaskAttachmentAsync(
         Guid boardId,

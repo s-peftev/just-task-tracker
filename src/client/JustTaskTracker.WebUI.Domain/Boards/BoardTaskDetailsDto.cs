@@ -12,5 +12,6 @@ public record BoardTaskDetailsDto(
     DateTime CreatedAtUtc,
     UserDto Reporter,
     BoardMemberRole UserRole,
+    IReadOnlyList<BoardTaskAttachmentDto> Attachments,
     string? Description = null,
     UserDto? Assignee = null);

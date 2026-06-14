@@ -46,6 +46,20 @@ public class BoardTaskRepository(JustTaskTrackerDbContext context)
                 task.CreatedAtUtc,
                 new UserDto(task.Reporter!.Id, task.Reporter.Email, task.Reporter.DisplayName),
                 default,
+                task.Attachments
+                    .OrderBy(attachment => attachment.Position)
+                    .Select(attachment => new BoardTaskAttachmentDto(
+                        attachment.Id,
+                        attachment.OriginalFileName,
+                        attachment.ContentType,
+                        attachment.FileSizeBytes,
+                        attachment.Position,
+                        attachment.CreatedAtUtc,
+                        new UserDto(
+                            attachment.UploadedBy!.Id,
+                            attachment.UploadedBy.Email,
+                            attachment.UploadedBy.DisplayName)))
+                    .ToList(),
                 task.Description,
                 task.Assignee == null
                     ? null

@@ -157,6 +157,14 @@ internal sealed class BoardDetailsStore(IBoardApiService boardApiService) : IBoa
         }
     }
 
+    public async Task DeleteTaskAsync(Guid boardId, Guid columnId, Guid taskId, CancellationToken ct = default)
+    {
+        await boardApiService.DeleteBoardTaskAsync(boardId, columnId, taskId, ct);
+
+        if (BoardId == boardId && Board is not null)
+            RemoveTaskLocally(columnId, taskId);
+    }
+
     public async Task ReorderTaskAsync(Guid taskId, Guid targetColumnId, int position, CancellationToken ct = default)
     {
         if (BoardId is not { } boardId || Board is null)
@@ -286,6 +294,36 @@ internal sealed class BoardDetailsStore(IBoardApiService boardApiService) : IBoa
         var columns = Board.Columns
             .Append(column)
             .OrderBy(c => c.Position)
+            .ToList();
+
+        Board = Board with { Columns = columns };
+        NotifyStateChanged();
+    }
+
+    private void RemoveTaskLocally(Guid columnId, Guid taskId)
+    {
+        if (Board is null)
+            return;
+
+        var column = Board.Columns.FirstOrDefault(c => c.Id == columnId);
+
+        if (column is null || column.BoardTasks.All(task => task.Id != taskId))
+            return;
+
+        var columns = Board.Columns
+            .Select(boardColumn =>
+            {
+                if (boardColumn.Id != columnId)
+                    return boardColumn;
+
+                var tasks = boardColumn.BoardTasks
+                    .Where(task => task.Id != taskId)
+                    .OrderBy(task => task.Position)
+                    .Select((task, index) => task with { Position = index })
+                    .ToList();
+
+                return boardColumn with { BoardTasks = tasks };
+            })
             .ToList();
 
         Board = Board with { Columns = columns };

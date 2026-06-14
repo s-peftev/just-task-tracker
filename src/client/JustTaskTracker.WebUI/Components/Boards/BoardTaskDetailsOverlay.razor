@@ -1,9 +1,13 @@
+@using JustTaskTracker.WebUI.Components.Shared
 @using JustTaskTracker.WebUI.Domain.Boards.Authorization
+@using JustTaskTracker.WebUI.Infrastructure
 @using JustTaskTracker.WebUI.Domain.Boards.Enums
 @using JustTaskTracker.WebUI.Services.Abstractions.Boards
+@using JustTaskTracker.WebUI.Services.Exceptions
 @implements IDisposable
 @inject IBoardDetailsStore BoardDetailsStore
 @inject IBoardTaskStore BoardTaskStore
+@inject IDialogService DialogService
 @inject ISnackbar Snackbar
 
 <div class="board-task-overlay"
@@ -25,6 +29,7 @@
                 {
                     <button type="button"
                             class="board-task-overlay__delete-btn"
+                            disabled="@_isDeletingTask"
                             @onclick="DeleteTaskAsync">
                         Delete
                     </button>
@@ -122,6 +127,8 @@
         BoardTaskStore.Reset();
     }
 
+    private bool _isDeletingTask;
+
     private bool CanDeleteTask =>
         EffectiveUserRole is { } role && BoardRolePermissions.CanManageTasks(role);
 
@@ -137,10 +144,42 @@
 
     private void OnTaskStoreStateChanged() => InvokeAsync(StateHasChanged);
 
-    private Task DeleteTaskAsync()
+    private async Task DeleteTaskAsync()
     {
-        Snackbar.Add("Task deletion is coming soon.", Severity.Info);
-        return Task.CompletedTask;
+        if (_isDeletingTask)
+            return;
+
+        var taskTitle = BoardTaskStore.Task?.Title ?? "this task";
+        var message =
+            $"Delete task \"{taskTitle}\"?{Environment.NewLine}This action cannot be undone.";
+
+        var dialog = await DialogService.ShowConfirmResourceAsync(
+            "Delete task",
+            message,
+            confirmLabel: "Delete");
+
+        var result = await dialog.Result;
+
+        if (result is not { Canceled: false, Data: true })
+            return;
+
+        _isDeletingTask = true;
+
+        try
+        {
+            await BoardDetailsStore.DeleteTaskAsync(BoardId, ColumnId, TaskId);
+            BoardTaskStore.Reset();
+            Snackbar.Add("Task deleted.", Severity.Success);
+            await CloseAsync();
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+        finally
+        {
+            _isDeletingTask = false;
+        }
     }
 
     private void ShowAddCommentComingSoon() =>

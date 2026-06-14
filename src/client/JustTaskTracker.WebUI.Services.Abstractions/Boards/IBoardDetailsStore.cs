@@ -35,5 +35,7 @@ public interface IBoardDetailsStore
 
     Task ReorderTaskAsync(Guid taskId, Guid targetColumnId, int position, CancellationToken ct = default);
 
+    Task DeleteTaskAsync(Guid boardId, Guid columnId, Guid taskId, CancellationToken ct = default);
+
     void Reset();
 }

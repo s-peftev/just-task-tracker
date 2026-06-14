@@ -71,4 +71,11 @@ internal interface IBoardApi
         Guid taskId,
         [Body] UpdateBoardTaskAssigneeRequest request,
         CancellationToken ct = default);
+
+    [Delete("/api/boards/{boardId}/columns/{columnId}/tasks/{taskId}")]
+    Task<IApiResponse<ApiEnvelope<object>>> DeleteTaskAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid taskId,
+        CancellationToken ct = default);
 }

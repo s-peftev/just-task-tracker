@@ -56,4 +56,10 @@ public interface IBoardApiService
         Guid taskId,
         Guid? assigneeId,
         CancellationToken ct = default);
+
+    Task DeleteBoardTaskAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid taskId,
+        CancellationToken ct = default);
 }

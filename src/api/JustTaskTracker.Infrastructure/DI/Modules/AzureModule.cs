@@ -1,5 +1,7 @@
 ﻿using Azure.Storage.Blobs;
+using JustTaskTracker.Application.Common.Interfaces.ExternalProviders;
 using JustTaskTracker.Infrastructure.Common.Constants;
+using JustTaskTracker.Infrastructure.Common.ExternalProviders;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -20,6 +22,7 @@ internal static class AzureModule
             ?? throw new InvalidOperationException("Azure Blob Storage connection string is not configured.");
 
         services.AddSingleton(new BlobServiceClient(connectionString));
+        services.AddSingleton<IBlobStorageService, AzureBlobStorageService>();
 
         return services;
     }

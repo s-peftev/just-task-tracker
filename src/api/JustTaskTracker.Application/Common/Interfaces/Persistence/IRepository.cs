@@ -1,4 +1,4 @@
-﻿using JustTaskTracker.Domain.Common;
+﻿using JustTaskTracker.Domain.Common.Entities;
 
 namespace JustTaskTracker.Application.Common.Interfaces.Persistence;
 

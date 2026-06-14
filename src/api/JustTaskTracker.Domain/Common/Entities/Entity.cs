@@ -1,4 +1,4 @@
-namespace JustTaskTracker.Domain.Common;
+namespace JustTaskTracker.Domain.Common.Entities;
 
 public abstract class Entity<TId>
 {

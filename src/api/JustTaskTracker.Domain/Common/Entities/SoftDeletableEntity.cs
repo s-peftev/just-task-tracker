@@ -1,6 +1,6 @@
 using JustTaskTracker.Domain.Common.Interfaces;
 
-namespace JustTaskTracker.Domain.Common;
+namespace JustTaskTracker.Domain.Common.Entities;
 
 public abstract class SoftDeletableEntity<TId> : AuditableEntity<TId>, ISoftDeletable
 {

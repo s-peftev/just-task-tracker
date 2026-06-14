@@ -1,6 +1,6 @@
 using JustTaskTracker.Domain.Boards.Entities;
 using JustTaskTracker.Domain.Boards.Enums;
-using JustTaskTracker.Domain.Common;
+using JustTaskTracker.Domain.Common.Entities;
 using JustTaskTracker.Domain.Common.Interfaces;
 
 namespace JustTaskTracker.Application.Boards.Positioning;

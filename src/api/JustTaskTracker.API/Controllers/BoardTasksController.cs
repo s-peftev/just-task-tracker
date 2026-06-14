@@ -63,6 +63,23 @@ public class BoardTasksController(ISender sender) : ControllerBase
             error => error.CreateErrorResponse());
     }
 
+    [HttpGet("{id:guid}/comments")]
+    public async Task<IActionResult> GetComments(
+        Guid boardId,
+        Guid columnId,
+        Guid id,
+        [FromQuery] GetBoardTaskCommentsQuery request,
+        CancellationToken ct)
+    {
+        var result = await sender.Send(
+            request with { BoardId = boardId, ColumnId = columnId, BoardTaskId = id },
+            ct);
+
+        return result.Match(
+            data => Ok(data),
+            error => error.CreateErrorResponse());
+    }
+
     [HttpPost("{id:guid}/attachments")]
     [Consumes("multipart/form-data")]
     public async Task<IActionResult> UploadAttachment(Guid boardId, Guid columnId, Guid id, IFormFile file, CancellationToken ct)

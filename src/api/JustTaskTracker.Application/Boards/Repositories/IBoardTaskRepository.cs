@@ -8,6 +8,12 @@ public interface IBoardTaskRepository : IRepository<BoardTask, Guid>
 {
     Task<BoardTask?> GetByBoardIdAndIdAsync(Guid boardId, Guid boardTaskId, CancellationToken ct = default);
 
+    Task<bool> ExistsByBoardIdAndColumnIdAndIdAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid boardTaskId,
+        CancellationToken ct = default);
+
     Task<(BoardTask? Task, int AttachmentCount)> GetByBoardIdAndColumnIdAndIdWithAttachmentsCountAsync(
         Guid boardId,
         Guid columnId,

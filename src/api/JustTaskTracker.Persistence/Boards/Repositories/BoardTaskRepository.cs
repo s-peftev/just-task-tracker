@@ -16,6 +16,17 @@ public class BoardTaskRepository(JustTaskTrackerDbContext context)
                 task => task.Id == boardTaskId && task.Column!.BoardId == boardId,
                 ct);
 
+    public async Task<bool> ExistsByBoardIdAndColumnIdAndIdAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid boardTaskId,
+        CancellationToken ct = default) =>
+        await _dbSet.AnyAsync(
+            task => task.Id == boardTaskId
+                && task.ColumnId == columnId
+                && task.Column!.BoardId == boardId,
+            ct);
+
     public async Task<(BoardTask? Task, int AttachmentCount)> GetByBoardIdAndColumnIdAndIdWithAttachmentsCountAsync(
         Guid boardId,
         Guid columnId,

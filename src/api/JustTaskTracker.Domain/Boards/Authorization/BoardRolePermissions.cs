@@ -37,6 +37,12 @@ public static class BoardRolePermissions
             or BoardMemberRole.ScrumMaster
             or BoardMemberRole.User;
 
+    public static bool CanDownloadAttachments(BoardMemberRole role) =>
+        role is BoardMemberRole.Owner
+            or BoardMemberRole.Admin
+            or BoardMemberRole.ScrumMaster
+            or BoardMemberRole.User;
+
     public static bool CanLeaveBoard(BoardMemberRole role) =>
         role is not BoardMemberRole.Owner;
 }

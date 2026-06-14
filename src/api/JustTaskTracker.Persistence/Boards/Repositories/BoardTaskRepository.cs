@@ -32,17 +32,27 @@ public class BoardTaskRepository(JustTaskTrackerDbContext context)
         return row is null ? (null, 0) : (row.Task, row.AttachmentCount);
     }
 
-    public async Task<BoardTask?> GetByBoardIdAndColumnIdAndIdWithAttachmentsAsync(
-        Guid boardId,
-        Guid columnId,
-        Guid boardTaskId,
-        CancellationToken ct = default) =>
+    public async Task<BoardTask?> GetByBoardIdAndColumnIdAndIdWithAttachmentsAsync(Guid boardId, Guid columnId, Guid boardTaskId, CancellationToken ct = default) =>
         await _dbSet
             .Include(task => task.Attachments)
             .FirstOrDefaultAsync(
                 task => task.Id == boardTaskId
                     && task.ColumnId == columnId
                     && task.Column!.BoardId == boardId,
+                ct);
+
+    public async Task<BoardTaskAttachment?> GetAttachmentByBoardIdAndColumnIdAndTaskIdAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid boardTaskId,
+        Guid attachmentId,
+        CancellationToken ct = default) =>
+        await _context.Set<BoardTaskAttachment>()
+            .FirstOrDefaultAsync(
+                attachment => attachment.Id == attachmentId
+                    && attachment.BoardTaskId == boardTaskId
+                    && attachment.BoardTask!.ColumnId == columnId
+                    && attachment.BoardTask.Column!.BoardId == boardId,
                 ct);
 
     public async Task<BoardTaskDetailsDto?> GetDetailsByBoardIdAndColumnIdAndIdAsync(Guid boardId, Guid columnId, Guid boardTaskId, CancellationToken ct = default) =>

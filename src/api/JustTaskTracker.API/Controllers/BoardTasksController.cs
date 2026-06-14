@@ -74,6 +74,22 @@ public class BoardTasksController(ISender sender) : ControllerBase
             error => error.CreateErrorResponse());
     }
 
+    [HttpGet("{id:guid}/attachments/{attachmentId:guid}")]
+    public async Task<IActionResult> DownloadAttachment(Guid boardId, Guid columnId, Guid id, Guid attachmentId, CancellationToken ct)
+    {
+        var result = await sender.Send(
+            new DownloadBoardTaskAttachmentCommand(boardId, columnId, id, attachmentId),
+            ct);
+
+        return result.Match(
+            download => File(
+                download.Blob.Content,
+                download.Blob.ContentType,
+                download.OriginalFileName,
+                enableRangeProcessing: true),
+            error => error.CreateErrorResponse());
+    }
+
     [HttpDelete("{id:guid}/attachments/{attachmentId:guid}")]
     public async Task<IActionResult> DeleteAttachment(Guid boardId, Guid columnId, Guid id, Guid attachmentId, CancellationToken ct)
     {

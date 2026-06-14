@@ -236,7 +236,7 @@
                         </svg>
                         <h4 class="board-task-details-panel__section-title">Attachments</h4>
                     </div>
-                    @if (CanUploadAttachments(task))
+                    @if (CanManageTasks(task))
                     {
                         <button type="button"
                                 class="board-task-details-panel__action-btn"
@@ -385,8 +385,8 @@
     private static bool CanManageTaskDescription(BoardTaskDetailsDto task) =>
         BoardRolePermissions.CanManageTasks(task.UserRole);
 
-    private static bool CanUploadAttachments(BoardTaskDetailsDto task) =>
-        BoardRolePermissions.CanUploadAttachments(task.UserRole);
+    private static bool CanManageTasks(BoardTaskDetailsDto task) =>
+        BoardRolePermissions.CanManageTasks(task.UserRole);
 
     private void StartTitleEdit()
     {
@@ -611,7 +611,7 @@
 
     private async Task OpenAddAttachmentDialogAsync()
     {
-        if (BoardTaskStore.Task is not { } task || !CanUploadAttachments(task))
+        if (BoardTaskStore.Task is not { } task || !CanManageTasks(task))
             return;
 
         if (task.Attachments.Count >= ValidationSettings.BoardTasks.MaxAttachmentsPerTask)

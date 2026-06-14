@@ -39,7 +39,7 @@ public class UploadBoardTaskAttachmentCommandHandler(
             currentUserAccessor.AzureAdObjectId,
             ct);
 
-        if (BoardRoleAuthorization.EnsureBoardAccess(boardExists, userRole, BoardRolePermissions.CanUploadAttachments) is { } failure)
+        if (BoardRoleAuthorization.EnsureBoardAccess(boardExists, userRole, BoardRolePermissions.CanManageTasks) is { } failure)
             return Result<BoardTaskAttachmentDto>.Failure(failure.Error);
 
         var (boardTask, attachmentCount) = await boardTaskRepository.GetByBoardIdAndColumnIdAndIdWithAttachmentsCountAsync(

@@ -14,6 +14,12 @@ public interface IBoardTaskRepository : IRepository<BoardTask, Guid>
         Guid boardTaskId,
         CancellationToken ct = default);
 
+    Task<BoardTask?> GetByBoardIdAndColumnIdAndIdWithAttachmentsAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid boardTaskId,
+        CancellationToken ct = default);
+
     Task<BoardTaskDetailsDto?> GetDetailsByBoardIdAndColumnIdAndIdAsync(
         Guid boardId,
         Guid columnId,

@@ -19,9 +19,6 @@ public static class BoardRolePermissions
     public static bool CanManageTasks(BoardMemberRole role) =>
         role is BoardMemberRole.Owner or BoardMemberRole.Admin or BoardMemberRole.ScrumMaster;
 
-    public static bool CanUploadAttachments(BoardMemberRole role) =>
-        role is BoardMemberRole.Owner or BoardMemberRole.Admin or BoardMemberRole.ScrumMaster;
-
     public static bool CanMoveTasks(BoardMemberRole role) =>
         role is BoardMemberRole.Owner
             or BoardMemberRole.Admin

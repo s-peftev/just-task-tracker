@@ -65,17 +65,24 @@ public class BoardTasksController(ISender sender) : ControllerBase
 
     [HttpPost("{id:guid}/attachments")]
     [Consumes("multipart/form-data")]
-    public async Task<IActionResult> UploadAttachment(
-        Guid boardId,
-        Guid columnId,
-        Guid id,
-        IFormFile file,
-        CancellationToken ct)
+    public async Task<IActionResult> UploadAttachment(Guid boardId, Guid columnId, Guid id, IFormFile file, CancellationToken ct)
     {
         var result = await sender.Send(new UploadBoardTaskAttachmentCommand(boardId, columnId, id, file), ct);
 
         return result.Match(
             data => Ok(data),
+            error => error.CreateErrorResponse());
+    }
+
+    [HttpDelete("{id:guid}/attachments/{attachmentId:guid}")]
+    public async Task<IActionResult> DeleteAttachment(Guid boardId, Guid columnId, Guid id, Guid attachmentId, CancellationToken ct)
+    {
+        var result = await sender.Send(
+            new DeleteBoardTaskAttachmentCommand(boardId, columnId, id, attachmentId),
+            ct);
+
+        return result.Match(
+            () => NoContent(),
             error => error.CreateErrorResponse());
     }
 }

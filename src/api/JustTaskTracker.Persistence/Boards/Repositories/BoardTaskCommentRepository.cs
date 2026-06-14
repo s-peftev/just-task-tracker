@@ -48,6 +48,20 @@ public class BoardTaskCommentRepository(JustTaskTrackerDbContext context)
                 pageSize,
                 ct);
 
+    public async Task<BoardTaskComment?> GetByBoardIdAndColumnIdAndTaskIdAndIdAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid boardTaskId,
+        Guid commentId,
+        CancellationToken ct = default) =>
+        await _dbSet
+            .FirstOrDefaultAsync(
+                comment => comment.Id == commentId
+                    && comment.BoardTaskId == boardTaskId
+                    && comment.BoardTask!.ColumnId == columnId
+                    && comment.BoardTask.Column!.BoardId == boardId,
+                ct);
+
     public void RemoveRange(IReadOnlyList<BoardTaskComment> comments)
     {
         foreach (var comment in comments)

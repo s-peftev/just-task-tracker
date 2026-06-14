@@ -17,5 +17,12 @@ public interface IBoardTaskCommentRepository : IRepository<BoardTaskComment, Gui
         int pageSize,
         CancellationToken ct = default);
 
+    Task<BoardTaskComment?> GetByBoardIdAndColumnIdAndTaskIdAndIdAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid boardTaskId,
+        Guid commentId,
+        CancellationToken ct = default);
+
     void RemoveRange(IReadOnlyList<BoardTaskComment> comments);
 }

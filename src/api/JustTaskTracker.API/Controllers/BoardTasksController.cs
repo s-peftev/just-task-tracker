@@ -87,6 +87,30 @@ public class BoardTasksController(ISender sender) : ControllerBase
             error => error.CreateErrorResponse());
     }
 
+    [HttpPatch("{id:guid}/comments/{commentId:guid}")]
+    public async Task<IActionResult> UpdateComment(Guid boardId, Guid columnId, Guid id, Guid commentId, [FromBody] UpdateBoardTaskCommentCommand request, CancellationToken ct)
+    {
+        var result = await sender.Send(
+            request with { BoardId = boardId, ColumnId = columnId, BoardTaskId = id, CommentId = commentId },
+            ct);
+
+        return result.Match(
+            () => NoContent(),
+            error => error.CreateErrorResponse());
+    }
+
+    [HttpDelete("{id:guid}/comments/{commentId:guid}")]
+    public async Task<IActionResult> DeleteComment(Guid boardId, Guid columnId, Guid id, Guid commentId, CancellationToken ct)
+    {
+        var result = await sender.Send(
+            new DeleteBoardTaskCommentCommand(boardId, columnId, id, commentId),
+            ct);
+
+        return result.Match(
+            () => NoContent(),
+            error => error.CreateErrorResponse());
+    }
+
     [HttpPost("{id:guid}/attachments")]
     [Consumes("multipart/form-data")]
     public async Task<IActionResult> UploadAttachment(Guid boardId, Guid columnId, Guid id, IFormFile file, CancellationToken ct)

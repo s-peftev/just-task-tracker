@@ -71,4 +71,11 @@ public interface IBoardApiService
         string fileName,
         string contentType,
         CancellationToken ct = default);
+
+    Task DeleteBoardTaskAttachmentAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid taskId,
+        Guid attachmentId,
+        CancellationToken ct = default);
 }

@@ -24,5 +24,7 @@ public interface IBoardTaskStore
 
     void AddAttachment(BoardTaskAttachmentDto attachment);
 
+    void RemoveAttachment(Guid attachmentId);
+
     void Reset();
 }

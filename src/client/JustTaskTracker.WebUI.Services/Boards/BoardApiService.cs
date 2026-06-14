@@ -205,4 +205,16 @@ internal class BoardApiService(IBoardApi api) : IBoardApiService
 
         return ApiResponseGuard.Unwrap(response);
     }
+
+    public async Task DeleteBoardTaskAttachmentAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid taskId,
+        Guid attachmentId,
+        CancellationToken ct = default)
+    {
+        var response = await api.DeleteTaskAttachmentAsync(boardId, columnId, taskId, attachmentId, ct);
+
+        ApiResponseGuard.EnsureSuccess(response);
+    }
 }

@@ -394,9 +394,22 @@
 }
 
 .board-task-details-panel__attachment-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    min-width: 0;
+}
+
+.board-task-details-panel__attachment-name {
+    flex: 1 1 0;
     min-width: 0;
     color: var(--jtt-text-primary);
     font-size: 0.875rem;
     line-height: 1.5;
     word-break: break-word;
+}
+
+.board-task-details-panel__attachment-delete {
+    flex-shrink: 0;
 }

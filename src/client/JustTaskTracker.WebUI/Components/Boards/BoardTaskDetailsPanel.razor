@@ -1,3 +1,4 @@
+@using JustTaskTracker.WebUI.Components.Shared
 @using JustTaskTracker.WebUI.Domain.Boards.Constants
 @using JustTaskTracker.WebUI.Infrastructure
 @using JustTaskTracker.WebUI.Services.Abstractions.Boards
@@ -256,9 +257,26 @@
                         <ul class="board-task-details-panel__attachment-list">
                             @foreach (var attachment in task.Attachments)
                             {
-                                <li class="board-task-details-panel__attachment-item"
-                                    title="@attachment.OriginalFileName">
-                                    @attachment.OriginalFileName
+                                <li class="board-task-details-panel__attachment-item">
+                                    <span class="board-task-details-panel__attachment-name"
+                                          title="@attachment.OriginalFileName">
+                                        @attachment.OriginalFileName
+                                    </span>
+                                    @if (CanManageTasks(task))
+                                    {
+                                        <button type="button"
+                                                class="btn-icon btn-icon--round btn-icon--sm board-task-details-panel__attachment-delete"
+                                                aria-label="@($"Delete {attachment.OriginalFileName}")"
+                                                disabled="@(_deletingAttachmentId == attachment.Id)"
+                                                @onclick="() => DeleteAttachmentAsync(attachment)">
+                                            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                                <path d="M18 6L6 18M6 6l12 12"
+                                                      stroke="currentColor"
+                                                      stroke-width="2"
+                                                      stroke-linecap="round" />
+                                            </svg>
+                                        </button>
+                                    }
                                 </li>
                             }
                         </ul>
@@ -301,6 +319,8 @@
     private bool _isDescriptionExpanded;
     private bool _isDescriptionOverflowing;
     private bool _measureDescriptionOverflow;
+
+    private Guid? _deletingAttachmentId;
 
     protected override void OnInitialized() =>
         BoardTaskStore.StateChanged += OnStoreStateChanged;
@@ -655,6 +675,48 @@
         catch (ApiServiceException ex)
         {
             Snackbar.ShowApiError(ex);
+        }
+    }
+
+    private async Task DeleteAttachmentAsync(BoardTaskAttachmentDto attachment)
+    {
+        if (BoardTaskStore.Task is not { } task || !CanManageTasks(task) || _deletingAttachmentId is not null)
+            return;
+
+        var fileName = attachment.OriginalFileName;
+        var message =
+            $"Delete attachment \"{fileName}\"?{Environment.NewLine}This action cannot be undone.";
+
+        var dialog = await DialogService.ShowConfirmResourceAsync(
+            "Delete attachment",
+            message,
+            confirmLabel: "Delete");
+
+        var result = await dialog.Result;
+
+        if (result is not { Canceled: false, Data: true })
+            return;
+
+        _deletingAttachmentId = attachment.Id;
+
+        try
+        {
+            await BoardApiService.DeleteBoardTaskAttachmentAsync(
+                BoardId,
+                ColumnId,
+                TaskId,
+                attachment.Id);
+
+            BoardTaskStore.RemoveAttachment(attachment.Id);
+            Snackbar.Add($"\"{fileName}\" deleted.", Severity.Success);
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+        finally
+        {
+            _deletingAttachmentId = null;
         }
     }
 }

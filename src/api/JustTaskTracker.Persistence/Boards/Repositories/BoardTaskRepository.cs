@@ -93,4 +93,7 @@ public class BoardTaskRepository(JustTaskTrackerDbContext context)
         foreach (var task in tasks)
             _dbSet.Remove(task);
     }
+
+    public void RemoveAttachment(BoardTaskAttachment attachment) =>
+        _context.Set<BoardTaskAttachment>().Remove(attachment);
 }

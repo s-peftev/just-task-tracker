@@ -87,4 +87,12 @@ internal interface IBoardApi
         Guid taskId,
         [AliasAs("file")] StreamPart file,
         CancellationToken ct = default);
+
+    [Delete("/api/boards/{boardId}/columns/{columnId}/tasks/{taskId}/attachments/{attachmentId}")]
+    Task<IApiResponse<ApiEnvelope<object>>> DeleteTaskAttachmentAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid taskId,
+        Guid attachmentId,
+        CancellationToken ct = default);
 }

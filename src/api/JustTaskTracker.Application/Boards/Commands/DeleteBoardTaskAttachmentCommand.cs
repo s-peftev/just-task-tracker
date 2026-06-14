@@ -52,9 +52,11 @@ public class DeleteBoardTaskAttachmentCommandHandler(
 
         var blobName = attachment.BlobName;
 
-        boardTask.Attachments.Remove(attachment);
+        var remainingAttachments = boardTask.Attachments
+            .Where(a => a.Id != request.AttachmentId)
+            .ToList();
 
-        var remainingAttachments = boardTask.Attachments.ToList();
+        boardTaskRepository.RemoveAttachment(attachment);
 
         if (remainingAttachments.Count > 0)
             await boardPositioningService.ApplyCurrentOrderAsync(remainingAttachments, ct);

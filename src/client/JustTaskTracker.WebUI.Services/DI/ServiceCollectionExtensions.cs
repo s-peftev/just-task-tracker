@@ -30,6 +30,14 @@ public static class ServiceCollectionExtensions
         services.Configure<ApiClientOptions>(configuration.GetSection(ApiClientOptions.SectionName));
         var options = configuration.GetSection(ApiClientOptions.SectionName).Get<ApiClientOptions>()!;
 
+        var validationSettings = configuration
+            .GetSection(ValidationSettings.SectionName)
+            .Get<ValidationSettings>() ?? new ValidationSettings();
+
+        validationSettings.BoardTasks.ApplyDefaultsIfMissing();
+
+        services.AddSingleton(validationSettings);
+
         services.AddScoped<ApiAuthorizationMessageHandler>();
 
         services.AddRefitClient<IAuthApi>(RefitSettings)

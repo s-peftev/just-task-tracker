@@ -1,6 +1,7 @@
 @using JustTaskTracker.WebUI.Domain.Boards.Constants
 @using JustTaskTracker.WebUI.Infrastructure
 @using JustTaskTracker.WebUI.Services.Abstractions.Boards
+@using JustTaskTracker.WebUI.Services.Configuration
 @using JustTaskTracker.WebUI.Services.Exceptions
 @implements IDisposable
 @inject IBoardTaskStore BoardTaskStore
@@ -8,6 +9,8 @@
 @inject IBoardApiService BoardApiService
 @inject ISnackbar Snackbar
 @inject IJSRuntime Js
+@inject IDialogService DialogService
+@inject ValidationSettings ValidationSettings
 
 <div class="board-task-details-panel">
     @if (BoardTaskStore.IsLoading)
@@ -233,15 +236,33 @@
                         </svg>
                         <h4 class="board-task-details-panel__section-title">Attachments</h4>
                     </div>
-                    <button type="button"
-                            class="board-task-details-panel__action-btn"
-                            @onclick="ShowAddAttachmentComingSoon">
-                        Add
-                    </button>
+                    @if (CanUploadAttachments(task))
+                    {
+                        <button type="button"
+                                class="board-task-details-panel__action-btn"
+                                @onclick="OpenAddAttachmentDialogAsync">
+                            Add
+                        </button>
+                    }
                 </header>
 
                 <div class="board-task-details-panel__section-body">
-                    <p class="board-task-details-panel__placeholder-text">In development</p>
+                    @if (task.Attachments.Count == 0)
+                    {
+                        <p class="board-task-details-panel__placeholder-text">No attachments yet</p>
+                    }
+                    else
+                    {
+                        <ul class="board-task-details-panel__attachment-list">
+                            @foreach (var attachment in task.Attachments)
+                            {
+                                <li class="board-task-details-panel__attachment-item"
+                                    title="@attachment.OriginalFileName">
+                                    @attachment.OriginalFileName
+                                </li>
+                            }
+                        </ul>
+                    }
                 </div>
             </section>
         </div>
@@ -363,6 +384,9 @@
 
     private static bool CanManageTaskDescription(BoardTaskDetailsDto task) =>
         BoardRolePermissions.CanManageTasks(task.UserRole);
+
+    private static bool CanUploadAttachments(BoardTaskDetailsDto task) =>
+        BoardRolePermissions.CanUploadAttachments(task.UserRole);
 
     private void StartTitleEdit()
     {
@@ -585,6 +609,52 @@
     private void OnAssigneeSelectChanged(ChangeEventArgs _) =>
         StateHasChanged();
 
-    private void ShowAddAttachmentComingSoon() =>
-        Snackbar.Add("Task attachments are coming soon.", Severity.Info);
+    private async Task OpenAddAttachmentDialogAsync()
+    {
+        if (BoardTaskStore.Task is not { } task || !CanUploadAttachments(task))
+            return;
+
+        if (task.Attachments.Count >= ValidationSettings.BoardTasks.MaxAttachmentsPerTask)
+        {
+            Snackbar.Add("The maximum number of attachments for this task has been reached.", Severity.Warning);
+            return;
+        }
+
+        var dialog = await DialogService.ShowAsync<UploadBoardTaskAttachmentDialog>(
+            "Upload attachment",
+            new DialogParameters<UploadBoardTaskAttachmentDialog>
+            {
+                { x => x.CurrentAttachmentCount, task.Attachments.Count },
+            },
+            UploadBoardTaskAttachmentDialog.DefaultOptions);
+
+        var result = await dialog.Result;
+
+        if (result is not { Canceled: false, Data: IBrowserFile file })
+            return;
+
+        var fileName = Path.GetFileName(file.Name);
+        Snackbar.Add($"Uploading \"{fileName}\"...", Severity.Info);
+
+        try
+        {
+            await using var stream = file.OpenReadStream(
+                ValidationSettings.BoardTasks.MaxAttachmentSizeBytes);
+
+            var attachment = await BoardApiService.UploadBoardTaskAttachmentAsync(
+                BoardId,
+                ColumnId,
+                TaskId,
+                stream,
+                file.Name,
+                file.ContentType);
+
+            BoardTaskStore.AddAttachment(attachment);
+            Snackbar.Add($"\"{attachment.OriginalFileName}\" uploaded.", Severity.Success);
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+    }
 }

@@ -1,17 +1,10 @@
-﻿using JustTaskTracker.Domain.Boards.Constants;
-
-namespace JustTaskTracker.Application.Common.Options;
+namespace JustTaskTracker.WebUI.Services.Configuration;
 
 public class ValidationSettings
 {
-    public BoardValidationSettings Boards { get; set; } = new();
+    public const string SectionName = "ValidationSettings";
 
     public BoardTaskValidationSettings BoardTasks { get; set; } = new();
-}
-
-public class BoardValidationSettings
-{
-    public int MaxNameSearchLength { get; set; } = BoardFieldLengths.MaxNameLength;
 }
 
 public class BoardTaskValidationSettings

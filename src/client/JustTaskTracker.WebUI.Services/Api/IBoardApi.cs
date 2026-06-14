@@ -78,4 +78,13 @@ internal interface IBoardApi
         Guid columnId,
         Guid taskId,
         CancellationToken ct = default);
+
+    [Multipart]
+    [Post("/api/boards/{boardId}/columns/{columnId}/tasks/{taskId}/attachments")]
+    Task<IApiResponse<ApiEnvelope<BoardTaskAttachmentDto>>> UploadTaskAttachmentAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid taskId,
+        [AliasAs("file")] StreamPart file,
+        CancellationToken ct = default);
 }

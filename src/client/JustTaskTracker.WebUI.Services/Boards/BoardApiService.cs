@@ -3,6 +3,7 @@ using JustTaskTracker.WebUI.Domain.Boards.Requests;
 using JustTaskTracker.WebUI.Services.Abstractions.Boards;
 using JustTaskTracker.WebUI.Services.Api;
 using JustTaskTracker.WebUI.Domain.Common.Pagination;
+using Refit;
 
 namespace JustTaskTracker.WebUI.Services.Boards;
 
@@ -182,5 +183,26 @@ internal class BoardApiService(IBoardApi api) : IBoardApiService
         var response = await api.DeleteTaskAsync(boardId, columnId, taskId, ct);
 
         ApiResponseGuard.EnsureSuccess(response);
+    }
+
+    public async Task<BoardTaskAttachmentDto> UploadBoardTaskAttachmentAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid taskId,
+        Stream content,
+        string fileName,
+        string contentType,
+        CancellationToken ct = default)
+    {
+        var streamPart = new StreamPart(content, fileName, contentType);
+
+        var response = await api.UploadTaskAttachmentAsync(
+            boardId,
+            columnId,
+            taskId,
+            streamPart,
+            ct);
+
+        return ApiResponseGuard.Unwrap(response);
     }
 }

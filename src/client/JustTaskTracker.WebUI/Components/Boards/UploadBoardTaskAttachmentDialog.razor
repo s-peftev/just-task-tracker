@@ -1,0 +1,144 @@
+@using JustTaskTracker.WebUI.Domain.Boards
+@using JustTaskTracker.WebUI.Services.Configuration
+@using JustTaskTracker.WebUI.Validation
+@inject ValidationSettings ValidationSettings
+
+<MudDialog Class="resource-form-dialog upload-attachment-dialog" ActionsClass="resource-form-dialog__actions">
+    <DialogContent>
+        <div class="upload-attachment-dialog__intro">
+            <p class="upload-attachment-dialog__hint">
+                Accepted formats: @AllowedTypesDescription.
+            </p>
+            <p class="upload-attachment-dialog__hint">
+                Maximum file size: @MaxFileSizeDescription. Up to @ValidationSettings.BoardTasks.MaxAttachmentsPerTask attachments per task.
+            </p>
+        </div>
+
+        @if (_validationErrors.Count > 0)
+        {
+            <MudAlert Severity="Severity.Error" Class="upload-attachment-dialog__alert" Dense="true">
+                @foreach (var error in _validationErrors)
+                {
+                    <div>@error</div>
+                }
+            </MudAlert>
+        }
+
+        @if (_selectedFile is not null && _validationErrors.Count == 0)
+        {
+            <div class="upload-attachment-dialog__meta">
+                <div class="upload-attachment-dialog__meta-row">
+                    <span class="upload-attachment-dialog__meta-label">Name</span>
+                    <span class="upload-attachment-dialog__meta-value">@Path.GetFileName(_selectedFile.Name)</span>
+                </div>
+                <div class="upload-attachment-dialog__meta-row">
+                    <span class="upload-attachment-dialog__meta-label">Type</span>
+                    <span class="upload-attachment-dialog__meta-value">@_selectedFile.ContentType</span>
+                </div>
+                <div class="upload-attachment-dialog__meta-row">
+                    <span class="upload-attachment-dialog__meta-label">Size</span>
+                    <span class="upload-attachment-dialog__meta-value">@FormatFileSize(_selectedFile.Size)</span>
+                </div>
+            </div>
+        }
+
+        <InputFile class="upload-attachment-dialog__file-input"
+                   OnChange="OnFileSelectedAsync" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton Class="btn-dialog-cancel btn-dialog-action"
+                   ButtonType="ButtonType.Button"
+                   OnClick="Cancel">
+            Cancel
+        </MudButton>
+        <MudButton Class="btn-glass btn-dialog-action"
+                   ButtonType="ButtonType.Button"
+                   Disabled="@(!CanUpload)"
+                   OnClick="Upload">
+            Upload
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    public static DialogOptions DefaultOptions { get; } = new()
+    {
+        CloseOnEscapeKey = true,
+        MaxWidth = MaxWidth.Small,
+        FullWidth = true
+    };
+
+    [Parameter, EditorRequired]
+    public int CurrentAttachmentCount { get; set; }
+
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private BoardTaskAttachmentUploadModelValidator? _validator;
+    private IBrowserFile? _selectedFile;
+    private List<string> _validationErrors = [];
+
+    private string AllowedTypesDescription =>
+        BoardTaskAttachmentValidationDisplay.FormatAllowedContentTypes(ValidationSettings.BoardTasks.AllowedContentTypes);
+
+    private string MaxFileSizeDescription =>
+        BoardTaskAttachmentValidationDisplay.FormatMaxFileSize(ValidationSettings.BoardTasks.MaxAttachmentSizeBytes);
+
+    private bool CanUpload => _selectedFile is not null && _validationErrors.Count == 0;
+
+    protected override void OnInitialized() =>
+        _validator = new BoardTaskAttachmentUploadModelValidator(ValidationSettings);
+
+    private async Task OnFileSelectedAsync(InputFileChangeEventArgs e)
+    {
+        _selectedFile = e.File;
+        await ValidateSelectedFileAsync();
+    }
+
+    private async Task ValidateSelectedFileAsync()
+    {
+        if (_selectedFile is null || _validator is null)
+        {
+            _validationErrors = [];
+            return;
+        }
+
+        var model = new BoardTaskAttachmentUploadModel
+        {
+            FileName = _selectedFile.Name,
+            ContentType = _selectedFile.ContentType,
+            FileSizeBytes = _selectedFile.Size,
+            CurrentAttachmentCount = CurrentAttachmentCount,
+        };
+
+        var result = await _validator.ValidateAsync(model);
+        _validationErrors = result.Errors
+            .Select(error => error.ErrorMessage)
+            .Distinct()
+            .ToList();
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Upload()
+    {
+        if (_selectedFile is null || !CanUpload)
+            return;
+
+        MudDialog.Close(DialogResult.Ok(_selectedFile));
+    }
+
+    private static string FormatFileSize(long bytes)
+    {
+        const long kb = 1024;
+        const long mb = kb * 1024;
+
+        if (bytes >= mb)
+            return $"{bytes / (double)mb:0.##} MB";
+
+        if (bytes >= kb)
+            return $"{bytes / (double)kb:0.##} KB";
+
+        return $"{bytes} B";
+    }
+}

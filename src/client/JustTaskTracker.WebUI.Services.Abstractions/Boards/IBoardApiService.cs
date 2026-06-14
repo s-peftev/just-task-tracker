@@ -62,4 +62,13 @@ public interface IBoardApiService
         Guid columnId,
         Guid taskId,
         CancellationToken ct = default);
+
+    Task<BoardTaskAttachmentDto> UploadBoardTaskAttachmentAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid taskId,
+        Stream content,
+        string fileName,
+        string contentType,
+        CancellationToken ct = default);
 }

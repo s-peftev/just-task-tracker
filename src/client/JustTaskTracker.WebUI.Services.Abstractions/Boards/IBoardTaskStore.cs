@@ -22,5 +22,7 @@ public interface IBoardTaskStore
 
     void UpdateTaskDescription(string? description);
 
+    void AddAttachment(BoardTaskAttachmentDto attachment);
+
     void Reset();
 }

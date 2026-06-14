@@ -87,6 +87,20 @@ internal sealed class BoardTaskStore(IBoardApiService boardApiService) : IBoardT
         NotifyStateChanged();
     }
 
+    public void AddAttachment(BoardTaskAttachmentDto attachment)
+    {
+        if (Task is not { } task)
+            return;
+
+        var attachments = task.Attachments
+            .Append(attachment)
+            .OrderBy(a => a.Position)
+            .ToList();
+
+        Task = task with { Attachments = attachments };
+        NotifyStateChanged();
+    }
+
     public void Reset()
     {
         _loadCts?.Cancel();

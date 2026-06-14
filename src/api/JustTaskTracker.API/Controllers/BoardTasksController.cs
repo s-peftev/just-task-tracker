@@ -52,4 +52,14 @@ public class BoardTasksController(ISender sender) : ControllerBase
             () => NoContent(),
             error => error.CreateErrorResponse());
     }
+
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Delete(Guid boardId, Guid columnId, Guid id, CancellationToken ct)
+    {
+        var result = await sender.Send(new DeleteBoardTaskCommand(boardId, columnId, id), ct);
+
+        return result.Match(
+            () => NoContent(),
+            error => error.CreateErrorResponse());
+    }
 }

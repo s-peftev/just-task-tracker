@@ -17,4 +17,5 @@ public class BoardTask : BaseEntity<Guid>, IPositionedEntity
     public User? Assignee { get; set; }
     public User? Reporter { get; set; }
     public ICollection<BoardTaskComment> Comments { get; set; } = [];
+    public ICollection<BoardTaskAttachment> Attachments { get; set; } = [];
 }

@@ -26,7 +26,7 @@ internal sealed class BoardPositioningService(IUnitOfWork unitOfWork) : IBoardPo
         Guid movedId,
         int newIndex,
         CancellationToken ct = default)
-        where TEntity : BaseEntity<Guid>, IPositionedEntity
+        where TEntity : Entity<Guid>, IPositionedEntity
     {
         var orderedIds = ComputeOrderAfterMoveToIndex(items, movedId, newIndex);
 
@@ -43,7 +43,7 @@ internal sealed class BoardPositioningService(IUnitOfWork unitOfWork) : IBoardPo
     public async Task ApplyCurrentOrderAsync<TEntity>(
         IReadOnlyList<TEntity> items,
         CancellationToken ct = default)
-        where TEntity : BaseEntity<Guid>, IPositionedEntity
+        where TEntity : Entity<Guid>, IPositionedEntity
     {
         ArgumentNullException.ThrowIfNull(items);
 
@@ -172,7 +172,7 @@ internal sealed class BoardPositioningService(IUnitOfWork unitOfWork) : IBoardPo
         IReadOnlyList<TEntity> items,
         IReadOnlyList<Guid> orderedIds,
         CancellationToken ct)
-        where TEntity : BaseEntity<Guid>, IPositionedEntity
+        where TEntity : Entity<Guid>, IPositionedEntity
     {
         ValidateOrderedIds(items, orderedIds);
 
@@ -199,7 +199,7 @@ internal sealed class BoardPositioningService(IUnitOfWork unitOfWork) : IBoardPo
         IReadOnlyList<TEntity> items,
         Guid movedId,
         int newIndex)
-        where TEntity : BaseEntity<Guid>, IPositionedEntity
+        where TEntity : Entity<Guid>, IPositionedEntity
     {
         ArgumentNullException.ThrowIfNull(items);
         ArgumentOutOfRangeException.ThrowIfNegative(newIndex);
@@ -237,7 +237,7 @@ internal sealed class BoardPositioningService(IUnitOfWork unitOfWork) : IBoardPo
     /// Phase 1: assigns unique temporary positions above the current max to avoid unique-index collisions on save.
     /// </summary>
     private static void AssignTemporaryPositions<TEntity>(IReadOnlyList<TEntity> items)
-        where TEntity : BaseEntity<Guid>, IPositionedEntity
+        where TEntity : Entity<Guid>, IPositionedEntity
     {
         var count = items.Count;
         var maxPosition = items.Max(item => item.Position);
@@ -252,7 +252,7 @@ internal sealed class BoardPositioningService(IUnitOfWork unitOfWork) : IBoardPo
     private static void AssignFinalPositions<TEntity>(
         IReadOnlyList<TEntity> items,
         IReadOnlyDictionary<Guid, int> finalPositions)
-        where TEntity : BaseEntity<Guid>, IPositionedEntity
+        where TEntity : Entity<Guid>, IPositionedEntity
     {
         foreach (var item in items)
             item.Position = finalPositions[item.Id];
@@ -281,7 +281,7 @@ internal sealed class BoardPositioningService(IUnitOfWork unitOfWork) : IBoardPo
     /// Returns ids sorted by current <see cref="IPositionedEntity.Position"/>, using id as a stable tie-breaker.
     /// </summary>
     private static List<Guid> GetOrderedIds<TEntity>(IReadOnlyList<TEntity> items)
-        where TEntity : BaseEntity<Guid>, IPositionedEntity =>
+        where TEntity : Entity<Guid>, IPositionedEntity =>
             items
                 .OrderBy(item => item.Position)
                 .ThenBy(item => item.Id)
@@ -292,14 +292,14 @@ internal sealed class BoardPositioningService(IUnitOfWork unitOfWork) : IBoardPo
     /// Returns whether every entity already has the target position (no database writes needed).
     /// </summary>
     private static bool IsAlreadyApplied<TEntity>(IReadOnlyList<TEntity> items, IReadOnlyDictionary<Guid, int> finalPositions)
-        where TEntity : BaseEntity<Guid>, IPositionedEntity =>
+        where TEntity : Entity<Guid>, IPositionedEntity =>
             items.All(item => item.Position == finalPositions[item.Id]);
 
     /// <summary>
     /// Ensures <paramref name="orderedIds"/> is a complete, unique permutation of <paramref name="items"/>.
     /// </summary>
     private static void ValidateOrderedIds<TEntity>(IReadOnlyList<TEntity> items, IReadOnlyList<Guid> orderedIds)
-        where TEntity : BaseEntity<Guid>, IPositionedEntity
+        where TEntity : Entity<Guid>, IPositionedEntity
     {
         ArgumentNullException.ThrowIfNull(items);
         ArgumentNullException.ThrowIfNull(orderedIds);

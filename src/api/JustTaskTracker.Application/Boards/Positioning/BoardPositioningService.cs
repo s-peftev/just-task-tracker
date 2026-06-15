@@ -261,9 +261,16 @@ internal sealed class BoardPositioningService(IUnitOfWork unitOfWork) : IBoardPo
     /// <summary>
     /// Returns a temporary position that does not collide with any task currently in the column scope.
     /// </summary>
+    /// <remarks>
+    /// Returns -1 for an empty scope so that <see cref="IsAlreadyApplied"/> cannot short-circuit
+    /// <see cref="PersistOrderTwoPhaseAsync"/> when the final position is also 0. The -1 value is
+    /// never written to the database: <see cref="AssignTemporaryPositions"/> overwrites it before the
+    /// first <see cref="SaveChangesAsync"/> call, ensuring all tracked changes (including
+    /// <see cref="BoardTask.ColumnId"/>) are flushed.
+    /// </remarks>
     private static int AllocateTemporaryPosition(IReadOnlyList<BoardTask> scopeTasks) =>
         scopeTasks.Count == 0
-            ? 0
+            ? -1
             : scopeTasks.Max(task => task.Position) + scopeTasks.Count + 1;
 
     /// <summary>

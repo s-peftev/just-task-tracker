@@ -45,6 +45,15 @@ internal interface IBoardApi
     [Post("/api/boards/{boardId}/columns/{columnId}/tasks")]
     Task<IApiResponse<ApiEnvelope<BoardTaskPreviewDto>>> CreateTaskAsync(Guid boardId, Guid columnId, [Body] SaveTaskRequest request, CancellationToken ct = default);
 
+    [Get("/api/boards/{boardId}/columns/{columnId}/tasks")]
+    Task<IApiResponse<ApiEnvelope<PagedList<BoardTaskLookupDto>>>> GetTaskLookupListAsync(
+        Guid boardId,
+        Guid columnId,
+        int pageNumber,
+        int pageSize,
+        [AliasAs("SearchOptions.Search")] string? searchOptionsSearch = null,
+        CancellationToken ct = default);
+
     [Get("/api/boards/{boardId}/columns/{columnId}/tasks/{taskId}")]
     Task<IApiResponse<ApiEnvelope<BoardTaskDetailsDto>>> GetTaskByIdAsync(Guid boardId, Guid columnId, Guid taskId, CancellationToken ct = default);
 

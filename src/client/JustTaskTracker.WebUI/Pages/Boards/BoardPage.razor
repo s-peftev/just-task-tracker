@@ -9,6 +9,7 @@
 @inject IBoardApiService BoardApiService
 @inject IBoardDetailsStore BoardDetailsStore
 @inject IBoardTaskStore BoardTaskStore
+@inject IBoardTaskSearchStore BoardTaskSearchStore
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
@@ -16,7 +17,7 @@
 
 <PageTitle>@GetPageTitle()</PageTitle>
 
-<div class="board-page @(_taskOnlyMode ? "board-page--task-only" : null)">
+<div class="board-page @(_taskOnlyMode ? "board-page--task-only" : null) @(_isFooterTrayOpen ? "board-page--footer-open" : null)">
     @if (_renderBoard)
     {
         @if (BoardDetailsStore.IsLoading && BoardDetailsStore.Board is null)
@@ -119,6 +120,48 @@
                     }
                 </div>
             </section>
+
+            <footer class="board-page__footer">
+                <div class="board-page__footer-drawer">
+                    <button type="button"
+                            class="board-page__footer-handle"
+                            aria-label="@(_isFooterTrayOpen ? "Close search" : "Open search")"
+                            aria-expanded="@_isFooterTrayOpen"
+                            @onclick="ToggleFooterTray">
+                        <svg class="board-page__footer-handle-icon"
+                             viewBox="0 0 24 24"
+                             aria-hidden="true"
+                             focusable="false">
+                            <circle cx="11"
+                                    cy="11"
+                                    r="6"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    fill="none" />
+                            <path d="M16 16l5 5"
+                                  stroke="currentColor"
+                                  stroke-width="2"
+                                  stroke-linecap="round" />
+                        </svg>
+                    </button>
+
+                    <div class="board-page__footer-tray">
+                        @if (BoardTaskSearchStore.IsOpen)
+                        {
+                            <BoardTaskSearchOverlay />
+                        }
+
+                        <input class="board-page__footer-search-input"
+                               type="search"
+                               aria-label="Search tasks"
+                               placeholder="Search tasks"
+                               value="@BoardTaskSearchStore.SearchText"
+                               @onfocus="OnFooterSearchFocusAsync"
+                               @onblur="OnFooterSearchBlurAsync"
+                               @oninput="OnFooterSearchInputAsync" />
+                    </div>
+                </div>
+            </footer>
         }
     }
 
@@ -158,6 +201,9 @@
     private IJSObjectReference? _panScrollModule;
     private IJSObjectReference? _panScrollHandle;
     private bool _panScrollAttached;
+    private bool _isFooterTrayOpen;
+    private bool _suppressSearchBlurClose;
+    private Guid _searchStoreBoardId;
 
     private bool CanRenameBoard =>
         BoardDetailsStore.Board is { UserRole: var role } && BoardRolePermissions.CanRenameBoard(role);
@@ -169,10 +215,17 @@
     {
         BoardDetailsStore.StateChanged += OnBoardStoreStateChanged;
         BoardTaskStore.StateChanged += OnTaskStoreStateChanged;
+        BoardTaskSearchStore.StateChanged += OnTaskSearchStoreStateChanged;
     }
 
-    protected override async Task OnParametersSetAsync() =>
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_searchStoreBoardId != Guid.Empty && _searchStoreBoardId != Id)
+            BoardTaskSearchStore.Reset();
+
+        _searchStoreBoardId = Id;
         await UpdateRouteStateAsync();
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -190,6 +243,8 @@
     {
         BoardDetailsStore.StateChanged -= OnBoardStoreStateChanged;
         BoardTaskStore.StateChanged -= OnTaskStoreStateChanged;
+        BoardTaskSearchStore.StateChanged -= OnTaskSearchStoreStateChanged;
+        BoardTaskSearchStore.Reset();
 
         if (_panScrollHandle is not null)
         {
@@ -270,6 +325,9 @@
     private void OnTaskStoreStateChanged() =>
         InvokeAsync(StateHasChanged);
 
+    private void OnTaskSearchStoreStateChanged() =>
+        InvokeAsync(StateHasChanged);
+
     private void SyncSortableColumnsFromStore()
     {
         if (BoardDetailsStore.Board is null)
@@ -323,6 +381,60 @@
     }
 
     private void GoToDashboard() => Navigation.NavigateTo("/dashboard");
+
+    private void ToggleFooterTray()
+    {
+        _isFooterTrayOpen = !_isFooterTrayOpen;
+
+        if (!_isFooterTrayOpen)
+            BoardTaskSearchStore.Close();
+    }
+
+    private async Task OnFooterSearchFocusAsync()
+    {
+        if (!_isFooterTrayOpen)
+            ToggleFooterTray();
+
+        if (BoardTaskSearchStore.IsOpen)
+            return;
+
+        if (BoardDetailsStore.Board is not { } board)
+            return;
+
+        var columnId = board.Columns
+            .OrderBy(column => column.Position)
+            .Select(column => column.Id)
+            .FirstOrDefault();
+
+        // columnId is required by the route even though lookup is board-scoped on the backend.
+        if (columnId == Guid.Empty)
+        {
+            Snackbar.Add("No columns available for task search.", Severity.Info);
+            return;
+        }
+
+        _suppressSearchBlurClose = true;
+
+        try
+        {
+            await BoardTaskSearchStore.OpenAsync(Id, columnId);
+        }
+        finally
+        {
+            _suppressSearchBlurClose = false;
+        }
+    }
+
+    private void OnFooterSearchBlurAsync()
+    {
+        if (_suppressSearchBlurClose)
+            return;
+
+        BoardTaskSearchStore.Close();
+    }
+
+    private Task OnFooterSearchInputAsync(ChangeEventArgs e) =>
+        BoardTaskSearchStore.SetSearchAsync(e.Value?.ToString() ?? string.Empty);
 
     private void ShowMembersComingSoon() =>
         Snackbar.Add("Members management is coming soon.", Severity.Info);

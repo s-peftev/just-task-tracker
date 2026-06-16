@@ -91,29 +91,31 @@
                                OnTaskClick="OnTaskClickAsync" />
             </div>
         </Sortable>
-
-        @if (_isAddingTask)
-        {
-            <textarea @ref="_taskTitleInputRef"
-                      class="board-column__add-task-input"
-                      rows="2"
-                      maxlength="50"
-                      placeholder="Enter a task title"
-                      @bind="_newTaskTitle"
-                      @bind:event="oninput"
-                      @onkeydown="OnTaskTitleKeyDownAsync"
-                      @onblur="OnTaskTitleBlurAsync"></textarea>
-        }
     </div>
 
-    @if (CanManageTasks && !_isAddingTask)
+    @if (CanManageTasks)
     {
         <footer class="board-column__footer">
-            <button type="button"
-                    class="board-column__add-task"
-                    @onclick="StartAddTask">
-                + Add task
-            </button>
+            @if (_isAddingTask)
+            {
+                <textarea @ref="_taskTitleInputRef"
+                          class="board-column__add-task-input"
+                          rows="2"
+                          maxlength="50"
+                          placeholder="Enter a task title"
+                          @bind="_newTaskTitle"
+                          @bind:event="oninput"
+                          @onkeydown="OnTaskTitleKeyDownAsync"
+                          @onblur="OnTaskTitleBlurAsync"></textarea>
+            }
+            else
+            {
+                <button type="button"
+                        class="board-column__add-task"
+                        @onclick="StartAddTask">
+                    + Add task
+                </button>
+            }
         </footer>
     }
 </article>
@@ -174,7 +176,7 @@
 
     private bool CanMoveTasks => BoardRolePermissions.CanMoveTasks(UserRole);
 
-    private bool _hasTaskContent => Column.BoardTasks.Count > 0 || _isAddingTask;
+    private bool _hasTaskContent => Column.BoardTasks.Count > 0;
 
     protected override void OnInitialized() =>
         BoardDetailsStore.StateChanged += OnBoardStateChanged;

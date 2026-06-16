@@ -1,4 +1,4 @@
-﻿namespace JustTaskTracker.Domain.Boards.DTOs.BoardTasks;
+namespace JustTaskTracker.WebUI.Domain.Boards;
 
 public record BoardTaskLookupDto(
     Guid Id,

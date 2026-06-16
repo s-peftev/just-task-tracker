@@ -75,6 +75,7 @@ public class BoardTaskRepository(JustTaskTrackerDbContext context)
             .FirstOrDefaultAsync(ct);
 
     public async Task<PagedList<BoardTaskLookupDto>> GetBoardTaskLookupListAsync(
+        Guid boardId,
         int pageNumber,
         int pageSize,
         TextSearchOptions<BoardTaskSearchField>? searchOptions = null,
@@ -83,12 +84,14 @@ public class BoardTaskRepository(JustTaskTrackerDbContext context)
         var fields = SearchFieldsResolver.Resolve(searchOptions?.SearchIn, BoardTaskSearchFields.Map);
 
         return await _dbSet
+            .Where(t => t.Column!.BoardId == boardId)
             .ApplyTextSearch(searchOptions?.Search, fields)
             .OrderByDescending(t => t.LastModifiedAtUtc)
             .ThenByDescending(t => t.CreatedAtUtc)
             .ToPagedAsync(
                 t => new BoardTaskLookupDto(
                     t.Id,
+                    t.ColumnId,
                     t.Title,
                     t.Description),
                 pageNumber,

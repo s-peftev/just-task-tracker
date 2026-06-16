@@ -16,7 +16,7 @@ public interface IBoardTaskRepository : IRepository<BoardTask, Guid>
 
     Task<BoardTaskDetailsDto?> GetBoardTaskDetailsAsync(Guid boardTaskId, CancellationToken ct = default);
 
-    Task<PagedList<BoardTaskLookupDto>> GetBoardTaskLookupListAsync(int pageNumber, int pageSize, TextSearchOptions<BoardTaskSearchField>? searchOptions = null, CancellationToken ct = default);
+    Task<PagedList<BoardTaskLookupDto>> GetBoardTaskLookupListAsync(Guid boardId, int pageNumber, int pageSize, TextSearchOptions<BoardTaskSearchField>? searchOptions = null, CancellationToken ct = default);
 
     Task<IReadOnlyList<BoardTask>> GetListByColumnIdAsync(Guid columnId, CancellationToken ct = default);
 

@@ -30,6 +30,12 @@ public interface IBoardApiService
 
     Task<BoardTaskPreviewDto> CreateTaskAsync(Guid boardId, Guid columnId, string title, CancellationToken ct = default);
 
+    Task<PagedList<BoardTaskLookupDto>> GetBoardTasksLookupAsync(
+        Guid boardId,
+        Guid columnId,
+        GetBoardTasksLookupRequest request,
+        CancellationToken ct = default);
+
     Task<BoardTaskDetailsDto> GetBoardTaskByIdAsync(
         Guid boardId,
         Guid columnId,

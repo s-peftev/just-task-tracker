@@ -53,6 +53,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IBoardStore, BoardStore>();
         services.AddScoped<IBoardDetailsStore, BoardDetailsStore>();
         services.AddScoped<IBoardTaskStore, BoardTaskStore>();
+        services.AddScoped<IBoardTaskSearchStore, BoardTaskSearchStore>();
 
         return services;
     }

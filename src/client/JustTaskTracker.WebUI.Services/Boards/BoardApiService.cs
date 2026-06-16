@@ -112,6 +112,27 @@ internal class BoardApiService(IBoardApi api) : IBoardApiService
         return ApiResponseGuard.Unwrap(response);
     }
 
+    public async Task<PagedList<BoardTaskLookupDto>> GetBoardTasksLookupAsync(
+        Guid boardId,
+        Guid columnId,
+        GetBoardTasksLookupRequest request,
+        CancellationToken ct = default)
+    {
+        var search = string.IsNullOrWhiteSpace(request.SearchOptions?.Search)
+            ? null
+            : request.SearchOptions.Search;
+
+        var response = await api.GetTaskLookupListAsync(
+            boardId,
+            columnId,
+            request.PageNumber!.Value,
+            request.PageSize!.Value,
+            search,
+            ct);
+
+        return ApiResponseGuard.Unwrap(response);
+    }
+
     public async Task<BoardTaskDetailsDto> GetBoardTaskByIdAsync(
         Guid boardId,
         Guid columnId,

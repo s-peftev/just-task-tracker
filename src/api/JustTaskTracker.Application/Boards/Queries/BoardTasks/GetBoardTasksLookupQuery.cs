@@ -29,7 +29,12 @@ public class GetBoardTasksLookupQueryHandler(
         if (userRole is not { } authorizedRole || !BoardRolePermissions.CanViewBoard(authorizedRole))
             return Result<PagedList<BoardTaskLookupDto>>.Failure(GeneralErrors.Forbidden);
 
-        var boardTasks = await boardTaskRepository.GetBoardTaskLookupListAsync(request.PageNumber!.Value, request.PageSize!.Value, request.SearchOptions, ct);
+        var boardTasks = await boardTaskRepository.GetBoardTaskLookupListAsync(
+            request.BoardId,
+            request.PageNumber!.Value,
+            request.PageSize!.Value,
+            request.SearchOptions,
+            ct);
 
         return Result<PagedList<BoardTaskLookupDto>>.Success(boardTasks);
     }

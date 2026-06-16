@@ -13,7 +13,7 @@ public interface IBoardPositioningService
     /// <summary>
     /// Reorders an entity within a single scope (board columns or tasks in one column).
     /// </summary>
-    Task MoveToIndexAsync<TEntity>(
+    Task MoveToIndexAndSaveAsync<TEntity>(
         IReadOnlyList<TEntity> items,
         Guid movedId,
         int newIndex,
@@ -23,15 +23,15 @@ public interface IBoardPositioningService
     /// <summary>
     /// Renumbers entities to contiguous zero-based positions while preserving their current order by position.
     /// </summary>
-    Task ApplyCurrentOrderAsync<TEntity>(
+    Task ApplyCurrentOrderAndSaveAsync<TEntity>(
         IReadOnlyList<TEntity> items,
         CancellationToken ct = default)
         where TEntity : Entity<Guid>, IPositionedEntity;
 
     /// <summary>
-    /// Moves a task into another column at <paramref name="newIndex"/>. Use <see cref="MoveToIndexAsync"/> for reordering within the same column.
+    /// Moves a task into another column at <paramref name="newIndex"/>. Use <see cref="MoveToIndexAndSaveAsync"/> for reordering within the same column.
     /// </summary>
-    Task MoveTaskToColumnAsync(
+    Task MoveTaskToColumnAndSaveAsync(
         IReadOnlyList<BoardTask> sourceTasks,
         IReadOnlyList<BoardTask> targetTasks,
         BoardTask movedTask,
@@ -42,7 +42,7 @@ public interface IBoardPositioningService
     /// <summary>
     /// Moves a contiguous block of tasks into another column at the start or end of the target order. Does not compact the source column.
     /// </summary>
-    Task MoveTaskRangeToColumnAsync(
+    Task MoveTaskRangeToColumnAndSaveAsync(
         IReadOnlyList<BoardTask> tasksToMove,
         IReadOnlyList<BoardTask> targetTasks,
         Guid targetColumnId,

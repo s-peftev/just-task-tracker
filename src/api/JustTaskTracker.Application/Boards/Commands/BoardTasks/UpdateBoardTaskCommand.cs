@@ -1,5 +1,4 @@
-﻿using FluentValidation;
-using JustTaskTracker.Application.Boards.Authorization;
+using FluentValidation;
 using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Interfaces;
 using JustTaskTracker.Application.Common.Interfaces.Persistence;
@@ -11,11 +10,10 @@ using JustTaskTracker.Domain.Common.Results;
 using JustTaskTracker.Domain.Common.Results.Errors;
 using MediatR;
 
-namespace JustTaskTracker.Application.Boards.Commands;
+namespace JustTaskTracker.Application.Boards.Commands.BoardTasks;
 
 public record UpdateBoardTaskCommand(
     Guid BoardId,
-    Guid ColumnId,
     Guid BoardTaskId,
     PatchField<string> Title = default,
     PatchField<string?> Description = default,
@@ -31,20 +29,12 @@ public class UpdateBoardTaskCommandHandler(
 {
     public async Task<Result> Handle(UpdateBoardTaskCommand request, CancellationToken ct)
     {
-        var (boardExists, userRole) = await boardRepository.GetUserBoardRoleAsync(
-            request.BoardId,
-            currentUserAccessor.AzureAdObjectId,
-            ct);
+        var (boardTask, userRole) = await boardTaskRepository.GetBoardTaskWithUserRoleAsync(request.BoardTaskId, currentUserAccessor.AzureAdObjectId, ct);
 
-        if (BoardRoleAuthorization.EnsureBoardAccess(boardExists, userRole, BoardRolePermissions.CanManageTasks) is { } failure)
-            return failure;
+        if (userRole is not { } authorizedRole || !BoardRolePermissions.CanManageTasks(authorizedRole))
+            return Result.Failure(GeneralErrors.Forbidden);
 
-        var boardTask = await boardTaskRepository.GetByBoardIdAndIdAsync(
-            request.BoardId,
-            request.BoardTaskId,
-            ct);
-
-        if (boardTask is null || boardTask.ColumnId != request.ColumnId)
+        if (boardTask is null)
             return Result.Failure(GeneralErrors.NotFound);
 
         var hasChanges = false;
@@ -80,7 +70,7 @@ public class UpdateBoardTaskCommandHandler(
             if (boardTask.AssigneeId != assigneeId)
             {
                 if (assigneeId is { } assignedUserId
-                    && await boardRepository.GetBoardMemberUserDtoAsync(request.BoardId, assignedUserId, ct) is null)
+                    && !await boardRepository.IsBoardMemberAsync(request.BoardId, assignedUserId, ct))
                 {
                     return Result.Failure(BoardTasksErrors.AssigneeNotBoardMember);
                 }
@@ -104,9 +94,6 @@ public class UpdateBoardTaskCommandValidator : AbstractValidator<UpdateBoardTask
     public UpdateBoardTaskCommandValidator()
     {
         RuleFor(x => x.BoardId)
-            .NotEmpty();
-
-        RuleFor(x => x.ColumnId)
             .NotEmpty();
 
         RuleFor(x => x.BoardTaskId)

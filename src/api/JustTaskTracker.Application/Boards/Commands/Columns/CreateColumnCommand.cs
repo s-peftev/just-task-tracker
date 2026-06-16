@@ -1,5 +1,4 @@
-﻿using FluentValidation;
-using JustTaskTracker.Application.Boards.Authorization;
+using FluentValidation;
 using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Interfaces;
 using JustTaskTracker.Application.Common.Interfaces.Persistence;
@@ -9,9 +8,10 @@ using JustTaskTracker.Domain.Boards.DTOs;
 using JustTaskTracker.Domain.Boards.Entities;
 using JustTaskTracker.Domain.Boards.Errors;
 using JustTaskTracker.Domain.Common.Results;
+using JustTaskTracker.Domain.Common.Results.Errors;
 using MediatR;
 
-namespace JustTaskTracker.Application.Boards.Commands;
+namespace JustTaskTracker.Application.Boards.Commands.Columns;
 
 public record CreateColumnCommand(Guid BoardId, string Name) : IRequest<Result<ColumnDto>>;
 
@@ -24,13 +24,10 @@ public class CreateColumnCommandHandler(
 {
     public async Task<Result<ColumnDto>> Handle(CreateColumnCommand request, CancellationToken ct)
     {
-        var (boardExists, userRole) = await boardRepository.GetUserBoardRoleAsync(
-            request.BoardId,
-            currentUserAccessor.AzureAdObjectId,
-            ct);
+        var userRole = await boardRepository.GetUserRoleAsync(request.BoardId, currentUserAccessor.AzureAdObjectId, ct);
 
-        if (BoardRoleAuthorization.EnsureBoardAccess(boardExists, userRole, BoardRolePermissions.CanManageColumns) is { } failure)
-            return Result<ColumnDto>.Failure(failure.Error);
+        if (userRole is not { } authorizedRole || !BoardRolePermissions.CanManageColumns(authorizedRole))
+            return Result<ColumnDto>.Failure(GeneralErrors.Forbidden);
 
         var name = request.Name.Trim();
         var existingNames = await columnRepository.GetNameListByBoardIdAsync(request.BoardId, ct);

@@ -2,6 +2,7 @@ using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Domain.Auth.DTOs;
 using JustTaskTracker.Domain.Boards.DTOs;
 using JustTaskTracker.Domain.Boards.Entities;
+using JustTaskTracker.Domain.Boards.Enums;
 using JustTaskTracker.Domain.Common.Pagination;
 using JustTaskTracker.Persistence.Common;
 using JustTaskTracker.Persistence.Common.Extentions;
@@ -12,26 +13,33 @@ namespace JustTaskTracker.Persistence.Boards.Repositories;
 public class BoardTaskCommentRepository(JustTaskTrackerDbContext context)
     : Repository<BoardTaskComment, Guid>(context), IBoardTaskCommentRepository
 {
-    public async Task<IReadOnlyList<BoardTaskComment>> GetOrderedByBoardTaskIdAsync(
-        Guid boardTaskId,
-        CancellationToken ct = default) =>
+    public async Task<IReadOnlyList<BoardTaskComment>> GetListByBoardTaskIdAsync(Guid boardTaskId, CancellationToken ct = default) =>
         await _dbSet
             .Where(comment => comment.BoardTaskId == boardTaskId)
             .OrderBy(comment => comment.CreatedAtUtc)
             .ThenBy(comment => comment.Id)
             .ToListAsync(ct);
 
-    public async Task<PagedList<BoardTaskCommentDto>> GetPagedByBoardIdAndColumnIdAndTaskIdAsync(
-        Guid boardId,
-        Guid columnId,
-        Guid boardTaskId,
-        int pageNumber,
-        int pageSize,
-        CancellationToken ct = default) =>
+    public async Task<(BoardTaskComment? BoardTaskComment, BoardMemberRole? UserRole)> GetBoardTaskCommentWithUserRole(Guid boardTaskCommentId, Guid azureAdObjectId, CancellationToken ct = default)
+    {
+        var result = await _dbSet
+            .Where(comment => comment.Id == boardTaskCommentId)
+            .Select(comment => new
+            {
+                BoardTaskComment = comment,
+                UserRole = comment.BoardTask!.Column!.Board!.Members
+                    .Where(m => m.User!.AzureAdObjectId == azureAdObjectId)
+                    .Select(m => m.Role)
+                    .FirstOrDefault()
+            })
+            .FirstOrDefaultAsync(ct);
+
+        return (result?.BoardTaskComment, result?.UserRole);
+    }
+
+    public async Task<PagedList<BoardTaskCommentDto>> GetPagedByBoardTaskIdAsync(Guid boardTaskId, int pageNumber, int pageSize, CancellationToken ct = default) =>
         await _dbSet
-            .Where(comment => comment.BoardTaskId == boardTaskId
-                && comment.BoardTask!.ColumnId == columnId
-                && comment.BoardTask.Column!.BoardId == boardId)
+            .Where(comment => comment.BoardTaskId == boardTaskId)
             .OrderBy(comment => comment.CreatedAtUtc)
             .ThenBy(comment => comment.Id)
             .ToPagedAsync(
@@ -46,20 +54,6 @@ public class BoardTaskCommentRepository(JustTaskTrackerDbContext context)
                     comment.LastModifiedAtUtc),
                 pageNumber,
                 pageSize,
-                ct);
-
-    public async Task<BoardTaskComment?> GetByBoardIdAndColumnIdAndTaskIdAndIdAsync(
-        Guid boardId,
-        Guid columnId,
-        Guid boardTaskId,
-        Guid commentId,
-        CancellationToken ct = default) =>
-        await _dbSet
-            .FirstOrDefaultAsync(
-                comment => comment.Id == commentId
-                    && comment.BoardTaskId == boardTaskId
-                    && comment.BoardTask!.ColumnId == columnId
-                    && comment.BoardTask.Column!.BoardId == boardId,
                 ct);
 
     public void RemoveRange(IReadOnlyList<BoardTaskComment> comments)

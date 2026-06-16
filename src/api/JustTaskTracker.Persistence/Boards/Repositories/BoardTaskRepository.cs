@@ -2,6 +2,7 @@ using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Domain.Auth.DTOs;
 using JustTaskTracker.Domain.Boards.DTOs;
 using JustTaskTracker.Domain.Boards.Entities;
+using JustTaskTracker.Domain.Boards.Enums;
 using JustTaskTracker.Persistence.Common;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,67 +11,34 @@ namespace JustTaskTracker.Persistence.Boards.Repositories;
 public class BoardTaskRepository(JustTaskTrackerDbContext context)
     : Repository<BoardTask, Guid>(context), IBoardTaskRepository
 {
-    public async Task<BoardTask?> GetByBoardIdAndIdAsync(Guid boardId, Guid boardTaskId, CancellationToken ct = default) =>
-        await _dbSet
-            .FirstOrDefaultAsync(
-                task => task.Id == boardTaskId && task.Column!.BoardId == boardId,
-                ct);
-
-    public async Task<bool> ExistsByBoardIdAndColumnIdAndIdAsync(
-        Guid boardId,
-        Guid columnId,
-        Guid boardTaskId,
-        CancellationToken ct = default) =>
-        await _dbSet.AnyAsync(
-            task => task.Id == boardTaskId
-                && task.ColumnId == columnId
-                && task.Column!.BoardId == boardId,
-            ct);
-
-    public async Task<(BoardTask? Task, int AttachmentCount)> GetByBoardIdAndColumnIdAndIdWithAttachmentsCountAsync(
-        Guid boardId,
-        Guid columnId,
-        Guid boardTaskId,
-        CancellationToken ct = default)
+    public async Task<(BoardTask? BoardTask, BoardMemberRole? UserRole)> GetBoardTaskWithUserRoleAsync(Guid boardTaskId, Guid azureAdObjectId, CancellationToken ct = default)
     {
-        var row = await _dbSet
-            .Where(task => task.Id == boardTaskId
-                && task.ColumnId == columnId
-                && task.Column!.BoardId == boardId)
-            .Select(task => new { Task = task, AttachmentCount = task.Attachments.Count })
+        var result = await _dbSet
+            .Where(task => task.Id == boardTaskId)
+            .Select(task => new
+            {
+                BoardTask = task,
+                UserRole = task.Column!.Board!.Members
+                    .Where(m => m.User!.AzureAdObjectId == azureAdObjectId)
+                    .Select(m => m.Role)
+                    .FirstOrDefault()
+            })
             .FirstOrDefaultAsync(ct);
 
-        return row is null ? (null, 0) : (row.Task, row.AttachmentCount);
+        return (result?.BoardTask, result?.UserRole);
     }
 
-    public async Task<BoardTask?> GetByBoardIdAndColumnIdAndIdWithAttachmentsAsync(Guid boardId, Guid columnId, Guid boardTaskId, CancellationToken ct = default) =>
+    public async Task<BoardMemberRole?> GetUserRoleAsync(Guid boardTaskId, Guid azureAdObjectId, CancellationToken ct = default) =>
         await _dbSet
-            .Include(task => task.Attachments)
-            .FirstOrDefaultAsync(
-                task => task.Id == boardTaskId
-                    && task.ColumnId == columnId
-                    && task.Column!.BoardId == boardId,
-                ct);
+            .Where(task => task.Id == boardTaskId)
+            .SelectMany(task => task.Column!.Board!.Members)
+            .Where(m => m.User!.AzureAdObjectId == azureAdObjectId)
+            .Select(m => m.Role)
+            .FirstOrDefaultAsync(ct);
 
-    public async Task<BoardTaskAttachment?> GetAttachmentByBoardIdAndColumnIdAndTaskIdAsync(
-        Guid boardId,
-        Guid columnId,
-        Guid boardTaskId,
-        Guid attachmentId,
-        CancellationToken ct = default) =>
-        await _context.Set<BoardTaskAttachment>()
-            .FirstOrDefaultAsync(
-                attachment => attachment.Id == attachmentId
-                    && attachment.BoardTaskId == boardTaskId
-                    && attachment.BoardTask!.ColumnId == columnId
-                    && attachment.BoardTask.Column!.BoardId == boardId,
-                ct);
-
-    public async Task<BoardTaskDetailsDto?> GetDetailsByBoardIdAndColumnIdAndIdAsync(Guid boardId, Guid columnId, Guid boardTaskId, CancellationToken ct = default) =>
+    public async Task<BoardTaskDetailsDto?> GetBoardTaskDetailsAsync(Guid boardTaskId, CancellationToken ct = default) =>
         await _dbSet
-            .Where(task => task.Id == boardTaskId
-                && task.ColumnId == columnId
-                && task.Column!.BoardId == boardId)
+            .Where(task => task.Id == boardTaskId)
             .Select(task => new BoardTaskDetailsDto(
                 task.Id,
                 task.ColumnId,
@@ -100,7 +68,7 @@ public class BoardTaskRepository(JustTaskTrackerDbContext context)
                     : new UserDto(task.Assignee.Id, task.Assignee.Email, task.Assignee.DisplayName)))
             .FirstOrDefaultAsync(ct);
 
-    public async Task<IReadOnlyList<BoardTask>> GetOrderedByColumnIdAsync(Guid columnId, CancellationToken ct = default) =>
+    public async Task<IReadOnlyList<BoardTask>> GetListByColumnIdAsync(Guid columnId, CancellationToken ct = default) =>
         await _dbSet
             .Where(t => t.ColumnId == columnId)
             .OrderBy(t => t.Position)
@@ -114,6 +82,33 @@ public class BoardTaskRepository(JustTaskTrackerDbContext context)
         foreach (var task in tasks)
             _dbSet.Remove(task);
     }
+
+    public async Task<(BoardTaskAttachment? Attachment, BoardMemberRole? UserRole)> GetAttachmentWithUserRoleAsync(Guid attachmentId, Guid azureAdObjectId, CancellationToken ct = default)
+    {
+        var result = await _context.Set<BoardTaskAttachment>()
+            .Where(attachment => attachment.Id == attachmentId)
+            .Select(attachment => new
+            {
+                Attachment = attachment,
+                UserRole = attachment.BoardTask!.Column!.Board!.Members
+                    .Where(m => m.User!.AzureAdObjectId == azureAdObjectId)
+                    .Select(m => m.Role)
+                    .FirstOrDefault()
+            })
+            .FirstOrDefaultAsync(ct);
+
+        return (result?.Attachment, result?.UserRole);
+    }
+
+    public async Task<int> GetAttachmentsCountAsync(Guid boardTaskId, CancellationToken ct = default) =>
+        await _context.Set<BoardTaskAttachment>()
+            .CountAsync(a => a.BoardTaskId == boardTaskId, ct);
+
+    public async Task<IReadOnlyList<BoardTaskAttachment>> GetAttachmentsAsync(Guid boardTaskId, CancellationToken ct = default) =>
+        await _context.Set<BoardTaskAttachment>()
+            .Where(attachment => attachment.BoardTaskId == boardTaskId)
+            .OrderBy(attachment => attachment.Position)
+            .ToListAsync(ct);
 
     public void RemoveAttachment(BoardTaskAttachment attachment) =>
         _context.Set<BoardTaskAttachment>().Remove(attachment);

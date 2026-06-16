@@ -21,7 +21,7 @@ internal sealed class BoardPositioningService(IUnitOfWork unitOfWork) : IBoardPo
     /// <param name="items">All tracked entities in the unique-index scope (every column on a board, or every task in one column).</param>
     /// <param name="movedId">Id of the entity to move.</param>
     /// <param name="newIndex">Zero-based target index in the current order.</param>
-    public async Task MoveToIndexAsync<TEntity>(
+    public async Task MoveToIndexAndSaveAsync<TEntity>(
         IReadOnlyList<TEntity> items,
         Guid movedId,
         int newIndex,
@@ -40,7 +40,7 @@ internal sealed class BoardPositioningService(IUnitOfWork unitOfWork) : IBoardPo
     /// Renumbers entities to contiguous zero-based positions while preserving their current sort order by <see cref="IPositionedEntity.Position"/>.
     /// </summary>
     /// <param name="items">All tracked entities in the unique-index scope (for example remaining board columns after a deletion).</param>
-    public async Task ApplyCurrentOrderAsync<TEntity>(
+    public async Task ApplyCurrentOrderAndSaveAsync<TEntity>(
         IReadOnlyList<TEntity> items,
         CancellationToken ct = default)
         where TEntity : Entity<Guid>, IPositionedEntity
@@ -60,7 +60,7 @@ internal sealed class BoardPositioningService(IUnitOfWork unitOfWork) : IBoardPo
     /// <param name="movedTask">The task being moved.</param>
     /// <param name="targetColumnId">Destination column id; must differ from <paramref name="movedTask"/>'s current column.</param>
     /// <param name="newIndex">Zero-based insert index in the target column order.</param>
-    public async Task MoveTaskToColumnAsync(
+    public async Task MoveTaskToColumnAndSaveAsync(
         IReadOnlyList<BoardTask> sourceTasks,
         IReadOnlyList<BoardTask> targetTasks,
         BoardTask movedTask,
@@ -74,7 +74,7 @@ internal sealed class BoardPositioningService(IUnitOfWork unitOfWork) : IBoardPo
         ArgumentOutOfRangeException.ThrowIfNegative(newIndex);
 
         if (movedTask.ColumnId == targetColumnId)
-            throw new ArgumentException("Use MoveToIndexAsync to reorder a task within the same column.", nameof(targetColumnId));
+            throw new ArgumentException("Use MoveToIndexAndSaveAsync to reorder a task within the same column.", nameof(targetColumnId));
 
         if (!sourceTasks.Any(task => task.Id == movedTask.Id))
             throw new ArgumentException("Moved task was not found in the source collection.", nameof(movedTask));
@@ -117,7 +117,7 @@ internal sealed class BoardPositioningService(IUnitOfWork unitOfWork) : IBoardPo
     /// <param name="targetTasks">All tracked tasks already in the target column; must not include any task from <paramref name="tasksToMove"/>.</param>
     /// <param name="targetColumnId">Destination column id; must differ from the current column of every task in <paramref name="tasksToMove"/>.</param>
     /// <param name="placement">Whether the block is inserted before existing target tasks or appended after them.</param>
-    public async Task MoveTaskRangeToColumnAsync(
+    public async Task MoveTaskRangeToColumnAndSaveAsync(
         IReadOnlyList<BoardTask> tasksToMove,
         IReadOnlyList<BoardTask> targetTasks,
         Guid targetColumnId,

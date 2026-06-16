@@ -1,4 +1,3 @@
-﻿using JustTaskTracker.Application.Boards.Authorization;
 using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Interfaces;
 using JustTaskTracker.Domain.Boards.Authorization;
@@ -9,29 +8,19 @@ using MediatR;
 
 namespace JustTaskTracker.Application.Boards.Queries;
 
-public record GetBoardTaskByIdQuery(Guid BoardId, Guid ColumnId, Guid BoardTaskId) : IRequest<Result<BoardTaskDetailsDto>>;
+public record GetBoardTaskByIdQuery(Guid BoardTaskId) : IRequest<Result<BoardTaskDetailsDto>>;
 
-public class GetBoardTaskByIdQueryHandler(
-    ICurrentUserAccessor currentUserAccessor,
-    IBoardRepository boardRepository,
-    IBoardTaskRepository boardTaskRepository)
+public class GetBoardTaskByIdQueryHandler(ICurrentUserAccessor currentUserAccessor, IBoardTaskRepository boardTaskRepository)
     : IRequestHandler<GetBoardTaskByIdQuery, Result<BoardTaskDetailsDto>>
 {
     public async Task<Result<BoardTaskDetailsDto>> Handle(GetBoardTaskByIdQuery request, CancellationToken ct)
     {
-        var (boardExists, userRole) = await boardRepository.GetUserBoardRoleAsync(
-            request.BoardId,
-            currentUserAccessor.AzureAdObjectId,
-            ct);
+        var userRole = await boardTaskRepository.GetUserRoleAsync(request.BoardTaskId, currentUserAccessor.AzureAdObjectId, ct);
 
-        if (BoardRoleAuthorization.EnsureBoardAccess(boardExists, userRole, BoardRolePermissions.CanViewBoard) is { } failure)
-            return Result<BoardTaskDetailsDto>.Failure(failure.Error);
+        if (userRole is not { } authorizedRole || !BoardRolePermissions.CanViewBoard(authorizedRole))
+            return Result<BoardTaskDetailsDto>.Failure(GeneralErrors.Forbidden);
 
-        var task = await boardTaskRepository.GetDetailsByBoardIdAndColumnIdAndIdAsync(
-            request.BoardId,
-            request.ColumnId,
-            request.BoardTaskId,
-            ct);
+        var task = await boardTaskRepository.GetBoardTaskDetailsAsync(request.BoardTaskId, ct);
 
         if (task is null)
             return Result<BoardTaskDetailsDto>.Failure(GeneralErrors.NotFound);

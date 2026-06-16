@@ -1,5 +1,5 @@
 ﻿using JustTaskTracker.API.Extensions;
-using JustTaskTracker.Application.Boards.Commands;
+using JustTaskTracker.Application.Boards.Commands.Columns;
 using JustTaskTracker.Application.Common.Constants;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;

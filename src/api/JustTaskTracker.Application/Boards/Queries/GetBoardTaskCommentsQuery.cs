@@ -1,4 +1,3 @@
-using JustTaskTracker.Application.Boards.Authorization;
 using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Interfaces;
 using JustTaskTracker.Domain.Boards.Authorization;
@@ -10,44 +9,22 @@ using MediatR;
 
 namespace JustTaskTracker.Application.Boards.Queries;
 
-public record GetBoardTaskCommentsQuery(
-    Guid BoardId,
-    Guid ColumnId,
-    Guid BoardTaskId) : PaginatedRequest, IRequest<Result<PagedList<BoardTaskCommentDto>>>;
+public record GetBoardTaskCommentsQuery(Guid BoardTaskId) : PaginatedRequest, IRequest<Result<PagedList<BoardTaskCommentDto>>>;
 
 public class GetBoardTaskCommentsQueryHandler(
     ICurrentUserAccessor currentUserAccessor,
-    IBoardRepository boardRepository,
     IBoardTaskRepository boardTaskRepository,
     IBoardTaskCommentRepository boardTaskCommentRepository)
     : IRequestHandler<GetBoardTaskCommentsQuery, Result<PagedList<BoardTaskCommentDto>>>
 {
-    public async Task<Result<PagedList<BoardTaskCommentDto>>> Handle(
-        GetBoardTaskCommentsQuery request,
-        CancellationToken ct)
+    public async Task<Result<PagedList<BoardTaskCommentDto>>> Handle(GetBoardTaskCommentsQuery request, CancellationToken ct)
     {
-        var (boardExists, userRole) = await boardRepository.GetUserBoardRoleAsync(
-            request.BoardId,
-            currentUserAccessor.AzureAdObjectId,
-            ct);
+        var userRole = await boardTaskRepository.GetUserRoleAsync(request.BoardTaskId, currentUserAccessor.AzureAdObjectId, ct);
 
-        if (BoardRoleAuthorization.EnsureBoardAccess(boardExists, userRole, BoardRolePermissions.CanViewBoard) is { } failure)
-            return Result<PagedList<BoardTaskCommentDto>>.Failure(failure.Error);
+        if (userRole is not { } authorizedRole || !BoardRolePermissions.CanViewBoard(authorizedRole))
+            return Result<PagedList<BoardTaskCommentDto>>.Failure(GeneralErrors.Forbidden);
 
-        if (!await boardTaskRepository.ExistsByBoardIdAndColumnIdAndIdAsync(
-                request.BoardId,
-                request.ColumnId,
-                request.BoardTaskId,
-                ct))
-            return Result<PagedList<BoardTaskCommentDto>>.Failure(GeneralErrors.NotFound);
-
-        var comments = await boardTaskCommentRepository.GetPagedByBoardIdAndColumnIdAndTaskIdAsync(
-            request.BoardId,
-            request.ColumnId,
-            request.BoardTaskId,
-            request.PageNumber!.Value,
-            request.PageSize!.Value,
-            ct);
+        var comments = await boardTaskCommentRepository.GetPagedByBoardTaskIdAsync(request.BoardTaskId, request.PageNumber!.Value, request.PageSize!.Value, ct);
 
         return Result<PagedList<BoardTaskCommentDto>>.Success(comments);
     }

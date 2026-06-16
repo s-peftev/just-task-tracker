@@ -1,10 +1,10 @@
 using JustTaskTracker.API.Extensions;
 using JustTaskTracker.Application.Common.Constants;
-using JustTaskTracker.Application.Boards.Commands;
 using JustTaskTracker.Application.Boards.Queries;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using JustTaskTracker.Application.Boards.Commands.Boards;
 
 namespace JustTaskTracker.API.Controllers;
 

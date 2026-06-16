@@ -1,13 +1,12 @@
-using JustTaskTracker.Application.Boards.Authorization;
+using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Interfaces;
 using JustTaskTracker.Application.Common.Interfaces.Persistence;
-using JustTaskTracker.Application.Boards.Repositories;
+using JustTaskTracker.Domain.Boards.Authorization;
 using JustTaskTracker.Domain.Common.Results;
 using JustTaskTracker.Domain.Common.Results.Errors;
-using JustTaskTracker.Domain.Boards.Authorization;
 using MediatR;
 
-namespace JustTaskTracker.Application.Boards.Commands;
+namespace JustTaskTracker.Application.Boards.Commands.Boards;
 
 public record DeleteBoardCommand(Guid BoardId) : IRequest<Result>;
 
@@ -24,8 +23,8 @@ public class DeleteBoardCommandHandler(
             currentUserAccessor.AzureAdObjectId,
             ct);
 
-        if (BoardRoleAuthorization.EnsureBoardAccess(board is not null, userRole, BoardRolePermissions.CanDeleteBoard) is { } failure)
-            return failure;
+        if (userRole is not { } authorizedRole || !BoardRolePermissions.CanDeleteBoard(authorizedRole))
+            return Result.Failure(GeneralErrors.Forbidden);
 
         boardRepository.Remove(board!);
         await unitOfWork.SaveChangesAsync(ct);

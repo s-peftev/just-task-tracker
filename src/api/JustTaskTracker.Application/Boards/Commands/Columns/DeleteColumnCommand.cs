@@ -1,5 +1,4 @@
 using FluentValidation;
-using JustTaskTracker.Application.Boards.Authorization;
 using JustTaskTracker.Application.Boards.Positioning;
 using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Interfaces;
@@ -11,18 +10,18 @@ using JustTaskTracker.Domain.Common.Results;
 using JustTaskTracker.Domain.Common.Results.Errors;
 using MediatR;
 
-namespace JustTaskTracker.Application.Boards.Commands;
+namespace JustTaskTracker.Application.Boards.Commands.Columns;
 
 public record DeleteColumnCommand(
     Guid BoardId,
     Guid ColumnId,
     DeleteColumnTasksDisposition TasksDisposition,
     Guid? TargetColumnId = null,
-    ColumnTaskMovePlacement? MovePlacement = null) : IRequest<Result>;
+    ColumnTaskMovePlacement? MovePlacement = null) 
+    : IRequest<Result>;
 
 public class DeleteColumnCommandHandler(
     ICurrentUserAccessor currentUserAccessor,
-    IBoardRepository boardRepository,
     IColumnRepository columnRepository,
     IBoardTaskRepository boardTaskRepository,
     IBoardPositioningService boardPositioningService,
@@ -31,38 +30,31 @@ public class DeleteColumnCommandHandler(
 {
     public async Task<Result> Handle(DeleteColumnCommand request, CancellationToken ct)
     {
-        var (boardExists, userRole) = await boardRepository.GetUserBoardRoleAsync(
-            request.BoardId,
-            currentUserAccessor.AzureAdObjectId,
-            ct);
+        var userRole = await columnRepository.GetUserRoleAsync(request.ColumnId, currentUserAccessor.AzureAdObjectId, ct);
 
-        if (BoardRoleAuthorization.EnsureBoardAccess(boardExists, userRole, BoardRolePermissions.CanManageColumns) is { } failure)
-            return failure;
+        if (userRole is not { } authorizedRole || !BoardRolePermissions.CanManageColumns(authorizedRole))
+            return Result.Failure(GeneralErrors.Forbidden);
 
-        var column = await columnRepository.GetByBoardIdAndIdAsync(
-            request.BoardId,
-            request.ColumnId,
-            ct);
+        var boardColumns = await columnRepository.GetListByBoardIdAsync(request.BoardId, ct);
+
+        var column = boardColumns
+            .FirstOrDefault(boardColumn => boardColumn.Id == request.ColumnId);
 
         if (column is null)
             return Result.Failure(GeneralErrors.NotFound);
+        
+        var columnBoardTasks = await boardTaskRepository.GetListByColumnIdAsync(request.ColumnId, ct);
 
-        var columns = await columnRepository.GetListByBoardIdAsync(request.BoardId, ct);
-        var columnTasks = await boardTaskRepository.GetOrderedByColumnIdAsync(request.ColumnId, ct);
-
-        IReadOnlyList<BoardTask> targetTasks = [];
+        IReadOnlyList<BoardTask> targetBoardTasks = [];
 
         if (request.TasksDisposition == DeleteColumnTasksDisposition.MoveToColumn)
         {
-            var targetColumn = await columnRepository.GetByBoardIdAndIdAsync(
-                request.BoardId,
-                request.TargetColumnId!.Value,
-                ct);
+            var targetColumn = await columnRepository.GetByIdAsync(request.TargetColumnId!.Value, ct);
 
             if (targetColumn is null)
                 return Result.Failure(GeneralErrors.NotFound);
 
-            targetTasks = await boardTaskRepository.GetOrderedByColumnIdAsync(targetColumn.Id, ct);
+            targetBoardTasks = await boardTaskRepository.GetListByColumnIdAsync(targetColumn.Id, ct);
         }
 
         await unitOfWork.BeginTransactionAsync(ct);
@@ -71,26 +63,26 @@ public class DeleteColumnCommandHandler(
         {
             if (request.TasksDisposition == DeleteColumnTasksDisposition.MoveToColumn)
             {
-                await boardPositioningService.MoveTaskRangeToColumnAsync(
-                    columnTasks,
-                    targetTasks,
+                await boardPositioningService.MoveTaskRangeToColumnAndSaveAsync(
+                    columnBoardTasks,
+                    targetBoardTasks,
                     request.TargetColumnId!.Value,
                     request.MovePlacement!.Value,
                     ct);
             }
-            else if (columnTasks.Count > 0)
+            else if (columnBoardTasks.Count > 0)
             {
-                boardTaskRepository.RemoveRange(columnTasks);
+                boardTaskRepository.RemoveRange(columnBoardTasks);
             }
 
             columnRepository.Remove(column);
 
-            var remainingColumns = columns
+            var remainingColumns = boardColumns
                 .Where(boardColumn => boardColumn.Id != request.ColumnId)
                 .ToList();
 
             if (remainingColumns.Count > 0)
-                await boardPositioningService.ApplyCurrentOrderAsync(remainingColumns, ct);
+                await boardPositioningService.ApplyCurrentOrderAndSaveAsync(remainingColumns, ct);
 
             await unitOfWork.SaveChangesAsync(ct);
             await unitOfWork.CommitTransactionAsync(ct);

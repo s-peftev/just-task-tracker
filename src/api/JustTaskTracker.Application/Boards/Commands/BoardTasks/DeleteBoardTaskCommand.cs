@@ -1,5 +1,4 @@
-﻿using FluentValidation;
-using JustTaskTracker.Application.Boards.Authorization;
+using FluentValidation;
 using JustTaskTracker.Application.Boards.Positioning;
 using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Interfaces;
@@ -9,13 +8,12 @@ using JustTaskTracker.Domain.Common.Results;
 using JustTaskTracker.Domain.Common.Results.Errors;
 using MediatR;
 
-namespace JustTaskTracker.Application.Boards.Commands;
+namespace JustTaskTracker.Application.Boards.Commands.BoardTasks;
 
-public record DeleteBoardTaskCommand(Guid BoardId, Guid ColumnId, Guid BoardTaskId) : IRequest<Result>;
+public record DeleteBoardTaskCommand(Guid ColumnId, Guid BoardTaskId) : IRequest<Result>;
 
 public class DeleteBoardTaskCommandHandler(
     ICurrentUserAccessor currentUserAccessor,
-    IBoardRepository boardRepository,
     IBoardTaskRepository boardTaskRepository,
     IBoardTaskCommentRepository boardTaskCommentRepository,
     IBoardPositioningService boardPositioningService,
@@ -24,25 +22,21 @@ public class DeleteBoardTaskCommandHandler(
 {
     public async Task<Result> Handle(DeleteBoardTaskCommand request, CancellationToken ct)
     {
-        var (boardExists, userRole) = await boardRepository.GetUserBoardRoleAsync(
-            request.BoardId,
-            currentUserAccessor.AzureAdObjectId,
-            ct);
+        var userRole = await boardTaskRepository.GetUserRoleAsync(request.BoardTaskId, currentUserAccessor.AzureAdObjectId, ct);
 
-        if (BoardRoleAuthorization.EnsureBoardAccess(boardExists, userRole, BoardRolePermissions.CanManageTasks) is { } failure)
-            return failure;
+        if (userRole is not { } authorizedRole || !BoardRolePermissions.CanManageTasks(authorizedRole))
+            return Result.Failure(GeneralErrors.Forbidden);
 
-        var boardTask = await boardTaskRepository.GetByBoardIdAndIdAsync(
-            request.BoardId,
-            request.BoardTaskId,
-            ct);
+        var columnBoardTasks = await boardTaskRepository.GetListByColumnIdAsync(request.ColumnId, ct);
 
-        if (boardTask is null || boardTask.ColumnId != request.ColumnId)
+        var boardTask = columnBoardTasks
+            .FirstOrDefault(task => task.Id == request.BoardTaskId);
+
+        if (boardTask is null)
             return Result.Failure(GeneralErrors.NotFound);
 
-        var comments = await boardTaskCommentRepository.GetOrderedByBoardTaskIdAsync(request.BoardTaskId, ct);
-        var columnTasks = await boardTaskRepository.GetOrderedByColumnIdAsync(request.ColumnId, ct);
-
+        var comments = await boardTaskCommentRepository.GetListByBoardTaskIdAsync(request.BoardTaskId, ct);
+        
         await unitOfWork.BeginTransactionAsync(ct);
 
         try
@@ -52,12 +46,12 @@ public class DeleteBoardTaskCommandHandler(
 
             boardTaskRepository.Remove(boardTask);
 
-            var remainingTasks = columnTasks
+            var remainingTasks = columnBoardTasks
                 .Where(task => task.Id != boardTask.Id)
                 .ToList();
 
             if (remainingTasks.Count > 0)
-                await boardPositioningService.ApplyCurrentOrderAsync(remainingTasks, ct);
+                await boardPositioningService.ApplyCurrentOrderAndSaveAsync(remainingTasks, ct);
             else
                 await unitOfWork.SaveChangesAsync(ct);
 
@@ -77,9 +71,6 @@ public class DeleteBoardTaskCommandValidator : AbstractValidator<DeleteBoardTask
 {
     public DeleteBoardTaskCommandValidator()
     {
-        RuleFor(x => x.BoardId)
-            .NotEmpty();
-
         RuleFor(x => x.ColumnId)
             .NotEmpty();
 

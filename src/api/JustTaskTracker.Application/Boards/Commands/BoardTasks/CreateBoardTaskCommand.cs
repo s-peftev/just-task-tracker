@@ -1,6 +1,5 @@
 ﻿using FluentValidation;
 using JustTaskTracker.Application.Auth.Repositories;
-using JustTaskTracker.Application.Boards.Authorization;
 using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Interfaces;
 using JustTaskTracker.Application.Common.Interfaces.Persistence;
@@ -12,18 +11,13 @@ using JustTaskTracker.Domain.Common.Results;
 using JustTaskTracker.Domain.Common.Results.Errors;
 using MediatR;
 
-namespace JustTaskTracker.Application.Boards.Commands;
+namespace JustTaskTracker.Application.Boards.Commands.BoardTasks;
 
-public record CreateBoardTaskCommand(
-    Guid BoardId,
-    Guid ColumnId,
-    string Title) 
-    : IRequest<Result<BoardTaskLookupDto>>;
+public record CreateBoardTaskCommand(Guid ColumnId, string Title) : IRequest<Result<BoardTaskLookupDto>>;
 
 public class CreateBoardTaskCommandHandler(
     ICurrentUserAccessor currentUserAccessor,
     IUserRepository userRepository,
-    IBoardRepository boardRepository,
     IColumnRepository columnRepository,
     IBoardTaskRepository boardTaskRepository,
     IUnitOfWork unitOfWork)
@@ -31,23 +25,15 @@ public class CreateBoardTaskCommandHandler(
 {
     public async Task<Result<BoardTaskLookupDto>> Handle(CreateBoardTaskCommand request, CancellationToken ct)
     {
-        var (boardExists, userRole) = await boardRepository.GetUserBoardRoleAsync(
-            request.BoardId,
-            currentUserAccessor.AzureAdObjectId,
-            ct);
-
-        if (BoardRoleAuthorization.EnsureBoardAccess(boardExists, userRole, BoardRolePermissions.CanManageTasks) is { } failure)
-            return Result<BoardTaskLookupDto>.Failure(failure.Error);
-
-        if (!await columnRepository.ExistsByBoardIdAndIdAsync(request.BoardId, request.ColumnId, ct))
-            return Result<BoardTaskLookupDto>.Failure(GeneralErrors.NotFound);
-
-        var currentUser = await userRepository.GetUserDtoByAzureAOIAsync(
-            currentUserAccessor.AzureAdObjectId,
-            ct);
+        var currentUser = await userRepository.GetUserDtoByAzureAOIAsync(currentUserAccessor.AzureAdObjectId, ct);
 
         if (currentUser is null)
             return Result<BoardTaskLookupDto>.Failure(GeneralErrors.Unauthorized);
+
+        var userRole = await columnRepository.GetUserRoleAsync(request.ColumnId, currentUserAccessor.AzureAdObjectId, ct);
+
+        if (userRole is not { } authorizedRole || !BoardRolePermissions.CanManageTasks(authorizedRole))
+            return Result<BoardTaskLookupDto>.Failure(GeneralErrors.Forbidden);
 
         var title = request.Title.Trim();
 
@@ -76,9 +62,6 @@ public class CreateBoardTaskCommandValidator : AbstractValidator<CreateBoardTask
 {
     public CreateBoardTaskCommandValidator()
     {
-        RuleFor(x => x.BoardId)
-            .NotEmpty();
-
         RuleFor(x => x.ColumnId)
             .NotEmpty();
 

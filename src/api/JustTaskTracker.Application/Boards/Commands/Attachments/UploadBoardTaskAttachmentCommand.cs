@@ -1,6 +1,5 @@
 using FluentValidation;
 using JustTaskTracker.Application.Auth.Repositories;
-using JustTaskTracker.Application.Boards.Authorization;
 using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Interfaces;
 using JustTaskTracker.Application.Common.Interfaces.ExternalProviders;
@@ -17,14 +16,13 @@ using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 
-namespace JustTaskTracker.Application.Boards.Commands;
+namespace JustTaskTracker.Application.Boards.Commands.Attachments;
 
-public record UploadBoardTaskAttachmentCommand(Guid BoardId, Guid ColumnId, Guid BoardTaskId, IFormFile? File) : IRequest<Result<BoardTaskAttachmentDto>>;
+public record UploadBoardTaskAttachmentCommand(Guid BoardTaskId, IFormFile? File) : IRequest<Result<BoardTaskAttachmentDto>>;
 
 public class UploadBoardTaskAttachmentCommandHandler(
     ICurrentUserAccessor currentUserAccessor,
     IUserRepository userRepository,
-    IBoardRepository boardRepository,
     IBoardTaskRepository boardTaskRepository,
     IBlobStorageService blobStorageService,
     ValidationSettings validationSettings,
@@ -34,32 +32,23 @@ public class UploadBoardTaskAttachmentCommandHandler(
 {
     public async Task<Result<BoardTaskAttachmentDto>> Handle(UploadBoardTaskAttachmentCommand request, CancellationToken ct)
     {
-        var (boardExists, userRole) = await boardRepository.GetUserBoardRoleAsync(
-            request.BoardId,
-            currentUserAccessor.AzureAdObjectId,
-            ct);
+        var currentUser = await userRepository.GetUserDtoByAzureAOIAsync(currentUserAccessor.AzureAdObjectId, ct);
 
-        if (BoardRoleAuthorization.EnsureBoardAccess(boardExists, userRole, BoardRolePermissions.CanManageTasks) is { } failure)
-            return Result<BoardTaskAttachmentDto>.Failure(failure.Error);
+        if (currentUser is null)
+            return Result<BoardTaskAttachmentDto>.Failure(GeneralErrors.Unauthorized);
 
-        var (boardTask, attachmentCount) = await boardTaskRepository.GetByBoardIdAndColumnIdAndIdWithAttachmentsCountAsync(
-            request.BoardId,
-            request.ColumnId,
-            request.BoardTaskId,
-            ct);
+        var (boardTask, userRole) = await boardTaskRepository.GetBoardTaskWithUserRoleAsync(request.BoardTaskId, currentUserAccessor.AzureAdObjectId, ct);
+
+        if (userRole is not { } authorizedRole || !BoardRolePermissions.CanManageTasks(authorizedRole))
+            return Result<BoardTaskAttachmentDto>.Failure(GeneralErrors.Forbidden);
 
         if (boardTask is null)
             return Result<BoardTaskAttachmentDto>.Failure(GeneralErrors.NotFound);
 
+        var attachmentCount = await boardTaskRepository.GetAttachmentsCountAsync(request.BoardTaskId, ct);
+
         if (attachmentCount >= validationSettings.BoardTasks.MaxAttachmentsPerTask)
             return Result<BoardTaskAttachmentDto>.Failure(BoardTasksErrors.TooManyAttachments);
-
-        var currentUser = await userRepository.GetUserDtoByAzureAOIAsync(
-            currentUserAccessor.AzureAdObjectId,
-            ct);
-
-        if (currentUser is null)
-            return Result<BoardTaskAttachmentDto>.Failure(GeneralErrors.Unauthorized);
 
         var file = request.File!;
         var originalFileName = Path.GetFileName(file.FileName.Trim());
@@ -136,12 +125,6 @@ public class UploadBoardTaskAttachmentCommandValidator : AbstractValidator<Uploa
         var allowedContentTypes = new HashSet<string>(
             validationSettings.BoardTasks.AllowedContentTypes,
             StringComparer.OrdinalIgnoreCase);
-
-        RuleFor(x => x.BoardId)
-            .NotEmpty();
-
-        RuleFor(x => x.ColumnId)
-            .NotEmpty();
 
         RuleFor(x => x.BoardTaskId)
             .NotEmpty();

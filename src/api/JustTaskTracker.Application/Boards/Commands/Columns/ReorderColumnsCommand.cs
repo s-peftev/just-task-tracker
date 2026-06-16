@@ -1,5 +1,4 @@
 using FluentValidation;
-using JustTaskTracker.Application.Boards.Authorization;
 using JustTaskTracker.Application.Boards.Positioning;
 using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Interfaces;
@@ -10,13 +9,12 @@ using JustTaskTracker.Domain.Common.Results;
 using JustTaskTracker.Domain.Common.Results.Errors;
 using MediatR;
 
-namespace JustTaskTracker.Application.Boards.Commands;
+namespace JustTaskTracker.Application.Boards.Commands.Columns;
 
 public record ReorderColumnsCommand(Guid BoardId, Guid ColumnId, int Position) : IRequest<Result>;
 
 public class ReorderColumnsCommandHandler(
     ICurrentUserAccessor currentUserAccessor,
-    IBoardRepository boardRepository,
     IColumnRepository columnRepository,
     IBoardPositioningService boardPositioningService,
     IUnitOfWork unitOfWork)
@@ -24,13 +22,10 @@ public class ReorderColumnsCommandHandler(
 {
     public async Task<Result> Handle(ReorderColumnsCommand request, CancellationToken ct)
     {
-        var (boardExists, userRole) = await boardRepository.GetUserBoardRoleAsync(
-            request.BoardId,
-            currentUserAccessor.AzureAdObjectId,
-            ct);
+        var userRole = await columnRepository.GetUserRoleAsync(request.ColumnId, currentUserAccessor.AzureAdObjectId, ct);
 
-        if (BoardRoleAuthorization.EnsureBoardAccess(boardExists, userRole, BoardRolePermissions.CanManageColumns) is { } failure)
-            return failure;
+        if (userRole is not { } authorizedRole || !BoardRolePermissions.CanManageColumns(authorizedRole))
+            return Result.Failure(GeneralErrors.Forbidden);
 
         var columns = await columnRepository.GetListByBoardIdAsync(request.BoardId, ct);
 
@@ -44,7 +39,7 @@ public class ReorderColumnsCommandHandler(
 
         try
         {
-            await boardPositioningService.MoveToIndexAsync(columns, request.ColumnId, request.Position, ct);
+            await boardPositioningService.MoveToIndexAndSaveAsync(columns, request.ColumnId, request.Position, ct);
             await unitOfWork.CommitTransactionAsync(ct);
         }
         catch

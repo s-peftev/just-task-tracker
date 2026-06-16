@@ -3,7 +3,6 @@ using JustTaskTracker.Application.Auth.Repositories;
 using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Interfaces;
 using JustTaskTracker.Application.Common.Interfaces.Persistence;
-using JustTaskTracker.Domain.Auth.DTOs;
 using JustTaskTracker.Domain.Boards.Constants;
 using JustTaskTracker.Domain.Boards.DTOs;
 using JustTaskTracker.Domain.Boards.Entities;
@@ -12,7 +11,7 @@ using JustTaskTracker.Domain.Common.Results;
 using JustTaskTracker.Domain.Common.Results.Errors;
 using MediatR;
 
-namespace JustTaskTracker.Application.Boards.Commands;
+namespace JustTaskTracker.Application.Boards.Commands.Boards;
 
 public record CreateBoardCommand(string Name) : IRequest<Result<BoardDetailsDto>>;
 
@@ -25,9 +24,9 @@ public class CreateBoardCommandHandler(
 {
     public async Task<Result<BoardDetailsDto>> Handle(CreateBoardCommand request, CancellationToken ct)
     {
-        var user = await userRepository.GetUserByAzureAOIAsync(currentUserAccessor.AzureAdObjectId, ct);
+        var currentUser = await userRepository.GetUserDtoByAzureAOIAsync(currentUserAccessor.AzureAdObjectId, ct);
 
-        if (user is null)
+        if (currentUser is null)
             return Result<BoardDetailsDto>.Failure(GeneralErrors.Unauthorized);
 
         var board = new Board { Name = request.Name };
@@ -36,7 +35,7 @@ public class CreateBoardCommandHandler(
         boardRepository.AddMember(new BoardMember
         {
             BoardId = board.Id,
-            UserId = user.Id,
+            UserId = currentUser.Id,
             Role = BoardMemberRole.Owner
         });
 
@@ -47,7 +46,7 @@ public class CreateBoardCommandHandler(
             board.Name,
             board.CreatedAtUtc,
             BoardMemberRole.Owner,
-            [new UserDto(user.Id, user.Email, user.DisplayName)],
+            [currentUser],
             []));
     }
 }

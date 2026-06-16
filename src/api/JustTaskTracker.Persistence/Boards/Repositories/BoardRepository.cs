@@ -19,23 +19,13 @@ public class BoardRepository(JustTaskTrackerDbContext context)
     public void AddMember(BoardMember member) =>
         _context.BoardMembers.Add(member);
 
-    public async Task<(bool BoardExists, BoardMemberRole? UserRole)> GetUserBoardRoleAsync(Guid boardId, Guid azureAdObjectId, CancellationToken ct = default)
-    {
-        var result = await _dbSet
+    public async Task<BoardMemberRole?> GetUserRoleAsync(Guid boardId, Guid azureAdObjectId, CancellationToken ct = default) =>
+        await _dbSet
             .Where(b => b.Id == boardId)
-            .Select(b => new
-            {
-                UserRole = b.Members
-                    .Where(m => m.User!.AzureAdObjectId == azureAdObjectId)
-                    .Select(m => (BoardMemberRole?)m.Role)
-                    .FirstOrDefault()
-            })
+            .SelectMany(b => b.Members)
+            .Where(m => m.User!.AzureAdObjectId == azureAdObjectId)
+            .Select(m => m.Role)
             .FirstOrDefaultAsync(ct);
-
-        return result is null
-            ? (false, null)
-            : (true, result.UserRole);
-    }
 
     public async Task<(Board? Board, BoardMemberRole? UserRole)> GetBoardWithUserRoleAsync(Guid boardId, Guid azureAdObjectId, CancellationToken ct = default)
     {
@@ -46,7 +36,7 @@ public class BoardRepository(JustTaskTrackerDbContext context)
                 Board = b,
                 UserRole = b.Members
                     .Where(m => m.User!.AzureAdObjectId == azureAdObjectId)
-                    .Select(m => (BoardMemberRole?)m.Role)
+                    .Select(m => m.Role)
                     .FirstOrDefault()
             })
             .FirstOrDefaultAsync(ct);
@@ -141,9 +131,6 @@ public class BoardRepository(JustTaskTrackerDbContext context)
                 ct);
     }
 
-    public async Task<UserDto?> GetBoardMemberUserDtoAsync(Guid boardId, Guid userId, CancellationToken ct = default) =>
-        await _context.BoardMembers
-            .Where(m => m.BoardId == boardId && m.UserId == userId)
-            .Select(m => new UserDto(m.User!.Id, m.User.Email, m.User.DisplayName))
-            .FirstOrDefaultAsync(ct);
+    public async Task<bool> IsBoardMemberAsync(Guid boardId, Guid userId, CancellationToken ct = default) =>
+        await _context.BoardMembers.AnyAsync(m => m.BoardId == boardId && m.UserId == userId, ct);
 }

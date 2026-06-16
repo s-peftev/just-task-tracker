@@ -14,9 +14,7 @@ namespace JustTaskTracker.Application.Boards.Queries;
 
 public record GetBoardsForCurrentUserQuery(TextSearchOptions<BoardSearchField>? TextSearchOptions) : PaginatedRequest, IRequest<Result<PagedList<BoardLookupDto>>>;
 
-public class GetBoardsForCurrentUserQueryHandler(
-    ICurrentUserAccessor currentUser,
-    IBoardRepository boardRepository) 
+public class GetBoardsForCurrentUserQueryHandler(ICurrentUserAccessor currentUser, IBoardRepository boardRepository) 
     : IRequestHandler<GetBoardsForCurrentUserQuery, Result<PagedList<BoardLookupDto>>>
 {
     public async Task<Result<PagedList<BoardLookupDto>>> Handle(GetBoardsForCurrentUserQuery request, CancellationToken ct)

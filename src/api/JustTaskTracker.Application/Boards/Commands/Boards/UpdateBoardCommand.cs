@@ -1,5 +1,4 @@
 using FluentValidation;
-using JustTaskTracker.Application.Boards.Authorization;
 using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Interfaces;
 using JustTaskTracker.Application.Common.Interfaces.Persistence;
@@ -9,7 +8,7 @@ using JustTaskTracker.Domain.Common.Results;
 using JustTaskTracker.Domain.Common.Results.Errors;
 using MediatR;
 
-namespace JustTaskTracker.Application.Boards.Commands;
+namespace JustTaskTracker.Application.Boards.Commands.Boards;
 
 public record UpdateBoardCommand(Guid BoardId, string Name) : IRequest<Result>;
 
@@ -21,13 +20,10 @@ public class UpdateBoardCommandHandler(
 {
     public async Task<Result> Handle(UpdateBoardCommand request, CancellationToken ct)
     {
-        var (board, userRole) = await boardRepository.GetBoardWithUserRoleAsync(
-            request.BoardId,
-            currentUserAccessor.AzureAdObjectId,
-            ct);
+        var (board, userRole) = await boardRepository.GetBoardWithUserRoleAsync(request.BoardId, currentUserAccessor.AzureAdObjectId, ct);
 
-        if (BoardRoleAuthorization.EnsureBoardAccess(board is not null, userRole, BoardRolePermissions.CanRenameBoard) is { } failure)
-            return failure;
+        if (userRole is not { } authorizedRole || !BoardRolePermissions.CanRenameBoard(authorizedRole))
+            return Result.Failure(GeneralErrors.Forbidden);
 
         var name = request.Name.Trim();
 

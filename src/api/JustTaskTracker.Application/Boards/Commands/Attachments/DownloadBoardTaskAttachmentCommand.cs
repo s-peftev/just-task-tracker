@@ -1,5 +1,4 @@
 using FluentValidation;
-using JustTaskTracker.Application.Boards.Authorization;
 using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Interfaces;
 using JustTaskTracker.Application.Common.Interfaces.ExternalProviders;
@@ -10,17 +9,13 @@ using JustTaskTracker.Domain.Common.Results.Errors;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
-namespace JustTaskTracker.Application.Boards.Commands;
+namespace JustTaskTracker.Application.Boards.Commands.Attachments;
 
-public record DownloadBoardTaskAttachmentCommand(
-    Guid BoardId,
-    Guid ColumnId,
-    Guid BoardTaskId,
-    Guid AttachmentId) : IRequest<Result<BoardTaskAttachmentDownload>>;
+public record DownloadBoardTaskAttachmentCommand(Guid AttachmentId) 
+    : IRequest<Result<BoardTaskAttachmentDownload>>;
 
 public class DownloadBoardTaskAttachmentCommandHandler(
     ICurrentUserAccessor currentUserAccessor,
-    IBoardRepository boardRepository,
     IBoardTaskRepository boardTaskRepository,
     IBlobStorageService blobStorageService,
     ILogger<DownloadBoardTaskAttachmentCommandHandler> logger)
@@ -30,20 +25,10 @@ public class DownloadBoardTaskAttachmentCommandHandler(
         DownloadBoardTaskAttachmentCommand request,
         CancellationToken ct)
     {
-        var (boardExists, userRole) = await boardRepository.GetUserBoardRoleAsync(
-            request.BoardId,
-            currentUserAccessor.AzureAdObjectId,
-            ct);
+        var (attachment, userRole) = await boardTaskRepository.GetAttachmentWithUserRoleAsync(request.AttachmentId, currentUserAccessor.AzureAdObjectId, ct);
 
-        if (BoardRoleAuthorization.EnsureBoardAccess(boardExists, userRole, BoardRolePermissions.CanDownloadAttachments) is { } failure)
-            return Result<BoardTaskAttachmentDownload>.Failure(failure.Error);
-
-        var attachment = await boardTaskRepository.GetAttachmentByBoardIdAndColumnIdAndTaskIdAsync(
-            request.BoardId,
-            request.ColumnId,
-            request.BoardTaskId,
-            request.AttachmentId,
-            ct);
+        if (userRole is not { } authorizedRole || !BoardRolePermissions.CanDownloadAttachments(authorizedRole))
+            return Result<BoardTaskAttachmentDownload>.Failure(GeneralErrors.Forbidden);
 
         if (attachment is null)
             return Result<BoardTaskAttachmentDownload>.Failure(GeneralErrors.NotFound);
@@ -74,15 +59,6 @@ public class DownloadBoardTaskAttachmentCommandValidator : AbstractValidator<Dow
 {
     public DownloadBoardTaskAttachmentCommandValidator()
     {
-        RuleFor(x => x.BoardId)
-            .NotEmpty();
-
-        RuleFor(x => x.ColumnId)
-            .NotEmpty();
-
-        RuleFor(x => x.BoardTaskId)
-            .NotEmpty();
-
         RuleFor(x => x.AttachmentId)
             .NotEmpty();
     }

@@ -54,8 +54,8 @@ public class BoardTaskCommentRepository(JustTaskTrackerDbContext context)
     public async Task<PagedList<BoardTaskCommentDto>> GetPagedByBoardTaskIdAsync(Guid boardTaskId, int pageNumber, int pageSize, CancellationToken ct = default) =>
         await _dbSet
             .Where(comment => comment.BoardTaskId == boardTaskId)
-            .OrderBy(comment => comment.CreatedAtUtc)
-            .ThenBy(comment => comment.Id)
+            .OrderByDescending(comment => comment.CreatedAtUtc)
+            .ThenByDescending(comment => comment.Id)
             .ToPagedAsync(
                 comment => new BoardTaskCommentDto(
                     comment.Id,

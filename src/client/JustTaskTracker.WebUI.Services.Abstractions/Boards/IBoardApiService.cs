@@ -86,4 +86,19 @@ public interface IBoardApiService
         Guid attachmentId,
         string fileName,
         CancellationToken ct = default);
+
+    Task<PagedList<BoardTaskCommentDto>> GetBoardTaskCommentsAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid taskId,
+        int pageNumber,
+        int pageSize,
+        CancellationToken ct = default);
+
+    Task<BoardTaskCommentDto> CreateBoardTaskCommentAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid taskId,
+        string body,
+        CancellationToken ct = default);
 }

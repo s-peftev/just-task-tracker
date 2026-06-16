@@ -33,7 +33,7 @@
     z-index: 1;
     display: flex;
     flex-direction: column;
-    width: min(72rem, 100%);
+    width: min(calc(72rem * 1.1), 100%);
     max-height: calc(100% - var(--board-task-overlay-max-height-inset));
     pointer-events: auto;
     overflow: hidden;
@@ -110,7 +110,7 @@
 }
 
 .board-task-overlay__task {
-    flex: 0 0 60%;
+    flex: 0 0 55%;
     min-width: 0;
     overflow: auto;
     padding: 1.25rem 1.5rem;
@@ -127,8 +127,15 @@
     --board-task-comments-surface-border: var(--jtt-stroke-default);
     --board-task-comments-surface-bg-hover: var(--jtt-overlay-accent-15);
     --board-task-comments-surface-border-hover: var(--jtt-stroke-strong);
+    --board-task-comment-input-bg: var(--jtt-overlay-white-10);
+    --board-task-comment-input-border: var(--jtt-stroke-muted);
+    --board-task-comment-input-bg-focus: var(--jtt-overlay-white-15);
+    --board-task-comment-input-border-focus: var(--jtt-stroke-strong);
+    --board-task-comment-surface-bg: var(--board-task-comments-surface-bg);
+    --board-task-comment-surface-border: var(--board-task-comments-surface-border);
+    --board-task-overlay-action-btn-width: 7.75rem;
 
-    flex: 0 0 40%;
+    flex: 0 0 45%;
     min-width: 0;
     overflow: auto;
     padding: 1.25rem 1.5rem;
@@ -141,6 +148,10 @@
 
 .board-task-overlay__comments-header {
     flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
 }
 
 .board-task-overlay__comments-heading {
@@ -199,9 +210,78 @@
     border-color: var(--board-task-comments-surface-border-hover);
 }
 
-.board-task-overlay__comments-placeholder {
-    margin: 0;
-    color: var(--jtt-text-muted);
+.board-task-overlay__comment-input {
+    display: block;
+    width: 100%;
+    min-height: 5.5rem;
+    box-sizing: border-box;
+    padding: 0.75rem 0.875rem;
+    border: 1px solid var(--board-task-comment-input-border);
+    border-radius: var(--jtt-radius-md);
+    background: var(--board-task-comment-input-bg);
+    backdrop-filter: blur(12px);
+    color: var(--jtt-text-body);
+    font-family: inherit;
     font-size: 0.875rem;
+    font-weight: var(--jtt-font-weight-body);
     line-height: 1.5;
+    text-align: left;
+    resize: none;
+    overflow-y: hidden;
+    outline: none;
+    transition: background 0.2s, border-color 0.2s;
+}
+
+.board-task-overlay__comment-input::placeholder {
+    color: var(--jtt-text-subtle);
+}
+
+.board-task-overlay__comment-input:focus {
+    background: var(--board-task-comment-input-bg-focus);
+    border-color: var(--board-task-comment-input-border-focus);
+}
+
+.board-task-overlay__section-actions {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.board-task-overlay__action-btn {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    width: var(--board-task-overlay-action-btn-width);
+    padding: 0.375rem 0.875rem;
+    border: 1px solid var(--board-task-comments-surface-border);
+    border-radius: var(--jtt-radius-md);
+    background: transparent;
+    color: var(--jtt-text-strong);
+    font-family: inherit;
+    font-size: 0.8125rem;
+    font-weight: var(--jtt-font-weight-body);
+    line-height: 1.2;
+    text-transform: uppercase;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: border-color 0.2s;
+}
+
+.board-task-overlay__action-btn:hover {
+    border-color: var(--board-task-comments-surface-border-hover);
+}
+
+.board-task-overlay__action-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.board-task-overlay__comments-list {
+    margin-left: var(--board-task-comments-body-offset);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
 }

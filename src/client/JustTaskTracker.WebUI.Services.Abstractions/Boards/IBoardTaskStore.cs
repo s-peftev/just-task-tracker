@@ -11,6 +11,7 @@ public interface IBoardTaskStore
     Guid? ColumnId { get; }
     Guid? TaskId { get; }
     BoardTaskDetailsDto? Task { get; }
+    IReadOnlyList<BoardTaskCommentDto> Comments { get; }
     bool IsLoading { get; }
     string? ErrorMessage { get; }
 
@@ -25,6 +26,8 @@ public interface IBoardTaskStore
     void AddAttachment(BoardTaskAttachmentDto attachment);
 
     void RemoveAttachment(Guid attachmentId);
+
+    void AddComment(BoardTaskCommentDto comment);
 
     void Reset();
 }

@@ -1,0 +1,23 @@
+@using JustTaskTracker.WebUI.Domain.Boards
+
+<article class="board-task-comment">
+    <div class="board-task-comment__author"
+         title="@GetAuthorTitle()">
+        @GetAuthorDisplay()
+    </div>
+    <div class="board-task-comment__body">
+        <p class="board-task-comment__text">@Comment.Body</p>
+    </div>
+</article>
+
+@code {
+    [Parameter, EditorRequired]
+    public BoardTaskCommentDto Comment { get; set; } = default!;
+
+    private string GetAuthorDisplay() =>
+        string.IsNullOrWhiteSpace(Comment.Author.DisplayName)
+            ? Comment.Author.Email
+            : Comment.Author.DisplayName;
+
+    private string GetAuthorTitle() => Comment.Author.Email;
+}

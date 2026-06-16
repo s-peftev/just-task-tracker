@@ -6,12 +6,16 @@ namespace JustTaskTracker.WebUI.Services.Boards.Stores;
 
 internal sealed class BoardTaskStore(IBoardApiService boardApiService) : IBoardTaskStore
 {
+    private const int CommentsPageNumber = 1;
+    private const int CommentsPageSize = 10;
+
     private CancellationTokenSource? _loadCts;
 
     public Guid? BoardId { get; private set; }
     public Guid? ColumnId { get; private set; }
     public Guid? TaskId { get; private set; }
     public BoardTaskDetailsDto? Task { get; private set; }
+    public IReadOnlyList<BoardTaskCommentDto> Comments { get; private set; } = [];
     public bool IsLoading { get; private set; }
     public string? ErrorMessage { get; private set; }
 
@@ -29,6 +33,7 @@ internal sealed class BoardTaskStore(IBoardApiService boardApiService) : IBoardT
         ColumnId = columnId;
         TaskId = taskId;
         Task = null;
+        Comments = [];
         IsLoading = true;
         ErrorMessage = null;
         NotifyStateChanged();
@@ -36,6 +41,7 @@ internal sealed class BoardTaskStore(IBoardApiService boardApiService) : IBoardT
         try
         {
             Task = await boardApiService.GetBoardTaskByIdAsync(boardId, columnId, taskId, linkedCts.Token);
+            Comments = await LoadCommentsAsync(boardId, columnId, taskId, linkedCts.Token);
         }
         catch (OperationCanceledException) when (linkedCts.IsCancellationRequested)
         {
@@ -44,6 +50,7 @@ internal sealed class BoardTaskStore(IBoardApiService boardApiService) : IBoardT
         catch (ApiServiceException ex)
         {
             Task = null;
+            Comments = [];
             ErrorMessage = ex.Error?.Details is { Count: > 0 } details
                 ? string.Join(" ", details)
                 : ex.Message;
@@ -51,6 +58,7 @@ internal sealed class BoardTaskStore(IBoardApiService boardApiService) : IBoardT
         catch (Exception ex)
         {
             Task = null;
+            Comments = [];
             ErrorMessage = ex.Message;
         }
         finally
@@ -116,6 +124,17 @@ internal sealed class BoardTaskStore(IBoardApiService boardApiService) : IBoardT
         NotifyStateChanged();
     }
 
+    public void AddComment(BoardTaskCommentDto comment)
+    {
+        Comments = Comments
+            .Append(comment)
+            .OrderByDescending(c => c.CreatedAtUtc)
+            .ThenByDescending(c => c.Id)
+            .ToList();
+
+        NotifyStateChanged();
+    }
+
     public void Reset()
     {
         _loadCts?.Cancel();
@@ -126,9 +145,38 @@ internal sealed class BoardTaskStore(IBoardApiService boardApiService) : IBoardT
         ColumnId = null;
         TaskId = null;
         Task = null;
+        Comments = [];
         IsLoading = false;
         ErrorMessage = null;
         NotifyStateChanged();
+    }
+
+    private async Task<IReadOnlyList<BoardTaskCommentDto>> LoadCommentsAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid taskId,
+        CancellationToken ct)
+    {
+        try
+        {
+            var paged = await boardApiService.GetBoardTaskCommentsAsync(
+                boardId,
+                columnId,
+                taskId,
+                CommentsPageNumber,
+                CommentsPageSize,
+                ct);
+
+            return paged.Items.ToList();
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch
+        {
+            return [];
+        }
     }
 
     private void NotifyStateChanged() => StateChanged?.Invoke();

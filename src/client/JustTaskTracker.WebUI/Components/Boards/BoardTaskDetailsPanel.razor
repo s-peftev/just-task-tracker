@@ -80,41 +80,43 @@
             </section>
 
             <section class="board-task-details-panel__block board-task-details-panel__block--users">
-                <div class="board-task-details-panel__reporter-row">
-                    <div class="board-task-details-panel__reporter-details">
-                        <span class="board-task-details-panel__user-name">@FormatUser(task.Reporter)</span>
-                        <span class="board-task-details-panel__reporter-meta">
-                            created this task @FormatCreatedAt(task.CreatedAtUtc)
-                        </span>
+                <div class="board-task-details-panel__users-row">
+                    <div class="board-task-details-panel__reporter-row">
+                        <div class="board-task-details-panel__reporter-details">
+                            <span class="board-task-details-panel__user-name">@FormatUser(task.Reporter)</span>
+                            <span class="board-task-details-panel__reporter-meta">
+                                created this task @FormatCreatedAt(task.CreatedAtUtc)
+                            </span>
+                        </div>
                     </div>
-                </div>
 
-                <div class="board-task-details-panel__assignee-row">
-                    @if (CanManageAssignee(task))
-                    {
-                        <select class="board-task-details-panel__assignee-select @(task.Assignee is null ? "board-task-details-panel__assignee-select--unassigned" : null)"
-                                aria-label="Assignee"
-                                value="@GetAssigneeSelectValue(task)"
-                                @onchange="OnAssigneeSelectChanged">
-                            @if (task.Assignee is { } assignee)
-                            {
-                                <option value="@assignee.Id">@FormatUser(assignee)</option>
-                            }
+                    <div class="board-task-details-panel__assignee-row">
+                        @if (CanManageAssignee(task))
+                        {
+                            <select class="board-task-details-panel__assignee-select @(task.Assignee is null ? "board-task-details-panel__assignee-select--unassigned" : null)"
+                                    aria-label="Assignee"
+                                    value="@GetAssigneeSelectValue(task)"
+                                    @onchange="OnAssigneeSelectChanged">
+                                @if (task.Assignee is { } assignee)
+                                {
+                                    <option value="@assignee.Id">@FormatUser(assignee)</option>
+                                }
 
-                            <option value="">Not assigned yet</option>
-                            <option disabled value="__in-development__">In development</option>
-                        </select>
-                    }
-                    else if (task.Assignee is { } assignee)
-                    {
-                        <span class="board-task-details-panel__assignee-text">@FormatUser(assignee)</span>
-                    }
-                    else
-                    {
-                        <span class="board-task-details-panel__assignee-text board-task-details-panel__assignee-text--unassigned">
-                            Not assigned yet
-                        </span>
-                    }
+                                <option value="">Not assigned yet</option>
+                                <option disabled value="__in-development__">In development</option>
+                            </select>
+                        }
+                        else if (task.Assignee is { } assignee)
+                        {
+                            <span class="board-task-details-panel__assignee-text">@FormatUser(assignee)</span>
+                        }
+                        else
+                        {
+                            <span class="board-task-details-panel__assignee-text board-task-details-panel__assignee-text--unassigned">
+                                Not assigned yet
+                            </span>
+                        }
+                    </div>
                 </div>
             </section>
 
@@ -140,7 +142,26 @@
                         </svg>
                         <h4 class="board-task-details-panel__section-title">Description</h4>
                     </div>
-                    @if (!string.IsNullOrWhiteSpace(task.Description) && CanManageTaskDescription(task) && !_isEditingDescription)
+                    @if (CanManageTaskDescription(task) && _isEditingDescription)
+                    {
+                        <div class="board-task-details-panel__section-actions">
+                            <button type="button"
+                                    class="board-task-details-panel__action-btn"
+                                    disabled="@_isSavingDescription"
+                                    @onmousedown:preventDefault
+                                    @onclick="CancelDescriptionEdit">
+                                Cancel
+                            </button>
+                            <button type="button"
+                                    class="board-task-details-panel__action-btn"
+                                    disabled="@_isSavingDescription"
+                                    @onmousedown:preventDefault
+                                    @onclick="SaveTaskDescriptionAsync">
+                                Save
+                            </button>
+                        </div>
+                    }
+                    else if (!string.IsNullOrWhiteSpace(task.Description) && CanManageTaskDescription(task))
                     {
                         <button type="button"
                                 class="board-task-details-panel__action-btn"
@@ -266,22 +287,16 @@
                                         @if (CanDownloadAttachments(task))
                                         {
                                             <button type="button"
-                                                    class="btn-icon btn-icon--round btn-icon--sm board-task-details-panel__attachment-download"
+                                                    class="btn-icon btn-icon--sm board-task-details-panel__attachment-download"
                                                     aria-label="@($"Download {attachment.OriginalFileName}")"
                                                     disabled="@(_downloadingAttachmentId == attachment.Id)"
                                                     @onclick="() => DownloadAttachmentAsync(attachment)">
                                                 <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                                                    <circle cx="12"
-                                                            cy="12"
-                                                            r="9"
-                                                            stroke="currentColor"
-                                                            stroke-width="2"
-                                                            fill="none" />
-                                                    <path d="M12 8v7"
+                                                    <path d="M12 5v11"
                                                           stroke="currentColor"
                                                           stroke-width="2"
                                                           stroke-linecap="round" />
-                                                    <path d="M9 12l3 3 3-3"
+                                                    <path d="M7 12l5 5 5-5"
                                                           stroke="currentColor"
                                                           stroke-width="2"
                                                           stroke-linecap="round"
@@ -293,7 +308,7 @@
                                         @if (CanManageTasks(task))
                                         {
                                             <button type="button"
-                                                    class="btn-icon btn-icon--round btn-icon--sm board-task-details-panel__attachment-delete"
+                                                    class="btn-icon btn-icon--sm board-task-details-panel__attachment-delete"
                                                     aria-label="@($"Delete {attachment.OriginalFileName}")"
                                                     disabled="@(_deletingAttachmentId == attachment.Id)"
                                                     @onclick="() => DeleteAttachmentAsync(attachment)">

@@ -103,4 +103,21 @@ internal interface IBoardApi
         Guid taskId,
         Guid attachmentId,
         CancellationToken ct = default);
+
+    [Get("/api/boards/{boardId}/columns/{columnId}/tasks/{taskId}/comments")]
+    Task<IApiResponse<ApiEnvelope<PagedList<BoardTaskCommentDto>>>> GetTaskCommentsAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid taskId,
+        int pageNumber,
+        int pageSize,
+        CancellationToken ct = default);
+
+    [Post("/api/boards/{boardId}/columns/{columnId}/tasks/{taskId}/comments")]
+    Task<IApiResponse<ApiEnvelope<BoardTaskCommentDto>>> CreateTaskCommentAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid taskId,
+        [Body] CreateBoardTaskCommentRequest request,
+        CancellationToken ct = default);
 }

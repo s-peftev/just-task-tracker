@@ -237,4 +237,40 @@ internal class BoardApiService(IBoardApi api) : IBoardApiService
 
         return new BoardTaskAttachmentFile(content, contentType, fileName);
     }
+
+    public async Task<PagedList<BoardTaskCommentDto>> GetBoardTaskCommentsAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid taskId,
+        int pageNumber,
+        int pageSize,
+        CancellationToken ct = default)
+    {
+        var response = await api.GetTaskCommentsAsync(
+            boardId,
+            columnId,
+            taskId,
+            pageNumber,
+            pageSize,
+            ct);
+
+        return ApiResponseGuard.Unwrap(response);
+    }
+
+    public async Task<BoardTaskCommentDto> CreateBoardTaskCommentAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid taskId,
+        string body,
+        CancellationToken ct = default)
+    {
+        var response = await api.CreateTaskCommentAsync(
+            boardId,
+            columnId,
+            taskId,
+            new CreateBoardTaskCommentRequest(body),
+            ct);
+
+        return ApiResponseGuard.Unwrap(response);
+    }
 }

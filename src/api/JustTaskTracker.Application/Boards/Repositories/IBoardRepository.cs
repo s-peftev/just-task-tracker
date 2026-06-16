@@ -1,5 +1,5 @@
 using JustTaskTracker.Application.Common.Interfaces.Persistence;
-using JustTaskTracker.Domain.Boards.DTOs;
+using JustTaskTracker.Domain.Boards.DTOs.Boards;
 using JustTaskTracker.Domain.Boards.Entities;
 using JustTaskTracker.Domain.Boards.Enums;
 using JustTaskTracker.Domain.Boards.Enums.SearchFields;
@@ -22,7 +22,7 @@ public interface IBoardRepository : IRepository<Board, Guid>
         Guid azureAdObjectId,
         int pageNumber,
         int pageSize,
-        TextSearchOptions<BoardSearchField>? textSearchOptions = null,
+        TextSearchOptions<BoardSearchField>? searchOptions = null,
         CancellationToken ct = default);
 
     Task<bool> IsBoardMemberAsync(Guid boardId, Guid userId, CancellationToken ct = default);

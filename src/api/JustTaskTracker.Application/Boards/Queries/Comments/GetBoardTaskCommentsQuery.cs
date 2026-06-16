@@ -1,13 +1,13 @@
 using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Interfaces;
 using JustTaskTracker.Domain.Boards.Authorization;
-using JustTaskTracker.Domain.Boards.DTOs;
+using JustTaskTracker.Domain.Boards.DTOs.Comments;
 using JustTaskTracker.Domain.Common.Pagination;
 using JustTaskTracker.Domain.Common.Results;
 using JustTaskTracker.Domain.Common.Results.Errors;
 using MediatR;
 
-namespace JustTaskTracker.Application.Boards.Queries;
+namespace JustTaskTracker.Application.Boards.Queries.Comments;
 
 public record GetBoardTaskCommentsQuery(Guid BoardTaskId) : PaginatedRequest, IRequest<Result<PagedList<BoardTaskCommentDto>>>;
 

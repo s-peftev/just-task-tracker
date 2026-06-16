@@ -7,7 +7,7 @@ using JustTaskTracker.Application.Common.Interfaces.Persistence;
 using JustTaskTracker.Application.Common.Options;
 using JustTaskTracker.Domain.Boards.Authorization;
 using JustTaskTracker.Domain.Boards.Constants;
-using JustTaskTracker.Domain.Boards.DTOs;
+using JustTaskTracker.Domain.Boards.DTOs.Attachments;
 using JustTaskTracker.Domain.Boards.Entities;
 using JustTaskTracker.Domain.Boards.Errors;
 using JustTaskTracker.Domain.Common.Results;

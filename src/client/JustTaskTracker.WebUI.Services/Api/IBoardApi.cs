@@ -43,7 +43,7 @@ internal interface IBoardApi
     Task<IApiResponse<ApiEnvelope<object>>> ReorderTaskAsync(Guid boardId, Guid columnId, Guid taskId, [Body] ReorderTaskPositionRequest request, CancellationToken ct = default);
 
     [Post("/api/boards/{boardId}/columns/{columnId}/tasks")]
-    Task<IApiResponse<ApiEnvelope<TaskLookupDto>>> CreateTaskAsync(Guid boardId, Guid columnId, [Body] SaveTaskRequest request, CancellationToken ct = default);
+    Task<IApiResponse<ApiEnvelope<BoardTaskPreviewDto>>> CreateTaskAsync(Guid boardId, Guid columnId, [Body] SaveTaskRequest request, CancellationToken ct = default);
 
     [Get("/api/boards/{boardId}/columns/{columnId}/tasks/{taskId}")]
     Task<IApiResponse<ApiEnvelope<BoardTaskDetailsDto>>> GetTaskByIdAsync(Guid boardId, Guid columnId, Guid taskId, CancellationToken ct = default);

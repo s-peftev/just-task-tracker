@@ -28,7 +28,7 @@ public interface IBoardApiService
         int position,
         CancellationToken ct = default);
 
-    Task<TaskLookupDto> CreateTaskAsync(Guid boardId, Guid columnId, string title, CancellationToken ct = default);
+    Task<BoardTaskPreviewDto> CreateTaskAsync(Guid boardId, Guid columnId, string title, CancellationToken ct = default);
 
     Task<BoardTaskDetailsDto> GetBoardTaskByIdAsync(
         Guid boardId,

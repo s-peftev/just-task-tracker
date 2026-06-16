@@ -60,7 +60,7 @@ internal sealed class BoardDetailsStore(IBoardApiService boardApiService) : IBoa
         return column;
     }
 
-    public async Task<TaskLookupDto> CreateTaskAsync(Guid columnId, string title, CancellationToken ct = default)
+    public async Task<BoardTaskPreviewDto> CreateTaskAsync(Guid columnId, string title, CancellationToken ct = default)
     {
         if (BoardId is not { } boardId || Board is null)
             throw new InvalidOperationException("Board details are not loaded.");
@@ -244,13 +244,13 @@ internal sealed class BoardDetailsStore(IBoardApiService boardApiService) : IBoa
 
     private static List<ColumnDto> MoveTasksLocally(
         List<ColumnDto> columns,
-        IReadOnlyList<TaskLookupDto> tasksToMove,
+        IReadOnlyList<BoardTaskPreviewDto> tasksToMove,
         Guid targetColumnId,
         ColumnTaskMovePlacement placement)
     {
         var targetColumn = columns.First(column => column.Id == targetColumnId);
         var targetTasks = targetColumn.BoardTasks.ToList();
-        IReadOnlyList<TaskLookupDto> updatedTargetTasks;
+        IReadOnlyList<BoardTaskPreviewDto> updatedTargetTasks;
 
         if (placement == ColumnTaskMovePlacement.Start)
         {
@@ -330,7 +330,7 @@ internal sealed class BoardDetailsStore(IBoardApiService boardApiService) : IBoa
         NotifyStateChanged();
     }
 
-    private void AddTask(Guid columnId, TaskLookupDto task)
+    private void AddTask(Guid columnId, BoardTaskPreviewDto task)
     {
         if (Board is null)
             return;
@@ -459,7 +459,7 @@ internal sealed class BoardDetailsStore(IBoardApiService boardApiService) : IBoa
 
         return new TaskOrderSnapshot(
             Board.Columns
-                .Select(column => (column.Id, (IReadOnlyList<TaskLookupDto>)column.BoardTasks.ToList()))
+                .Select(column => (column.Id, (IReadOnlyList<BoardTaskPreviewDto>)column.BoardTasks.ToList()))
                 .ToList());
     }
 
@@ -481,7 +481,7 @@ internal sealed class BoardDetailsStore(IBoardApiService boardApiService) : IBoa
     }
 
     private sealed record TaskOrderSnapshot(
-        IReadOnlyList<(Guid ColumnId, IReadOnlyList<TaskLookupDto> Tasks)> Columns);
+        IReadOnlyList<(Guid ColumnId, IReadOnlyList<BoardTaskPreviewDto> Tasks)> Columns);
 
     private void NotifyStateChanged() => StateChanged?.Invoke();
 }

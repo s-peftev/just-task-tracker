@@ -2,7 +2,8 @@ using JustTaskTracker.API.Extensions;
 using JustTaskTracker.Application.Boards.Commands.Attachments;
 using JustTaskTracker.Application.Boards.Commands.BoardTasks;
 using JustTaskTracker.Application.Boards.Commands.Comments;
-using JustTaskTracker.Application.Boards.Queries;
+using JustTaskTracker.Application.Boards.Queries.BoardTasks;
+using JustTaskTracker.Application.Boards.Queries.Comments;
 using JustTaskTracker.Application.Common.Constants;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -15,6 +16,16 @@ namespace JustTaskTracker.API.Controllers;
 [Authorize(Policy = AuthorizationPolicies.IsAppMember)]
 public class BoardTasksController(ISender sender) : ControllerBase
 {
+    [HttpGet]
+    public async Task<IActionResult> GetLookupList(Guid boardId, [FromQuery] GetBoardTasksLookupQuery request, CancellationToken ct)
+    {
+        var result = await sender.Send(request with { BoardId = boardId }, ct);
+
+        return result.Match(
+            data => Ok(data),
+            error => error.CreateErrorResponse());
+    }
+
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id, CancellationToken ct)
     {

@@ -1,6 +1,6 @@
 using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Domain.Auth.DTOs;
-using JustTaskTracker.Domain.Boards.DTOs;
+using JustTaskTracker.Domain.Boards.DTOs.Comments;
 using JustTaskTracker.Domain.Boards.Entities;
 using JustTaskTracker.Domain.Boards.Enums;
 using JustTaskTracker.Domain.Common.Pagination;

@@ -1,9 +1,15 @@
 using JustTaskTracker.Application.Boards.Repositories;
+using JustTaskTracker.Application.Common.Helpers;
 using JustTaskTracker.Domain.Auth.DTOs;
-using JustTaskTracker.Domain.Boards.DTOs;
+using JustTaskTracker.Domain.Boards.DTOs.Attachments;
+using JustTaskTracker.Domain.Boards.DTOs.BoardTasks;
 using JustTaskTracker.Domain.Boards.Entities;
 using JustTaskTracker.Domain.Boards.Enums;
+using JustTaskTracker.Domain.Boards.Enums.SearchFields;
+using JustTaskTracker.Domain.Common.Pagination;
+using JustTaskTracker.Domain.Common.Searching;
 using JustTaskTracker.Persistence.Common;
+using JustTaskTracker.Persistence.Common.Extentions;
 using Microsoft.EntityFrameworkCore;
 
 namespace JustTaskTracker.Persistence.Boards.Repositories;
@@ -14,11 +20,11 @@ public class BoardTaskRepository(JustTaskTrackerDbContext context)
     public async Task<(BoardTask? BoardTask, BoardMemberRole? UserRole)> GetBoardTaskWithUserRoleAsync(Guid boardTaskId, Guid azureAdObjectId, CancellationToken ct = default)
     {
         var result = await _dbSet
-            .Where(task => task.Id == boardTaskId)
-            .Select(task => new
+            .Where(t => t.Id == boardTaskId)
+            .Select(t => new
             {
-                BoardTask = task,
-                UserRole = task.Column!.Board!.Members
+                BoardTask = t,
+                UserRole = t.Column!.Board!.Members
                     .Where(m => m.User!.AzureAdObjectId == azureAdObjectId)
                     .Select(m => m.Role)
                     .FirstOrDefault()
@@ -39,34 +45,56 @@ public class BoardTaskRepository(JustTaskTrackerDbContext context)
     public async Task<BoardTaskDetailsDto?> GetBoardTaskDetailsAsync(Guid boardTaskId, CancellationToken ct = default) =>
         await _dbSet
             .Where(task => task.Id == boardTaskId)
-            .Select(task => new BoardTaskDetailsDto(
-                task.Id,
-                task.ColumnId,
-                task.Column!.Name,
-                task.Title,
-                task.Position,
-                task.CreatedAtUtc,
-                new UserDto(task.Reporter!.Id, task.Reporter.Email, task.Reporter.DisplayName),
+            .Select(t => new BoardTaskDetailsDto(
+                t.Id,
+                t.ColumnId,
+                t.Column!.Name,
+                t.Title,
+                t.Position,
+                t.CreatedAtUtc,
+                new UserDto(t.Reporter!.Id, t.Reporter.Email, t.Reporter.DisplayName),
                 default,
-                task.Attachments
+                t.Attachments
                     .OrderBy(attachment => attachment.Position)
-                    .Select(attachment => new BoardTaskAttachmentDto(
-                        attachment.Id,
-                        attachment.OriginalFileName,
-                        attachment.ContentType,
-                        attachment.FileSizeBytes,
-                        attachment.Position,
-                        attachment.CreatedAtUtc,
+                    .Select(a => new BoardTaskAttachmentDto(
+                        a.Id,
+                        a.OriginalFileName,
+                        a.ContentType,
+                        a.FileSizeBytes,
+                        a.Position,
+                        a.CreatedAtUtc,
                         new UserDto(
-                            attachment.UploadedBy!.Id,
-                            attachment.UploadedBy.Email,
-                            attachment.UploadedBy.DisplayName)))
+                            a.UploadedBy!.Id,
+                            a.UploadedBy.Email,
+                            a.UploadedBy.DisplayName)))
                     .ToList(),
-                task.Description,
-                task.Assignee == null
+                t.Description,
+                t.Assignee == null
                     ? null
-                    : new UserDto(task.Assignee.Id, task.Assignee.Email, task.Assignee.DisplayName)))
+                    : new UserDto(t.Assignee.Id, t.Assignee.Email, t.Assignee.DisplayName)))
             .FirstOrDefaultAsync(ct);
+
+    public async Task<PagedList<BoardTaskLookupDto>> GetBoardTaskLookupListAsync(
+        int pageNumber,
+        int pageSize,
+        TextSearchOptions<BoardTaskSearchField>? searchOptions = null,
+        CancellationToken ct = default)
+    {
+        var fields = SearchFieldsResolver.Resolve(searchOptions?.SearchIn, BoardTaskSearchFields.Map);
+
+        return await _dbSet
+            .ApplyTextSearch(searchOptions?.Search, fields)
+            .OrderByDescending(t => t.LastModifiedAtUtc)
+            .ThenByDescending(t => t.CreatedAtUtc)
+            .ToPagedAsync(
+                t => new BoardTaskLookupDto(
+                    t.Id,
+                    t.Title,
+                    t.Description),
+                pageNumber,
+                pageSize,
+                ct);
+    }
 
     public async Task<IReadOnlyList<BoardTask>> GetListByColumnIdAsync(Guid columnId, CancellationToken ct = default) =>
         await _dbSet

@@ -34,8 +34,6 @@ public static class ServiceCollectionExtensions
             .GetSection(ValidationSettings.SectionName)
             .Get<ValidationSettings>() ?? new ValidationSettings();
 
-        validationSettings.BoardTasks.ApplyDefaultsIfMissing();
-
         services.AddSingleton(validationSettings);
 
         services.AddScoped<ApiAuthorizationMessageHandler>();

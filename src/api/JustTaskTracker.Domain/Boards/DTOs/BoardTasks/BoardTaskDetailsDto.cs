@@ -1,7 +1,8 @@
 using JustTaskTracker.Domain.Auth.DTOs;
+using JustTaskTracker.Domain.Boards.DTOs.Attachments;
 using JustTaskTracker.Domain.Boards.Enums;
 
-namespace JustTaskTracker.Domain.Boards.DTOs;
+namespace JustTaskTracker.Domain.Boards.DTOs.BoardTasks;
 
 public record BoardTaskDetailsDto(
     Guid Id,

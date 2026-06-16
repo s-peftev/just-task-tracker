@@ -3,16 +3,16 @@ using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Interfaces;
 using JustTaskTracker.Application.Common.Options;
 using JustTaskTracker.Application.Common.Validators;
-using JustTaskTracker.Domain.Boards.DTOs;
+using JustTaskTracker.Domain.Boards.DTOs.Boards;
 using JustTaskTracker.Domain.Boards.Enums.SearchFields;
 using JustTaskTracker.Domain.Common.Pagination;
 using JustTaskTracker.Domain.Common.Results;
 using JustTaskTracker.Domain.Common.Searching;
 using MediatR;
 
-namespace JustTaskTracker.Application.Boards.Queries;
+namespace JustTaskTracker.Application.Boards.Queries.Boards;
 
-public record GetBoardsForCurrentUserQuery(TextSearchOptions<BoardSearchField>? TextSearchOptions) : PaginatedRequest, IRequest<Result<PagedList<BoardLookupDto>>>;
+public record GetBoardsForCurrentUserQuery(TextSearchOptions<BoardSearchField>? SearchOptions) : PaginatedRequest, IRequest<Result<PagedList<BoardLookupDto>>>;
 
 public class GetBoardsForCurrentUserQueryHandler(ICurrentUserAccessor currentUser, IBoardRepository boardRepository) 
     : IRequestHandler<GetBoardsForCurrentUserQuery, Result<PagedList<BoardLookupDto>>>
@@ -23,7 +23,7 @@ public class GetBoardsForCurrentUserQueryHandler(ICurrentUserAccessor currentUse
             currentUser.AzureAdObjectId,
             request.PageNumber!.Value,
             request.PageSize!.Value,
-            request.TextSearchOptions,
+            request.SearchOptions,
             ct);
 
         return Result<PagedList<BoardLookupDto>>.Success(boards);
@@ -36,9 +36,9 @@ public class GetBoardsForCurrentUserQueryValidator : AbstractValidator<GetBoards
     {
         var maxBoardNameSearchLength = validationSettings.Boards.MaxNameSearchLength;
 
-        When(x => x.TextSearchOptions is not null, () =>
+        When(x => x.SearchOptions is not null, () =>
         {
-            RuleFor(x => x.TextSearchOptions!)
+            RuleFor(x => x.SearchOptions!)
                 .SetValidator(new TextSearchOptionsValidator<BoardSearchField>(maxBoardNameSearchLength));
         });
     }

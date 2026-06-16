@@ -65,7 +65,7 @@
 
     <div @ref="_tasksListRef"
          class="board-column__tasks @(_hasTaskContent ? "board-column__tasks--filled" : null)">
-        <Sortable TItem="TaskLookupDto"
+        <Sortable TItem="BoardTaskPreviewDto"
                   @key="Column.Id"
                   Id="@Column.Id.ToString()"
                   Items="_sortableTasks"
@@ -162,7 +162,7 @@
     private bool _isReorderingTasks;
     private int _expectedTaskCountAfterCreate;
     private IJSObjectReference? _tasksScrollModule;
-    private readonly List<TaskLookupDto> _sortableTasks = [];
+    private readonly List<BoardTaskPreviewDto> _sortableTasks = [];
 
     private bool CanRenameColumn => BoardRolePermissions.CanManageColumns(UserRole);
 
@@ -438,7 +438,7 @@
         }
     }
 
-    private void OnTaskClickAsync(TaskLookupDto task)
+    private void OnTaskClickAsync(BoardTaskPreviewDto task)
     {
         if (BoardDetailsStore.BoardId is not { } boardId)
             return;
@@ -446,7 +446,7 @@
         Navigation.NavigateTo(BoardTaskRoutes.GetTaskUrl(boardId, Column.Id, task.Id));
     }
 
-    private static string GetTaskKey(TaskLookupDto task) => task.Id.ToString();
+    private static string GetTaskKey(BoardTaskPreviewDto task) => task.Id.ToString();
 
     private void SyncSortableTasksFromColumn()
     {
@@ -458,7 +458,7 @@
         _sortableTasks.AddRange(ordered);
     }
 
-    private async Task OnTaskSortableChangedAsync(SortableEventArgs<TaskLookupDto> args)
+    private async Task OnTaskSortableChangedAsync(SortableEventArgs<BoardTaskPreviewDto> args)
     {
         if (!CanMoveTasks || _isReorderingTasks || BoardDetailsStore.IsReorderingTasks)
             return;

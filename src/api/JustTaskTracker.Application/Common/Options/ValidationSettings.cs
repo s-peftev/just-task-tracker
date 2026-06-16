@@ -20,7 +20,7 @@ public class BoardTaskValidationSettings
 
     private const int DefaultMaxAttachmentsPerTask = 10;
 
-    public static readonly string[] DefaultAllowedContentTypes =
+    private static readonly string[] DefaultAllowedContentTypes =
     [
         "application/pdf",
         "image/png",
@@ -37,11 +37,7 @@ public class BoardTaskValidationSettings
 
     public int MaxAttachmentsPerTask { get; set; } = DefaultMaxAttachmentsPerTask;
 
-    public string[] AllowedContentTypes { get; set; } = [];
+    public string[] AllowedContentTypes { get; set; } = DefaultAllowedContentTypes.ToArray();
 
-    public void ApplyDefaultsIfMissing()
-    {
-        if (AllowedContentTypes.Length == 0)
-            AllowedContentTypes = DefaultAllowedContentTypes;
-    }
+    public int MaxTextSearchLength { get; set; } = BoardTaskFieldLengths.MaxDescriptionLength;
 }

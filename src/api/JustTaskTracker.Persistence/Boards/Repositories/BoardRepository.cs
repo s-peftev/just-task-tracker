@@ -1,7 +1,9 @@
 using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Helpers;
 using JustTaskTracker.Domain.Auth.DTOs;
-using JustTaskTracker.Domain.Boards.DTOs;
+using JustTaskTracker.Domain.Boards.DTOs.Boards;
+using JustTaskTracker.Domain.Boards.DTOs.BoardTasks;
+using JustTaskTracker.Domain.Boards.DTOs.Columns;
 using JustTaskTracker.Domain.Boards.Entities;
 using JustTaskTracker.Domain.Boards.Enums;
 using JustTaskTracker.Domain.Boards.Enums.SearchFields;
@@ -66,7 +68,7 @@ public class BoardRepository(JustTaskTrackerDbContext context)
                         c.Position,
                         c.Tasks
                             .OrderBy(t => t.Position)
-                            .Select(t => new BoardTaskLookupDto(
+                            .Select(t => new BoardTaskPreviewDto(
                                 t.Id,
                                 t.Title,
                                 t.Position))))))
@@ -77,14 +79,14 @@ public class BoardRepository(JustTaskTrackerDbContext context)
         Guid azureAdObjectId,
         int pageNumber,
         int pageSize,
-        TextSearchOptions<BoardSearchField>? textSearchOptions = null,
+        TextSearchOptions<BoardSearchField>? searchOptions = null,
         CancellationToken ct = default)
     {
-        var fields = SearchFieldsResolver.Resolve(textSearchOptions?.SearchIn, BoardSearchFields.Map);
+        var fields = SearchFieldsResolver.Resolve(searchOptions?.SearchIn, BoardSearchFields.Map);
 
         return await _dbSet
             .Where(b => b.Members.Any(m => m.User!.AzureAdObjectId == azureAdObjectId))
-            .ApplyTextSearch(textSearchOptions?.Search, fields)
+            .ApplyTextSearch(searchOptions?.Search, fields)
             .Select(b => new
             {
                 Board = b,

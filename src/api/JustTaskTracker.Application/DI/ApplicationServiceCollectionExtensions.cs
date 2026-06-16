@@ -28,8 +28,6 @@ public static class ApplicationServiceCollectionExtensions
             .GetSection(ConfigSections.ValidationSettings)
             .Get<ValidationSettings>() ?? new ValidationSettings();
 
-        validationSettingsOptions.BoardTasks.ApplyDefaultsIfMissing();
-
         services.AddSingleton(validationSettingsOptions);
 
         services.AddScoped<IBoardPositioningService, BoardPositioningService>();

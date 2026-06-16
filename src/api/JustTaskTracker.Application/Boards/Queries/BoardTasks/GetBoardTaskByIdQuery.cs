@@ -1,12 +1,12 @@
 using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Interfaces;
 using JustTaskTracker.Domain.Boards.Authorization;
-using JustTaskTracker.Domain.Boards.DTOs;
+using JustTaskTracker.Domain.Boards.DTOs.BoardTasks;
 using JustTaskTracker.Domain.Common.Results;
 using JustTaskTracker.Domain.Common.Results.Errors;
 using MediatR;
 
-namespace JustTaskTracker.Application.Boards.Queries;
+namespace JustTaskTracker.Application.Boards.Queries.BoardTasks;
 
 public record GetBoardTaskByIdQuery(Guid BoardTaskId) : IRequest<Result<BoardTaskDetailsDto>>;
 

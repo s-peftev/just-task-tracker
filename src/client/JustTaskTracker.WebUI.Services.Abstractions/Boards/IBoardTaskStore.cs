@@ -35,5 +35,7 @@ public interface IBoardTaskStore
 
     void AddComment(BoardTaskCommentDto comment);
 
+    void UpdateComment(Guid commentId, string body, DateTime? lastModifiedAtUtc = null);
+
     void Reset();
 }

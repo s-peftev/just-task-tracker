@@ -273,4 +273,23 @@ internal class BoardApiService(IBoardApi api) : IBoardApiService
 
         return ApiResponseGuard.Unwrap(response);
     }
+
+    public async Task UpdateBoardTaskCommentAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid taskId,
+        Guid commentId,
+        string body,
+        CancellationToken ct = default)
+    {
+        var response = await api.UpdateTaskCommentAsync(
+            boardId,
+            columnId,
+            taskId,
+            commentId,
+            new UpdateBoardTaskCommentRequest(body),
+            ct);
+
+        ApiResponseGuard.EnsureSuccess(response);
+    }
 }

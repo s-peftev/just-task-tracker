@@ -120,4 +120,13 @@ internal interface IBoardApi
         Guid taskId,
         [Body] CreateBoardTaskCommentRequest request,
         CancellationToken ct = default);
+
+    [Patch("/api/boards/{boardId}/columns/{columnId}/tasks/{taskId}/comments/{commentId}")]
+    Task<IApiResponse<ApiEnvelope<object>>> UpdateTaskCommentAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid taskId,
+        Guid commentId,
+        [Body] UpdateBoardTaskCommentRequest request,
+        CancellationToken ct = default);
 }

@@ -197,6 +197,26 @@ internal sealed class BoardTaskStore(IBoardApiService boardApiService) : IBoardT
         NotifyStateChanged();
     }
 
+    public void UpdateComment(Guid commentId, string body, DateTime? lastModifiedAtUtc = null)
+    {
+        var comment = Comments.FirstOrDefault(existing => existing.Id == commentId);
+
+        if (comment is null)
+            return;
+
+        var updatedComment = comment with
+        {
+            Body = body,
+            LastModifiedAtUtc = lastModifiedAtUtc ?? DateTime.UtcNow,
+        };
+
+        Comments = Comments
+            .Select(existing => existing.Id == commentId ? updatedComment : existing)
+            .ToList();
+
+        NotifyStateChanged();
+    }
+
     public void Reset()
     {
         _loadCts?.Cancel();

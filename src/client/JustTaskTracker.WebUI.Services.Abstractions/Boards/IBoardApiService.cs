@@ -101,4 +101,12 @@ public interface IBoardApiService
         Guid taskId,
         string body,
         CancellationToken ct = default);
+
+    Task UpdateBoardTaskCommentAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid taskId,
+        Guid commentId,
+        string body,
+        CancellationToken ct = default);
 }

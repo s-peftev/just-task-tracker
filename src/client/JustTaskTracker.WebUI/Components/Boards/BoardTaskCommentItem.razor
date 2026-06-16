@@ -1,7 +1,16 @@
 @using JustTaskTracker.WebUI.Domain.Auth
 @using JustTaskTracker.WebUI.Domain.Boards
+@using JustTaskTracker.WebUI.Domain.Boards.Constants
+@using JustTaskTracker.WebUI.Infrastructure
+@using JustTaskTracker.WebUI.Services.Abstractions.Boards
 @using JustTaskTracker.WebUI.Services.Abstractions.Auth
+@using JustTaskTracker.WebUI.Services.Exceptions
 @inject IProfileStore ProfileStore
+@inject IBoardApiService BoardApiService
+@inject IBoardTaskStore BoardTaskStore
+@inject ISnackbar Snackbar
+@inject IJSRuntime Js
+@implements IAsyncDisposable
 
 <article class="board-task-comment">
     <div class="board-task-comment__avatar-column">
@@ -23,21 +32,56 @@
             </span>
         </header>
 
-        <div class="board-task-comment__body">
-            <p class="board-task-comment__text">@Comment.Body</p>
+        <div class="board-task-comment__body @(_isEditing ? "board-task-comment__body--editing" : null)">
+            @if (_isEditing)
+            {
+                <textarea @ref="_editInputRef"
+                          class="board-task-comment__input"
+                          maxlength="@BoardTaskCommentFieldLengths.MaxBodyLength"
+                          @bind="_editBody"
+                          @bind:event="oninput"
+                          @bind:after="ResizeInputAsync"
+                          @onkeydown="OnEditKeyDownAsync"
+                          @onblur="OnEditBlurAsync"></textarea>
+            }
+            else
+            {
+                <p class="board-task-comment__text">@Comment.Body</p>
+            }
         </div>
 
         @if (IsCurrentUserAuthor)
         {
             <footer class="board-task-comment__footer">
-                <button type="button"
-                        class="board-task-comment__action">
-                    Edit
-                </button>
-                <button type="button"
-                        class="board-task-comment__action board-task-comment__action--danger">
-                    Delete
-                </button>
+                @if (_isEditing)
+                {
+                    <button type="button"
+                            class="board-task-comment__action"
+                            disabled="@_isSaving"
+                            @onmousedown:preventDefault
+                            @onclick="CancelEdit">
+                        Cancel
+                    </button>
+                    <button type="button"
+                            class="board-task-comment__action"
+                            disabled="@_isSaving"
+                            @onmousedown:preventDefault
+                            @onclick="SaveEditAsync">
+                        Save
+                    </button>
+                }
+                else
+                {
+                    <button type="button"
+                            class="board-task-comment__action"
+                            @onclick="StartEdit">
+                        Edit
+                    </button>
+                    <button type="button"
+                            class="board-task-comment__action board-task-comment__action--danger">
+                        Delete
+                    </button>
+                }
             </footer>
         }
     </div>
@@ -45,7 +89,56 @@
 
 @code {
     [Parameter, EditorRequired]
+    public Guid BoardId { get; set; }
+
+    [Parameter, EditorRequired]
+    public Guid ColumnId { get; set; }
+
+    [Parameter, EditorRequired]
+    public Guid TaskId { get; set; }
+
+    [Parameter, EditorRequired]
     public BoardTaskCommentDto Comment { get; set; } = default!;
+
+    private bool _isEditing;
+    private bool _isSaving;
+    private bool _focusInput;
+    private bool _resizeInput;
+    private bool _attachEnterSubmitBehavior;
+    private string _editBody = string.Empty;
+    private ElementReference _editInputRef;
+    private IJSObjectReference? _resizeModule;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_focusInput)
+        {
+            _focusInput = false;
+            await _editInputRef.FocusAsync();
+        }
+
+        if (_resizeInput && _isEditing)
+        {
+            _resizeInput = false;
+            await ResizeInputAsync();
+        }
+
+        if (_attachEnterSubmitBehavior && _isEditing)
+        {
+            _attachEnterSubmitBehavior = false;
+            _resizeModule ??= await Js.InvokeAsync<IJSObjectReference>("import", "./js/textareaAutoResize.js");
+            await _resizeModule.InvokeVoidAsync("attachEnterSubmitBehavior", _editInputRef);
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_resizeModule is not null)
+        {
+            await DetachEnterSubmitBehaviorAsync();
+            await _resizeModule.DisposeAsync();
+        }
+    }
 
     private bool IsCurrentUserAuthor =>
         ProfileStore.Profile is { } profile && profile.Id == Comment.Author.Id;
@@ -70,4 +163,110 @@
 
     private string GetEditedSuffix() =>
         Comment.LastModifiedAtUtc is null ? string.Empty : " (edited)";
+
+    private void StartEdit()
+    {
+        if (!IsCurrentUserAuthor || _isEditing)
+            return;
+
+        _editBody = Comment.Body;
+        _isEditing = true;
+        _focusInput = true;
+        _resizeInput = true;
+        _attachEnterSubmitBehavior = true;
+    }
+
+    private async Task CancelEditAsync()
+    {
+        await DetachEnterSubmitBehaviorAsync();
+        _isEditing = false;
+        _editBody = Comment.Body;
+    }
+
+    private void CancelEdit() => _ = CancelEditAsync();
+
+    private async Task ResizeInputAsync()
+    {
+        if (!_isEditing)
+            return;
+
+        _resizeModule ??= await Js.InvokeAsync<IJSObjectReference>("import", "./js/textareaAutoResize.js");
+        await _resizeModule.InvokeVoidAsync("autoResize", _editInputRef);
+    }
+
+    private async Task OnEditKeyDownAsync(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !e.ShiftKey)
+            await SaveEditAsync();
+        else if (e.Key == "Escape")
+            CancelEdit();
+    }
+
+    private async Task DetachEnterSubmitBehaviorAsync()
+    {
+        if (_resizeModule is null)
+            return;
+
+        await _resizeModule.InvokeVoidAsync("detachEnterSubmitBehavior", _editInputRef);
+    }
+
+    private async Task OnEditBlurAsync()
+    {
+        if (!_isEditing)
+            return;
+
+        await SaveEditAsync();
+    }
+
+    private async Task SaveEditAsync()
+    {
+        if (!_isEditing || _isSaving)
+            return;
+
+        var normalizedBody = _editBody.Trim();
+
+        if (string.IsNullOrEmpty(normalizedBody))
+        {
+            Snackbar.Add("Cannot save an empty comment. Use Delete if you want to remove it.", Severity.Error);
+            return;
+        }
+
+        if (normalizedBody.Length > BoardTaskCommentFieldLengths.MaxBodyLength)
+        {
+            Snackbar.Add(
+                $"Comment must not exceed {BoardTaskCommentFieldLengths.MaxBodyLength} characters.",
+                Severity.Error);
+            return;
+        }
+
+        if (string.Equals(normalizedBody, Comment.Body, StringComparison.Ordinal))
+        {
+            await CancelEditAsync();
+            return;
+        }
+
+        _isSaving = true;
+
+        try
+        {
+            await BoardApiService.UpdateBoardTaskCommentAsync(
+                BoardId,
+                ColumnId,
+                TaskId,
+                Comment.Id,
+                normalizedBody);
+
+            BoardTaskStore.UpdateComment(Comment.Id, normalizedBody);
+            await DetachEnterSubmitBehaviorAsync();
+            _isEditing = false;
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
 }

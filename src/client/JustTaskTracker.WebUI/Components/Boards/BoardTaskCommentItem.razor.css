@@ -65,6 +65,13 @@
     backdrop-filter: blur(12px);
 }
 
+.board-task-comment__body--editing {
+    padding: 0;
+    border: none;
+    background: transparent;
+    backdrop-filter: none;
+}
+
 .board-task-comment__text {
     margin: 0;
     color: var(--jtt-text-body);
@@ -73,6 +80,33 @@
     line-height: 1.5;
     white-space: pre-wrap;
     word-break: break-word;
+}
+
+.board-task-comment__input {
+    display: block;
+    width: 100%;
+    min-height: 5.5rem;
+    box-sizing: border-box;
+    padding: 0.75rem 0.875rem;
+    border: 1px solid var(--jtt-stroke-muted);
+    border-radius: var(--jtt-radius-md);
+    background: var(--jtt-overlay-white-10);
+    backdrop-filter: blur(12px);
+    color: var(--jtt-text-body);
+    font-family: inherit;
+    font-size: 0.75rem;
+    font-weight: var(--jtt-font-weight-body);
+    line-height: 1.5;
+    text-align: left;
+    resize: none;
+    overflow-y: hidden;
+    outline: none;
+    transition: background 0.2s, border-color 0.2s;
+}
+
+.board-task-comment__input:focus {
+    background: var(--jtt-overlay-white-15);
+    border-color: var(--jtt-stroke-strong);
 }
 
 .board-task-comment__footer {
@@ -94,6 +128,11 @@
     line-height: 1.2;
     cursor: pointer;
     transition: color 0.2s;
+}
+
+.board-task-comment__action:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
 }
 
 .board-task-comment__action:hover {

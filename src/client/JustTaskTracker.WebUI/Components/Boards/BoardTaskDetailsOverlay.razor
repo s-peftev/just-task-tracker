@@ -133,7 +133,10 @@
                 <div class="board-task-overlay__comments-list">
                     @foreach (var comment in BoardTaskStore.Comments)
                     {
-                        <BoardTaskCommentItem Comment="comment" />
+                        <BoardTaskCommentItem BoardId="BoardId"
+                                              ColumnId="ColumnId"
+                                              TaskId="TaskId"
+                                              Comment="comment" />
                     }
 
                     @if (BoardTaskStore.HasMoreComments)

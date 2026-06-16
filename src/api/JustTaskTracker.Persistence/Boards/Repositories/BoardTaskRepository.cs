@@ -74,6 +74,12 @@ public class BoardTaskRepository(JustTaskTrackerDbContext context)
             .OrderBy(t => t.Position)
             .ToListAsync(ct);
 
+    public async Task<IReadOnlyList<BoardTask>> GetListByBoardIdAsync(Guid boardId, CancellationToken ct = default) =>
+        await _dbSet
+            .Where(t => t.Column!.BoardId == boardId)
+            .OrderBy(t => t.Position)
+            .ToListAsync(ct);
+
     public async Task<int> GetCountByColumnIdAsync(Guid columnId, CancellationToken ct = default) =>
         await _dbSet.CountAsync(t => t.ColumnId == columnId, ct);
 

@@ -15,6 +15,8 @@ public interface IBoardTaskRepository : IRepository<BoardTask, Guid>
 
     Task<IReadOnlyList<BoardTask>> GetListByColumnIdAsync(Guid columnId, CancellationToken ct = default);
 
+    Task<IReadOnlyList<BoardTask>> GetListByBoardIdAsync(Guid boardId, CancellationToken ct = default);
+
     Task<int> GetCountByColumnIdAsync(Guid columnId, CancellationToken ct = default);
 
     void RemoveRange(IReadOnlyList<BoardTask> tasks);

@@ -44,6 +44,8 @@ public class DeleteBoardTaskCommandHandler(
             if (comments.Count > 0)
                 boardTaskCommentRepository.RemoveRange(comments);
 
+            // we don't delete attachments from blob storage here so in case of recovering the task, the attachments are still available
+
             boardTaskRepository.Remove(boardTask);
 
             var remainingTasks = columnBoardTasks

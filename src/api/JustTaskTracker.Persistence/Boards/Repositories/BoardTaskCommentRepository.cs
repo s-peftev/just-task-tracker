@@ -20,6 +20,20 @@ public class BoardTaskCommentRepository(JustTaskTrackerDbContext context)
             .ThenBy(comment => comment.Id)
             .ToListAsync(ct);
 
+    public async Task<IReadOnlyList<BoardTaskComment>> GetListByColumnIdAsync(Guid columnId, CancellationToken ct = default) =>
+        await _dbSet
+            .Where(comment => comment.BoardTask!.ColumnId == columnId)
+            .OrderBy(comment => comment.CreatedAtUtc)
+            .ThenBy(comment => comment.Id)
+            .ToListAsync(ct);
+
+    public async Task<IReadOnlyList<BoardTaskComment>> GetListByBoardIdAsync(Guid boardId, CancellationToken ct = default) =>
+        await _dbSet
+            .Where(comment => comment.BoardTask!.Column!.BoardId == boardId)
+            .OrderBy(comment => comment.CreatedAtUtc)
+            .ThenBy(comment => comment.Id)
+            .ToListAsync(ct);
+
     public async Task<(BoardTaskComment? BoardTaskComment, BoardMemberRole? UserRole)> GetBoardTaskCommentWithUserRole(Guid boardTaskCommentId, Guid azureAdObjectId, CancellationToken ct = default)
     {
         var result = await _dbSet

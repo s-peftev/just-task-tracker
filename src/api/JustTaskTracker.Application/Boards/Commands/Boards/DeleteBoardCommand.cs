@@ -13,6 +13,9 @@ public record DeleteBoardCommand(Guid BoardId) : IRequest<Result>;
 public class DeleteBoardCommandHandler(
     ICurrentUserAccessor currentUserAccessor,
     IBoardRepository boardRepository,
+    IColumnRepository columnRepository,
+    IBoardTaskRepository boardTaskRepository,
+    IBoardTaskCommentRepository boardTaskCommentRepository,
     IUnitOfWork unitOfWork)
     : IRequestHandler<DeleteBoardCommand, Result>
 {
@@ -27,6 +30,16 @@ public class DeleteBoardCommandHandler(
             return Result.Failure(GeneralErrors.Forbidden);
 
         boardRepository.Remove(board!);
+
+        var boardColumns = await columnRepository.GetListByBoardIdAsync(request.BoardId, ct);
+        columnRepository.RemoveRange(boardColumns);
+
+        var boardTasks = await boardTaskRepository.GetListByBoardIdAsync(request.BoardId, ct);
+        boardTaskRepository.RemoveRange(boardTasks);
+
+        var boardComments = await boardTaskCommentRepository.GetListByBoardIdAsync(request.BoardId, ct);
+        boardTaskCommentRepository.RemoveRange(boardComments);
+
         await unitOfWork.SaveChangesAsync(ct);
 
         return Result.Success();

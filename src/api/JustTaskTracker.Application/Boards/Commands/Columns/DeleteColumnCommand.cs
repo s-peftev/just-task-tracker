@@ -24,6 +24,7 @@ public class DeleteColumnCommandHandler(
     ICurrentUserAccessor currentUserAccessor,
     IColumnRepository columnRepository,
     IBoardTaskRepository boardTaskRepository,
+    IBoardTaskCommentRepository boardTaskCommentRepository,
     IBoardPositioningService boardPositioningService,
     IUnitOfWork unitOfWork)
     : IRequestHandler<DeleteColumnCommand, Result>
@@ -73,6 +74,9 @@ public class DeleteColumnCommandHandler(
             else if (columnBoardTasks.Count > 0)
             {
                 boardTaskRepository.RemoveRange(columnBoardTasks);
+
+                var columnBoardTaskComments = await boardTaskCommentRepository.GetListByColumnIdAsync(request.ColumnId, ct);
+                boardTaskCommentRepository.RemoveRange(columnBoardTaskComments);
             }
 
             columnRepository.Remove(column);

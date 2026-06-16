@@ -57,4 +57,10 @@ public class ColumnRepository(JustTaskTrackerDbContext context)
             .Where(c => c.BoardId == boardId)
             .OrderBy(c => c.Position)
             .ToListAsync(ct);
+
+    void RemoveRange(IReadOnlyList<Column> columns)
+    {
+        foreach (var column in columns)
+            _dbSet.Remove(column);
+    }
 }

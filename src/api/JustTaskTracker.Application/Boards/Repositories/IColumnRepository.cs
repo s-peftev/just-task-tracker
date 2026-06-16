@@ -15,4 +15,6 @@ public interface IColumnRepository : IRepository<Column, Guid>
     Task<bool> IsNameExistsAsync(Guid boardId, string name, Guid? excludeColumnId = null, CancellationToken ct = default);
 
     Task<IReadOnlyList<Column>> GetListByBoardIdAsync(Guid boardId, CancellationToken ct = default);
+
+    void RemoveRange(IReadOnlyList<Column> columns);
 }

@@ -1,3 +1,4 @@
+@using JustTaskTracker.WebUI.Components.Shared
 @using JustTaskTracker.WebUI.Domain.Auth
 @using JustTaskTracker.WebUI.Domain.Boards
 @using JustTaskTracker.WebUI.Domain.Boards.Constants
@@ -8,6 +9,7 @@
 @inject IProfileStore ProfileStore
 @inject IBoardApiService BoardApiService
 @inject IBoardTaskStore BoardTaskStore
+@inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject IJSRuntime Js
 @implements IAsyncDisposable
@@ -74,11 +76,14 @@
                 {
                     <button type="button"
                             class="board-task-comment__action"
+                            disabled="@_isDeleting"
                             @onclick="StartEdit">
                         Edit
                     </button>
                     <button type="button"
-                            class="board-task-comment__action board-task-comment__action--danger">
+                            class="board-task-comment__action board-task-comment__action--danger"
+                            disabled="@_isDeleting"
+                            @onclick="DeleteCommentAsync">
                         Delete
                     </button>
                 }
@@ -102,6 +107,7 @@
 
     private bool _isEditing;
     private bool _isSaving;
+    private bool _isDeleting;
     private bool _focusInput;
     private bool _resizeInput;
     private bool _attachEnterSubmitBehavior;
@@ -268,5 +274,57 @@
         {
             _isSaving = false;
         }
+    }
+
+    private async Task DeleteCommentAsync()
+    {
+        if (!IsCurrentUserAuthor || _isDeleting || _isEditing)
+            return;
+
+        var preview = GetDeletePreview(Comment.Body);
+        var message =
+            $"Delete comment?{Environment.NewLine}{Environment.NewLine}\"{preview}\"{Environment.NewLine}{Environment.NewLine}This action cannot be undone.";
+
+        var dialog = await DialogService.ShowConfirmResourceAsync(
+            "Delete comment",
+            message,
+            confirmLabel: "Delete");
+
+        var result = await dialog.Result;
+
+        if (result is not { Canceled: false, Data: true })
+            return;
+
+        _isDeleting = true;
+
+        try
+        {
+            await BoardApiService.DeleteBoardTaskCommentAsync(
+                BoardId,
+                ColumnId,
+                TaskId,
+                Comment.Id);
+
+            BoardTaskStore.RemoveComment(Comment.Id);
+            Snackbar.Add("Comment deleted.", Severity.Success);
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+        finally
+        {
+            _isDeleting = false;
+        }
+    }
+
+    private static string GetDeletePreview(string body)
+    {
+        const int maxLength = 80;
+        var normalized = body.ReplaceLineEndings(" ").Trim();
+
+        return normalized.Length <= maxLength
+            ? normalized
+            : $"{normalized[..maxLength]}...";
     }
 }

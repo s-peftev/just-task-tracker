@@ -109,4 +109,11 @@ public interface IBoardApiService
         Guid commentId,
         string body,
         CancellationToken ct = default);
+
+    Task DeleteBoardTaskCommentAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid taskId,
+        Guid commentId,
+        CancellationToken ct = default);
 }

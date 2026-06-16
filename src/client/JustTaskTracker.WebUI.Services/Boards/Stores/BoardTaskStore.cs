@@ -217,6 +217,25 @@ internal sealed class BoardTaskStore(IBoardApiService boardApiService) : IBoardT
         NotifyStateChanged();
     }
 
+    public void RemoveComment(Guid commentId)
+    {
+        if (Comments.All(comment => comment.Id != commentId))
+            return;
+
+        Comments = Comments
+            .Where(comment => comment.Id != commentId)
+            .ToList();
+
+        CommentsMetadata = new PaginationMetadata
+        {
+            CurrentPage = CommentsMetadata.CurrentPage,
+            PageSize = CommentsMetadata.PageSize,
+            TotalCount = Math.Max(0, CommentsMetadata.TotalCount - 1),
+        };
+
+        NotifyStateChanged();
+    }
+
     public void Reset()
     {
         _loadCts?.Cancel();

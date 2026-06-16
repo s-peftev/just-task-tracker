@@ -129,4 +129,12 @@ internal interface IBoardApi
         Guid commentId,
         [Body] UpdateBoardTaskCommentRequest request,
         CancellationToken ct = default);
+
+    [Delete("/api/boards/{boardId}/columns/{columnId}/tasks/{taskId}/comments/{commentId}")]
+    Task<IApiResponse<ApiEnvelope<object>>> DeleteTaskCommentAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid taskId,
+        Guid commentId,
+        CancellationToken ct = default);
 }

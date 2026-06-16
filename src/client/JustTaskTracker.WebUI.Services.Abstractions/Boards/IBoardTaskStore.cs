@@ -37,5 +37,7 @@ public interface IBoardTaskStore
 
     void UpdateComment(Guid commentId, string body, DateTime? lastModifiedAtUtc = null);
 
+    void RemoveComment(Guid commentId);
+
     void Reset();
 }

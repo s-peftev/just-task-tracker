@@ -208,34 +208,9 @@
                             </div>
                             @if (_isDescriptionOverflowing)
                             {
-                                <button type="button"
-                                        class="board-task-details-panel__description-show-more"
-                                        @onclick="ToggleDescriptionExpanded">
-                                    <svg class="board-task-details-panel__description-show-more-icon"
-                                         viewBox="0 0 24 24"
-                                         aria-hidden="true"
-                                         focusable="false">
-                                        @if (_isDescriptionExpanded)
-                                        {
-                                            <path d="M6 15l6-6 6 6"
-                                                  stroke="currentColor"
-                                                  stroke-width="2"
-                                                  stroke-linecap="round"
-                                                  stroke-linejoin="round"
-                                                  fill="none" />
-                                        }
-                                        else
-                                        {
-                                            <path d="M6 9l6 6 6-6"
-                                                  stroke="currentColor"
-                                                  stroke-width="2"
-                                                  stroke-linecap="round"
-                                                  stroke-linejoin="round"
-                                                  fill="none" />
-                                        }
-                                    </svg>
-                                    @(_isDescriptionExpanded ? "Show less" : "Show more")
-                                </button>
+                                <ExpandableActionButton Text="@(_isDescriptionExpanded ? "Show less" : "Show more")"
+                                                        Icon="@(_isDescriptionExpanded ? ExpandableActionButtonIcon.ChevronUp : ExpandableActionButtonIcon.ChevronDown)"
+                                                        OnClick="ToggleDescriptionExpanded" />
                             }
                         </div>
                     }

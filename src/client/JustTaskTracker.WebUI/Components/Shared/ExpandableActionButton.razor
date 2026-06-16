@@ -1,0 +1,59 @@
+<button type="button"
+        class="expandable-action-button"
+        disabled="@Disabled"
+        @onclick="OnClick">
+    @if (Icon is not ExpandableActionButtonIcon.None)
+    {
+        <svg class="expandable-action-button__icon"
+             viewBox="0 0 24 24"
+             aria-hidden="true"
+             focusable="false">
+            @switch (Icon)
+            {
+                case ExpandableActionButtonIcon.ChevronUp:
+                    <path d="M6 15l6-6 6 6"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          fill="none" />
+                    break;
+                case ExpandableActionButtonIcon.LoadMore:
+                    <path d="M12 5v11"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round" />
+                    <path d="M7 12l5 5 5-5"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          fill="none" />
+                    break;
+                default:
+                    <path d="M6 9l6 6 6-6"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          fill="none" />
+                    break;
+            }
+        </svg>
+    }
+    @Text
+</button>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Text { get; set; } = default!;
+
+    [Parameter]
+    public ExpandableActionButtonIcon Icon { get; set; } = ExpandableActionButtonIcon.None;
+
+    [Parameter]
+    public bool Disabled { get; set; }
+
+    [Parameter, EditorRequired]
+    public EventCallback OnClick { get; set; }
+}

@@ -1,4 +1,5 @@
 using JustTaskTracker.WebUI.Domain.Boards;
+using JustTaskTracker.WebUI.Domain.Common.Pagination;
 using JustTaskTracker.WebUI.Services.Abstractions.Boards;
 using JustTaskTracker.WebUI.Services.Exceptions;
 
@@ -16,6 +17,9 @@ internal sealed class BoardTaskStore(IBoardApiService boardApiService) : IBoardT
     public Guid? TaskId { get; private set; }
     public BoardTaskDetailsDto? Task { get; private set; }
     public IReadOnlyList<BoardTaskCommentDto> Comments { get; private set; } = [];
+    public PaginationMetadata CommentsMetadata { get; private set; } = new();
+    public bool HasMoreComments => Comments.Count < CommentsMetadata.TotalCount;
+    public bool IsLoadingMoreComments { get; private set; }
     public bool IsLoading { get; private set; }
     public string? ErrorMessage { get; private set; }
 
@@ -34,6 +38,8 @@ internal sealed class BoardTaskStore(IBoardApiService boardApiService) : IBoardT
         TaskId = taskId;
         Task = null;
         Comments = [];
+        CommentsMetadata = new();
+        IsLoadingMoreComments = false;
         IsLoading = true;
         ErrorMessage = null;
         NotifyStateChanged();
@@ -41,7 +47,20 @@ internal sealed class BoardTaskStore(IBoardApiService boardApiService) : IBoardT
         try
         {
             Task = await boardApiService.GetBoardTaskByIdAsync(boardId, columnId, taskId, linkedCts.Token);
-            Comments = await LoadCommentsAsync(boardId, columnId, taskId, linkedCts.Token);
+
+            try
+            {
+                await LoadCommentsPageAsync(boardId, columnId, taskId, CommentsPageNumber, replaceExisting: true, linkedCts.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch
+            {
+                Comments = [];
+                CommentsMetadata = new();
+            }
         }
         catch (OperationCanceledException) when (linkedCts.IsCancellationRequested)
         {
@@ -51,6 +70,7 @@ internal sealed class BoardTaskStore(IBoardApiService boardApiService) : IBoardT
         {
             Task = null;
             Comments = [];
+            CommentsMetadata = new();
             ErrorMessage = ex.Error?.Details is { Count: > 0 } details
                 ? string.Join(" ", details)
                 : ex.Message;
@@ -59,6 +79,7 @@ internal sealed class BoardTaskStore(IBoardApiService boardApiService) : IBoardT
         {
             Task = null;
             Comments = [];
+            CommentsMetadata = new();
             ErrorMessage = ex.Message;
         }
         finally
@@ -74,6 +95,37 @@ internal sealed class BoardTaskStore(IBoardApiService boardApiService) : IBoardT
             {
                 linkedCts.Dispose();
             }
+        }
+    }
+
+    public async Task LoadMoreCommentsAsync(CancellationToken ct = default)
+    {
+        if (!HasMoreComments
+            || IsLoadingMoreComments
+            || BoardId is not { } boardId
+            || ColumnId is not { } columnId
+            || TaskId is not { } taskId)
+        {
+            return;
+        }
+
+        IsLoadingMoreComments = true;
+        NotifyStateChanged();
+
+        try
+        {
+            await LoadCommentsPageAsync(
+                boardId,
+                columnId,
+                taskId,
+                CommentsMetadata.CurrentPage + 1,
+                replaceExisting: false,
+                ct);
+        }
+        finally
+        {
+            IsLoadingMoreComments = false;
+            NotifyStateChanged();
         }
     }
 
@@ -126,11 +178,21 @@ internal sealed class BoardTaskStore(IBoardApiService boardApiService) : IBoardT
 
     public void AddComment(BoardTaskCommentDto comment)
     {
+        if (Comments.Any(existing => existing.Id == comment.Id))
+            return;
+
         Comments = Comments
             .Append(comment)
             .OrderByDescending(c => c.CreatedAtUtc)
             .ThenByDescending(c => c.Id)
             .ToList();
+
+        CommentsMetadata = new PaginationMetadata
+        {
+            CurrentPage = CommentsMetadata.CurrentPage,
+            PageSize = CommentsMetadata.PageSize,
+            TotalCount = CommentsMetadata.TotalCount + 1,
+        };
 
         NotifyStateChanged();
     }
@@ -146,38 +208,46 @@ internal sealed class BoardTaskStore(IBoardApiService boardApiService) : IBoardT
         TaskId = null;
         Task = null;
         Comments = [];
+        CommentsMetadata = new();
+        IsLoadingMoreComments = false;
         IsLoading = false;
         ErrorMessage = null;
         NotifyStateChanged();
     }
 
-    private async Task<IReadOnlyList<BoardTaskCommentDto>> LoadCommentsAsync(
+    private async Task LoadCommentsPageAsync(
         Guid boardId,
         Guid columnId,
         Guid taskId,
+        int pageNumber,
+        bool replaceExisting,
         CancellationToken ct)
     {
-        try
-        {
-            var paged = await boardApiService.GetBoardTaskCommentsAsync(
-                boardId,
-                columnId,
-                taskId,
-                CommentsPageNumber,
-                CommentsPageSize,
-                ct);
+        var paged = await boardApiService.GetBoardTaskCommentsAsync(
+            boardId,
+            columnId,
+            taskId,
+            pageNumber,
+            CommentsPageSize,
+            ct);
 
-            return paged.Items.ToList();
-        }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch
-        {
-            return [];
-        }
+        Comments = replaceExisting
+            ? paged.Items.ToList()
+            : MergeComments(Comments, paged.Items);
+
+        CommentsMetadata = paged.Metadata;
     }
+
+    private static IReadOnlyList<BoardTaskCommentDto> MergeComments(
+        IReadOnlyList<BoardTaskCommentDto> existing,
+        IReadOnlyList<BoardTaskCommentDto> incoming) =>
+        existing
+            .Concat(incoming)
+            .GroupBy(comment => comment.Id)
+            .Select(group => group.First())
+            .OrderByDescending(comment => comment.CreatedAtUtc)
+            .ThenByDescending(comment => comment.Id)
+            .ToList();
 
     private void NotifyStateChanged() => StateChanged?.Invoke();
 }

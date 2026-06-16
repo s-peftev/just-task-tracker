@@ -135,6 +135,14 @@
                     {
                         <BoardTaskCommentItem Comment="comment" />
                     }
+
+                    @if (BoardTaskStore.HasMoreComments)
+                    {
+                        <ExpandableActionButton Text="Show more comments"
+                                                Icon="ExpandableActionButtonIcon.ChevronDown"
+                                                Disabled="@BoardTaskStore.IsLoadingMoreComments"
+                                                OnClick="LoadMoreCommentsAsync" />
+                    }
                 </div>
             </aside>
         </div>
@@ -298,6 +306,18 @@
         finally
         {
             _isSavingComment = false;
+        }
+    }
+
+    private async Task LoadMoreCommentsAsync()
+    {
+        try
+        {
+            await BoardTaskStore.LoadMoreCommentsAsync();
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
         }
     }
 

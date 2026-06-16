@@ -1,4 +1,5 @@
 using JustTaskTracker.WebUI.Domain.Boards;
+using JustTaskTracker.WebUI.Domain.Common.Pagination;
 
 namespace JustTaskTracker.WebUI.Services.Abstractions.Boards;
 
@@ -12,12 +13,17 @@ public interface IBoardTaskStore
     Guid? TaskId { get; }
     BoardTaskDetailsDto? Task { get; }
     IReadOnlyList<BoardTaskCommentDto> Comments { get; }
+    PaginationMetadata CommentsMetadata { get; }
+    bool HasMoreComments { get; }
+    bool IsLoadingMoreComments { get; }
     bool IsLoading { get; }
     string? ErrorMessage { get; }
 
     event Action? StateChanged;
 
     Task LoadAsync(Guid boardId, Guid columnId, Guid taskId, CancellationToken ct = default);
+
+    Task LoadMoreCommentsAsync(CancellationToken ct = default);
 
     void UpdateTaskTitle(string title);
 

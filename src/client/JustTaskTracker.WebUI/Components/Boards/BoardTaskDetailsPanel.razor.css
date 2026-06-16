@@ -372,34 +372,13 @@
     overflow: hidden;
 }
 
-.board-task-details-panel__description-show-more {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.375rem;
-    width: 100%;
-    box-sizing: border-box;
-    padding: 0.5rem 0.875rem;
-    border: none;
-    border-radius: var(--jtt-radius-md);
-    background: var(--jtt-overlay-white-10);
+.board-task-details-panel__description-text {
+    margin: 0;
     color: var(--jtt-text-body);
-    font-family: inherit;
     font-size: 0.875rem;
-    font-weight: var(--jtt-font-weight-body);
-    line-height: 1.4;
-    cursor: pointer;
-    transition: background 0.2s;
-}
-
-.board-task-details-panel__description-show-more:hover {
-    background: var(--jtt-overlay-white-15);
-}
-
-.board-task-details-panel__description-show-more-icon {
-    flex-shrink: 0;
-    width: 0.875rem;
-    height: 0.875rem;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
 }
 
 .board-task-details-panel__placeholder-text {

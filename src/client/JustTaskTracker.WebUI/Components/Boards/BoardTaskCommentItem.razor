@@ -1,12 +1,45 @@
+@using JustTaskTracker.WebUI.Domain.Auth
 @using JustTaskTracker.WebUI.Domain.Boards
+@using JustTaskTracker.WebUI.Services.Abstractions.Auth
+@inject IProfileStore ProfileStore
 
 <article class="board-task-comment">
-    <div class="board-task-comment__author"
-         title="@GetAuthorTitle()">
-        @GetAuthorDisplay()
+    <div class="board-task-comment__avatar-column">
+        <div class="board-task-comment__avatar text-sidebar-user"
+             aria-hidden="true"
+             title="@GetAuthorTitle()">
+            <span class="board-task-comment__avatar-letter">@GetAvatarLetter(Comment.Author)</span>
+        </div>
     </div>
-    <div class="board-task-comment__body">
-        <p class="board-task-comment__text">@Comment.Body</p>
+
+    <div class="board-task-comment__content">
+        <header class="board-task-comment__header">
+            <span class="board-task-comment__author-name"
+                  title="@GetAuthorTitle()">
+                @GetAuthorDisplay()
+            </span>
+            <span class="board-task-comment__meta">
+                @FormatCreatedAt(Comment.CreatedAtUtc)@GetEditedSuffix()
+            </span>
+        </header>
+
+        <div class="board-task-comment__body">
+            <p class="board-task-comment__text">@Comment.Body</p>
+        </div>
+
+        @if (IsCurrentUserAuthor)
+        {
+            <footer class="board-task-comment__footer">
+                <button type="button"
+                        class="board-task-comment__action">
+                    Edit
+                </button>
+                <button type="button"
+                        class="board-task-comment__action board-task-comment__action--danger">
+                    Delete
+                </button>
+            </footer>
+        }
     </div>
 </article>
 
@@ -14,10 +47,27 @@
     [Parameter, EditorRequired]
     public BoardTaskCommentDto Comment { get; set; } = default!;
 
-    private string GetAuthorDisplay() =>
-        string.IsNullOrWhiteSpace(Comment.Author.DisplayName)
-            ? Comment.Author.Email
-            : Comment.Author.DisplayName;
+    private bool IsCurrentUserAuthor =>
+        ProfileStore.Profile is { } profile && profile.Id == Comment.Author.Id;
+
+    private static string GetAuthorDisplay(UserDto author) =>
+        string.IsNullOrWhiteSpace(author.DisplayName)
+            ? author.Email
+            : author.DisplayName;
+
+    private string GetAuthorDisplay() => GetAuthorDisplay(Comment.Author);
 
     private string GetAuthorTitle() => Comment.Author.Email;
+
+    private static char GetAvatarLetter(UserDto author) =>
+        char.ToUpperInvariant(
+            GetAuthorDisplay(author) is { Length: > 0 } source
+                ? source[0]
+                : '?');
+
+    private static string FormatCreatedAt(DateTime createdAtUtc) =>
+        createdAtUtc.ToLocalTime().ToString("g");
+
+    private string GetEditedSuffix() =>
+        Comment.LastModifiedAtUtc is null ? string.Empty : " (edited)";
 }

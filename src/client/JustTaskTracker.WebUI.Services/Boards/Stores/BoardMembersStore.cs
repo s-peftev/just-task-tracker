@@ -22,6 +22,7 @@ internal sealed class BoardMembersStore(IBoardApiService boardApiService) : IBoa
     public bool IsLoading { get; private set; }
     public bool HasMoreMembers => Members.Count < Pagination.TotalCount;
     public bool IsLoadingMoreMembers { get; private set; }
+    public bool IsRemovingMember { get; private set; }
     public string? ErrorMessage { get; private set; }
 
     public event Action? StateChanged;
@@ -90,6 +91,26 @@ internal sealed class BoardMembersStore(IBoardApiService boardApiService) : IBoa
         }
     }
 
+    public async Task RemoveMemberAsync(Guid userId, CancellationToken ct = default)
+    {
+        if (!IsOpen)
+            throw new InvalidOperationException("Board members overlay is not open.");
+
+        IsRemovingMember = true;
+        NotifyStateChanged();
+
+        try
+        {
+            await boardApiService.DeleteBoardMemberAsync(_boardId, userId, ct);
+            RemoveMemberFromList(userId);
+        }
+        finally
+        {
+            IsRemovingMember = false;
+            NotifyStateChanged();
+        }
+    }
+
     public void Close()
     {
         _loadCts?.Cancel();
@@ -103,6 +124,7 @@ internal sealed class BoardMembersStore(IBoardApiService boardApiService) : IBoa
         CurrentPage = 1;
         IsLoading = false;
         IsLoadingMoreMembers = false;
+        IsRemovingMember = false;
         ErrorMessage = null;
         NotifyStateChanged();
     }
@@ -167,6 +189,22 @@ internal sealed class BoardMembersStore(IBoardApiService boardApiService) : IBoa
                 linkedCts.Dispose();
             }
         }
+    }
+
+    private void RemoveMemberFromList(Guid userId)
+    {
+        Members = Members
+            .Where(member => member.User.Id != userId)
+            .ToList();
+
+        Pagination = new PaginationMetadata
+        {
+            CurrentPage = Pagination.CurrentPage,
+            PageSize = Pagination.PageSize,
+            TotalCount = Math.Max(0, Pagination.TotalCount - 1),
+        };
+
+        NotifyStateChanged();
     }
 
     private static List<BoardMemberDto> MergeMembers(

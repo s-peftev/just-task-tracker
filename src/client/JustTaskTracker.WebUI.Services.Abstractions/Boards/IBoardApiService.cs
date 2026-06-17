@@ -20,6 +20,8 @@ public interface IBoardApiService
         AddBoardMemberRequest request,
         CancellationToken ct = default);
 
+    Task DeleteBoardMemberAsync(Guid boardId, Guid userId, CancellationToken ct = default);
+
     Task<BoardDetailsDto> CreateBoardAsync(string name, CancellationToken ct = default);
     Task UpdateBoardAsync(Guid boardId, string name, CancellationToken ct = default);
     Task UpdateColumnAsync(Guid boardId, Guid columnId, string name, CancellationToken ct = default);

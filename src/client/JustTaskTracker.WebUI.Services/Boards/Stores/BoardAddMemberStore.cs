@@ -130,6 +130,20 @@ internal sealed class BoardAddMemberStore(
         }
     }
 
+    public void ClearUserMembership(Guid userId)
+    {
+        if (Users.All(user => user.Id != userId))
+            return;
+
+        Users = Users
+            .Select(user => user.Id == userId
+                ? user with { BoardMemberRole = null }
+                : user)
+            .ToList();
+
+        NotifyStateChanged();
+    }
+
     public void Reset()
     {
         CancelSearchDebounce();

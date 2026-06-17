@@ -5,11 +5,13 @@
 @using JustTaskTracker.WebUI.Domain.Boards.Authorization
 @using JustTaskTracker.WebUI.Domain.Boards.Enums
 @using JustTaskTracker.WebUI.Infrastructure
+@using JustTaskTracker.WebUI.Services.Abstractions.Auth
 @using JustTaskTracker.WebUI.Services.Abstractions.Boards
 @using JustTaskTracker.WebUI.Services.Exceptions
 @implements IDisposable
 @inject IBoardMembersStore BoardMembersStore
 @inject IBoardAddMemberStore BoardAddMemberStore
+@inject IProfileStore ProfileStore
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 
@@ -85,7 +87,24 @@
                                 <div class="board-members-overlay__member">
                                     <span class="board-members-overlay__member-name">@GetDisplayName(member.User)</span>
                                     <span class="board-members-overlay__member-email">@member.User.Email</span>
-                                    <span class="board-members-overlay__member-role">@FormatRole(member.Role)</span>
+                                    <div class="board-members-overlay__member-aside">
+                                        <span class="board-members-overlay__member-role">@FormatRole(member.Role)</span>
+                                        @if (CanRemoveMember(member))
+                                        {
+                                            <button type="button"
+                                                    class="board-members-overlay__remove-btn"
+                                                    aria-label="@($"Remove {GetDisplayName(member.User)} from board")"
+                                                    disabled="@BoardMembersStore.IsRemovingMember"
+                                                    @onclick="() => RemoveMemberAsync(member)">
+                                                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                                    <path d="M18 6L6 18M6 6l12 12"
+                                                          stroke="currentColor"
+                                                          stroke-width="2"
+                                                          stroke-linecap="round" />
+                                                </svg>
+                                            </button>
+                                        }
+                                    </div>
                                 </div>
                             </li>
                         }
@@ -210,6 +229,40 @@
         if (tab == BoardMembersOverlayTab.AddMember && BoardMembersStore.BoardId is { } boardId)
             BoardAddMemberStore.Attach(boardId);
     }
+
+    private async Task RemoveMemberAsync(BoardMemberDto member)
+    {
+        var displayName = GetDisplayName(member.User);
+        var message =
+            $"Remove {displayName} from this board?{Environment.NewLine}They will lose access to the board.";
+
+        var dialog = await DialogService.ShowConfirmResourceAsync(
+            "Remove member",
+            message,
+            confirmLabel: "Remove");
+
+        var result = await dialog.Result;
+
+        if (result is not { Canceled: false, Data: true })
+            return;
+
+        try
+        {
+            await BoardMembersStore.RemoveMemberAsync(member.User.Id);
+            BoardAddMemberStore.ClearUserMembership(member.User.Id);
+            Snackbar.Add($"{displayName} removed from the board.", Severity.Success);
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+    }
+
+    private bool CanRemoveMember(BoardMemberDto member) =>
+        CanManageMembers
+        && member.Role != BoardMemberRole.Owner
+        && ProfileStore.Profile is { } currentUser
+        && member.User.Id != currentUser.Id;
 
     private async Task OpenAddMemberDialogAsync(UserForBoardLookupDto user)
     {

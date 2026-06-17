@@ -25,6 +25,7 @@ public interface IBoardMembersStore
     bool IsLoading { get; }
     bool HasMoreMembers { get; }
     bool IsLoadingMoreMembers { get; }
+    bool IsRemovingMember { get; }
     string? ErrorMessage { get; }
 
     event Action? StateChanged;
@@ -36,6 +37,8 @@ public interface IBoardMembersStore
     Task RefreshAsync(CancellationToken ct = default);
 
     Task LoadMoreAsync(CancellationToken ct = default);
+
+    Task RemoveMemberAsync(Guid userId, CancellationToken ct = default);
 
     void Close();
 

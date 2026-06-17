@@ -29,5 +29,7 @@ public interface IBoardAddMemberStore
 
     Task AddMemberAsync(Guid userId, BoardMemberRole role, CancellationToken ct = default);
 
+    void ClearUserMembership(Guid userId);
+
     void Reset();
 }

@@ -31,6 +31,12 @@ internal interface IBoardApi
         [Body] AddBoardMemberRequest request,
         CancellationToken ct = default);
 
+    [Delete("/api/boards/{boardId}/members/{userId}")]
+    Task<IApiResponse<ApiEnvelope<object>>> DeleteMemberAsync(
+        Guid boardId,
+        Guid userId,
+        CancellationToken ct = default);
+
     [Post("/api/boards")]
     Task<IApiResponse<ApiEnvelope<BoardDetailsDto>>> CreateAsync([Body] SaveBoardRequest request, CancellationToken ct = default);
 

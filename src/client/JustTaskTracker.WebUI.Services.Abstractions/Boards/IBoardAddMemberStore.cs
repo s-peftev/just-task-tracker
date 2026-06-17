@@ -1,4 +1,5 @@
 using JustTaskTracker.WebUI.Domain.Auth;
+using JustTaskTracker.WebUI.Domain.Boards.Enums;
 using JustTaskTracker.WebUI.Domain.Common.Pagination;
 
 namespace JustTaskTracker.WebUI.Services.Abstractions.Boards;
@@ -16,6 +17,7 @@ public interface IBoardAddMemberStore
     bool IsLoading { get; }
     bool HasMoreUsers { get; }
     bool IsLoadingMoreUsers { get; }
+    bool IsAddingMember { get; }
 
     event Action? StateChanged;
 
@@ -24,6 +26,8 @@ public interface IBoardAddMemberStore
     Task SetSearchAsync(string searchText, CancellationToken ct = default);
 
     Task LoadMoreAsync(CancellationToken ct = default);
+
+    Task AddMemberAsync(Guid userId, BoardMemberRole role, CancellationToken ct = default);
 
     void Reset();
 }

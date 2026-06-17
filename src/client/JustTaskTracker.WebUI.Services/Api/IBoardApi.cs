@@ -25,6 +25,12 @@ internal interface IBoardApi
         int pageSize,
         CancellationToken ct = default);
 
+    [Post("/api/boards/{boardId}/members")]
+    Task<IApiResponse<ApiEnvelope<object>>> AddMemberAsync(
+        Guid boardId,
+        [Body] AddBoardMemberRequest request,
+        CancellationToken ct = default);
+
     [Post("/api/boards")]
     Task<IApiResponse<ApiEnvelope<BoardDetailsDto>>> CreateAsync([Body] SaveBoardRequest request, CancellationToken ct = default);
 

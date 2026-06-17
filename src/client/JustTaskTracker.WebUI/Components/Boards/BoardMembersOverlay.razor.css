@@ -219,7 +219,12 @@
     transition: background-color 0.15s, border-color 0.15s;
 }
 
-.board-members-overlay__add-btn:hover {
+.board-members-overlay__add-btn:hover:not(:disabled) {
     border-color: var(--jtt-stroke-accent-strong);
     background: var(--jtt-overlay-accent-10);
+}
+
+.board-members-overlay__add-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
 }

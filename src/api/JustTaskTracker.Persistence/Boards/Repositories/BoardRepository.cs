@@ -154,7 +154,8 @@ public class BoardRepository(JustTaskTrackerDbContext context)
     public async Task<PagedList<BoardMemberDto>> GetMembersPagedAsync(Guid boardId, int pageNumber, int pageSize, CancellationToken ct = default) =>
         await _context.BoardMembers
             .Where(member => member.BoardId == boardId)
-            .OrderBy(member => member.JoinedAtUtc)
+            .OrderBy(member => member.Role)
+            .ThenBy(member => member.JoinedAtUtc)
             .ThenBy(member => member.UserId)
             .ToPagedAsync(
                 member => new BoardMemberDto(

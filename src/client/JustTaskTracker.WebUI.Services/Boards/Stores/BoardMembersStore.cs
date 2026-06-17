@@ -51,13 +51,24 @@ internal sealed class BoardMembersStore(IBoardApiService boardApiService) : IBoa
         }
     }
 
-    public void SetActiveTab(BoardMembersOverlayTab tab)
+    public async Task SetActiveTabAsync(BoardMembersOverlayTab tab, CancellationToken ct = default)
     {
         if (ActiveTab == tab)
             return;
 
         ActiveTab = tab;
         NotifyStateChanged();
+
+        if (tab == BoardMembersOverlayTab.Members && IsOpen)
+            await RefreshAsync(ct);
+    }
+
+    public async Task RefreshAsync(CancellationToken ct = default)
+    {
+        if (!IsOpen)
+            return;
+
+        await LoadPageAsync(1, replaceExisting: true, ct);
     }
 
     public async Task LoadMoreAsync(CancellationToken ct = default)

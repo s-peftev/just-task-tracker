@@ -1,4 +1,5 @@
 @using JustTaskTracker.WebUI.Components.Shared
+@using JustTaskTracker.WebUI.Components.Shared.Forms
 @using JustTaskTracker.WebUI.Domain.Auth
 @using JustTaskTracker.WebUI.Domain.Boards
 @using JustTaskTracker.WebUI.Domain.Boards.Authorization
@@ -9,6 +10,7 @@
 @implements IDisposable
 @inject IBoardMembersStore BoardMembersStore
 @inject IBoardAddMemberStore BoardAddMemberStore
+@inject IDialogService DialogService
 @inject ISnackbar Snackbar
 
 <div class="board-members-overlay"
@@ -30,7 +32,7 @@
                         class="board-members-overlay__tab @(IsMembersTabActive ? "board-members-overlay__tab--active" : null)"
                         role="tab"
                         aria-selected="@IsMembersTabActive"
-                        @onclick="() => SetTab(BoardMembersOverlayTab.Members)">
+                        @onclick="() => SetTabAsync(BoardMembersOverlayTab.Members)">
                     Board members
                 </button>
             }
@@ -41,7 +43,7 @@
                         class="board-members-overlay__tab @(IsAddMemberTabActive ? "board-members-overlay__tab--active" : null)"
                         role="tab"
                         aria-selected="@IsAddMemberTabActive"
-                        @onclick="() => SetTab(BoardMembersOverlayTab.AddMember)">
+                        @onclick="() => SetTabAsync(BoardMembersOverlayTab.AddMember)">
                     Add member
                 </button>
             }
@@ -137,7 +139,9 @@
                                     else
                                     {
                                         <button type="button"
-                                                class="board-members-overlay__add-btn">
+                                                class="board-members-overlay__add-btn"
+                                                disabled="@BoardAddMemberStore.IsAddingMember"
+                                                @onclick="() => OpenAddMemberDialogAsync(user)">
                                             Add to board
                                         </button>
                                     }
@@ -171,10 +175,13 @@
     {
         BoardMembersStore.StateChanged += OnStoreStateChanged;
         BoardAddMemberStore.StateChanged += OnStoreStateChanged;
+    }
 
+    protected override async Task OnInitializedAsync()
+    {
         if (!CanViewBoard && CanManageMembers && BoardMembersStore.BoardId is { } boardId)
         {
-            BoardMembersStore.SetActiveTab(BoardMembersOverlayTab.AddMember);
+            await BoardMembersStore.SetActiveTabAsync(BoardMembersOverlayTab.AddMember);
             BoardAddMemberStore.Attach(boardId);
         }
     }
@@ -188,14 +195,44 @@
     private void OnStoreStateChanged() =>
         InvokeAsync(StateHasChanged);
 
-    private void SetTab(BoardMembersOverlayTab tab)
+    private async Task SetTabAsync(BoardMembersOverlayTab tab)
     {
-        BoardMembersStore.SetActiveTab(tab);
+        try
+        {
+            await BoardMembersStore.SetActiveTabAsync(tab);
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+            return;
+        }
 
         if (tab == BoardMembersOverlayTab.AddMember && BoardMembersStore.BoardId is { } boardId)
             BoardAddMemberStore.Attach(boardId);
-        else if (tab == BoardMembersOverlayTab.Members)
-            BoardAddMemberStore.Reset();
+    }
+
+    private async Task OpenAddMemberDialogAsync(UserForBoardLookupDto user)
+    {
+        var dialog = await DialogService.ShowResourceFormAsync(
+            "Add member",
+            "Add",
+            AddBoardMemberForm.FormId,
+            AddBoardMemberForm.Render(user));
+
+        var result = await dialog.Result;
+
+        if (result is not { Canceled: false, Data: BoardMemberRole role })
+            return;
+
+        try
+        {
+            await BoardAddMemberStore.AddMemberAsync(user.Id, role);
+            Snackbar.Add($"{GetDisplayName(user)} added to the board.", Severity.Success);
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
     }
 
     private async Task OnAddMemberSearchInputAsync(ChangeEventArgs e)

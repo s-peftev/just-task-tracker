@@ -31,7 +31,9 @@ public interface IBoardMembersStore
 
     Task OpenAsync(Guid boardId, BoardMemberRole userRole, CancellationToken ct = default);
 
-    void SetActiveTab(BoardMembersOverlayTab tab);
+    Task SetActiveTabAsync(BoardMembersOverlayTab tab, CancellationToken ct = default);
+
+    Task RefreshAsync(CancellationToken ct = default);
 
     Task LoadMoreAsync(CancellationToken ct = default);
 

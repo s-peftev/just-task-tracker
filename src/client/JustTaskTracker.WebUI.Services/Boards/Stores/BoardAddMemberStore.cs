@@ -1,6 +1,8 @@
 using JustTaskTracker.WebUI.Domain.Auth;
 using JustTaskTracker.WebUI.Domain.Auth.Enums.SearchFields;
 using JustTaskTracker.WebUI.Domain.Auth.Requests;
+using JustTaskTracker.WebUI.Domain.Boards.Enums;
+using JustTaskTracker.WebUI.Domain.Boards.Requests;
 using JustTaskTracker.WebUI.Domain.Common.Pagination;
 using JustTaskTracker.WebUI.Domain.Common.Searching;
 using JustTaskTracker.WebUI.Services.Abstractions.Boards;
@@ -8,7 +10,9 @@ using JustTaskTracker.WebUI.Services.Abstractions.Users;
 
 namespace JustTaskTracker.WebUI.Services.Boards.Stores;
 
-internal sealed class BoardAddMemberStore(IUsersApiService usersApiService) : IBoardAddMemberStore
+internal sealed class BoardAddMemberStore(
+    IUsersApiService usersApiService,
+    IBoardApiService boardApiService) : IBoardAddMemberStore
 {
     public const int PageSize = 20;
     private const int SearchDebounceMilliseconds = 300;
@@ -25,6 +29,7 @@ internal sealed class BoardAddMemberStore(IUsersApiService usersApiService) : IB
     public bool IsLoading { get; private set; }
     public bool HasMoreUsers => Users.Count < Pagination.TotalCount;
     public bool IsLoadingMoreUsers { get; private set; }
+    public bool IsAddingMember { get; private set; }
 
     public event Action? StateChanged;
 
@@ -101,6 +106,30 @@ internal sealed class BoardAddMemberStore(IUsersApiService usersApiService) : IB
         }
     }
 
+    public async Task AddMemberAsync(Guid userId, BoardMemberRole role, CancellationToken ct = default)
+    {
+        if (!IsAttached)
+            throw new InvalidOperationException("Add member store is not attached to a board.");
+
+        IsAddingMember = true;
+        NotifyStateChanged();
+
+        try
+        {
+            await boardApiService.AddBoardMemberAsync(
+                _boardId,
+                new AddBoardMemberRequest(userId, role),
+                ct);
+
+            UpdateUserBoardMemberRole(userId, role);
+        }
+        finally
+        {
+            IsAddingMember = false;
+            NotifyStateChanged();
+        }
+    }
+
     public void Reset()
     {
         CancelSearchDebounce();
@@ -113,6 +142,18 @@ internal sealed class BoardAddMemberStore(IUsersApiService usersApiService) : IB
         CurrentPage = 1;
         IsLoading = false;
         IsLoadingMoreUsers = false;
+        IsAddingMember = false;
+        NotifyStateChanged();
+    }
+
+    private void UpdateUserBoardMemberRole(Guid userId, BoardMemberRole role)
+    {
+        Users = Users
+            .Select(user => user.Id == userId
+                ? user with { BoardMemberRole = role }
+                : user)
+            .ToList();
+
         NotifyStateChanged();
     }
 

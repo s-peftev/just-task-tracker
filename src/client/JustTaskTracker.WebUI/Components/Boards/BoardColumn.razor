@@ -12,7 +12,7 @@
 @implements IDisposable
 @inject IJSRuntime Js
 
-<article class="board-column">
+<article class="board-column" data-column-id="@Column.Id">
     <header class="board-column__header @(CanReorderColumn ? "board-column__header--draggable" : null)">
         <div class="board-column__title-area">
             @if (_isEditingName)

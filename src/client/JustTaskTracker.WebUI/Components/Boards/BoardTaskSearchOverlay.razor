@@ -8,46 +8,52 @@
      role="dialog"
      aria-label="Task search results"
      @onmousedown:preventDefault>
-    @if (BoardTaskSearchStore.IsLoading && BoardTaskSearchStore.Tasks.Count == 0)
-    {
-        <div class="board-task-search-overlay__state">
-            <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Small" />
-        </div>
-    }
-    else if (BoardTaskSearchStore.ErrorMessage is { } error)
-    {
-        <div class="board-task-search-overlay__state">
-            <p class="board-task-search-overlay__message">@error</p>
-        </div>
-    }
-    else if (BoardTaskSearchStore.Tasks.Count == 0)
-    {
-        <div class="board-task-search-overlay__state">
-            <p class="board-task-search-overlay__message">No tasks found.</p>
-        </div>
-    }
-    else
-    {
-        <ul class="board-task-search-overlay__list">
-            @foreach (var task in BoardTaskSearchStore.Tasks)
-            {
-                <li class="board-task-search-overlay__item">
-                    <BoardTaskSearchResultItem Task="task"
-                                               OnClick="OnTaskClickAsync" />
-                </li>
-            }
+    <header class="board-task-search-overlay__header">
+        <span class="board-task-search-overlay__header-text">@GetResultsLabel()</span>
+    </header>
 
-            @if (BoardTaskSearchStore.HasMoreTasks)
-            {
-                <li class="board-task-search-overlay__item board-task-search-overlay__item--action">
-                    <ExpandableActionButton Text="Show more"
-                                            Icon="ExpandableActionButtonIcon.ChevronDown"
-                                            Disabled="@BoardTaskSearchStore.IsLoadingMoreTasks"
-                                            OnClick="LoadMoreTasksAsync" />
-                </li>
-            }
-        </ul>
-    }
+    <div class="board-task-search-overlay__body">
+        @if (BoardTaskSearchStore.IsLoading && BoardTaskSearchStore.Tasks.Count == 0)
+        {
+            <div class="board-task-search-overlay__state">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Small" />
+            </div>
+        }
+        else if (BoardTaskSearchStore.ErrorMessage is { } error)
+        {
+            <div class="board-task-search-overlay__state">
+                <p class="board-task-search-overlay__message">@error</p>
+            </div>
+        }
+        else if (BoardTaskSearchStore.Tasks.Count == 0)
+        {
+            <div class="board-task-search-overlay__state">
+                <p class="board-task-search-overlay__message">No tasks found.</p>
+            </div>
+        }
+        else
+        {
+            <ul class="board-task-search-overlay__list">
+                @foreach (var task in BoardTaskSearchStore.Tasks)
+                {
+                    <li class="board-task-search-overlay__item">
+                        <BoardTaskSearchResultItem Task="task"
+                                                   OnClick="OnTaskClickAsync" />
+                    </li>
+                }
+
+                @if (BoardTaskSearchStore.HasMoreTasks)
+                {
+                    <li class="board-task-search-overlay__item board-task-search-overlay__item--action">
+                        <ExpandableActionButton Text="Show more"
+                                                Icon="ExpandableActionButtonIcon.ChevronDown"
+                                                Disabled="@BoardTaskSearchStore.IsLoadingMoreTasks"
+                                                OnClick="LoadMoreTasksAsync" />
+                    </li>
+                }
+            </ul>
+        }
+    </div>
 </div>
 
 @code {
@@ -70,5 +76,14 @@
 
         BoardTaskSearchStore.Close();
         Navigation.NavigateTo(BoardTaskRoutes.GetTaskUrl(boardId, task.ColumnId, task.Id));
+    }
+
+    private string GetResultsLabel()
+    {
+        if (BoardTaskSearchStore.IsLoading && BoardTaskSearchStore.Tasks.Count == 0)
+            return "Searching...";
+
+        var total = BoardTaskSearchStore.Pagination.TotalCount;
+        return total == 1 ? "1 task found" : $"{total} tasks found";
     }
 }

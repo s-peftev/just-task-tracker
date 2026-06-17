@@ -102,7 +102,7 @@
                               DragClass="board-page__column-drag"
                               Scroll="false"
                               OnUpdate="OnColumnsReorderedAsync">
-                        <div class="board-page__column-item">
+                        <div class="board-page__column-item @GetColumnTrayOverlapClass(context.Id)">
                             <BoardColumn Column="@context"
                                          UserRole="board.UserRole" />
                         </div>
@@ -123,42 +123,46 @@
 
             <footer class="board-page__footer">
                 <div class="board-page__footer-drawer">
-                    <button type="button"
-                            class="board-page__footer-handle"
-                            aria-label="@(_isFooterTrayOpen ? "Close search" : "Open search")"
-                            aria-expanded="@_isFooterTrayOpen"
-                            @onclick="ToggleFooterTray">
-                        <svg class="board-page__footer-handle-icon"
-                             viewBox="0 0 24 24"
-                             aria-hidden="true"
-                             focusable="false">
-                            <circle cx="11"
-                                    cy="11"
-                                    r="6"
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                    fill="none" />
-                            <path d="M16 16l5 5"
-                                  stroke="currentColor"
-                                  stroke-width="2"
-                                  stroke-linecap="round" />
-                        </svg>
-                    </button>
+                    <div @ref="_footerPanelRef" class="board-page__footer-panel">
+                        <div class="board-page__footer-tab">
+                            <button type="button"
+                                    class="board-page__footer-handle"
+                                    aria-label="@(_isFooterTrayOpen ? "Close search" : "Open search")"
+                                    aria-expanded="@_isFooterTrayOpen"
+                                    @onclick="ToggleFooterTray">
+                                <svg class="board-page__footer-handle-icon"
+                                     viewBox="0 0 24 24"
+                                     aria-hidden="true"
+                                     focusable="false">
+                                    <circle cx="11"
+                                            cy="11"
+                                            r="6"
+                                            stroke="currentColor"
+                                            stroke-width="2"
+                                            fill="none" />
+                                    <path d="M16 16l5 5"
+                                          stroke="currentColor"
+                                          stroke-width="2"
+                                          stroke-linecap="round" />
+                                </svg>
+                            </button>
+                        </div>
 
-                    <div class="board-page__footer-tray">
-                        @if (BoardTaskSearchStore.IsOpen)
-                        {
-                            <BoardTaskSearchOverlay />
-                        }
+                        <div class="board-page__footer-tray">
+                            @if (BoardTaskSearchStore.IsOpen)
+                            {
+                                <BoardTaskSearchOverlay />
+                            }
 
-                        <input class="board-page__footer-search-input"
-                               type="search"
-                               aria-label="Search tasks"
-                               placeholder="Search tasks"
-                               value="@BoardTaskSearchStore.SearchText"
-                               @onfocus="OnFooterSearchFocusAsync"
-                               @onblur="OnFooterSearchBlurAsync"
-                               @oninput="OnFooterSearchInputAsync" />
+                            <input class="board-page__footer-search-input"
+                                   type="search"
+                                   aria-label="Search tasks"
+                                   placeholder="Search tasks"
+                                   value="@BoardTaskSearchStore.SearchText"
+                                   @onfocus="OnFooterSearchFocusAsync"
+                                   @onblur="OnFooterSearchBlurAsync"
+                                   @oninput="OnFooterSearchInputAsync" />
+                        </div>
                     </div>
                 </div>
             </footer>
@@ -197,9 +201,14 @@
     private ElementReference _titleInputRef;
     private ElementReference _contentRef;
     private ElementReference _scrollBodyRef;
+    private ElementReference _footerPanelRef;
     private readonly List<ColumnDto> _sortableColumns = [];
+    private readonly HashSet<Guid> _trayOverlappingColumnIds = [];
     private IJSObjectReference? _panScrollModule;
     private IJSObjectReference? _panScrollHandle;
+    private IJSObjectReference? _trayOverlapModule;
+    private IJSObjectReference? _trayOverlapHandle;
+    private DotNetObjectReference<BoardPage>? _trayOverlapDotNetRef;
     private bool _panScrollAttached;
     private bool _isFooterTrayOpen;
     private bool _suppressSearchBlurClose;
@@ -237,6 +246,9 @@
 
         if (_renderBoard && BoardDetailsStore.Board is not null && !_panScrollAttached)
             await EnsurePanScrollAttachedAsync();
+
+        if (_renderBoard && _isFooterTrayOpen)
+            await EnsureTrayOverlapObserverAsync();
     }
 
     public async ValueTask DisposeAsync()
@@ -245,6 +257,7 @@
         BoardTaskStore.StateChanged -= OnTaskStoreStateChanged;
         BoardTaskSearchStore.StateChanged -= OnTaskSearchStoreStateChanged;
         BoardTaskSearchStore.Reset();
+        await DisposeTrayOverlapObserverAsync();
 
         if (_panScrollHandle is not null)
         {
@@ -254,6 +267,82 @@
 
         if (_panScrollModule is not null)
             await _panScrollModule.DisposeAsync();
+
+        _trayOverlapDotNetRef?.Dispose();
+    }
+
+    [JSInvokable]
+    public void SetTrayOverlappingColumnIds(string[] columnIds)
+    {
+        var updatedIds = columnIds
+            .Select(Guid.Parse)
+            .ToHashSet();
+
+        if (_trayOverlappingColumnIds.SetEquals(updatedIds))
+            return;
+
+        _trayOverlappingColumnIds.Clear();
+
+        foreach (var id in updatedIds)
+            _trayOverlappingColumnIds.Add(id);
+
+        InvokeAsync(StateHasChanged);
+    }
+
+    private string? GetColumnTrayOverlapClass(Guid columnId) =>
+        _isFooterTrayOpen && _trayOverlappingColumnIds.Contains(columnId)
+            ? "board-page__column-item--tray-overlap"
+            : null;
+
+    private async Task EnsureTrayOverlapObserverAsync()
+    {
+        if (!_renderBoard || !_isFooterTrayOpen)
+            return;
+
+        _trayOverlapModule ??= await Js.InvokeAsync<IJSObjectReference>(
+            "import",
+            "./js/boardFooterTrayOverlap.js");
+        _trayOverlapDotNetRef ??= DotNetObjectReference.Create(this);
+
+        if (_trayOverlapHandle is not null)
+            return;
+
+        _trayOverlapHandle = await _trayOverlapModule.InvokeAsync<IJSObjectReference>(
+            "attach",
+            _scrollBodyRef,
+            _footerPanelRef,
+            _trayOverlapDotNetRef);
+    }
+
+    private async Task DisposeTrayOverlapObserverAsync()
+    {
+        if (_trayOverlapHandle is not null)
+        {
+            await _trayOverlapHandle.InvokeVoidAsync("dispose");
+            await _trayOverlapHandle.DisposeAsync();
+            _trayOverlapHandle = null;
+        }
+
+        if (_trayOverlappingColumnIds.Count > 0)
+        {
+            _trayOverlappingColumnIds.Clear();
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task OnFooterTrayToggledAsync()
+    {
+        if (_isFooterTrayOpen)
+        {
+            await InvokeAsync(StateHasChanged);
+            await EnsureTrayOverlapObserverAsync();
+            await Task.Delay(260);
+            if (_trayOverlapHandle is not null)
+                await _trayOverlapHandle.InvokeVoidAsync("refresh");
+            return;
+        }
+
+        await DisposeTrayOverlapObserverAsync();
     }
 
     private async Task UpdateRouteStateAsync()
@@ -377,23 +466,28 @@
         finally
         {
             _isReorderingColumns = false;
+
+            if (_isFooterTrayOpen && _trayOverlapHandle is not null)
+                await _trayOverlapHandle.InvokeVoidAsync("refresh");
         }
     }
 
     private void GoToDashboard() => Navigation.NavigateTo("/dashboard");
 
-    private void ToggleFooterTray()
+    private async Task ToggleFooterTray()
     {
         _isFooterTrayOpen = !_isFooterTrayOpen;
 
         if (!_isFooterTrayOpen)
             BoardTaskSearchStore.Close();
+
+        await OnFooterTrayToggledAsync();
     }
 
     private async Task OnFooterSearchFocusAsync()
     {
         if (!_isFooterTrayOpen)
-            ToggleFooterTray();
+            await ToggleFooterTray();
 
         if (BoardTaskSearchStore.IsOpen)
             return;

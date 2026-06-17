@@ -13,7 +13,7 @@ public class UsersController(ISender sender) : ControllerBase
 {
     [HttpGet]
     [Authorize(Policy = AuthorizationPolicies.IsAppMember)]
-    public async Task<IActionResult> Get([FromBody] GetUsersForBoardLookupQuery request, CancellationToken ct)
+    public async Task<IActionResult> Get([FromQuery] GetUsersForBoardLookupQuery request, CancellationToken ct)
     {
         var result = await sender.Send(request, ct);
 

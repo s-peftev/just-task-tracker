@@ -14,4 +14,9 @@ public static class BoardMembersErrors
         nameof(UserAlreadyMember),
         ErrorType.Business,
         ["The user is already a member of this board."]);
+
+    public static readonly Error OwnerCannotBeRemoved = new(
+        nameof(OwnerCannotBeRemoved),
+        ErrorType.Business,
+        ["The board owner cannot be removed."]);
 }

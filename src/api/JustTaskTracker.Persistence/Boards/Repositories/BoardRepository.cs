@@ -21,6 +21,13 @@ public class BoardRepository(JustTaskTrackerDbContext context)
     public void AddMember(BoardMember member) =>
         _context.BoardMembers.Add(member);
 
+    public void RemoveMember(BoardMember member) =>
+        _context.BoardMembers.Remove(member);
+
+    public async Task<BoardMember?> GetMemberAsync(Guid boardId, Guid userId, CancellationToken ct = default) =>
+        await _context.BoardMembers
+            .FirstOrDefaultAsync(member => member.BoardId == boardId && member.UserId == userId, ct);
+
     public async Task<BoardMemberRole?> GetUserRoleAsync(Guid boardId, Guid azureAdObjectId, CancellationToken ct = default) =>
         await _dbSet
             .Where(b => b.Id == boardId)

@@ -56,6 +56,17 @@ public class BoardsController(ISender sender) : ControllerBase
             error => error.CreateErrorResponse());
     }
 
+    [HttpDelete("{id:guid}/members/{userId:guid}")]
+    [Authorize(Policy = AuthorizationPolicies.IsAppMember)]
+    public async Task<IActionResult> DeleteMember(Guid id, Guid userId, CancellationToken ct)
+    {
+        var result = await sender.Send(new DeleteBoardMemberCommand(id, userId), ct);
+
+        return result.Match(
+            () => NoContent(),
+            error => error.CreateErrorResponse());
+    }
+
     [HttpPost]
     [Authorize(Policy = AuthorizationPolicies.IsAppContributor)]
     public async Task<IActionResult> Create([FromBody] CreateBoardCommand request, CancellationToken ct)

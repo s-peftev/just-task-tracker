@@ -4,6 +4,12 @@ namespace JustTaskTracker.WebUI.Domain.Boards.Authorization;
 
 public static class BoardRolePermissions
 {
+    public static bool CanViewBoard(BoardMemberRole role) =>
+        role is BoardMemberRole.Owner
+            or BoardMemberRole.Admin
+            or BoardMemberRole.ScrumMaster
+            or BoardMemberRole.User;
+
     public static bool CanRenameBoard(BoardMemberRole role) =>
         role is BoardMemberRole.Owner;
 

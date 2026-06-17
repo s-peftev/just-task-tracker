@@ -13,10 +13,11 @@ public interface IUserRepository : IRepository<User, Guid>
 
     Task<User?> GetUserByAzureAOIAsync(Guid azureAdObjectId, CancellationToken ct = default);
 
-    Task<PagedList<UserDto>> GetPagedUserDto(
-        Guid exludeUserAzureAOI,
+    Task<PagedList<UserForBoardLookupDto>> GetPagedUserForBoardLookupDto(
+        Guid boardId,
+        Guid excludeUserAzureAOI,
         int pageNumber,
         int pageSize,
-        TextSearchOptions<UserSearchField>? SearchOptions = null,
+        TextSearchOptions<UserSearchField>? searchOptions = null,
         CancellationToken ct = default);
 }

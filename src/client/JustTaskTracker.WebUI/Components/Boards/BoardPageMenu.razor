@@ -36,7 +36,7 @@
                 </button>
             </div>
 
-            @if (CanManageMembers)
+            @if (CanViewBoard)
             {
                 <button type="button"
                         class="board-menu__item"
@@ -104,6 +104,7 @@
     [Parameter]
     public EventCallback OnDeleteBoardClick { get; set; }
 
+    private bool CanViewBoard => BoardRolePermissions.CanViewBoard(UserRole);
     private bool CanManageMembers => BoardRolePermissions.CanManageMembers(UserRole);
     private bool CanLeaveBoard => BoardRolePermissions.CanLeaveBoard(UserRole);
     private bool CanDeleteBoard => BoardRolePermissions.CanDeleteBoard(UserRole);

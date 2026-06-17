@@ -18,6 +18,13 @@ internal interface IBoardApi
     [Get("/api/boards/{id}")]
     Task<IApiResponse<ApiEnvelope<BoardDetailsDto>>> GetByIdAsync(Guid id, CancellationToken ct = default);
 
+    [Get("/api/boards/{boardId}/members")]
+    Task<IApiResponse<ApiEnvelope<PagedList<BoardMemberDto>>>> GetMembersAsync(
+        Guid boardId,
+        int pageNumber,
+        int pageSize,
+        CancellationToken ct = default);
+
     [Post("/api/boards")]
     Task<IApiResponse<ApiEnvelope<BoardDetailsDto>>> CreateAsync([Body] SaveBoardRequest request, CancellationToken ct = default);
 

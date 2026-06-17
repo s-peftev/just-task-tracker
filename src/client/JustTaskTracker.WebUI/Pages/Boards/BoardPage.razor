@@ -3,6 +3,8 @@
 @attribute [Authorize]
 @implements IAsyncDisposable
 @using JustTaskTracker.WebUI.Infrastructure
+@using JustTaskTracker.WebUI.Domain.Boards.Authorization
+@using JustTaskTracker.WebUI.Services.Abstractions.Boards
 @using JustTaskTracker.WebUI.Services.Exceptions
 @using BlazorSortable
 @using Microsoft.JSInterop
@@ -10,6 +12,7 @@
 @inject IBoardDetailsStore BoardDetailsStore
 @inject IBoardTaskStore BoardTaskStore
 @inject IBoardTaskSearchStore BoardTaskSearchStore
+@inject IBoardMembersStore BoardMembersStore
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
@@ -68,7 +71,7 @@
 
                 <div class="board-page__controls">
                     <BoardPageMenu UserRole="board.UserRole"
-                                   OnMembersClick="ShowMembersComingSoon"
+                                   OnMembersClick="OpenMembersOverlayAsync"
                                    OnLeaveBoardClick="ShowLeaveBoardComingSoon"
                                    OnDeleteBoardClick="DeleteBoardAsync" />
 
@@ -169,6 +172,11 @@
         }
     }
 
+    @if (BoardMembersStore.IsOpen)
+    {
+        <BoardMembersOverlay />
+    }
+
     @if (TaskId is { } taskId && ColumnId is { } columnId)
     {
         <BoardTaskDetailsOverlay @key="taskId"
@@ -213,6 +221,7 @@
     private bool _isFooterTrayOpen;
     private bool _suppressSearchBlurClose;
     private Guid _searchStoreBoardId;
+    private Guid _membersStoreBoardId;
 
     private bool CanRenameBoard =>
         BoardDetailsStore.Board is { UserRole: var role } && BoardRolePermissions.CanRenameBoard(role);
@@ -225,6 +234,7 @@
         BoardDetailsStore.StateChanged += OnBoardStoreStateChanged;
         BoardTaskStore.StateChanged += OnTaskStoreStateChanged;
         BoardTaskSearchStore.StateChanged += OnTaskSearchStoreStateChanged;
+        BoardMembersStore.StateChanged += OnMembersStoreStateChanged;
     }
 
     protected override async Task OnParametersSetAsync()
@@ -232,7 +242,11 @@
         if (_searchStoreBoardId != Guid.Empty && _searchStoreBoardId != Id)
             BoardTaskSearchStore.Reset();
 
+        if (_membersStoreBoardId != Guid.Empty && _membersStoreBoardId != Id)
+            BoardMembersStore.Reset();
+
         _searchStoreBoardId = Id;
+        _membersStoreBoardId = Id;
         await UpdateRouteStateAsync();
     }
 
@@ -257,6 +271,8 @@
         BoardTaskStore.StateChanged -= OnTaskStoreStateChanged;
         BoardTaskSearchStore.StateChanged -= OnTaskSearchStoreStateChanged;
         BoardTaskSearchStore.Reset();
+        BoardMembersStore.StateChanged -= OnMembersStoreStateChanged;
+        BoardMembersStore.Reset();
         await DisposeTrayOverlapObserverAsync();
 
         if (_panScrollHandle is not null)
@@ -417,6 +433,9 @@
     private void OnTaskSearchStoreStateChanged() =>
         InvokeAsync(StateHasChanged);
 
+    private void OnMembersStoreStateChanged() =>
+        InvokeAsync(StateHasChanged);
+
     private void SyncSortableColumnsFromStore()
     {
         if (BoardDetailsStore.Board is null)
@@ -530,8 +549,23 @@
     private Task OnFooterSearchInputAsync(ChangeEventArgs e) =>
         BoardTaskSearchStore.SetSearchAsync(e.Value?.ToString() ?? string.Empty);
 
-    private void ShowMembersComingSoon() =>
-        Snackbar.Add("Members management is coming soon.", Severity.Info);
+    private async Task OpenMembersOverlayAsync()
+    {
+        if (BoardDetailsStore.Board is not { } board)
+            return;
+
+        if (!BoardRolePermissions.CanViewBoard(board.UserRole))
+            return;
+
+        try
+        {
+            await BoardMembersStore.OpenAsync(Id, board.UserRole);
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+    }
 
     private void ShowLeaveBoardComingSoon() =>
         Snackbar.Add("Leave board is coming soon.", Severity.Info);

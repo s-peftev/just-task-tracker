@@ -1,0 +1,137 @@
+@using JustTaskTracker.WebUI.Components.Shared
+@using JustTaskTracker.WebUI.Domain.Boards
+@using JustTaskTracker.WebUI.Domain.Boards.Authorization
+@using JustTaskTracker.WebUI.Domain.Boards.Enums
+@using JustTaskTracker.WebUI.Services.Abstractions.Boards
+@implements IDisposable
+@inject IBoardMembersStore BoardMembersStore
+
+<div class="board-members-overlay"
+     role="dialog"
+     aria-modal="true"
+     aria-label="Board members">
+    <button type="button"
+            class="board-members-overlay__backdrop"
+            aria-label="Close board members"
+            @onclick="CloseAsync"></button>
+
+    <div class="board-members-overlay__panel"
+         @onclick:stopPropagation="true"
+         @onmousedown:stopPropagation="true">
+        <div class="board-members-overlay__tabs" role="tablist" aria-label="Board members sections">
+            @if (CanViewBoard)
+            {
+                <button type="button"
+                        class="board-members-overlay__tab @(IsMembersTabActive ? "board-members-overlay__tab--active" : null)"
+                        role="tab"
+                        aria-selected="@IsMembersTabActive"
+                        @onclick="() => SetTab(BoardMembersOverlayTab.Members)">
+                    Board members
+                </button>
+            }
+
+            @if (CanManageMembers)
+            {
+                <button type="button"
+                        class="board-members-overlay__tab @(IsAddMemberTabActive ? "board-members-overlay__tab--active" : null)"
+                        role="tab"
+                        aria-selected="@IsAddMemberTabActive"
+                        @onclick="() => SetTab(BoardMembersOverlayTab.AddMember)">
+                    Add member
+                </button>
+            }
+        </div>
+
+        <div class="board-members-overlay__body">
+            @if (IsMembersTabActive && CanViewBoard)
+            {
+                @if (BoardMembersStore.IsLoading && BoardMembersStore.Members.Count == 0)
+                {
+                    <div class="board-members-overlay__state">
+                        <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Small" />
+                    </div>
+                }
+                else if (BoardMembersStore.Members.Count == 0)
+                {
+                    <div class="board-members-overlay__state">
+                        <p class="board-members-overlay__message">No members found.</p>
+                    </div>
+                }
+                else
+                {
+                    <ul class="board-members-overlay__list">
+                        @foreach (var member in BoardMembersStore.Members)
+                        {
+                            <li class="board-members-overlay__item">
+                                <div class="board-members-overlay__member">
+                                    <span class="board-members-overlay__member-name">@GetDisplayName(member)</span>
+                                    <span class="board-members-overlay__member-email">@member.User.Email</span>
+                                    <span class="board-members-overlay__member-role">@FormatRole(member.Role)</span>
+                                </div>
+                            </li>
+                        }
+
+                        @if (BoardMembersStore.HasMoreMembers)
+                        {
+                            <li class="board-members-overlay__item board-members-overlay__item--action">
+                                <ExpandableActionButton Text="Show more"
+                                                        Icon="ExpandableActionButtonIcon.ChevronDown"
+                                                        Disabled="@BoardMembersStore.IsLoadingMoreMembers"
+                                                        OnClick="LoadMoreMembersAsync" />
+                            </li>
+                        }
+                    </ul>
+                }
+            }
+            else if (IsAddMemberTabActive && CanManageMembers)
+            {
+                <div class="board-members-overlay__state">
+                    <p class="board-members-overlay__message">In development.</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private bool CanViewBoard => BoardRolePermissions.CanViewBoard(BoardMembersStore.UserRole);
+    private bool CanManageMembers => BoardRolePermissions.CanManageMembers(BoardMembersStore.UserRole);
+    private bool IsMembersTabActive => BoardMembersStore.ActiveTab == BoardMembersOverlayTab.Members;
+    private bool IsAddMemberTabActive => BoardMembersStore.ActiveTab == BoardMembersOverlayTab.AddMember;
+
+    protected override void OnInitialized() =>
+        BoardMembersStore.StateChanged += OnStoreStateChanged;
+
+    public void Dispose() =>
+        BoardMembersStore.StateChanged -= OnStoreStateChanged;
+
+    private void OnStoreStateChanged() =>
+        InvokeAsync(StateHasChanged);
+
+    private void SetTab(BoardMembersOverlayTab tab) =>
+        BoardMembersStore.SetActiveTab(tab);
+
+    private Task LoadMoreMembersAsync() =>
+        BoardMembersStore.LoadMoreAsync();
+
+    private Task CloseAsync()
+    {
+        BoardMembersStore.Close();
+        return Task.CompletedTask;
+    }
+
+    private static string GetDisplayName(BoardMemberDto member) =>
+        string.IsNullOrWhiteSpace(member.User.DisplayName)
+            ? member.User.Email
+            : member.User.DisplayName!;
+
+    private static string FormatRole(BoardMemberRole role) =>
+        role switch
+        {
+            BoardMemberRole.Owner => "Owner",
+            BoardMemberRole.Admin => "Admin",
+            BoardMemberRole.ScrumMaster => "Scrum Master",
+            BoardMemberRole.User => "User",
+            _ => role.ToString(),
+        };
+}

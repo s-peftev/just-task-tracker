@@ -31,6 +31,17 @@ internal class BoardApiService(IBoardApi api) : IBoardApiService
         return ApiResponseGuard.Unwrap(response);
     }
 
+    public async Task<PagedList<BoardMemberDto>> GetBoardMembersAsync(
+        Guid boardId,
+        int pageNumber,
+        int pageSize,
+        CancellationToken ct = default)
+    {
+        var response = await api.GetMembersAsync(boardId, pageNumber, pageSize, ct);
+
+        return ApiResponseGuard.Unwrap(response);
+    }
+
     public async Task<BoardDetailsDto> CreateBoardAsync(string name, CancellationToken ct = default)
     {
         var response = await api.CreateAsync(new SaveBoardRequest(name), ct);

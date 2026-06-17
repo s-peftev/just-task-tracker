@@ -29,6 +29,10 @@ public interface IBoardDetailsStore
 
     void UpdateTaskTitle(Guid taskId, string title);
 
+    void AdjustTaskCommentsCount(Guid taskId, int delta);
+
+    void AdjustTaskAttachmentsCount(Guid taskId, int delta);
+
     Task DeleteColumnAsync(Guid columnId, DeleteColumnRequest request, CancellationToken ct = default);
 
     Task ReorderColumnAsync(Guid columnId, int position, CancellationToken ct = default);

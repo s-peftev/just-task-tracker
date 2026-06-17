@@ -699,6 +699,7 @@
                 file.ContentType);
 
             BoardTaskStore.AddAttachment(attachment);
+            BoardDetailsStore.AdjustTaskAttachmentsCount(TaskId, 1);
             Snackbar.Add($"\"{attachment.OriginalFileName}\" uploaded.", Severity.Success);
         }
         catch (ApiServiceException ex)
@@ -771,6 +772,7 @@
                 attachment.Id);
 
             BoardTaskStore.RemoveAttachment(attachment.Id);
+            BoardDetailsStore.AdjustTaskAttachmentsCount(TaskId, -1);
             Snackbar.Add($"\"{fileName}\" deleted.", Severity.Success);
         }
         catch (ApiServiceException ex)

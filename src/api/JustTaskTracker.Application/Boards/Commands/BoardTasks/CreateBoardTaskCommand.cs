@@ -54,7 +54,9 @@ public class CreateBoardTaskCommandHandler(
         return Result<BoardTaskPreviewDto>.Success(new BoardTaskPreviewDto(
             task.Id,
             task.Title,
-            task.Position));
+            task.Position,
+            0,
+            0));
     }
 }
 

@@ -1,5 +1,8 @@
 .board-task-card {
-    display: block;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.5rem;
     width: 100%;
     margin: 0;
     padding: 0.5rem 0.625rem;
@@ -30,8 +33,37 @@
 }
 
 .board-task-card__title {
-    display: block;
+    flex: 1 1 auto;
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     word-break: break-word;
+}
+
+.board-task-card__meta {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    margin-top: 0.0625rem;
+    color: var(--jtt-text-muted);
+}
+
+.board-task-card__stat {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.125rem;
+    font-size: 0.75rem;
+    line-height: 1;
+}
+
+.board-task-card__stat-icon {
+    display: block;
+    width: 0.875rem;
+    height: 0.875rem;
+    flex-shrink: 0;
+}
+
+.board-task-card__stat-value {
+    font-variant-numeric: tabular-nums;
 }

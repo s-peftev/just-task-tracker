@@ -123,6 +123,28 @@ internal sealed class BoardDetailsStore(IBoardApiService boardApiService) : IBoa
         NotifyStateChanged();
     }
 
+    public void AdjustTaskCommentsCount(Guid taskId, int delta)
+    {
+        if (Board is null || delta == 0)
+            return;
+
+        UpdateTaskPreview(taskId, task => task with
+        {
+            CommentsCount = Math.Max(0, task.CommentsCount + delta),
+        });
+    }
+
+    public void AdjustTaskAttachmentsCount(Guid taskId, int delta)
+    {
+        if (Board is null || delta == 0)
+            return;
+
+        UpdateTaskPreview(taskId, task => task with
+        {
+            AttachmentsCount = Math.Max(0, task.AttachmentsCount + delta),
+        });
+    }
+
     public async Task ReorderColumnAsync(Guid columnId, int position, CancellationToken ct = default)
     {
         if (BoardId is not { } boardId || Board is null)
@@ -484,4 +506,22 @@ internal sealed class BoardDetailsStore(IBoardApiService boardApiService) : IBoa
         IReadOnlyList<(Guid ColumnId, IReadOnlyList<BoardTaskPreviewDto> Tasks)> Columns);
 
     private void NotifyStateChanged() => StateChanged?.Invoke();
+
+    private void UpdateTaskPreview(Guid taskId, Func<BoardTaskPreviewDto, BoardTaskPreviewDto> update)
+    {
+        if (Board is null)
+            return;
+
+        var columns = Board.Columns
+            .Select(column => column with
+            {
+                BoardTasks = column.BoardTasks
+                    .Select(task => task.Id == taskId ? update(task) : task)
+                    .ToList()
+            })
+            .ToList();
+
+        Board = Board with { Columns = columns };
+        NotifyStateChanged();
+    }
 }

@@ -9,6 +9,7 @@
 @inject IProfileStore ProfileStore
 @inject IBoardApiService BoardApiService
 @inject IBoardTaskStore BoardTaskStore
+@inject IBoardDetailsStore BoardDetailsStore
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject IJSRuntime Js
@@ -306,6 +307,7 @@
                 Comment.Id);
 
             BoardTaskStore.RemoveComment(Comment.Id);
+            BoardDetailsStore.AdjustTaskCommentsCount(TaskId, -1);
             Snackbar.Add("Comment deleted.", Severity.Success);
         }
         catch (ApiServiceException ex)

@@ -71,7 +71,9 @@ public class BoardRepository(JustTaskTrackerDbContext context)
                             .Select(t => new BoardTaskPreviewDto(
                                 t.Id,
                                 t.Title,
-                                t.Position))))))
+                                t.Position,
+                                t.Comments.Count,
+                                t.Attachments.Count))))))
             .AsSplitQuery()
             .FirstOrDefaultAsync(ct);
 

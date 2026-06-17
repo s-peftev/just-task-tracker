@@ -87,6 +87,13 @@ internal class BoardApiService(IBoardApi api) : IBoardApiService
         ApiResponseGuard.EnsureSuccess(response);
     }
 
+    public async Task LeaveBoardAsync(Guid boardId, CancellationToken ct = default)
+    {
+        var response = await api.LeaveAsync(boardId, ct);
+
+        ApiResponseGuard.EnsureSuccess(response);
+    }
+
     public async Task<ColumnDto> CreateColumnAsync(Guid boardId, string name, CancellationToken ct = default)
     {
         var response = await api.CreateColumnAsync(boardId, new SaveColumnRequest(name), ct);

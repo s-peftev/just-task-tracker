@@ -24,6 +24,9 @@ public interface IBoardApiService
     Task UpdateBoardAsync(Guid boardId, string name, CancellationToken ct = default);
     Task UpdateColumnAsync(Guid boardId, Guid columnId, string name, CancellationToken ct = default);
     Task DeleteBoardAsync(Guid boardId, CancellationToken ct = default);
+
+    Task LeaveBoardAsync(Guid boardId, CancellationToken ct = default);
+
     Task DeleteColumnAsync(Guid boardId, Guid columnId, DeleteColumnRequest request, CancellationToken ct = default);
     Task<ColumnDto> CreateColumnAsync(Guid boardId, string name, CancellationToken ct = default);
 

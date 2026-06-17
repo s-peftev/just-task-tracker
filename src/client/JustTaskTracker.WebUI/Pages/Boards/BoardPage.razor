@@ -72,7 +72,7 @@
                 <div class="board-page__controls">
                     <BoardPageMenu UserRole="board.UserRole"
                                    OnMembersClick="OpenMembersOverlayAsync"
-                                   OnLeaveBoardClick="ShowLeaveBoardComingSoon"
+                                   OnLeaveBoardClick="LeaveBoardAsync"
                                    OnDeleteBoardClick="DeleteBoardAsync" />
 
                     <button type="button"
@@ -567,8 +567,33 @@
         }
     }
 
-    private void ShowLeaveBoardComingSoon() =>
-        Snackbar.Add("Leave board is coming soon.", Severity.Info);
+    private async Task LeaveBoardAsync()
+    {
+        var message =
+            $"Leave board \"{BoardDetailsStore.Board?.Name}\"?{Environment.NewLine}You will lose access to this board.";
+
+        var dialog = await DialogService.ShowConfirmResourceAsync(
+            "Leave board",
+            message,
+            confirmLabel: "Leave",
+            submitButtonClass: "btn-glass btn-dialog-action");
+
+        var result = await dialog.Result;
+
+        if (result is not { Canceled: false, Data: true })
+            return;
+
+        try
+        {
+            await BoardApiService.LeaveBoardAsync(Id);
+            Snackbar.Add("You left the board.", Severity.Success);
+            Navigation.NavigateTo("/dashboard");
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+    }
 
     private async Task CreateColumnAsync()
     {

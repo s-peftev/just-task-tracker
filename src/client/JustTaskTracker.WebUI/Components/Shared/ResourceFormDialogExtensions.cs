@@ -34,7 +34,8 @@ public static class ResourceFormDialogExtensions
         string title,
         string message,
         string confirmLabel = "Confirm",
-        string cancelLabel = "Cancel")
+        string cancelLabel = "Cancel",
+        string submitButtonClass = "btn-dialog-danger btn-dialog-action")
     {
         RenderFragment content = builder =>
         {
@@ -51,6 +52,6 @@ public static class ResourceFormDialogExtensions
             formId: string.Empty,
             formContent: content,
             cancelLabel: cancelLabel,
-            submitButtonClass: "btn-dialog-danger btn-dialog-action");
+            submitButtonClass: submitButtonClass);
     }
 }

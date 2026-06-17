@@ -1,0 +1,288 @@
+.board-task-overlay {
+    --board-task-overlay-header-height: 4rem;
+    --board-task-overlay-max-height-inset: 2rem;
+
+    position: fixed;
+    top: var(--jtt-navbar-height);
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 1300;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 0.75rem 1.5rem 1rem;
+    box-sizing: border-box;
+    pointer-events: none;
+}
+
+.board-task-overlay__backdrop {
+    position: absolute;
+    inset: 0;
+    pointer-events: auto;
+}
+
+.board-task-overlay__backdrop--dim {
+    background-color: rgba(0, 0, 0, 0.64);
+}
+
+.board-task-overlay__panel {
+    --board-task-overlay-divider: color-mix(in srgb, white 18%, var(--jtt-surface-raised));
+
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    width: min(calc(72rem * 1.1), 100%);
+    max-height: calc(100% - var(--board-task-overlay-max-height-inset));
+    pointer-events: auto;
+    overflow: hidden;
+    border-radius: var(--jtt-radius-lg);
+    background-color: transparent;
+    box-shadow: var(--jtt-shadow-elevated);
+}
+
+.board-task-overlay__header {
+    flex-shrink: 0;
+    width: 100%;
+    height: var(--board-task-overlay-header-height);
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0 1.5rem;
+    background-color: var(--jtt-surface-task-card);
+    border-bottom: 1px solid var(--board-task-overlay-divider);
+}
+
+.board-task-overlay__header-title-area {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+}
+
+.board-task-overlay__column-name {
+    min-width: 0;
+    max-width: 100%;
+    margin: 0;
+    color: var(--jtt-text-body);
+    font-size: var(--jtt-font-size-body);
+    font-weight: var(--jtt-font-weight-body);
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.board-task-overlay__header-controls {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.board-task-overlay__delete-btn {
+    padding: 0.375rem 0.75rem;
+    border: 1px solid var(--jtt-text-danger);
+    border-radius: var(--jtt-radius-sm);
+    background: transparent;
+    color: var(--jtt-text-danger);
+    font-family: inherit;
+    font-size: 0.75rem;
+    font-weight: var(--jtt-font-weight-body);
+    line-height: 1.2;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.board-task-overlay__delete-btn:hover {
+    background-color: var(--jtt-overlay-danger-10);
+}
+
+.board-task-overlay__content {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    overflow: hidden;
+}
+
+.board-task-overlay__task {
+    flex: 0 0 55%;
+    min-width: 0;
+    overflow: auto;
+    padding: 1.25rem 1.5rem;
+    box-sizing: border-box;
+    background-color: var(--jtt-surface-task-card);
+    border-right: 1px solid var(--board-task-overlay-divider);
+}
+
+.board-task-overlay__comments {
+    --board-task-comments-icon-size: 1rem;
+    --board-task-comments-icon-gap: 0.5rem;
+    --board-task-comments-body-offset: calc(var(--board-task-comments-icon-size) + var(--board-task-comments-icon-gap));
+    --board-task-comments-surface-bg: var(--jtt-overlay-accent-10);
+    --board-task-comments-surface-border: var(--jtt-stroke-default);
+    --board-task-comments-surface-bg-hover: var(--jtt-overlay-accent-15);
+    --board-task-comments-surface-border-hover: var(--jtt-stroke-strong);
+    --board-task-comment-input-bg: var(--jtt-overlay-white-10);
+    --board-task-comment-input-border: var(--jtt-stroke-muted);
+    --board-task-comment-input-bg-focus: var(--jtt-overlay-white-15);
+    --board-task-comment-input-border-focus: var(--jtt-stroke-strong);
+    --board-task-comment-surface-bg: var(--board-task-comments-surface-bg);
+    --board-task-comment-surface-border: var(--board-task-comments-surface-border);
+    --board-task-overlay-action-btn-width: 7.75rem;
+
+    flex: 0 0 45%;
+    min-width: 0;
+    overflow: auto;
+    padding: 1.25rem 1.5rem;
+    box-sizing: border-box;
+    background-color: var(--jtt-surface-raised);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.board-task-overlay__comments-header {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.board-task-overlay__comments-heading {
+    display: flex;
+    align-items: center;
+    gap: var(--board-task-comments-icon-gap);
+    min-width: 0;
+}
+
+.board-task-overlay__comments-icon {
+    flex-shrink: 0;
+    display: block;
+    width: var(--board-task-comments-icon-size);
+    height: var(--board-task-comments-icon-size);
+    color: var(--jtt-text-muted);
+}
+
+.board-task-overlay__comments-title {
+    margin: 0;
+    color: var(--jtt-text-primary);
+    font-size: 0.875rem;
+    font-weight: var(--jtt-font-weight-strong);
+    line-height: 1.3;
+}
+
+.board-task-overlay__comments-body {
+    margin-left: var(--board-task-comments-body-offset);
+}
+
+.board-task-overlay__comment-compose {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.375rem 0.875rem;
+    border: 1px solid var(--board-task-comments-surface-border);
+    border-radius: var(--jtt-radius-md);
+    background: var(--board-task-comments-surface-bg);
+    backdrop-filter: blur(12px);
+    color: var(--jtt-text-subtle);
+    font-family: inherit;
+    font-size: 0.875rem;
+    font-weight: var(--jtt-font-weight-body);
+    line-height: 1.5;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+}
+
+.board-task-overlay__comment-compose:hover {
+    background: var(--board-task-comments-surface-bg-hover);
+    border-color: var(--board-task-comments-surface-border-hover);
+}
+
+.board-task-overlay__comment-input {
+    display: block;
+    width: 100%;
+    min-height: 5.5rem;
+    box-sizing: border-box;
+    padding: 0.75rem 0.875rem;
+    border: 1px solid var(--board-task-comment-input-border);
+    border-radius: var(--jtt-radius-md);
+    background: var(--board-task-comment-input-bg);
+    backdrop-filter: blur(12px);
+    color: var(--jtt-text-body);
+    font-family: inherit;
+    font-size: 0.875rem;
+    font-weight: var(--jtt-font-weight-body);
+    line-height: 1.5;
+    text-align: left;
+    resize: none;
+    overflow-y: hidden;
+    outline: none;
+    transition: background 0.2s, border-color 0.2s;
+}
+
+.board-task-overlay__comment-input::placeholder {
+    color: var(--jtt-text-subtle);
+}
+
+.board-task-overlay__comment-input:focus {
+    background: var(--board-task-comment-input-bg-focus);
+    border-color: var(--board-task-comment-input-border-focus);
+}
+
+.board-task-overlay__section-actions {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.board-task-overlay__action-btn {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    width: var(--board-task-overlay-action-btn-width);
+    padding: 0.375rem 0.875rem;
+    border: 1px solid var(--board-task-comments-surface-border);
+    border-radius: var(--jtt-radius-md);
+    background: transparent;
+    color: var(--jtt-text-strong);
+    font-family: inherit;
+    font-size: 0.8125rem;
+    font-weight: var(--jtt-font-weight-body);
+    line-height: 1.2;
+    text-transform: uppercase;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: border-color 0.2s;
+}
+
+.board-task-overlay__action-btn:hover {
+    border-color: var(--board-task-comments-surface-border-hover);
+}
+
+.board-task-overlay__action-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.board-task-overlay__comments-list {
+    margin-left: var(--board-task-comments-body-offset);
+    margin-top: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}

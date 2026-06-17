@@ -1,3 +1,4 @@
+using JustTaskTracker.Domain.Boards.Constants;
 using JustTaskTracker.Domain.Boards.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -8,8 +9,8 @@ public class BoardTaskConfiguration : IEntityTypeConfiguration<BoardTask>
 {
     public void Configure(EntityTypeBuilder<BoardTask> builder)
     {
-        builder.Property(t => t.Title).HasMaxLength(50);
-        builder.Property(t => t.Description).HasMaxLength(500);
+        builder.Property(t => t.Title).HasMaxLength(BoardTaskFieldLengths.MaxTitleLength);
+        builder.Property(t => t.Description).HasMaxLength(BoardTaskFieldLengths.MaxDescriptionLength);
 
         builder.HasOne(t => t.Column)
             .WithMany(c => c.Tasks)
@@ -27,6 +28,7 @@ public class BoardTaskConfiguration : IEntityTypeConfiguration<BoardTask>
             .OnDelete(DeleteBehavior.NoAction);
 
         builder.HasIndex(t => new { t.ColumnId, t.Position })
+            .IsUnique()
             .HasFilter("[IsDeleted] = 0");
     }
 }

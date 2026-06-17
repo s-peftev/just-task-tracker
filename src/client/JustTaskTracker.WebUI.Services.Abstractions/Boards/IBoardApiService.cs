@@ -15,8 +15,111 @@ public interface IBoardApiService
     Task DeleteColumnAsync(Guid boardId, Guid columnId, DeleteColumnRequest request, CancellationToken ct = default);
     Task<ColumnDto> CreateColumnAsync(Guid boardId, string name, CancellationToken ct = default);
 
-    Task ReorderColumnsAsync(
+    Task ReorderColumnAsync(
         Guid boardId,
-        IReadOnlyList<Guid> columnIds,
+        Guid columnId,
+        int position,
+        CancellationToken ct = default);
+
+    Task ReorderTaskAsync(
+        Guid boardId,
+        Guid targetColumnId,
+        Guid taskId,
+        int position,
+        CancellationToken ct = default);
+
+    Task<BoardTaskPreviewDto> CreateTaskAsync(Guid boardId, Guid columnId, string title, CancellationToken ct = default);
+
+    Task<PagedList<BoardTaskLookupDto>> GetBoardTasksLookupAsync(
+        Guid boardId,
+        Guid columnId,
+        GetBoardTasksLookupRequest request,
+        CancellationToken ct = default);
+
+    Task<BoardTaskDetailsDto> GetBoardTaskByIdAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid taskId,
+        CancellationToken ct = default);
+
+    Task UpdateBoardTaskTitleAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid taskId,
+        string title,
+        CancellationToken ct = default);
+
+    Task UpdateBoardTaskDescriptionAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid taskId,
+        string? description,
+        CancellationToken ct = default);
+
+    Task UpdateBoardTaskAssigneeAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid taskId,
+        Guid? assigneeId,
+        CancellationToken ct = default);
+
+    Task DeleteBoardTaskAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid taskId,
+        CancellationToken ct = default);
+
+    Task<BoardTaskAttachmentDto> UploadBoardTaskAttachmentAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid taskId,
+        Stream content,
+        string fileName,
+        string contentType,
+        CancellationToken ct = default);
+
+    Task DeleteBoardTaskAttachmentAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid taskId,
+        Guid attachmentId,
+        CancellationToken ct = default);
+
+    Task<BoardTaskAttachmentFile> DownloadBoardTaskAttachmentAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid taskId,
+        Guid attachmentId,
+        string fileName,
+        CancellationToken ct = default);
+
+    Task<PagedList<BoardTaskCommentDto>> GetBoardTaskCommentsAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid taskId,
+        int pageNumber,
+        int pageSize,
+        CancellationToken ct = default);
+
+    Task<BoardTaskCommentDto> CreateBoardTaskCommentAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid taskId,
+        string body,
+        CancellationToken ct = default);
+
+    Task UpdateBoardTaskCommentAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid taskId,
+        Guid commentId,
+        string body,
+        CancellationToken ct = default);
+
+    Task DeleteBoardTaskCommentAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid taskId,
+        Guid commentId,
         CancellationToken ct = default);
 }

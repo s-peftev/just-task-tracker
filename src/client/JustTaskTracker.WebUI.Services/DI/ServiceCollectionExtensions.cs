@@ -10,6 +10,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Refit;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace JustTaskTracker.WebUI.Services.DI;
 
@@ -19,7 +20,8 @@ public static class ServiceCollectionExtensions
     {
         ContentSerializer = new SystemTextJsonContentSerializer(new JsonSerializerOptions
         {
-            PropertyNameCaseInsensitive = true
+            PropertyNameCaseInsensitive = true,
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
         })
     };
 
@@ -27,6 +29,12 @@ public static class ServiceCollectionExtensions
     {
         services.Configure<ApiClientOptions>(configuration.GetSection(ApiClientOptions.SectionName));
         var options = configuration.GetSection(ApiClientOptions.SectionName).Get<ApiClientOptions>()!;
+
+        var validationSettings = configuration
+            .GetSection(ValidationSettings.SectionName)
+            .Get<ValidationSettings>() ?? new ValidationSettings();
+
+        services.AddSingleton(validationSettings);
 
         services.AddScoped<ApiAuthorizationMessageHandler>();
 
@@ -44,6 +52,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IBoardApiService, BoardApiService>();
         services.AddScoped<IBoardStore, BoardStore>();
         services.AddScoped<IBoardDetailsStore, BoardDetailsStore>();
+        services.AddScoped<IBoardTaskStore, BoardTaskStore>();
+        services.AddScoped<IBoardTaskSearchStore, BoardTaskSearchStore>();
 
         return services;
     }

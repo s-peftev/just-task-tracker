@@ -4,4 +4,4 @@ public record ColumnDto(
     Guid Id,
     string Name,
     int Position,
-    IReadOnlyList<TaskDto> BoardTasks);
+    IReadOnlyList<BoardTaskPreviewDto> BoardTasks);

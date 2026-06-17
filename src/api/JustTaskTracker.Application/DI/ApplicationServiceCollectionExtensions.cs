@@ -1,4 +1,5 @@
-﻿using FluentValidation;
+using FluentValidation;
+using JustTaskTracker.Application.Boards.Positioning;
 using JustTaskTracker.Application.Common.Behaviors;
 using JustTaskTracker.Application.Common.Constants;
 using JustTaskTracker.Application.Common.Options;
@@ -28,6 +29,8 @@ public static class ApplicationServiceCollectionExtensions
             .Get<ValidationSettings>() ?? new ValidationSettings();
 
         services.AddSingleton(validationSettingsOptions);
+
+        services.AddScoped<IBoardPositioningService, BoardPositioningService>();
 
         return services;
     }

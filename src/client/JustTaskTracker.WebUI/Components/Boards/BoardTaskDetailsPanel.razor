@@ -1,0 +1,787 @@
+@using JustTaskTracker.WebUI.Components.Shared
+@using JustTaskTracker.WebUI.Domain.Boards.Constants
+@using JustTaskTracker.WebUI.Infrastructure
+@using JustTaskTracker.WebUI.Services.Abstractions.Boards
+@using JustTaskTracker.WebUI.Services.Configuration
+@using JustTaskTracker.WebUI.Services.Exceptions
+@implements IDisposable
+@inject IBoardTaskStore BoardTaskStore
+@inject IBoardDetailsStore BoardDetailsStore
+@inject IBoardApiService BoardApiService
+@inject ISnackbar Snackbar
+@inject IJSRuntime Js
+@inject IDialogService DialogService
+@inject ValidationSettings ValidationSettings
+
+<div class="board-task-details-panel">
+    @if (BoardTaskStore.IsLoading)
+    {
+        <div class="board-task-details-panel__state">
+            <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+        </div>
+    }
+    else if (BoardTaskStore.ErrorMessage is { } error)
+    {
+        <MudAlert Severity="Severity.Error">@error</MudAlert>
+    }
+    else if (BoardTaskStore.Task is { } task)
+    {
+        <div class="board-task-details-panel__blocks">
+            <section class="board-task-details-panel__block board-task-details-panel__block--title">
+                <div class="board-task-details-panel__title-row">
+                    <svg class="board-task-details-panel__section-icon board-task-details-panel__section-icon--title"
+                         viewBox="0 0 24 24"
+                         aria-hidden="true"
+                         focusable="false">
+                        <path d="M4 7V5h16v2"
+                              stroke="currentColor"
+                              stroke-width="2"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              fill="none" />
+                        <path d="M12 5v15"
+                              stroke="currentColor"
+                              stroke-width="2"
+                              stroke-linecap="round" />
+                        <path d="M8 20h8"
+                              stroke="currentColor"
+                              stroke-width="2"
+                              stroke-linecap="round" />
+                    </svg>
+                    <div class="board-task-details-panel__title-area">
+                        @if (_isEditingTitle)
+                        {
+                            <div class="board-task-details-panel__title-field">
+                                <span class="board-task-details-panel__title-sizer">@_editTitle</span>
+                                <input @ref="_titleInputRef"
+                                       class="board-task-details-panel__title-input"
+                                       type="text"
+                                       maxlength="@BoardTaskFieldLengths.MaxTitleLength"
+                                       @bind="_editTitle"
+                                       @bind:event="oninput"
+                                       @onkeydown="OnTitleKeyDownAsync"
+                                       @onblur="OnTitleBlurAsync" />
+                            </div>
+                        }
+                        else if (CanManageTaskTitle(task))
+                        {
+                            <h3 class="board-task-details-panel__title board-task-details-panel__title--editable"
+                                title="@task.Title"
+                                @onclick="StartTitleEdit">
+                                @task.Title
+                            </h3>
+                        }
+                        else
+                        {
+                            <h3 class="board-task-details-panel__title" title="@task.Title">@task.Title</h3>
+                        }
+                    </div>
+                </div>
+            </section>
+
+            <section class="board-task-details-panel__block board-task-details-panel__block--users">
+                <div class="board-task-details-panel__users-row">
+                    <div class="board-task-details-panel__reporter-row">
+                        <div class="board-task-details-panel__reporter-details">
+                            <span class="board-task-details-panel__user-name">@FormatUser(task.Reporter)</span>
+                            <span class="board-task-details-panel__reporter-meta">
+                                created this task @FormatCreatedAt(task.CreatedAtUtc)
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="board-task-details-panel__assignee-row">
+                        @if (CanManageAssignee(task))
+                        {
+                            <select class="board-task-details-panel__assignee-select @(task.Assignee is null ? "board-task-details-panel__assignee-select--unassigned" : null)"
+                                    aria-label="Assignee"
+                                    value="@GetAssigneeSelectValue(task)"
+                                    @onchange="OnAssigneeSelectChanged">
+                                @if (task.Assignee is { } assignee)
+                                {
+                                    <option value="@assignee.Id">@FormatUser(assignee)</option>
+                                }
+
+                                <option value="">Not assigned yet</option>
+                                <option disabled value="__in-development__">In development</option>
+                            </select>
+                        }
+                        else if (task.Assignee is { } assignee)
+                        {
+                            <span class="board-task-details-panel__assignee-text">@FormatUser(assignee)</span>
+                        }
+                        else
+                        {
+                            <span class="board-task-details-panel__assignee-text board-task-details-panel__assignee-text--unassigned">
+                                Not assigned yet
+                            </span>
+                        }
+                    </div>
+                </div>
+            </section>
+
+            <section class="board-task-details-panel__block board-task-details-panel__block--description">
+                <header class="board-task-details-panel__section-header">
+                    <div class="board-task-details-panel__section-heading">
+                        <svg class="board-task-details-panel__section-icon"
+                             viewBox="0 0 24 24"
+                             aria-hidden="true"
+                             focusable="false">
+                            <path d="M4 6h16"
+                                  stroke="currentColor"
+                                  stroke-width="2"
+                                  stroke-linecap="round" />
+                            <path d="M4 12h10"
+                                  stroke="currentColor"
+                                  stroke-width="2"
+                                  stroke-linecap="round" />
+                            <path d="M4 18h6"
+                                  stroke="currentColor"
+                                  stroke-width="2"
+                                  stroke-linecap="round" />
+                        </svg>
+                        <h4 class="board-task-details-panel__section-title">Description</h4>
+                    </div>
+                    @if (CanManageTaskDescription(task) && _isEditingDescription)
+                    {
+                        <div class="board-task-details-panel__section-actions">
+                            <button type="button"
+                                    class="board-task-details-panel__action-btn"
+                                    disabled="@_isSavingDescription"
+                                    @onmousedown:preventDefault
+                                    @onclick="CancelDescriptionEdit">
+                                Cancel
+                            </button>
+                            <button type="button"
+                                    class="board-task-details-panel__action-btn"
+                                    disabled="@_isSavingDescription"
+                                    @onmousedown:preventDefault
+                                    @onclick="SaveTaskDescriptionAsync">
+                                Save
+                            </button>
+                        </div>
+                    }
+                    else if (!string.IsNullOrWhiteSpace(task.Description) && CanManageTaskDescription(task))
+                    {
+                        <button type="button"
+                                class="board-task-details-panel__action-btn"
+                                @onclick="StartDescriptionEdit">
+                            Edit
+                        </button>
+                    }
+                </header>
+
+                <div class="board-task-details-panel__section-body">
+                    @if (_isEditingDescription)
+                    {
+                        <textarea @ref="_descriptionInputRef"
+                                  class="board-task-details-panel__description-input"
+                                  maxlength="@BoardTaskFieldLengths.MaxDescriptionLength"
+                                  placeholder="Add a more detailed description..."
+                                  @bind="_editDescription"
+                                  @bind:event="oninput"
+                                  @bind:after="ResizeDescriptionInputAsync"
+                                  @onkeydown="OnDescriptionKeyDownAsync"
+                                  @onblur="OnDescriptionBlurAsync"></textarea>
+                    }
+                    else if (string.IsNullOrWhiteSpace(task.Description))
+                    {
+                        @if (CanManageTaskDescription(task))
+                        {
+                            <button type="button"
+                                    class="board-task-details-panel__description-placeholder"
+                                    @onclick="StartDescriptionEdit">
+                                Add a more detailed description...
+                            </button>
+                        }
+                        else
+                        {
+                            <p class="board-task-details-panel__placeholder-text">No description</p>
+                        }
+                    }
+                    else
+                    {
+                        <div class="board-task-details-panel__description-view">
+                            <div class="@GetDescriptionContentClass()">
+                                <p @ref="_descriptionTextRef"
+                                   class="board-task-details-panel__description-text">@task.Description</p>
+                            </div>
+                            @if (_isDescriptionOverflowing)
+                            {
+                                <ExpandableActionButton Text="@(_isDescriptionExpanded ? "Show less" : "Show more")"
+                                                        Icon="@(_isDescriptionExpanded ? ExpandableActionButtonIcon.ChevronUp : ExpandableActionButtonIcon.ChevronDown)"
+                                                        OnClick="ToggleDescriptionExpanded" />
+                            }
+                        </div>
+                    }
+                </div>
+            </section>
+
+            <section class="board-task-details-panel__block board-task-details-panel__block--attachments">
+                <header class="board-task-details-panel__section-header">
+                    <div class="board-task-details-panel__section-heading">
+                        <svg class="board-task-details-panel__section-icon"
+                             viewBox="0 0 24 24"
+                             aria-hidden="true"
+                             focusable="false">
+                            <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57a4 4 0 1 1 5.66 5.66l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"
+                                  stroke="currentColor"
+                                  stroke-width="2"
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                  fill="none" />
+                        </svg>
+                        <h4 class="board-task-details-panel__section-title">Attachments</h4>
+                    </div>
+                    @if (CanManageTasks(task))
+                    {
+                        <button type="button"
+                                class="board-task-details-panel__action-btn"
+                                @onclick="OpenAddAttachmentDialogAsync">
+                            Add
+                        </button>
+                    }
+                </header>
+
+                <div class="board-task-details-panel__section-body">
+                    @if (task.Attachments.Count == 0)
+                    {
+                        <p class="board-task-details-panel__placeholder-text">No attachments yet</p>
+                    }
+                    else
+                    {
+                        <ul class="board-task-details-panel__attachment-list">
+                            @foreach (var attachment in task.Attachments)
+                            {
+                                <li class="board-task-details-panel__attachment-item">
+                                    <span class="board-task-details-panel__attachment-name"
+                                          title="@attachment.OriginalFileName">
+                                        @attachment.OriginalFileName
+                                    </span>
+                                    <div class="board-task-details-panel__attachment-actions">
+                                        @if (CanDownloadAttachments(task))
+                                        {
+                                            <button type="button"
+                                                    class="btn-icon btn-icon--sm board-task-details-panel__attachment-download"
+                                                    aria-label="@($"Download {attachment.OriginalFileName}")"
+                                                    disabled="@(_downloadingAttachmentId == attachment.Id)"
+                                                    @onclick="() => DownloadAttachmentAsync(attachment)">
+                                                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                                    <path d="M12 5v11"
+                                                          stroke="currentColor"
+                                                          stroke-width="2"
+                                                          stroke-linecap="round" />
+                                                    <path d="M7 12l5 5 5-5"
+                                                          stroke="currentColor"
+                                                          stroke-width="2"
+                                                          stroke-linecap="round"
+                                                          stroke-linejoin="round"
+                                                          fill="none" />
+                                                </svg>
+                                            </button>
+                                        }
+                                        @if (CanManageTasks(task))
+                                        {
+                                            <button type="button"
+                                                    class="btn-icon btn-icon--sm board-task-details-panel__attachment-delete"
+                                                    aria-label="@($"Delete {attachment.OriginalFileName}")"
+                                                    disabled="@(_deletingAttachmentId == attachment.Id)"
+                                                    @onclick="() => DeleteAttachmentAsync(attachment)">
+                                                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                                    <path d="M18 6L6 18M6 6l12 12"
+                                                          stroke="currentColor"
+                                                          stroke-width="2"
+                                                          stroke-linecap="round" />
+                                                </svg>
+                                            </button>
+                                        }
+                                    </div>
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
+            </section>
+        </div>
+    }
+</div>
+
+@code {
+    private const int DescriptionCollapsedMaxHeightPx = 400;
+
+    [Parameter, EditorRequired]
+    public Guid BoardId { get; set; }
+
+    [Parameter, EditorRequired]
+    public Guid ColumnId { get; set; }
+
+    [Parameter, EditorRequired]
+    public Guid TaskId { get; set; }
+
+    private bool _isEditingTitle;
+    private bool _isSavingTitle;
+    private bool _focusTitleInput;
+    private string _editTitle = string.Empty;
+    private ElementReference _titleInputRef;
+
+    private bool _isEditingDescription;
+    private bool _isSavingDescription;
+    private bool _focusDescriptionInput;
+    private bool _resizeDescriptionInput;
+    private string _editDescription = string.Empty;
+    private ElementReference _descriptionInputRef;
+    private ElementReference _descriptionTextRef;
+    private IJSObjectReference? _descriptionResizeModule;
+    private IJSObjectReference? _descriptionOverflowModule;
+
+    private Guid _measuredDescriptionTaskId;
+    private bool _isDescriptionExpanded;
+    private bool _isDescriptionOverflowing;
+    private bool _measureDescriptionOverflow;
+
+    private Guid? _deletingAttachmentId;
+    private Guid? _downloadingAttachmentId;
+    private IJSObjectReference? _fileDownloadModule;
+
+    protected override void OnInitialized() =>
+        BoardTaskStore.StateChanged += OnStoreStateChanged;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_focusTitleInput)
+        {
+            _focusTitleInput = false;
+            await _titleInputRef.FocusAsync();
+        }
+
+        if (_focusDescriptionInput)
+        {
+            _focusDescriptionInput = false;
+            await _descriptionInputRef.FocusAsync();
+        }
+
+        if (_resizeDescriptionInput && _isEditingDescription)
+        {
+            _resizeDescriptionInput = false;
+            await ResizeDescriptionInputAsync();
+        }
+
+        if (_measureDescriptionOverflow
+            && !_isEditingDescription
+            && !string.IsNullOrWhiteSpace(BoardTaskStore.Task?.Description))
+        {
+            _measureDescriptionOverflow = false;
+            await MeasureDescriptionOverflowAsync();
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_measuredDescriptionTaskId != TaskId)
+        {
+            _measuredDescriptionTaskId = TaskId;
+            ResetDescriptionOverflowState();
+        }
+
+        if (BoardTaskStore.BoardId == BoardId
+            && BoardTaskStore.ColumnId == ColumnId
+            && BoardTaskStore.TaskId == TaskId
+            && (BoardTaskStore.Task is not null || BoardTaskStore.IsLoading))
+        {
+            return;
+        }
+
+        await BoardTaskStore.LoadAsync(BoardId, ColumnId, TaskId);
+    }
+
+    public void Dispose()
+    {
+        BoardTaskStore.StateChanged -= OnStoreStateChanged;
+
+        if (_fileDownloadModule is not null)
+            _ = _fileDownloadModule.DisposeAsync();
+    }
+
+    private void OnStoreStateChanged()
+    {
+        if (!_isEditingDescription)
+        {
+            _isDescriptionExpanded = false;
+            ScheduleDescriptionOverflowMeasure();
+        }
+
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private static string FormatUser(UserDto user) =>
+        string.IsNullOrWhiteSpace(user.DisplayName) ? user.Email : $"{user.DisplayName} ({user.Email})";
+
+    private static string FormatCreatedAt(DateTime createdAtUtc) =>
+        createdAtUtc.ToLocalTime().ToString("g");
+
+    private static string GetAssigneeSelectValue(BoardTaskDetailsDto task) =>
+        task.Assignee?.Id.ToString() ?? string.Empty;
+
+    private static bool CanManageAssignee(BoardTaskDetailsDto task) =>
+        BoardRolePermissions.CanManageTasks(task.UserRole);
+
+    private static bool CanManageTaskTitle(BoardTaskDetailsDto task) =>
+        BoardRolePermissions.CanManageTasks(task.UserRole);
+
+    private static bool CanManageTaskDescription(BoardTaskDetailsDto task) =>
+        BoardRolePermissions.CanManageTasks(task.UserRole);
+
+    private static bool CanManageTasks(BoardTaskDetailsDto task) =>
+        BoardRolePermissions.CanManageTasks(task.UserRole);
+
+    private static bool CanDownloadAttachments(BoardTaskDetailsDto task) =>
+        BoardRolePermissions.CanDownloadAttachments(task.UserRole);
+
+    private void StartTitleEdit()
+    {
+        if (BoardTaskStore.Task is not { } task || !CanManageTaskTitle(task) || _isEditingTitle)
+            return;
+
+        _editTitle = task.Title;
+        _isEditingTitle = true;
+        _focusTitleInput = true;
+    }
+
+    private void CancelTitleEdit()
+    {
+        _isEditingTitle = false;
+        _editTitle = BoardTaskStore.Task?.Title ?? string.Empty;
+    }
+
+    private async Task OnTitleKeyDownAsync(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            await SaveTaskTitleAsync();
+        else if (e.Key == "Escape")
+            CancelTitleEdit();
+    }
+
+    private async Task OnTitleBlurAsync()
+    {
+        if (!_isEditingTitle)
+            return;
+
+        await SaveTaskTitleAsync();
+    }
+
+    private async Task SaveTaskTitleAsync()
+    {
+        if (!_isEditingTitle || _isSavingTitle || BoardTaskStore.Task is not { } task)
+            return;
+
+        var trimmedTitle = _editTitle.Trim();
+
+        if (string.IsNullOrEmpty(trimmedTitle))
+        {
+            Snackbar.Add("Task title is required.", Severity.Error);
+            return;
+        }
+
+        if (trimmedTitle.Length > BoardTaskFieldLengths.MaxTitleLength)
+        {
+            Snackbar.Add($"Task title must not exceed {BoardTaskFieldLengths.MaxTitleLength} characters.", Severity.Error);
+            return;
+        }
+
+        if (string.Equals(trimmedTitle, task.Title, StringComparison.Ordinal))
+        {
+            CancelTitleEdit();
+            return;
+        }
+
+        _isSavingTitle = true;
+
+        try
+        {
+            await BoardApiService.UpdateBoardTaskTitleAsync(
+                BoardId,
+                ColumnId,
+                TaskId,
+                trimmedTitle);
+
+            BoardTaskStore.UpdateTaskTitle(trimmedTitle);
+            BoardDetailsStore.UpdateTaskTitle(TaskId, trimmedTitle);
+            _isEditingTitle = false;
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+        finally
+        {
+            _isSavingTitle = false;
+        }
+    }
+
+    private void StartDescriptionEdit()
+    {
+        if (BoardTaskStore.Task is not { } task || !CanManageTaskDescription(task) || _isEditingDescription)
+            return;
+
+        _editDescription = task.Description ?? string.Empty;
+        _isEditingDescription = true;
+        _focusDescriptionInput = true;
+        _resizeDescriptionInput = true;
+    }
+
+    private void CancelDescriptionEdit()
+    {
+        _isEditingDescription = false;
+        _editDescription = BoardTaskStore.Task?.Description ?? string.Empty;
+    }
+
+    private async Task ResizeDescriptionInputAsync()
+    {
+        if (!_isEditingDescription)
+            return;
+
+        _descriptionResizeModule ??= await Js.InvokeAsync<IJSObjectReference>("import", "./js/textareaAutoResize.js");
+        await _descriptionResizeModule.InvokeVoidAsync("autoResize", _descriptionInputRef);
+    }
+
+    private async Task OnDescriptionKeyDownAsync(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !e.ShiftKey)
+            await SaveTaskDescriptionAsync();
+        else if (e.Key == "Escape")
+            CancelDescriptionEdit();
+    }
+
+    private async Task OnDescriptionBlurAsync()
+    {
+        if (!_isEditingDescription)
+            return;
+
+        await SaveTaskDescriptionAsync();
+    }
+
+    private async Task SaveTaskDescriptionAsync()
+    {
+        if (!_isEditingDescription || _isSavingDescription || BoardTaskStore.Task is not { } task)
+            return;
+
+        var normalizedDescription = NormalizeDescription(_editDescription);
+
+        if (normalizedDescription is null && string.IsNullOrWhiteSpace(task.Description))
+        {
+            CancelDescriptionEdit();
+            return;
+        }
+
+        if (string.Equals(task.Description, normalizedDescription, StringComparison.Ordinal))
+        {
+            CancelDescriptionEdit();
+            return;
+        }
+
+        if (normalizedDescription is { Length: > BoardTaskFieldLengths.MaxDescriptionLength })
+        {
+            Snackbar.Add(
+                $"Task description must not exceed {BoardTaskFieldLengths.MaxDescriptionLength} characters.",
+                Severity.Error);
+            return;
+        }
+
+        _isSavingDescription = true;
+
+        try
+        {
+            await BoardApiService.UpdateBoardTaskDescriptionAsync(
+                BoardId,
+                ColumnId,
+                TaskId,
+                normalizedDescription);
+
+            BoardTaskStore.UpdateTaskDescription(normalizedDescription);
+            _isEditingDescription = false;
+            ScheduleDescriptionOverflowMeasure();
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+        finally
+        {
+            _isSavingDescription = false;
+        }
+    }
+
+    private static string? NormalizeDescription(string value)
+    {
+        var trimmed = value.Trim();
+        return string.IsNullOrEmpty(trimmed) ? null : trimmed;
+    }
+
+    private string? GetDescriptionContentClass() =>
+        _isDescriptionOverflowing && !_isDescriptionExpanded
+            ? "board-task-details-panel__description-content--collapsed"
+            : null;
+
+    private void ToggleDescriptionExpanded() =>
+        _isDescriptionExpanded = !_isDescriptionExpanded;
+
+    private void ResetDescriptionOverflowState()
+    {
+        _isDescriptionExpanded = false;
+        _isDescriptionOverflowing = false;
+        _measureDescriptionOverflow = true;
+    }
+
+    private void ScheduleDescriptionOverflowMeasure() =>
+        _measureDescriptionOverflow = true;
+
+    private async Task MeasureDescriptionOverflowAsync()
+    {
+        _descriptionOverflowModule ??= await Js.InvokeAsync<IJSObjectReference>("import", "./js/descriptionOverflow.js");
+
+        var isOverflowing = await _descriptionOverflowModule.InvokeAsync<bool>(
+            "isOverflowing",
+            _descriptionTextRef,
+            DescriptionCollapsedMaxHeightPx);
+
+        if (isOverflowing == _isDescriptionOverflowing)
+            return;
+
+        _isDescriptionOverflowing = isOverflowing;
+
+        if (!isOverflowing)
+            _isDescriptionExpanded = false;
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void OnAssigneeSelectChanged(ChangeEventArgs _) =>
+        StateHasChanged();
+
+    private async Task OpenAddAttachmentDialogAsync()
+    {
+        if (BoardTaskStore.Task is not { } task || !CanManageTasks(task))
+            return;
+
+        if (task.Attachments.Count >= ValidationSettings.BoardTasks.MaxAttachmentsPerTask)
+        {
+            Snackbar.Add("The maximum number of attachments for this task has been reached.", Severity.Warning);
+            return;
+        }
+
+        var dialog = await DialogService.ShowAsync<UploadBoardTaskAttachmentDialog>(
+            "Upload attachment",
+            new DialogParameters<UploadBoardTaskAttachmentDialog>
+            {
+                { x => x.CurrentAttachmentCount, task.Attachments.Count },
+            },
+            UploadBoardTaskAttachmentDialog.DefaultOptions);
+
+        var result = await dialog.Result;
+
+        if (result is not { Canceled: false, Data: IBrowserFile file })
+            return;
+
+        var fileName = Path.GetFileName(file.Name);
+        Snackbar.Add($"Uploading \"{fileName}\"...", Severity.Info);
+
+        try
+        {
+            await using var stream = file.OpenReadStream(
+                ValidationSettings.BoardTasks.MaxAttachmentSizeBytes);
+
+            var attachment = await BoardApiService.UploadBoardTaskAttachmentAsync(
+                BoardId,
+                ColumnId,
+                TaskId,
+                stream,
+                file.Name,
+                file.ContentType);
+
+            BoardTaskStore.AddAttachment(attachment);
+            BoardDetailsStore.AdjustTaskAttachmentsCount(TaskId, 1);
+            Snackbar.Add($"\"{attachment.OriginalFileName}\" uploaded.", Severity.Success);
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+    }
+
+    private async Task DownloadAttachmentAsync(BoardTaskAttachmentDto attachment)
+    {
+        if (BoardTaskStore.Task is not { } task || !CanDownloadAttachments(task) || _downloadingAttachmentId is not null)
+            return;
+
+        _downloadingAttachmentId = attachment.Id;
+
+        try
+        {
+            var file = await BoardApiService.DownloadBoardTaskAttachmentAsync(
+                BoardId,
+                ColumnId,
+                TaskId,
+                attachment.Id,
+                attachment.OriginalFileName);
+
+            _fileDownloadModule ??= await Js.InvokeAsync<IJSObjectReference>("import", "./js/fileDownload.js");
+
+            await _fileDownloadModule.InvokeVoidAsync(
+                "download",
+                file.FileName,
+                file.ContentType,
+                file.Content);
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+        finally
+        {
+            _downloadingAttachmentId = null;
+        }
+    }
+
+    private async Task DeleteAttachmentAsync(BoardTaskAttachmentDto attachment)
+    {
+        if (BoardTaskStore.Task is not { } task || !CanManageTasks(task) || _deletingAttachmentId is not null)
+            return;
+
+        var fileName = attachment.OriginalFileName;
+        var message =
+            $"Delete attachment \"{fileName}\"?{Environment.NewLine}This action cannot be undone.";
+
+        var dialog = await DialogService.ShowConfirmResourceAsync(
+            "Delete attachment",
+            message,
+            confirmLabel: "Delete");
+
+        var result = await dialog.Result;
+
+        if (result is not { Canceled: false, Data: true })
+            return;
+
+        _deletingAttachmentId = attachment.Id;
+
+        try
+        {
+            await BoardApiService.DeleteBoardTaskAttachmentAsync(
+                BoardId,
+                ColumnId,
+                TaskId,
+                attachment.Id);
+
+            BoardTaskStore.RemoveAttachment(attachment.Id);
+            BoardDetailsStore.AdjustTaskAttachmentsCount(TaskId, -1);
+            Snackbar.Add($"\"{fileName}\" deleted.", Severity.Success);
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+        finally
+        {
+            _deletingAttachmentId = null;
+        }
+    }
+}

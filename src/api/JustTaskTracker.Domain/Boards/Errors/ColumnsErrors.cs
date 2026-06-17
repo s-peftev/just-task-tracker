@@ -15,8 +15,8 @@ public static class ColumnsErrors
         ErrorType.Business,
         ["Tasks cannot be moved to the column being deleted."]);
 
-    public static readonly Error InvalidOrder = new(
-        nameof(InvalidOrder),
+    public static readonly Error InvalidPosition = new(
+        nameof(InvalidPosition),
         ErrorType.Validation,
-        ["Column order must include every column on the board exactly once."]);
+        ["Column position is out of range."]);
 }

@@ -2,5 +2,5 @@
 
 internal static class ConnectionStringNames
 {
-    public const string JustTaskTracker = "JustTaskTracker";
+    public const string JustTaskTracker = nameof(JustTaskTracker);
 }

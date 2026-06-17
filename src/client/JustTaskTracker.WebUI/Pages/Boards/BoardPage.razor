@@ -1,4 +1,5 @@
 @page "/boards/{Id:guid}"
+@page "/boards/{Id:guid}/columns/{ColumnId:guid}/tasks/{TaskId:guid}"
 @attribute [Authorize]
 @implements IAsyncDisposable
 @using JustTaskTracker.WebUI.Infrastructure
@@ -7,115 +8,175 @@
 @using Microsoft.JSInterop
 @inject IBoardApiService BoardApiService
 @inject IBoardDetailsStore BoardDetailsStore
+@inject IBoardTaskStore BoardTaskStore
+@inject IBoardTaskSearchStore BoardTaskSearchStore
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
 @inject IJSRuntime Js
 
-<PageTitle>@(BoardDetailsStore.Board?.Name ?? "Board") — JustTaskTracker</PageTitle>
+<PageTitle>@GetPageTitle()</PageTitle>
 
-<div class="board-page">
-    @if (BoardDetailsStore.IsLoading && BoardDetailsStore.Board is null)
+<div class="board-page @(_taskOnlyMode ? "board-page--task-only" : null) @(_isFooterTrayOpen ? "board-page--footer-open" : null)">
+    @if (_renderBoard)
     {
-        <div class="page-state page-state--stacked">
-            <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
-        </div>
-    }
-    else if (BoardDetailsStore.ErrorMessage is { } error)
-    {
-        <div class="page-state page-state--stacked">
-            <MudAlert Severity="Severity.Error">@error</MudAlert>
-            <button type="button" class="btn-noir" @onclick="GoToDashboard">
-                <span>Back to dashboard</span>
-            </button>
-        </div>
-    }
-    else if (BoardDetailsStore.Board is { } board)
-    {
-        <header class="board-page__header">
-            <div class="board-page__title-area">
-                @if (_isEditingName)
-                {
-                    <div class="board-page__title-field">
-                        <span class="board-page__title-sizer">@_editName</span>
-                        <input @ref="_titleInputRef"
-                               class="board-page__title-input"
-                               type="text"
-                               maxlength="100"
-                               @bind="_editName"
-                               @bind:event="oninput"
-                               @onkeydown="OnTitleKeyDownAsync"
-                               @onblur="OnTitleBlurAsync" />
-                    </div>
-                }
-                else if (CanRenameBoard)
-                {
-                    <h1 class="text-section-title board-page__title board-page__title--editable"
-                        @onclick="StartNameEdit">
-                        @board.Name
-                    </h1>
-                }
-                else
-                {
-                    <h1 class="text-section-title board-page__title">@board.Name</h1>
-                }
+        @if (BoardDetailsStore.IsLoading && BoardDetailsStore.Board is null)
+        {
+            <div class="page-state page-state--stacked">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
             </div>
-
-            <div class="board-page__controls">
-                <BoardPageMenu UserRole="board.UserRole"
-                               OnMembersClick="ShowMembersComingSoon"
-                               OnLeaveBoardClick="ShowLeaveBoardComingSoon"
-                               OnDeleteBoardClick="DeleteBoardAsync" />
-
-                <button type="button"
-                        class="btn-icon btn-icon--round btn-icon--sm"
-                        aria-label="Back to dashboard"
-                        @onclick="GoToDashboard">
-                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                        <path d="M18 6L6 18M6 6l12 12"
-                              stroke="currentColor"
-                              stroke-width="2"
-                              stroke-linecap="round" />
-                    </svg>
+        }
+        else if (BoardDetailsStore.ErrorMessage is { } error)
+        {
+            <div class="page-state page-state--stacked">
+                <MudAlert Severity="Severity.Error">@error</MudAlert>
+                <button type="button" class="btn-noir" @onclick="GoToDashboard">
+                    <span>Back to dashboard</span>
                 </button>
             </div>
-        </header>
+        }
+        else if (BoardDetailsStore.Board is { } board)
+        {
+            <header class="board-page__header">
+                <div class="board-page__title-area">
+                    @if (_isEditingName)
+                    {
+                        <div class="board-page__title-field">
+                            <span class="board-page__title-sizer">@_editName</span>
+                            <input @ref="_titleInputRef"
+                                   class="board-page__title-input"
+                                   type="text"
+                                   maxlength="100"
+                                   @bind="_editName"
+                                   @bind:event="oninput"
+                                   @onkeydown="OnTitleKeyDownAsync"
+                                   @onblur="OnTitleBlurAsync" />
+                        </div>
+                    }
+                    else if (CanRenameBoard)
+                    {
+                        <h1 class="text-section-title board-page__title board-page__title--editable"
+                            @onclick="StartNameEdit">
+                            @board.Name
+                        </h1>
+                    }
+                    else
+                    {
+                        <h1 class="text-section-title board-page__title">@board.Name</h1>
+                    }
+                </div>
 
-        <section @ref="_contentRef" class="board-page__content">
-            <div @ref="_scrollBodyRef" class="board-page__body">
-                <Sortable TItem="ColumnDto"
-                          Items="_sortableColumns"
-                          ItemKeySelector="GetColumnKey"
-                          Handle=".board-column__header--draggable"
-                          Filter=".board-column__delete, .board-column__title-field, .board-column__title-input"
-                          Delay="0"
-                          DelayOnTouchOnly="true"
-                          FallbackTolerance="5"
-                          Disabled="@(!CanManageColumns || _isReorderingColumns)"
-                          Class="board-page__columns-sortable"
-                          Style="display:flex;flex-direction:row;flex-wrap:nowrap;align-items:flex-start;gap:1rem;flex:0 0 auto;min-width:min-content;"
-                          GhostClass="board-page__column-ghost"
-                          DragClass="board-page__column-drag"
-                          Scroll="false"
-                          OnUpdate="OnColumnsReorderedAsync">
-                    <div class="board-page__column-item">
-                        <BoardColumn Column="@context"
-                                     UserRole="board.UserRole" />
-                    </div>
-                </Sortable>
+                <div class="board-page__controls">
+                    <BoardPageMenu UserRole="board.UserRole"
+                                   OnMembersClick="ShowMembersComingSoon"
+                                   OnLeaveBoardClick="ShowLeaveBoardComingSoon"
+                                   OnDeleteBoardClick="DeleteBoardAsync" />
 
-                @if (CanManageColumns)
-                {
-                    <div class="board-page__column-slot">
-                        <button type="button"
-                                class="btn-glass-white board-page__add-column-btn"
-                                @onclick="CreateColumnAsync">
-                            + Add column
-                        </button>
+                    <button type="button"
+                            class="btn-icon btn-icon--round btn-icon--sm"
+                            aria-label="Back to dashboard"
+                            @onclick="GoToDashboard">
+                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <path d="M18 6L6 18M6 6l12 12"
+                                  stroke="currentColor"
+                                  stroke-width="2"
+                                  stroke-linecap="round" />
+                        </svg>
+                    </button>
+                </div>
+            </header>
+
+            <section @ref="_contentRef" class="board-page__content">
+                <div @ref="_scrollBodyRef" class="board-page__body">
+                    <Sortable TItem="ColumnDto"
+                              Items="_sortableColumns"
+                              ItemKeySelector="GetColumnKey"
+                              Handle=".board-column__header--draggable"
+                              Filter=".board-column__delete, .board-column__title-field, .board-column__title-input, .board-column__add-task, .board-column__add-task-input, .board-task-card"
+                              Delay="0"
+                              DelayOnTouchOnly="true"
+                              FallbackTolerance="5"
+                              Disabled="@(!CanManageColumns || _isReorderingColumns)"
+                              Class="board-page__columns-sortable"
+                              GhostClass="board-page__column-ghost"
+                              DragClass="board-page__column-drag"
+                              Scroll="false"
+                              OnUpdate="OnColumnsReorderedAsync">
+                        <div class="board-page__column-item @GetColumnTrayOverlapClass(context.Id)">
+                            <BoardColumn Column="@context"
+                                         UserRole="board.UserRole" />
+                        </div>
+                    </Sortable>
+
+                    @if (CanManageColumns)
+                    {
+                        <div class="board-page__column-slot">
+                            <button type="button"
+                                    class="btn-glass-white board-page__add-column-btn"
+                                    @onclick="CreateColumnAsync">
+                                + Add column
+                            </button>
+                        </div>
+                    }
+                </div>
+            </section>
+
+            <footer class="board-page__footer">
+                <div class="board-page__footer-drawer">
+                    <div @ref="_footerPanelRef" class="board-page__footer-panel">
+                        <div class="board-page__footer-tab">
+                            <button type="button"
+                                    class="board-page__footer-handle"
+                                    aria-label="@(_isFooterTrayOpen ? "Close search" : "Open search")"
+                                    aria-expanded="@_isFooterTrayOpen"
+                                    @onclick="ToggleFooterTray">
+                                <svg class="board-page__footer-handle-icon"
+                                     viewBox="0 0 24 24"
+                                     aria-hidden="true"
+                                     focusable="false">
+                                    <circle cx="11"
+                                            cy="11"
+                                            r="6"
+                                            stroke="currentColor"
+                                            stroke-width="2"
+                                            fill="none" />
+                                    <path d="M16 16l5 5"
+                                          stroke="currentColor"
+                                          stroke-width="2"
+                                          stroke-linecap="round" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        <div class="board-page__footer-tray">
+                            @if (BoardTaskSearchStore.IsOpen)
+                            {
+                                <BoardTaskSearchOverlay />
+                            }
+
+                            <input class="board-page__footer-search-input"
+                                   type="search"
+                                   aria-label="Search tasks"
+                                   placeholder="Search tasks"
+                                   value="@BoardTaskSearchStore.SearchText"
+                                   @onfocus="OnFooterSearchFocusAsync"
+                                   @onblur="OnFooterSearchBlurAsync"
+                                   @oninput="OnFooterSearchInputAsync" />
+                        </div>
                     </div>
-                }
-            </div>
-        </section>
+                </div>
+            </footer>
+        }
+    }
+
+    @if (TaskId is { } taskId && ColumnId is { } columnId)
+    {
+        <BoardTaskDetailsOverlay @key="taskId"
+                                 BoardId="Id"
+                                 ColumnId="columnId"
+                                 TaskId="taskId"
+                                 DimBackground="_renderBoard"
+                                 OnClose="CloseTaskAsync" />
     }
 </div>
 
@@ -123,6 +184,15 @@
     [Parameter]
     public Guid Id { get; set; }
 
+    [Parameter]
+    public Guid? ColumnId { get; set; }
+
+    [Parameter]
+    public Guid? TaskId { get; set; }
+
+    private bool _renderBoard = true;
+    private bool _taskOnlyMode;
+    private bool _deferBoardLoadUntilTaskClose;
     private bool _isEditingName;
     private bool _isSavingName;
     private bool _isReorderingColumns;
@@ -131,10 +201,18 @@
     private ElementReference _titleInputRef;
     private ElementReference _contentRef;
     private ElementReference _scrollBodyRef;
+    private ElementReference _footerPanelRef;
     private readonly List<ColumnDto> _sortableColumns = [];
+    private readonly HashSet<Guid> _trayOverlappingColumnIds = [];
     private IJSObjectReference? _panScrollModule;
     private IJSObjectReference? _panScrollHandle;
+    private IJSObjectReference? _trayOverlapModule;
+    private IJSObjectReference? _trayOverlapHandle;
+    private DotNetObjectReference<BoardPage>? _trayOverlapDotNetRef;
     private bool _panScrollAttached;
+    private bool _isFooterTrayOpen;
+    private bool _suppressSearchBlurClose;
+    private Guid _searchStoreBoardId;
 
     private bool CanRenameBoard =>
         BoardDetailsStore.Board is { UserRole: var role } && BoardRolePermissions.CanRenameBoard(role);
@@ -142,13 +220,20 @@
     private bool CanManageColumns =>
         BoardDetailsStore.Board is { UserRole: var role } && BoardRolePermissions.CanManageColumns(role);
 
-    protected override void OnInitialized() =>
-        BoardDetailsStore.StateChanged += OnStoreStateChanged;
+    protected override void OnInitialized()
+    {
+        BoardDetailsStore.StateChanged += OnBoardStoreStateChanged;
+        BoardTaskStore.StateChanged += OnTaskStoreStateChanged;
+        BoardTaskSearchStore.StateChanged += OnTaskSearchStoreStateChanged;
+    }
 
     protected override async Task OnParametersSetAsync()
     {
-        await BoardDetailsStore.LoadAsync(Id);
-        SyncSortableColumnsFromStore();
+        if (_searchStoreBoardId != Guid.Empty && _searchStoreBoardId != Id)
+            BoardTaskSearchStore.Reset();
+
+        _searchStoreBoardId = Id;
+        await UpdateRouteStateAsync();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -159,13 +244,20 @@
             await _titleInputRef.FocusAsync();
         }
 
-        if (BoardDetailsStore.Board is not null && !_panScrollAttached)
+        if (_renderBoard && BoardDetailsStore.Board is not null && !_panScrollAttached)
             await EnsurePanScrollAttachedAsync();
+
+        if (_renderBoard && _isFooterTrayOpen)
+            await EnsureTrayOverlapObserverAsync();
     }
 
     public async ValueTask DisposeAsync()
     {
-        BoardDetailsStore.StateChanged -= OnStoreStateChanged;
+        BoardDetailsStore.StateChanged -= OnBoardStoreStateChanged;
+        BoardTaskStore.StateChanged -= OnTaskStoreStateChanged;
+        BoardTaskSearchStore.StateChanged -= OnTaskSearchStoreStateChanged;
+        BoardTaskSearchStore.Reset();
+        await DisposeTrayOverlapObserverAsync();
 
         if (_panScrollHandle is not null)
         {
@@ -175,7 +267,133 @@
 
         if (_panScrollModule is not null)
             await _panScrollModule.DisposeAsync();
+
+        _trayOverlapDotNetRef?.Dispose();
     }
+
+    [JSInvokable]
+    public void SetTrayOverlappingColumnIds(string[] columnIds)
+    {
+        var updatedIds = columnIds
+            .Select(Guid.Parse)
+            .ToHashSet();
+
+        if (_trayOverlappingColumnIds.SetEquals(updatedIds))
+            return;
+
+        _trayOverlappingColumnIds.Clear();
+
+        foreach (var id in updatedIds)
+            _trayOverlappingColumnIds.Add(id);
+
+        InvokeAsync(StateHasChanged);
+    }
+
+    private string? GetColumnTrayOverlapClass(Guid columnId) =>
+        _isFooterTrayOpen && _trayOverlappingColumnIds.Contains(columnId)
+            ? "board-page__column-item--tray-overlap"
+            : null;
+
+    private async Task EnsureTrayOverlapObserverAsync()
+    {
+        if (!_renderBoard || !_isFooterTrayOpen)
+            return;
+
+        _trayOverlapModule ??= await Js.InvokeAsync<IJSObjectReference>(
+            "import",
+            "./js/boardFooterTrayOverlap.js");
+        _trayOverlapDotNetRef ??= DotNetObjectReference.Create(this);
+
+        if (_trayOverlapHandle is not null)
+            return;
+
+        _trayOverlapHandle = await _trayOverlapModule.InvokeAsync<IJSObjectReference>(
+            "attach",
+            _scrollBodyRef,
+            _footerPanelRef,
+            _trayOverlapDotNetRef);
+    }
+
+    private async Task DisposeTrayOverlapObserverAsync()
+    {
+        if (_trayOverlapHandle is not null)
+        {
+            await _trayOverlapHandle.InvokeVoidAsync("dispose");
+            await _trayOverlapHandle.DisposeAsync();
+            _trayOverlapHandle = null;
+        }
+
+        if (_trayOverlappingColumnIds.Count > 0)
+        {
+            _trayOverlappingColumnIds.Clear();
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private async Task OnFooterTrayToggledAsync()
+    {
+        if (_isFooterTrayOpen)
+        {
+            await InvokeAsync(StateHasChanged);
+            await EnsureTrayOverlapObserverAsync();
+            await Task.Delay(260);
+            if (_trayOverlapHandle is not null)
+                await _trayOverlapHandle.InvokeVoidAsync("refresh");
+            return;
+        }
+
+        await DisposeTrayOverlapObserverAsync();
+    }
+
+    private async Task UpdateRouteStateAsync()
+    {
+        if (TaskId is null || ColumnId is null)
+        {
+            if (_deferBoardLoadUntilTaskClose)
+            {
+                _deferBoardLoadUntilTaskClose = false;
+                _renderBoard = true;
+                _taskOnlyMode = false;
+                await BoardDetailsStore.LoadAsync(Id);
+                SyncSortableColumnsFromStore();
+                return;
+            }
+
+            _taskOnlyMode = false;
+            _renderBoard = true;
+            await BoardDetailsStore.LoadAsync(Id);
+            SyncSortableColumnsFromStore();
+            return;
+        }
+
+        if (BoardDetailsStore.BoardId == Id && BoardDetailsStore.Board is not null)
+        {
+            _renderBoard = true;
+            _taskOnlyMode = false;
+        }
+        else
+        {
+            _renderBoard = false;
+            _taskOnlyMode = true;
+            _deferBoardLoadUntilTaskClose = true;
+        }
+
+        SyncSortableColumnsFromStore();
+    }
+
+    private string GetPageTitle()
+    {
+        if (TaskId is not null && BoardTaskStore.Task is { } task)
+            return $"{task.Title} — JustTaskTracker";
+
+        if (BoardDetailsStore.Board is { } board)
+            return $"{board.Name} — JustTaskTracker";
+
+        return "Board — JustTaskTracker";
+    }
+
+    private void CloseTaskAsync() =>
+        Navigation.NavigateTo(BoardTaskRoutes.GetBoardUrl(Id));
 
     private async Task EnsurePanScrollAttachedAsync()
     {
@@ -187,11 +405,17 @@
         _panScrollAttached = true;
     }
 
-    private void OnStoreStateChanged()
+    private void OnBoardStoreStateChanged()
     {
         SyncSortableColumnsFromStore();
         InvokeAsync(StateHasChanged);
     }
+
+    private void OnTaskStoreStateChanged() =>
+        InvokeAsync(StateHasChanged);
+
+    private void OnTaskSearchStoreStateChanged() =>
+        InvokeAsync(StateHasChanged);
 
     private void SyncSortableColumnsFromStore()
     {
@@ -225,13 +449,14 @@
         if (!CanManageColumns || _isReorderingColumns)
             return;
 
-        var columnIds = _sortableColumns.Select(column => column.Id).ToList();
+        if (args.OldIndex == args.NewIndex)
+            return;
 
         _isReorderingColumns = true;
 
         try
         {
-            await BoardDetailsStore.ReorderColumnsAsync(columnIds);
+            await BoardDetailsStore.ReorderColumnAsync(args.Item.Id, args.NewIndex);
         }
         catch (ApiServiceException ex)
         {
@@ -241,10 +466,69 @@
         finally
         {
             _isReorderingColumns = false;
+
+            if (_isFooterTrayOpen && _trayOverlapHandle is not null)
+                await _trayOverlapHandle.InvokeVoidAsync("refresh");
         }
     }
 
     private void GoToDashboard() => Navigation.NavigateTo("/dashboard");
+
+    private async Task ToggleFooterTray()
+    {
+        _isFooterTrayOpen = !_isFooterTrayOpen;
+
+        if (!_isFooterTrayOpen)
+            BoardTaskSearchStore.Close();
+
+        await OnFooterTrayToggledAsync();
+    }
+
+    private async Task OnFooterSearchFocusAsync()
+    {
+        if (!_isFooterTrayOpen)
+            await ToggleFooterTray();
+
+        if (BoardTaskSearchStore.IsOpen)
+            return;
+
+        if (BoardDetailsStore.Board is not { } board)
+            return;
+
+        var columnId = board.Columns
+            .OrderBy(column => column.Position)
+            .Select(column => column.Id)
+            .FirstOrDefault();
+
+        // columnId is required by the route even though lookup is board-scoped on the backend.
+        if (columnId == Guid.Empty)
+        {
+            Snackbar.Add("No columns available for task search.", Severity.Info);
+            return;
+        }
+
+        _suppressSearchBlurClose = true;
+
+        try
+        {
+            await BoardTaskSearchStore.OpenAsync(Id, columnId);
+        }
+        finally
+        {
+            _suppressSearchBlurClose = false;
+        }
+    }
+
+    private void OnFooterSearchBlurAsync()
+    {
+        if (_suppressSearchBlurClose)
+            return;
+
+        BoardTaskSearchStore.Close();
+    }
+
+    private Task OnFooterSearchInputAsync(ChangeEventArgs e) =>
+        BoardTaskSearchStore.SetSearchAsync(e.Value?.ToString() ?? string.Empty);
 
     private void ShowMembersComingSoon() =>
         Snackbar.Add("Members management is coming soon.", Severity.Info);

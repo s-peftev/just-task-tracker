@@ -2,7 +2,8 @@
 
 public static class ConfigSections
 {
-    public const string Frontend = "Frontend";
-    public const string AzureAd = "AzureAd";
-    public const string PaginationDefaults = "PaginationDefaults";
+    public const string Frontend = nameof(Frontend);
+    public const string AzureAd = nameof(AzureAd);
+    public const string PaginationDefaults = nameof(PaginationDefaults);
+    public const string BlobStorageContainers = nameof(BlobStorageContainers);
 }

@@ -27,6 +27,12 @@ internal static class OptionsModule
 
         services.AddSingleton(paginationDefaultsOptions);
 
+        var blobStorageContainersOptions = configuration
+            .GetSection(ConfigSections.BlobStorageContainers)
+            .Get<BlobStorageContainersOptions>() ?? new BlobStorageContainersOptions();
+
+        services.AddSingleton(blobStorageContainersOptions);
+
         return services;
     }
 }

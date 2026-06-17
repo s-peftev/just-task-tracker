@@ -36,9 +36,114 @@ internal interface IBoardApi
     [Delete("/api/boards/{boardId}/columns/{columnId}")]
     Task<IApiResponse<ApiEnvelope<object>>> DeleteColumnAsync(Guid boardId, Guid columnId, [Body] DeleteColumnRequest request, CancellationToken ct = default);
 
-    [Put("/api/boards/{boardId}/columns/order")]
-    Task<IApiResponse<ApiEnvelope<object>>> ReorderColumnsAsync(
+    [Put("/api/boards/{boardId}/columns/{columnId}/position")]
+    Task<IApiResponse<ApiEnvelope<object>>> ReorderColumnAsync(Guid boardId, Guid columnId, [Body] ReorderColumnPositionRequest request, CancellationToken ct = default);
+
+    [Put("/api/boards/{boardId}/columns/{columnId}/tasks/{taskId}/position")]
+    Task<IApiResponse<ApiEnvelope<object>>> ReorderTaskAsync(Guid boardId, Guid columnId, Guid taskId, [Body] ReorderTaskPositionRequest request, CancellationToken ct = default);
+
+    [Post("/api/boards/{boardId}/columns/{columnId}/tasks")]
+    Task<IApiResponse<ApiEnvelope<BoardTaskPreviewDto>>> CreateTaskAsync(Guid boardId, Guid columnId, [Body] SaveTaskRequest request, CancellationToken ct = default);
+
+    [Get("/api/boards/{boardId}/columns/{columnId}/tasks")]
+    Task<IApiResponse<ApiEnvelope<PagedList<BoardTaskLookupDto>>>> GetTaskLookupListAsync(
         Guid boardId,
-        [Body] ReorderColumnsRequest request,
+        Guid columnId,
+        int pageNumber,
+        int pageSize,
+        [AliasAs("SearchOptions.Search")] string? searchOptionsSearch = null,
+        CancellationToken ct = default);
+
+    [Get("/api/boards/{boardId}/columns/{columnId}/tasks/{taskId}")]
+    Task<IApiResponse<ApiEnvelope<BoardTaskDetailsDto>>> GetTaskByIdAsync(Guid boardId, Guid columnId, Guid taskId, CancellationToken ct = default);
+
+    [Patch("/api/boards/{boardId}/columns/{columnId}/tasks/{taskId}")]
+    Task<IApiResponse<ApiEnvelope<object>>> UpdateTaskTitleAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid taskId,
+        [Body] UpdateBoardTaskTitleRequest request,
+        CancellationToken ct = default);
+
+    [Patch("/api/boards/{boardId}/columns/{columnId}/tasks/{taskId}")]
+    Task<IApiResponse<ApiEnvelope<object>>> UpdateTaskDescriptionAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid taskId,
+        [Body] UpdateBoardTaskDescriptionRequest request,
+        CancellationToken ct = default);
+
+    [Patch("/api/boards/{boardId}/columns/{columnId}/tasks/{taskId}")]
+    Task<IApiResponse<ApiEnvelope<object>>> UpdateTaskAssigneeAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid taskId,
+        [Body] UpdateBoardTaskAssigneeRequest request,
+        CancellationToken ct = default);
+
+    [Delete("/api/boards/{boardId}/columns/{columnId}/tasks/{taskId}")]
+    Task<IApiResponse<ApiEnvelope<object>>> DeleteTaskAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid taskId,
+        CancellationToken ct = default);
+
+    [Multipart]
+    [Post("/api/boards/{boardId}/columns/{columnId}/tasks/{taskId}/attachments")]
+    Task<IApiResponse<ApiEnvelope<BoardTaskAttachmentDto>>> UploadTaskAttachmentAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid taskId,
+        [AliasAs("file")] StreamPart file,
+        CancellationToken ct = default);
+
+    [Get("/api/boards/{boardId}/columns/{columnId}/tasks/{taskId}/attachments/{attachmentId}")]
+    Task<HttpResponseMessage> DownloadTaskAttachmentAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid taskId,
+        Guid attachmentId,
+        CancellationToken ct = default);
+
+    [Delete("/api/boards/{boardId}/columns/{columnId}/tasks/{taskId}/attachments/{attachmentId}")]
+    Task<IApiResponse<ApiEnvelope<object>>> DeleteTaskAttachmentAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid taskId,
+        Guid attachmentId,
+        CancellationToken ct = default);
+
+    [Get("/api/boards/{boardId}/columns/{columnId}/tasks/{taskId}/comments")]
+    Task<IApiResponse<ApiEnvelope<PagedList<BoardTaskCommentDto>>>> GetTaskCommentsAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid taskId,
+        int pageNumber,
+        int pageSize,
+        CancellationToken ct = default);
+
+    [Post("/api/boards/{boardId}/columns/{columnId}/tasks/{taskId}/comments")]
+    Task<IApiResponse<ApiEnvelope<BoardTaskCommentDto>>> CreateTaskCommentAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid taskId,
+        [Body] CreateBoardTaskCommentRequest request,
+        CancellationToken ct = default);
+
+    [Patch("/api/boards/{boardId}/columns/{columnId}/tasks/{taskId}/comments/{commentId}")]
+    Task<IApiResponse<ApiEnvelope<object>>> UpdateTaskCommentAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid taskId,
+        Guid commentId,
+        [Body] UpdateBoardTaskCommentRequest request,
+        CancellationToken ct = default);
+
+    [Delete("/api/boards/{boardId}/columns/{columnId}/tasks/{taskId}/comments/{commentId}")]
+    Task<IApiResponse<ApiEnvelope<object>>> DeleteTaskCommentAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid taskId,
+        Guid commentId,
         CancellationToken ct = default);
 }

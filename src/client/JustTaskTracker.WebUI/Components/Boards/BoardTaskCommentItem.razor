@@ -1,0 +1,332 @@
+@using JustTaskTracker.WebUI.Components.Shared
+@using JustTaskTracker.WebUI.Domain.Auth
+@using JustTaskTracker.WebUI.Domain.Boards
+@using JustTaskTracker.WebUI.Domain.Boards.Constants
+@using JustTaskTracker.WebUI.Infrastructure
+@using JustTaskTracker.WebUI.Services.Abstractions.Boards
+@using JustTaskTracker.WebUI.Services.Abstractions.Auth
+@using JustTaskTracker.WebUI.Services.Exceptions
+@inject IProfileStore ProfileStore
+@inject IBoardApiService BoardApiService
+@inject IBoardTaskStore BoardTaskStore
+@inject IBoardDetailsStore BoardDetailsStore
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IJSRuntime Js
+@implements IAsyncDisposable
+
+<article class="board-task-comment">
+    <div class="board-task-comment__avatar-column">
+        <div class="board-task-comment__avatar text-sidebar-user"
+             aria-hidden="true"
+             title="@GetAuthorTitle()">
+            <span class="board-task-comment__avatar-letter">@GetAvatarLetter(Comment.Author)</span>
+        </div>
+    </div>
+
+    <div class="board-task-comment__content">
+        <header class="board-task-comment__header">
+            <span class="board-task-comment__author-name"
+                  title="@GetAuthorTitle()">
+                @GetAuthorDisplay()
+            </span>
+            <span class="board-task-comment__meta">
+                @FormatCreatedAt(Comment.CreatedAtUtc)@GetEditedSuffix()
+            </span>
+        </header>
+
+        <div class="board-task-comment__body @(_isEditing ? "board-task-comment__body--editing" : null)">
+            @if (_isEditing)
+            {
+                <textarea @ref="_editInputRef"
+                          class="board-task-comment__input"
+                          maxlength="@BoardTaskCommentFieldLengths.MaxBodyLength"
+                          @bind="_editBody"
+                          @bind:event="oninput"
+                          @bind:after="ResizeInputAsync"
+                          @onkeydown="OnEditKeyDownAsync"
+                          @onblur="OnEditBlurAsync"></textarea>
+            }
+            else
+            {
+                <p class="board-task-comment__text">@Comment.Body</p>
+            }
+        </div>
+
+        @if (IsCurrentUserAuthor)
+        {
+            <footer class="board-task-comment__footer">
+                @if (_isEditing)
+                {
+                    <button type="button"
+                            class="board-task-comment__action"
+                            disabled="@_isSaving"
+                            @onmousedown:preventDefault
+                            @onclick="CancelEdit">
+                        Cancel
+                    </button>
+                    <button type="button"
+                            class="board-task-comment__action"
+                            disabled="@_isSaving"
+                            @onmousedown:preventDefault
+                            @onclick="SaveEditAsync">
+                        Save
+                    </button>
+                }
+                else
+                {
+                    <button type="button"
+                            class="board-task-comment__action"
+                            disabled="@_isDeleting"
+                            @onclick="StartEdit">
+                        Edit
+                    </button>
+                    <button type="button"
+                            class="board-task-comment__action board-task-comment__action--danger"
+                            disabled="@_isDeleting"
+                            @onclick="DeleteCommentAsync">
+                        Delete
+                    </button>
+                }
+            </footer>
+        }
+    </div>
+</article>
+
+@code {
+    [Parameter, EditorRequired]
+    public Guid BoardId { get; set; }
+
+    [Parameter, EditorRequired]
+    public Guid ColumnId { get; set; }
+
+    [Parameter, EditorRequired]
+    public Guid TaskId { get; set; }
+
+    [Parameter, EditorRequired]
+    public BoardTaskCommentDto Comment { get; set; } = default!;
+
+    private bool _isEditing;
+    private bool _isSaving;
+    private bool _isDeleting;
+    private bool _focusInput;
+    private bool _resizeInput;
+    private bool _attachEnterSubmitBehavior;
+    private string _editBody = string.Empty;
+    private ElementReference _editInputRef;
+    private IJSObjectReference? _resizeModule;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_focusInput)
+        {
+            _focusInput = false;
+            await _editInputRef.FocusAsync();
+        }
+
+        if (_resizeInput && _isEditing)
+        {
+            _resizeInput = false;
+            await ResizeInputAsync();
+        }
+
+        if (_attachEnterSubmitBehavior && _isEditing)
+        {
+            _attachEnterSubmitBehavior = false;
+            _resizeModule ??= await Js.InvokeAsync<IJSObjectReference>("import", "./js/textareaAutoResize.js");
+            await _resizeModule.InvokeVoidAsync("attachEnterSubmitBehavior", _editInputRef);
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_resizeModule is not null)
+        {
+            await DetachEnterSubmitBehaviorAsync();
+            await _resizeModule.DisposeAsync();
+        }
+    }
+
+    private bool IsCurrentUserAuthor =>
+        ProfileStore.Profile is { } profile && profile.Id == Comment.Author.Id;
+
+    private static string GetAuthorDisplay(UserDto author) =>
+        string.IsNullOrWhiteSpace(author.DisplayName)
+            ? author.Email
+            : author.DisplayName;
+
+    private string GetAuthorDisplay() => GetAuthorDisplay(Comment.Author);
+
+    private string GetAuthorTitle() => Comment.Author.Email;
+
+    private static char GetAvatarLetter(UserDto author) =>
+        char.ToUpperInvariant(
+            GetAuthorDisplay(author) is { Length: > 0 } source
+                ? source[0]
+                : '?');
+
+    private static string FormatCreatedAt(DateTime createdAtUtc) =>
+        createdAtUtc.ToLocalTime().ToString("g");
+
+    private string GetEditedSuffix() =>
+        Comment.LastModifiedAtUtc is null ? string.Empty : " (edited)";
+
+    private void StartEdit()
+    {
+        if (!IsCurrentUserAuthor || _isEditing)
+            return;
+
+        _editBody = Comment.Body;
+        _isEditing = true;
+        _focusInput = true;
+        _resizeInput = true;
+        _attachEnterSubmitBehavior = true;
+    }
+
+    private async Task CancelEditAsync()
+    {
+        await DetachEnterSubmitBehaviorAsync();
+        _isEditing = false;
+        _editBody = Comment.Body;
+    }
+
+    private void CancelEdit() => _ = CancelEditAsync();
+
+    private async Task ResizeInputAsync()
+    {
+        if (!_isEditing)
+            return;
+
+        _resizeModule ??= await Js.InvokeAsync<IJSObjectReference>("import", "./js/textareaAutoResize.js");
+        await _resizeModule.InvokeVoidAsync("autoResize", _editInputRef);
+    }
+
+    private async Task OnEditKeyDownAsync(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !e.ShiftKey)
+            await SaveEditAsync();
+        else if (e.Key == "Escape")
+            CancelEdit();
+    }
+
+    private async Task DetachEnterSubmitBehaviorAsync()
+    {
+        if (_resizeModule is null)
+            return;
+
+        await _resizeModule.InvokeVoidAsync("detachEnterSubmitBehavior", _editInputRef);
+    }
+
+    private async Task OnEditBlurAsync()
+    {
+        if (!_isEditing)
+            return;
+
+        await SaveEditAsync();
+    }
+
+    private async Task SaveEditAsync()
+    {
+        if (!_isEditing || _isSaving)
+            return;
+
+        var normalizedBody = _editBody.Trim();
+
+        if (string.IsNullOrEmpty(normalizedBody))
+        {
+            Snackbar.Add("Cannot save an empty comment. Use Delete if you want to remove it.", Severity.Error);
+            return;
+        }
+
+        if (normalizedBody.Length > BoardTaskCommentFieldLengths.MaxBodyLength)
+        {
+            Snackbar.Add(
+                $"Comment must not exceed {BoardTaskCommentFieldLengths.MaxBodyLength} characters.",
+                Severity.Error);
+            return;
+        }
+
+        if (string.Equals(normalizedBody, Comment.Body, StringComparison.Ordinal))
+        {
+            await CancelEditAsync();
+            return;
+        }
+
+        _isSaving = true;
+
+        try
+        {
+            await BoardApiService.UpdateBoardTaskCommentAsync(
+                BoardId,
+                ColumnId,
+                TaskId,
+                Comment.Id,
+                normalizedBody);
+
+            BoardTaskStore.UpdateComment(Comment.Id, normalizedBody);
+            await DetachEnterSubmitBehaviorAsync();
+            _isEditing = false;
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    private async Task DeleteCommentAsync()
+    {
+        if (!IsCurrentUserAuthor || _isDeleting || _isEditing)
+            return;
+
+        var preview = GetDeletePreview(Comment.Body);
+        var message =
+            $"Delete comment?{Environment.NewLine}{Environment.NewLine}\"{preview}\"{Environment.NewLine}{Environment.NewLine}This action cannot be undone.";
+
+        var dialog = await DialogService.ShowConfirmResourceAsync(
+            "Delete comment",
+            message,
+            confirmLabel: "Delete");
+
+        var result = await dialog.Result;
+
+        if (result is not { Canceled: false, Data: true })
+            return;
+
+        _isDeleting = true;
+
+        try
+        {
+            await BoardApiService.DeleteBoardTaskCommentAsync(
+                BoardId,
+                ColumnId,
+                TaskId,
+                Comment.Id);
+
+            BoardTaskStore.RemoveComment(Comment.Id);
+            BoardDetailsStore.AdjustTaskCommentsCount(TaskId, -1);
+            Snackbar.Add("Comment deleted.", Severity.Success);
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+        finally
+        {
+            _isDeleting = false;
+        }
+    }
+
+    private static string GetDeletePreview(string body)
+    {
+        const int maxLength = 80;
+        var normalized = body.ReplaceLineEndings(" ").Trim();
+
+        return normalized.Length <= maxLength
+            ? normalized
+            : $"{normalized[..maxLength]}...";
+    }
+}

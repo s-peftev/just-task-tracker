@@ -7,8 +7,12 @@
 @using JustTaskTracker.WebUI.Components.Shared.Forms
 @using JustTaskTracker.WebUI.Services.Abstractions.Boards
 @using JustTaskTracker.WebUI.Services.Exceptions
+@using BlazorSortable
+@using Microsoft.JSInterop
+@implements IDisposable
+@inject IJSRuntime Js
 
-<article class="board-column">
+<article class="board-column" data-column-id="@Column.Id">
     <header class="board-column__header @(CanReorderColumn ? "board-column__header--draggable" : null)">
         <div class="board-column__title-area">
             @if (_isEditingName)
@@ -59,24 +63,66 @@
         </div>
     </header>
 
-    <div class="board-column__tasks">
-        @foreach (var task in Column.BoardTasks.OrderBy(t => t.Position))
-        {
-            @* Task cards will render here *@
-        }
+    <div @ref="_tasksListRef"
+         class="board-column__tasks @(_hasTaskContent ? "board-column__tasks--filled" : null)">
+        <Sortable TItem="BoardTaskPreviewDto"
+                  @key="Column.Id"
+                  Id="@Column.Id.ToString()"
+                  Items="_sortableTasks"
+                  ItemKeySelector="GetTaskKey"
+                  Group="board-tasks"
+                  PullMode="SortablePullMode.True"
+                  PutMode="SortablePutMode.True"
+                  Handle=".board-task-card--draggable"
+                  Filter=".board-column__add-task-input"
+                  Delay="0"
+                  DelayOnTouchOnly="true"
+                  FallbackTolerance="5"
+                  Disabled="@(!CanMoveTasks || _isReorderingTasks || BoardDetailsStore.IsReorderingTasks)"
+                  Class="board-column__tasks-sortable"
+                  GhostClass="board-column__task-ghost"
+                  DragClass="board-column__task-drag"
+                  Scroll="false"
+                  OnUpdate="OnTaskSortableChangedAsync"
+                  OnAdd="OnTaskSortableChangedAsync">
+            <div class="board-column__task-item">
+                <BoardTaskCard Task="context"
+                               CanDrag="CanMoveTasks"
+                               OnTaskClick="OnTaskClickAsync" />
+            </div>
+        </Sortable>
     </div>
 
-    <footer class="board-column__footer">
-        <button type="button"
-                class="board-column__add-task"
-                @onclick="OnAddTaskClick">
-            + Add task
-        </button>
-    </footer>
+    @if (CanManageTasks)
+    {
+        <footer class="board-column__footer">
+            @if (_isAddingTask)
+            {
+                <textarea @ref="_taskTitleInputRef"
+                          class="board-column__add-task-input"
+                          rows="2"
+                          maxlength="50"
+                          placeholder="Enter a task title"
+                          @bind="_newTaskTitle"
+                          @bind:event="oninput"
+                          @onkeydown="OnTaskTitleKeyDownAsync"
+                          @onblur="OnTaskTitleBlurAsync"></textarea>
+            }
+            else
+            {
+                <button type="button"
+                        class="board-column__add-task"
+                        @onclick="StartAddTask">
+                    + Add task
+                </button>
+            }
+        </footer>
+    }
 </article>
 
 @code {
     private const int MaxNameLength = 50;
+    private const int MaxTaskTitleLength = 50;
     private const double TitleClickMoveThresholdPx = 5;
 
     [Parameter, EditorRequired]
@@ -97,6 +143,9 @@
     [Inject]
     private IDialogService DialogService { get; set; } = default!;
 
+    [Inject]
+    private NavigationManager Navigation { get; set; } = default!;
+
     private bool _isEditingName;
     private bool _isSavingName;
     private bool _focusTitleInput;
@@ -105,19 +154,80 @@
     private double? _titlePointerDownX;
     private double? _titlePointerDownY;
 
+    private bool _isAddingTask;
+    private bool _isSavingTask;
+    private bool _focusTaskTitleInput;
+    private string _newTaskTitle = string.Empty;
+    private ElementReference _taskTitleInputRef;
+    private ElementReference _tasksListRef;
+    private bool _scrollTasksToBottom;
+    private bool _isReorderingTasks;
+    private int _expectedTaskCountAfterCreate;
+    private IJSObjectReference? _tasksScrollModule;
+    private readonly List<BoardTaskPreviewDto> _sortableTasks = [];
+
     private bool CanRenameColumn => BoardRolePermissions.CanManageColumns(UserRole);
 
     private bool CanDeleteColumn => BoardRolePermissions.CanManageColumns(UserRole);
 
     private bool CanReorderColumn => BoardRolePermissions.CanManageColumns(UserRole);
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    private bool CanManageTasks => BoardRolePermissions.CanManageTasks(UserRole);
+
+    private bool CanMoveTasks => BoardRolePermissions.CanMoveTasks(UserRole);
+
+    private bool _hasTaskContent => Column.BoardTasks.Count > 0;
+
+    protected override void OnInitialized() =>
+        BoardDetailsStore.StateChanged += OnBoardStateChanged;
+
+    protected override void OnParametersSet()
     {
-        if (!_focusTitleInput)
+        if (ShouldSkipSortableSync())
             return;
 
-        _focusTitleInput = false;
-        await _titleInputRef.FocusAsync();
+        SyncSortableTasksFromColumn();
+    }
+
+    public void Dispose() =>
+        BoardDetailsStore.StateChanged -= OnBoardStateChanged;
+
+    private void OnBoardStateChanged()
+    {
+        if (BoardDetailsStore.IsReorderingTasks)
+            return;
+
+        _isReorderingTasks = false;
+
+        if (!ShouldSkipSortableSync())
+            SyncSortableTasksFromColumn();
+
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private bool ShouldSkipSortableSync() =>
+        _isReorderingTasks || BoardDetailsStore.IsReorderingTasks;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_focusTitleInput)
+        {
+            _focusTitleInput = false;
+            await _titleInputRef.FocusAsync();
+        }
+
+        if (_focusTaskTitleInput)
+        {
+            _focusTaskTitleInput = false;
+            await _taskTitleInputRef.FocusAsync();
+        }
+
+        if (_scrollTasksToBottom && Column.BoardTasks.Count >= _expectedTaskCountAfterCreate)
+        {
+            _scrollTasksToBottom = false;
+            _tasksScrollModule ??= await Js.InvokeAsync<IJSObjectReference>("import", "./js/boardColumnTasks.js");
+            await _tasksScrollModule.InvokeVoidAsync("scrollToBottom", _tasksListRef);
+        }
     }
 
     private void StartNameEdit()
@@ -255,6 +365,131 @@
         }
     }
 
-    private void OnAddTaskClick() =>
-        Snackbar.Add("Task creation is coming soon.", Severity.Info);
+    private void StartAddTask()
+    {
+        if (!CanManageTasks || _isAddingTask)
+            return;
+
+        _newTaskTitle = string.Empty;
+        _isAddingTask = true;
+        _focusTaskTitleInput = true;
+    }
+
+    private void CancelAddTask()
+    {
+        _isAddingTask = false;
+        _newTaskTitle = string.Empty;
+    }
+
+    private async Task OnTaskTitleKeyDownAsync(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !e.ShiftKey)
+        {
+            await SaveTaskAsync();
+        }
+        else if (e.Key == "Escape")
+        {
+            CancelAddTask();
+        }
+    }
+
+    private async Task OnTaskTitleBlurAsync()
+    {
+        if (!_isAddingTask || _isSavingTask)
+            return;
+
+        await SaveTaskAsync();
+    }
+
+    private async Task SaveTaskAsync()
+    {
+        if (!_isAddingTask || _isSavingTask)
+            return;
+
+        var trimmedTitle = _newTaskTitle.Trim();
+
+        if (string.IsNullOrEmpty(trimmedTitle))
+        {
+            CancelAddTask();
+            return;
+        }
+
+        if (trimmedTitle.Length > MaxTaskTitleLength)
+        {
+            Snackbar.Add($"Task title must not exceed {MaxTaskTitleLength} characters.", Severity.Error);
+            return;
+        }
+
+        _isSavingTask = true;
+
+        try
+        {
+            _expectedTaskCountAfterCreate = Column.BoardTasks.Count + 1;
+            await BoardDetailsStore.CreateTaskAsync(Column.Id, trimmedTitle);
+            SyncSortableTasksFromColumn();
+            CancelAddTask();
+            _scrollTasksToBottom = true;
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+        finally
+        {
+            _isSavingTask = false;
+        }
+    }
+
+    private void OnTaskClickAsync(BoardTaskPreviewDto task)
+    {
+        if (BoardDetailsStore.BoardId is not { } boardId)
+            return;
+
+        Navigation.NavigateTo(BoardTaskRoutes.GetTaskUrl(boardId, Column.Id, task.Id));
+    }
+
+    private static string GetTaskKey(BoardTaskPreviewDto task) => task.Id.ToString();
+
+    private void SyncSortableTasksFromColumn()
+    {
+        var ordered = Column.BoardTasks
+            .OrderBy(task => task.Position)
+            .ToList();
+
+        _sortableTasks.Clear();
+        _sortableTasks.AddRange(ordered);
+    }
+
+    private async Task OnTaskSortableChangedAsync(SortableEventArgs<BoardTaskPreviewDto> args)
+    {
+        if (!CanMoveTasks || _isReorderingTasks || BoardDetailsStore.IsReorderingTasks)
+            return;
+
+        if (args.Operation == SortableChangeOperation.Remove)
+            return;
+
+        if (args.Operation == SortableChangeOperation.Update && args.OldIndex == args.NewIndex)
+            return;
+
+        if (args.Operation == SortableChangeOperation.Add && args.From.Id == args.To.Id)
+            return;
+
+        _isReorderingTasks = true;
+
+        try
+        {
+            await BoardDetailsStore.ReorderTaskAsync(args.Item.Id, Column.Id, args.NewIndex);
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+        finally
+        {
+            _isReorderingTasks = false;
+
+            if (!BoardDetailsStore.IsReorderingTasks)
+                SyncSortableTasksFromColumn();
+        }
+    }
 }

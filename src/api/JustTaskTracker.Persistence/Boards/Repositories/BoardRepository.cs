@@ -1,7 +1,9 @@
 using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Helpers;
 using JustTaskTracker.Domain.Auth.DTOs;
-using JustTaskTracker.Domain.Boards.DTOs;
+using JustTaskTracker.Domain.Boards.DTOs.Boards;
+using JustTaskTracker.Domain.Boards.DTOs.BoardTasks;
+using JustTaskTracker.Domain.Boards.DTOs.Columns;
 using JustTaskTracker.Domain.Boards.Entities;
 using JustTaskTracker.Domain.Boards.Enums;
 using JustTaskTracker.Domain.Boards.Enums.SearchFields;
@@ -19,6 +21,14 @@ public class BoardRepository(JustTaskTrackerDbContext context)
     public void AddMember(BoardMember member) =>
         _context.BoardMembers.Add(member);
 
+    public async Task<BoardMemberRole?> GetUserRoleAsync(Guid boardId, Guid azureAdObjectId, CancellationToken ct = default) =>
+        await _dbSet
+            .Where(b => b.Id == boardId)
+            .SelectMany(b => b.Members)
+            .Where(m => m.User!.AzureAdObjectId == azureAdObjectId)
+            .Select(m => m.Role)
+            .FirstOrDefaultAsync(ct);
+
     public async Task<(Board? Board, BoardMemberRole? UserRole)> GetBoardWithUserRoleAsync(Guid boardId, Guid azureAdObjectId, CancellationToken ct = default)
     {
         var result = await _dbSet
@@ -28,30 +38,12 @@ public class BoardRepository(JustTaskTrackerDbContext context)
                 Board = b,
                 UserRole = b.Members
                     .Where(m => m.User!.AzureAdObjectId == azureAdObjectId)
-                    .Select(m => (BoardMemberRole?)m.Role)
+                    .Select(m => m.Role)
                     .FirstOrDefault()
             })
             .FirstOrDefaultAsync(ct);
 
         return (result?.Board, result?.UserRole);
-    }
-
-    public async Task<BoardAccessStatus> GetBoardAccessAsync(Guid boardId, Guid azureAdObjectId, CancellationToken ct = default)
-    {
-        var access = await _dbSet
-            .Where(b => b.Id == boardId)
-            .Select(b => new
-            {
-                IsMember = b.Members.Any(m => m.User!.AzureAdObjectId == azureAdObjectId)
-            })
-            .FirstOrDefaultAsync(ct);
-
-        if (access is null)
-            return BoardAccessStatus.NotFound;
-
-        return access.IsMember
-            ? BoardAccessStatus.Allowed
-            : BoardAccessStatus.Forbidden;
     }
 
     public async Task<BoardDetailsDto?> GetBoardDetailsByIdAsync(Guid boardId, Guid azureAdObjectId, CancellationToken ct = default) =>
@@ -76,16 +68,12 @@ public class BoardRepository(JustTaskTrackerDbContext context)
                         c.Position,
                         c.Tasks
                             .OrderBy(t => t.Position)
-                            .Select(t => new BoardTaskDto(
+                            .Select(t => new BoardTaskPreviewDto(
                                 t.Id,
                                 t.Title,
                                 t.Position,
-                                t.CreatedAtUtc,
-                                new UserDto(t.Reporter!.Id, t.Reporter.Email, t.Reporter.DisplayName),
-                                t.Description,
-                                t.AssigneeId == null
-                                    ? null
-                                    : new UserDto(t.Assignee!.Id, t.Assignee.Email, t.Assignee.DisplayName)))))))
+                                t.Comments.Count,
+                                t.Attachments.Count))))))
             .AsSplitQuery()
             .FirstOrDefaultAsync(ct);
 
@@ -93,14 +81,14 @@ public class BoardRepository(JustTaskTrackerDbContext context)
         Guid azureAdObjectId,
         int pageNumber,
         int pageSize,
-        TextSearchOptions<BoardSearchField>? textSearchOptions = null,
+        TextSearchOptions<BoardSearchField>? searchOptions = null,
         CancellationToken ct = default)
     {
-        var fields = SearchFieldsResolver.Resolve(textSearchOptions?.SearchIn, BoardSearchFields.Map);
+        var fields = SearchFieldsResolver.Resolve(searchOptions?.SearchIn, BoardSearchFields.Map);
 
         return await _dbSet
             .Where(b => b.Members.Any(m => m.User!.AzureAdObjectId == azureAdObjectId))
-            .ApplyTextSearch(textSearchOptions?.Search, fields)
+            .ApplyTextSearch(searchOptions?.Search, fields)
             .Select(b => new
             {
                 Board = b,
@@ -146,5 +134,7 @@ public class BoardRepository(JustTaskTrackerDbContext context)
                 pageSize,
                 ct);
     }
-         
+
+    public async Task<bool> IsBoardMemberAsync(Guid boardId, Guid userId, CancellationToken ct = default) =>
+        await _context.BoardMembers.AnyAsync(m => m.BoardId == boardId && m.UserId == userId, ct);
 }

@@ -1,3 +1,4 @@
+using JustTaskTracker.Domain.Boards.Constants;
 using JustTaskTracker.Domain.Boards.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -8,6 +9,6 @@ public class BoardConfiguration : IEntityTypeConfiguration<Board>
 {
     public void Configure(EntityTypeBuilder<Board> builder)
     {
-        builder.Property(b => b.Name).HasMaxLength(100);
+        builder.Property(b => b.Name).HasMaxLength(BoardFieldLengths.MaxNameLength);
     }
 }

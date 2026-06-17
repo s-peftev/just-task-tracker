@@ -13,6 +13,7 @@ public interface IBoardDetailsStore
     BoardDetailsDto? Board { get; }
     bool IsLoading { get; }
     string? ErrorMessage { get; }
+    bool IsReorderingTasks { get; }
 
     event Action? StateChanged;
 
@@ -20,13 +21,25 @@ public interface IBoardDetailsStore
 
     Task<ColumnDto> CreateColumnAsync(string name, CancellationToken ct = default);
 
+    Task<BoardTaskPreviewDto> CreateTaskAsync(Guid columnId, string title, CancellationToken ct = default);
+
     void UpdateBoardName(string name);
 
     void UpdateColumnName(Guid columnId, string name);
 
+    void UpdateTaskTitle(Guid taskId, string title);
+
+    void AdjustTaskCommentsCount(Guid taskId, int delta);
+
+    void AdjustTaskAttachmentsCount(Guid taskId, int delta);
+
     Task DeleteColumnAsync(Guid columnId, DeleteColumnRequest request, CancellationToken ct = default);
 
-    Task ReorderColumnsAsync(IReadOnlyList<Guid> columnIds, CancellationToken ct = default);
+    Task ReorderColumnAsync(Guid columnId, int position, CancellationToken ct = default);
+
+    Task ReorderTaskAsync(Guid taskId, Guid targetColumnId, int position, CancellationToken ct = default);
+
+    Task DeleteTaskAsync(Guid boardId, Guid columnId, Guid taskId, CancellationToken ct = default);
 
     void Reset();
 }

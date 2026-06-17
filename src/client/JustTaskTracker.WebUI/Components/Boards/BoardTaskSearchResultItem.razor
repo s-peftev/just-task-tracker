@@ -1,0 +1,22 @@
+@using JustTaskTracker.WebUI.Domain.Boards
+
+<button type="button"
+        class="board-task-search-result"
+        @onclick="OnClickAsync">
+    <span class="board-task-search-result__title" title="@Task.Title">@Task.Title</span>
+    <span class="board-task-search-result__description" title="@Task.Description">@GetDescription()</span>
+</button>
+
+@code {
+    [Parameter, EditorRequired]
+    public BoardTaskLookupDto Task { get; set; } = null!;
+
+    [Parameter, EditorRequired]
+    public EventCallback<BoardTaskLookupDto> OnClick { get; set; }
+
+    private string GetDescription() =>
+        string.IsNullOrWhiteSpace(Task.Description) ? "No description" : Task.Description;
+
+    private Task OnClickAsync() =>
+        OnClick.InvokeAsync(Task);
+}

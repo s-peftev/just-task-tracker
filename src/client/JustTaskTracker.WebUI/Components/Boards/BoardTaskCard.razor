@@ -1,0 +1,96 @@
+@using JustTaskTracker.WebUI.Domain.Boards
+
+<button type="button"
+        class="board-task-card @(CanDrag ? "board-task-card--draggable" : null)"
+        @onpointerdown="OnPointerDown"
+        @onpointerup="OnPointerUp">
+    <span class="board-task-card__title">@Task.Title</span>
+
+    @if (Task.CommentsCount > 0 || Task.AttachmentsCount > 0)
+    {
+        <span class="board-task-card__meta" aria-hidden="true">
+            @if (Task.CommentsCount > 0)
+            {
+                <span class="board-task-card__stat">
+                    <svg class="board-task-card__stat-icon"
+                         viewBox="0 0 24 24"
+                         aria-hidden="true"
+                         focusable="false">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+                              stroke="currentColor"
+                              stroke-width="2"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              fill="none" />
+                        <path d="M8 10h8"
+                              stroke="currentColor"
+                              stroke-width="2"
+                              stroke-linecap="round" />
+                        <path d="M8 14h5"
+                              stroke="currentColor"
+                              stroke-width="2"
+                              stroke-linecap="round" />
+                    </svg>
+                    <span class="board-task-card__stat-value">@Task.CommentsCount</span>
+                </span>
+            }
+
+            @if (Task.AttachmentsCount > 0)
+            {
+                <span class="board-task-card__stat">
+                    <svg class="board-task-card__stat-icon"
+                         viewBox="0 0 24 24"
+                         aria-hidden="true"
+                         focusable="false">
+                        <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57a4 4 0 1 1 5.66 5.66l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"
+                              stroke="currentColor"
+                              stroke-width="2"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              fill="none" />
+                    </svg>
+                    <span class="board-task-card__stat-value">@Task.AttachmentsCount</span>
+                </span>
+            }
+        </span>
+    }
+</button>
+
+@code {
+    private const double ClickMoveThresholdPx = 5;
+
+    [Parameter, EditorRequired]
+    public BoardTaskPreviewDto Task { get; set; } = default!;
+
+    [Parameter]
+    public bool CanDrag { get; set; }
+
+    [Parameter]
+    public EventCallback<BoardTaskPreviewDto> OnTaskClick { get; set; }
+
+    private double? _pointerDownX;
+    private double? _pointerDownY;
+
+    private void OnPointerDown(PointerEventArgs e)
+    {
+        _pointerDownX = e.ClientX;
+        _pointerDownY = e.ClientY;
+    }
+
+    private async Task OnPointerUp(PointerEventArgs e)
+    {
+        if (_pointerDownX is not { } startX || _pointerDownY is not { } startY)
+            return;
+
+        _pointerDownX = null;
+        _pointerDownY = null;
+
+        var movedX = Math.Abs(e.ClientX - startX);
+        var movedY = Math.Abs(e.ClientY - startY);
+
+        if (movedX > ClickMoveThresholdPx || movedY > ClickMoveThresholdPx)
+            return;
+
+        await OnTaskClick.InvokeAsync(Task);
+    }
+}

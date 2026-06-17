@@ -1,5 +1,5 @@
 using JustTaskTracker.Application.Common.Interfaces.Persistence;
-using JustTaskTracker.Domain.Common;
+using JustTaskTracker.Domain.Common.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace JustTaskTracker.Persistence.Common;

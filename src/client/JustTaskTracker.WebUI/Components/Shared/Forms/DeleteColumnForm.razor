@@ -33,7 +33,8 @@
 
             @if (_model.TasksDisposition == DeleteColumnTasksDisposition.MoveToColumn)
             {
-                <MudSelect @bind-Value="_model.TargetColumnId"
+                <MudSelect T="Guid?"
+                           @bind-Value="_model.TargetColumnId"
                            Label="Target column"
                            Variant="Variant.Outlined"
                            Disabled="@(!CanMoveTasks)"
@@ -42,7 +43,7 @@
                            ErrorText="@(_showValidation ? _targetColumnError : null)">
                     @foreach (var otherColumn in OtherColumns)
                     {
-                        <MudSelectItem Value="otherColumn.Id">@otherColumn.Name</MudSelectItem>
+                        <MudSelectItem T="Guid?" Value="@otherColumn.Id">@otherColumn.Name</MudSelectItem>
                     }
                 </MudSelect>
 

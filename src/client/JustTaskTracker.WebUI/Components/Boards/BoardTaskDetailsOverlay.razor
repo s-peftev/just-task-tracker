@@ -1,0 +1,381 @@
+@using JustTaskTracker.WebUI.Components.Shared
+@using JustTaskTracker.WebUI.Domain.Boards.Authorization
+@using JustTaskTracker.WebUI.Domain.Boards.Constants
+@using JustTaskTracker.WebUI.Infrastructure
+@using JustTaskTracker.WebUI.Domain.Boards.Enums
+@using JustTaskTracker.WebUI.Services.Abstractions.Boards
+@using JustTaskTracker.WebUI.Services.Exceptions
+@implements IDisposable
+@inject IBoardDetailsStore BoardDetailsStore
+@inject IBoardTaskStore BoardTaskStore
+@inject IBoardApiService BoardApiService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IJSRuntime Js
+
+<div class="board-task-overlay"
+     role="dialog"
+     aria-modal="true"
+     aria-label="@GetColumnName()"
+     @onkeydown="OnKeyDownAsync">
+    <div class="board-task-overlay__backdrop @(DimBackground ? "board-task-overlay__backdrop--dim" : null)"
+         @onclick="CloseAsync"></div>
+
+    <div class="board-task-overlay__panel">
+        <header class="board-task-overlay__header">
+            <div class="board-task-overlay__header-title-area">
+                <h2 class="board-task-overlay__column-name">@GetColumnName()</h2>
+            </div>
+
+            <div class="board-task-overlay__header-controls">
+                @if (CanDeleteTask)
+                {
+                    <button type="button"
+                            class="board-task-overlay__delete-btn"
+                            disabled="@_isDeletingTask"
+                            @onclick="DeleteTaskAsync">
+                        Delete
+                    </button>
+                }
+
+                <button type="button"
+                        class="btn-icon btn-icon--round btn-icon--sm"
+                        aria-label="Close task"
+                        @onclick="CloseAsync">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path d="M18 6L6 18M6 6l12 12"
+                              stroke="currentColor"
+                              stroke-width="2"
+                              stroke-linecap="round" />
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <div class="board-task-overlay__content">
+            <section class="board-task-overlay__task" aria-label="Task details">
+                <BoardTaskDetailsPanel BoardId="BoardId"
+                                       ColumnId="ColumnId"
+                                       TaskId="TaskId" />
+            </section>
+
+            <aside class="board-task-overlay__comments" aria-label="Comments">
+                <header class="board-task-overlay__comments-header">
+                    <div class="board-task-overlay__comments-heading">
+                        <svg class="board-task-overlay__comments-icon"
+                             viewBox="0 0 24 24"
+                             aria-hidden="true"
+                             focusable="false">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+                                  stroke="currentColor"
+                                  stroke-width="2"
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                  fill="none" />
+                            <path d="M8 10h8"
+                                  stroke="currentColor"
+                                  stroke-width="2"
+                                  stroke-linecap="round" />
+                            <path d="M8 14h5"
+                                  stroke="currentColor"
+                                  stroke-width="2"
+                                  stroke-linecap="round" />
+                        </svg>
+                        <h3 class="board-task-overlay__comments-title">Comments</h3>
+                    </div>
+                    @if (CanCommentOnTasks && _isComposingComment)
+                    {
+                        <div class="board-task-overlay__section-actions">
+                            <button type="button"
+                                    class="board-task-overlay__action-btn"
+                                    disabled="@_isSavingComment"
+                                    @onmousedown:preventDefault
+                                    @onclick="CancelCommentCompose">
+                                Cancel
+                            </button>
+                            <button type="button"
+                                    class="board-task-overlay__action-btn"
+                                    disabled="@_isSavingComment"
+                                    @onmousedown:preventDefault
+                                    @onclick="SaveCommentAsync">
+                                Save
+                            </button>
+                        </div>
+                    }
+                </header>
+
+                @if (CanCommentOnTasks)
+                {
+                    <div class="board-task-overlay__comments-body">
+                        @if (_isComposingComment)
+                        {
+                            <textarea @ref="_commentInputRef"
+                                      class="board-task-overlay__comment-input"
+                                      maxlength="@BoardTaskCommentFieldLengths.MaxBodyLength"
+                                      placeholder="Write a comment..."
+                                      @bind="_editCommentBody"
+                                      @bind:event="oninput"
+                                      @bind:after="ResizeCommentInputAsync"
+                                      @onkeydown="OnCommentKeyDownAsync"
+                                      @onblur="OnCommentBlurAsync"></textarea>
+                        }
+                        else
+                        {
+                            <button type="button"
+                                    class="board-task-overlay__comment-compose"
+                                    @onclick="StartCommentCompose">
+                                Write a comment...
+                            </button>
+                        }
+                    </div>
+                }
+
+                <div class="board-task-overlay__comments-list">
+                    @foreach (var comment in BoardTaskStore.Comments)
+                    {
+                        <BoardTaskCommentItem BoardId="BoardId"
+                                              ColumnId="ColumnId"
+                                              TaskId="TaskId"
+                                              Comment="comment" />
+                    }
+
+                    @if (BoardTaskStore.HasMoreComments)
+                    {
+                        <ExpandableActionButton Text="Show more comments"
+                                                Icon="ExpandableActionButtonIcon.ChevronDown"
+                                                Disabled="@BoardTaskStore.IsLoadingMoreComments"
+                                                OnClick="LoadMoreCommentsAsync" />
+                    }
+                </div>
+            </aside>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public Guid BoardId { get; set; }
+
+    [Parameter, EditorRequired]
+    public Guid ColumnId { get; set; }
+
+    [Parameter, EditorRequired]
+    public Guid TaskId { get; set; }
+
+    [Parameter]
+    public bool DimBackground { get; set; } = true;
+
+    [Parameter, EditorRequired]
+    public EventCallback OnClose { get; set; }
+
+    private bool _isDeletingTask;
+    private bool _isComposingComment;
+    private bool _isSavingComment;
+    private bool _focusCommentInput;
+    private bool _resizeCommentInput;
+    private string _editCommentBody = string.Empty;
+    private ElementReference _commentInputRef;
+    private IJSObjectReference? _commentResizeModule;
+
+    private bool CanDeleteTask =>
+        EffectiveUserRole is { } role && BoardRolePermissions.CanManageTasks(role);
+
+    private bool CanCommentOnTasks =>
+        EffectiveUserRole is { } role && BoardRolePermissions.CanCommentOnTasks(role);
+
+    private BoardMemberRole? EffectiveUserRole =>
+        BoardTaskStore.Task?.UserRole ?? BoardDetailsStore.Board?.UserRole;
+
+    protected override void OnInitialized()
+    {
+        BoardDetailsStore.StateChanged += OnBoardStoreStateChanged;
+        BoardTaskStore.StateChanged += OnTaskStoreStateChanged;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_focusCommentInput)
+        {
+            _focusCommentInput = false;
+            await _commentInputRef.FocusAsync();
+        }
+
+        if (_resizeCommentInput && _isComposingComment)
+        {
+            _resizeCommentInput = false;
+            await ResizeCommentInputAsync();
+        }
+    }
+
+    public void Dispose()
+    {
+        BoardDetailsStore.StateChanged -= OnBoardStoreStateChanged;
+        BoardTaskStore.StateChanged -= OnTaskStoreStateChanged;
+        BoardTaskStore.Reset();
+
+        if (_commentResizeModule is not null)
+            _ = _commentResizeModule.DisposeAsync();
+    }
+
+    private string GetColumnName() =>
+        BoardTaskStore.Task?.ColumnName
+        ?? BoardDetailsStore.Board?.Columns.FirstOrDefault(column => column.Id == ColumnId)?.Name
+        ?? "Column";
+
+    private void OnBoardStoreStateChanged() => InvokeAsync(StateHasChanged);
+
+    private void OnTaskStoreStateChanged() => InvokeAsync(StateHasChanged);
+
+    private void StartCommentCompose()
+    {
+        if (!CanCommentOnTasks || _isComposingComment)
+            return;
+
+        _editCommentBody = string.Empty;
+        _isComposingComment = true;
+        _focusCommentInput = true;
+        _resizeCommentInput = true;
+    }
+
+    private void CancelCommentCompose()
+    {
+        _isComposingComment = false;
+        _editCommentBody = string.Empty;
+    }
+
+    private async Task ResizeCommentInputAsync()
+    {
+        if (!_isComposingComment)
+            return;
+
+        _commentResizeModule ??= await Js.InvokeAsync<IJSObjectReference>("import", "./js/textareaAutoResize.js");
+        await _commentResizeModule.InvokeVoidAsync("autoResize", _commentInputRef);
+    }
+
+    private async Task OnCommentKeyDownAsync(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !e.ShiftKey)
+            await SaveCommentAsync();
+        else if (e.Key == "Escape")
+            CancelCommentCompose();
+    }
+
+    private async Task OnCommentBlurAsync()
+    {
+        if (!_isComposingComment)
+            return;
+
+        await SaveCommentAsync();
+    }
+
+    private async Task SaveCommentAsync()
+    {
+        if (!_isComposingComment || _isSavingComment)
+            return;
+
+        var normalizedBody = _editCommentBody.Trim();
+
+        if (string.IsNullOrEmpty(normalizedBody))
+        {
+            CancelCommentCompose();
+            return;
+        }
+
+        if (normalizedBody.Length > BoardTaskCommentFieldLengths.MaxBodyLength)
+        {
+            Snackbar.Add(
+                $"Comment must not exceed {BoardTaskCommentFieldLengths.MaxBodyLength} characters.",
+                Severity.Error);
+            return;
+        }
+
+        _isSavingComment = true;
+
+        try
+        {
+            var comment = await BoardApiService.CreateBoardTaskCommentAsync(
+                BoardId,
+                ColumnId,
+                TaskId,
+                normalizedBody);
+
+            BoardTaskStore.AddComment(comment);
+            BoardDetailsStore.AdjustTaskCommentsCount(TaskId, 1);
+            CancelCommentCompose();
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+        finally
+        {
+            _isSavingComment = false;
+        }
+    }
+
+    private async Task LoadMoreCommentsAsync()
+    {
+        try
+        {
+            await BoardTaskStore.LoadMoreCommentsAsync();
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+    }
+
+    private async Task DeleteTaskAsync()
+    {
+        if (_isDeletingTask)
+            return;
+
+        var taskTitle = BoardTaskStore.Task?.Title ?? "this task";
+        var message =
+            $"Delete task \"{taskTitle}\"?{Environment.NewLine}This action cannot be undone.";
+
+        var dialog = await DialogService.ShowConfirmResourceAsync(
+            "Delete task",
+            message,
+            confirmLabel: "Delete");
+
+        var result = await dialog.Result;
+
+        if (result is not { Canceled: false, Data: true })
+            return;
+
+        _isDeletingTask = true;
+
+        try
+        {
+            await BoardDetailsStore.DeleteTaskAsync(BoardId, ColumnId, TaskId);
+            BoardTaskStore.Reset();
+            Snackbar.Add("Task deleted.", Severity.Success);
+            await CloseAsync();
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+        finally
+        {
+            _isDeletingTask = false;
+        }
+    }
+
+    private async Task CloseAsync() => await OnClose.InvokeAsync();
+
+    private async Task OnKeyDownAsync(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape")
+        {
+            if (_isComposingComment)
+            {
+                CancelCommentCompose();
+                return;
+            }
+
+            await CloseAsync();
+        }
+    }
+}

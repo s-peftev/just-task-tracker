@@ -1,5 +1,5 @@
 using JustTaskTracker.Application.Common.Interfaces.Persistence;
-using JustTaskTracker.Domain.Boards.DTOs;
+using JustTaskTracker.Domain.Boards.DTOs.Boards;
 using JustTaskTracker.Domain.Boards.Entities;
 using JustTaskTracker.Domain.Boards.Enums;
 using JustTaskTracker.Domain.Boards.Enums.SearchFields;
@@ -12,9 +12,9 @@ public interface IBoardRepository : IRepository<Board, Guid>
 {
     void AddMember(BoardMember member);
 
-    Task<(Board? Board, BoardMemberRole? UserRole)> GetBoardWithUserRoleAsync(Guid boardId, Guid azureAdObjectId, CancellationToken ct = default);
+    Task<BoardMemberRole?> GetUserRoleAsync(Guid boardId, Guid azureAdObjectId, CancellationToken ct = default);
 
-    Task<BoardAccessStatus> GetBoardAccessAsync(Guid boardId, Guid azureAdObjectId, CancellationToken ct = default);
+    Task<(Board? Board, BoardMemberRole? UserRole)> GetBoardWithUserRoleAsync(Guid boardId, Guid azureAdObjectId, CancellationToken ct = default);
 
     Task<BoardDetailsDto?> GetBoardDetailsByIdAsync(Guid boardId, Guid azureAdObjectId, CancellationToken ct = default);
 
@@ -22,6 +22,8 @@ public interface IBoardRepository : IRepository<Board, Guid>
         Guid azureAdObjectId,
         int pageNumber,
         int pageSize,
-        TextSearchOptions<BoardSearchField>? textSearchOptions = null,
+        TextSearchOptions<BoardSearchField>? searchOptions = null,
         CancellationToken ct = default);
+
+    Task<bool> IsBoardMemberAsync(Guid boardId, Guid userId, CancellationToken ct = default);
 }

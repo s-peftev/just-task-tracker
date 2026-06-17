@@ -3,6 +3,7 @@ using JustTaskTracker.WebUI.Domain.Boards.Requests;
 using JustTaskTracker.WebUI.Services.Abstractions.Boards;
 using JustTaskTracker.WebUI.Services.Api;
 using JustTaskTracker.WebUI.Domain.Common.Pagination;
+using Refit;
 
 namespace JustTaskTracker.WebUI.Services.Boards;
 
@@ -72,12 +73,255 @@ internal class BoardApiService(IBoardApi api) : IBoardApiService
         return ApiResponseGuard.Unwrap(response);
     }
 
-    public async Task ReorderColumnsAsync(
+    public async Task ReorderColumnAsync(
         Guid boardId,
-        IReadOnlyList<Guid> columnIds,
+        Guid columnId,
+        int position,
         CancellationToken ct = default)
     {
-        var response = await api.ReorderColumnsAsync(boardId, new ReorderColumnsRequest(columnIds), ct);
+        var response = await api.ReorderColumnAsync(boardId, columnId, new ReorderColumnPositionRequest(position), ct);
+
+        ApiResponseGuard.EnsureSuccess(response);
+    }
+
+    public async Task ReorderTaskAsync(
+        Guid boardId,
+        Guid targetColumnId,
+        Guid taskId,
+        int position,
+        CancellationToken ct = default)
+    {
+        var response = await api.ReorderTaskAsync(
+            boardId,
+            targetColumnId,
+            taskId,
+            new ReorderTaskPositionRequest(position),
+            ct);
+
+        ApiResponseGuard.EnsureSuccess(response);
+    }
+
+    public async Task<BoardTaskPreviewDto> CreateTaskAsync(
+        Guid boardId,
+        Guid columnId,
+        string title,
+        CancellationToken ct = default)
+    {
+        var response = await api.CreateTaskAsync(boardId, columnId, new SaveTaskRequest(title), ct);
+
+        return ApiResponseGuard.Unwrap(response);
+    }
+
+    public async Task<PagedList<BoardTaskLookupDto>> GetBoardTasksLookupAsync(
+        Guid boardId,
+        Guid columnId,
+        GetBoardTasksLookupRequest request,
+        CancellationToken ct = default)
+    {
+        var search = string.IsNullOrWhiteSpace(request.SearchOptions?.Search)
+            ? null
+            : request.SearchOptions.Search;
+
+        var response = await api.GetTaskLookupListAsync(
+            boardId,
+            columnId,
+            request.PageNumber!.Value,
+            request.PageSize!.Value,
+            search,
+            ct);
+
+        return ApiResponseGuard.Unwrap(response);
+    }
+
+    public async Task<BoardTaskDetailsDto> GetBoardTaskByIdAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid taskId,
+        CancellationToken ct = default)
+    {
+        var response = await api.GetTaskByIdAsync(boardId, columnId, taskId, ct);
+
+        return ApiResponseGuard.Unwrap(response);
+    }
+
+    public async Task UpdateBoardTaskTitleAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid taskId,
+        string title,
+        CancellationToken ct = default)
+    {
+        var response = await api.UpdateTaskTitleAsync(
+            boardId,
+            columnId,
+            taskId,
+            new UpdateBoardTaskTitleRequest(title),
+            ct);
+
+        ApiResponseGuard.EnsureSuccess(response);
+    }
+
+    public async Task UpdateBoardTaskDescriptionAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid taskId,
+        string? description,
+        CancellationToken ct = default)
+    {
+        var response = await api.UpdateTaskDescriptionAsync(
+            boardId,
+            columnId,
+            taskId,
+            new UpdateBoardTaskDescriptionRequest(description),
+            ct);
+
+        ApiResponseGuard.EnsureSuccess(response);
+    }
+
+    public async Task UpdateBoardTaskAssigneeAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid taskId,
+        Guid? assigneeId,
+        CancellationToken ct = default)
+    {
+        var response = await api.UpdateTaskAssigneeAsync(
+            boardId,
+            columnId,
+            taskId,
+            new UpdateBoardTaskAssigneeRequest(assigneeId),
+            ct);
+
+        ApiResponseGuard.EnsureSuccess(response);
+    }
+
+    public async Task DeleteBoardTaskAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid taskId,
+        CancellationToken ct = default)
+    {
+        var response = await api.DeleteTaskAsync(boardId, columnId, taskId, ct);
+
+        ApiResponseGuard.EnsureSuccess(response);
+    }
+
+    public async Task<BoardTaskAttachmentDto> UploadBoardTaskAttachmentAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid taskId,
+        Stream content,
+        string fileName,
+        string contentType,
+        CancellationToken ct = default)
+    {
+        var streamPart = new StreamPart(content, fileName, contentType);
+
+        var response = await api.UploadTaskAttachmentAsync(
+            boardId,
+            columnId,
+            taskId,
+            streamPart,
+            ct);
+
+        return ApiResponseGuard.Unwrap(response);
+    }
+
+    public async Task DeleteBoardTaskAttachmentAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid taskId,
+        Guid attachmentId,
+        CancellationToken ct = default)
+    {
+        var response = await api.DeleteTaskAttachmentAsync(boardId, columnId, taskId, attachmentId, ct);
+
+        ApiResponseGuard.EnsureSuccess(response);
+    }
+
+    public async Task<BoardTaskAttachmentFile> DownloadBoardTaskAttachmentAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid taskId,
+        Guid attachmentId,
+        string fileName,
+        CancellationToken ct = default)
+    {
+        using var response = await api.DownloadTaskAttachmentAsync(
+            boardId,
+            columnId,
+            taskId,
+            attachmentId,
+            ct);
+
+        var (content, contentType) = await ApiResponseGuard.ReadBinarySuccessAsync(response, ct);
+
+        return new BoardTaskAttachmentFile(content, contentType, fileName);
+    }
+
+    public async Task<PagedList<BoardTaskCommentDto>> GetBoardTaskCommentsAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid taskId,
+        int pageNumber,
+        int pageSize,
+        CancellationToken ct = default)
+    {
+        var response = await api.GetTaskCommentsAsync(
+            boardId,
+            columnId,
+            taskId,
+            pageNumber,
+            pageSize,
+            ct);
+
+        return ApiResponseGuard.Unwrap(response);
+    }
+
+    public async Task<BoardTaskCommentDto> CreateBoardTaskCommentAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid taskId,
+        string body,
+        CancellationToken ct = default)
+    {
+        var response = await api.CreateTaskCommentAsync(
+            boardId,
+            columnId,
+            taskId,
+            new CreateBoardTaskCommentRequest(body),
+            ct);
+
+        return ApiResponseGuard.Unwrap(response);
+    }
+
+    public async Task UpdateBoardTaskCommentAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid taskId,
+        Guid commentId,
+        string body,
+        CancellationToken ct = default)
+    {
+        var response = await api.UpdateTaskCommentAsync(
+            boardId,
+            columnId,
+            taskId,
+            commentId,
+            new UpdateBoardTaskCommentRequest(body),
+            ct);
+
+        ApiResponseGuard.EnsureSuccess(response);
+    }
+
+    public async Task DeleteBoardTaskCommentAsync(
+        Guid boardId,
+        Guid columnId,
+        Guid taskId,
+        Guid commentId,
+        CancellationToken ct = default)
+    {
+        var response = await api.DeleteTaskCommentAsync(boardId, columnId, taskId, commentId, ct);
 
         ApiResponseGuard.EnsureSuccess(response);
     }

@@ -19,4 +19,9 @@ public static class BoardMembersErrors
         nameof(OwnerCannotBeRemoved),
         ErrorType.Business,
         ["The board owner cannot be removed."]);
+
+    public static readonly Error OwnerCannotLeaveBoard = new(
+        nameof(OwnerCannotLeaveBoard),
+        ErrorType.Business,
+        ["The board owner cannot leave the board."]);
 }

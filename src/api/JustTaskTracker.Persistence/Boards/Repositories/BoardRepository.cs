@@ -28,6 +28,12 @@ public class BoardRepository(JustTaskTrackerDbContext context)
         await _context.BoardMembers
             .FirstOrDefaultAsync(member => member.BoardId == boardId && member.UserId == userId, ct);
 
+    public async Task<BoardMember?> GetMemberByAzureAOIAsync(Guid boardId, Guid azureAdObjectId, CancellationToken ct = default) =>
+        await _context.BoardMembers
+            .FirstOrDefaultAsync(
+                m => m.BoardId == boardId && m.User!.AzureAdObjectId == azureAdObjectId,
+                ct);
+
     public async Task<BoardMemberRole?> GetUserRoleAsync(Guid boardId, Guid azureAdObjectId, CancellationToken ct = default) =>
         await _dbSet
             .Where(b => b.Id == boardId)

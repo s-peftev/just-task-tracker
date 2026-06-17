@@ -16,6 +16,8 @@ public interface IBoardRepository : IRepository<Board, Guid>
 
     Task<BoardMember?> GetMemberAsync(Guid boardId, Guid userId, CancellationToken ct = default);
 
+    Task<BoardMember?> GetMemberByAzureAOIAsync(Guid boardId, Guid azureAdObjectId, CancellationToken ct = default);
+
     Task<BoardMemberRole?> GetUserRoleAsync(Guid boardId, Guid azureAdObjectId, CancellationToken ct = default);
 
     Task<(Board? Board, BoardMemberRole? UserRole)> GetBoardWithUserRoleAsync(Guid boardId, Guid azureAdObjectId, CancellationToken ct = default);

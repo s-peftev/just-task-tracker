@@ -67,6 +67,17 @@ public class BoardsController(ISender sender) : ControllerBase
             error => error.CreateErrorResponse());
     }
 
+    [HttpPost("{id:guid}/leave")]
+    [Authorize(Policy = AuthorizationPolicies.IsAppMember)]
+    public async Task<IActionResult> Leave(Guid id, CancellationToken ct)
+    {
+        var result = await sender.Send(new LeaveBoardCommand(id), ct);
+
+        return result.Match(
+            () => NoContent(),
+            error => error.CreateErrorResponse());
+    }
+
     [HttpPost]
     [Authorize(Policy = AuthorizationPolicies.IsAppContributor)]
     public async Task<IActionResult> Create([FromBody] CreateBoardCommand request, CancellationToken ct)

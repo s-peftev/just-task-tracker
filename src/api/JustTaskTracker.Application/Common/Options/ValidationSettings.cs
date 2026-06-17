@@ -1,4 +1,5 @@
-﻿using JustTaskTracker.Domain.Boards.Constants;
+﻿using JustTaskTracker.Domain.Auth.Constants;
+using JustTaskTracker.Domain.Boards.Constants;
 
 namespace JustTaskTracker.Application.Common.Options;
 
@@ -7,6 +8,8 @@ public class ValidationSettings
     public BoardValidationSettings Boards { get; set; } = new();
 
     public BoardTaskValidationSettings BoardTasks { get; set; } = new();
+
+    public UserValidationSettings Users { get; set; } = new();
 }
 
 public class BoardValidationSettings
@@ -40,4 +43,9 @@ public class BoardTaskValidationSettings
     public string[] AllowedContentTypes { get; set; } = DefaultAllowedContentTypes.ToArray();
 
     public int MaxTextSearchLength { get; set; } = BoardTaskFieldLengths.MaxDescriptionLength;
+}
+
+public class UserValidationSettings
+{
+    public int MaxTextSearchLength { get; set; } = UserFieldLengths.MaxEmailLength;
 }

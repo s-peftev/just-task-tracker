@@ -34,6 +34,17 @@ public class BoardsController(ISender sender) : ControllerBase
             error => error.CreateErrorResponse());
     }
 
+    [HttpGet("{id:guid}/members")]
+    [Authorize(Policy = AuthorizationPolicies.IsAppMember)]
+    public async Task<IActionResult> GetMembers(Guid id, [FromQuery] GetBoardMembersQuery request, CancellationToken ct)
+    {
+        var result = await sender.Send(request with { BoardId = id }, ct);
+
+        return result.Match(
+            data => Ok(data),
+            error => error.CreateErrorResponse());
+    }
+
     [HttpPost]
     [Authorize(Policy = AuthorizationPolicies.IsAppContributor)]
     public async Task<IActionResult> Create([FromBody] CreateBoardCommand request, CancellationToken ct)

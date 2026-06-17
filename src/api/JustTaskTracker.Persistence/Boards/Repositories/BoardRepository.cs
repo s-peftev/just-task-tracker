@@ -137,4 +137,18 @@ public class BoardRepository(JustTaskTrackerDbContext context)
 
     public async Task<bool> IsBoardMemberAsync(Guid boardId, Guid userId, CancellationToken ct = default) =>
         await _context.BoardMembers.AnyAsync(m => m.BoardId == boardId && m.UserId == userId, ct);
+
+    public async Task<PagedList<BoardMemberDto>> GetMembersPagedAsync(Guid boardId, int pageNumber, int pageSize, CancellationToken ct = default) =>
+        await _context.BoardMembers
+            .Where(member => member.BoardId == boardId)
+            .OrderBy(member => member.JoinedAtUtc)
+            .ThenBy(member => member.UserId)
+            .ToPagedAsync(
+                member => new BoardMemberDto(
+                    new UserDto(member.User!.Id, member.User.Email, member.User.DisplayName),
+                    member.Role,
+                    member.JoinedAtUtc),
+                pageNumber,
+                pageSize,
+                ct);
 }

@@ -31,6 +31,34 @@ internal class BoardApiService(IBoardApi api) : IBoardApiService
         return ApiResponseGuard.Unwrap(response);
     }
 
+    public async Task<PagedList<BoardMemberDto>> GetBoardMembersAsync(
+        Guid boardId,
+        int pageNumber,
+        int pageSize,
+        CancellationToken ct = default)
+    {
+        var response = await api.GetMembersAsync(boardId, pageNumber, pageSize, ct);
+
+        return ApiResponseGuard.Unwrap(response);
+    }
+
+    public async Task AddBoardMemberAsync(
+        Guid boardId,
+        AddBoardMemberRequest request,
+        CancellationToken ct = default)
+    {
+        var response = await api.AddMemberAsync(boardId, request, ct);
+
+        ApiResponseGuard.EnsureSuccess(response);
+    }
+
+    public async Task DeleteBoardMemberAsync(Guid boardId, Guid userId, CancellationToken ct = default)
+    {
+        var response = await api.DeleteMemberAsync(boardId, userId, ct);
+
+        ApiResponseGuard.EnsureSuccess(response);
+    }
+
     public async Task<BoardDetailsDto> CreateBoardAsync(string name, CancellationToken ct = default)
     {
         var response = await api.CreateAsync(new SaveBoardRequest(name), ct);
@@ -62,6 +90,13 @@ internal class BoardApiService(IBoardApi api) : IBoardApiService
     public async Task DeleteBoardAsync(Guid boardId, CancellationToken ct = default)
     {
         var response = await api.DeleteAsync(boardId, ct);
+
+        ApiResponseGuard.EnsureSuccess(response);
+    }
+
+    public async Task LeaveBoardAsync(Guid boardId, CancellationToken ct = default)
+    {
+        var response = await api.LeaveAsync(boardId, ct);
 
         ApiResponseGuard.EnsureSuccess(response);
     }

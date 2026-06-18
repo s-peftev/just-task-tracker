@@ -1,0 +1,356 @@
+@using JustTaskTracker.WebUI.Components.Shared
+@using JustTaskTracker.WebUI.Components.Shared.Forms
+@using JustTaskTracker.WebUI.Domain.Auth
+@using JustTaskTracker.WebUI.Domain.Boards
+@using JustTaskTracker.WebUI.Domain.Boards.Authorization
+@using JustTaskTracker.WebUI.Domain.Boards.Enums
+@using JustTaskTracker.WebUI.Infrastructure
+@using JustTaskTracker.WebUI.Services.Abstractions.Auth
+@using JustTaskTracker.WebUI.Services.Abstractions.Boards
+@using JustTaskTracker.WebUI.Services.Exceptions
+@implements IDisposable
+@inject IBoardMembersStore BoardMembersStore
+@inject IBoardAddMemberStore BoardAddMemberStore
+@inject IProfileStore ProfileStore
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+<div class="board-members-overlay"
+     role="dialog"
+     aria-modal="true"
+     aria-label="Board members">
+    <button type="button"
+            class="board-members-overlay__backdrop"
+            aria-label="Close board members"
+            @onclick="CloseAsync"></button>
+
+    <div class="board-members-overlay__panel"
+         @onclick:stopPropagation="true"
+         @onmousedown:stopPropagation="true">
+        <div class="board-members-overlay__tabs" role="tablist" aria-label="Board members sections">
+            @if (CanViewBoard)
+            {
+                <button type="button"
+                        class="board-members-overlay__tab @(IsMembersTabActive ? "board-members-overlay__tab--active" : null)"
+                        role="tab"
+                        aria-selected="@IsMembersTabActive"
+                        @onclick="() => SetTabAsync(BoardMembersOverlayTab.Members)">
+                    Board members
+                </button>
+            }
+
+            @if (CanManageMembers)
+            {
+                <button type="button"
+                        class="board-members-overlay__tab @(IsAddMemberTabActive ? "board-members-overlay__tab--active" : null)"
+                        role="tab"
+                        aria-selected="@IsAddMemberTabActive"
+                        @onclick="() => SetTabAsync(BoardMembersOverlayTab.AddMember)">
+                    Add member
+                </button>
+            }
+        </div>
+
+        @if (IsAddMemberTabActive && CanManageMembers)
+        {
+            <div class="board-members-overlay__search">
+                <input class="board-members-overlay__search-input"
+                       type="search"
+                       aria-label="Search users to add"
+                       placeholder="Search users"
+                       value="@BoardAddMemberStore.SearchText"
+                       @oninput="OnAddMemberSearchInputAsync" />
+            </div>
+        }
+
+        <div class="board-members-overlay__body">
+            @if (IsMembersTabActive && CanViewBoard)
+            {
+                @if (BoardMembersStore.IsLoading && BoardMembersStore.Members.Count == 0)
+                {
+                    <div class="board-members-overlay__state">
+                        <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Small" />
+                    </div>
+                }
+                else if (BoardMembersStore.Members.Count == 0)
+                {
+                    <div class="board-members-overlay__state">
+                        <p class="board-members-overlay__message">No members found.</p>
+                    </div>
+                }
+                else
+                {
+                    <ul class="board-members-overlay__list">
+                        @foreach (var member in BoardMembersStore.Members)
+                        {
+                            <li class="board-members-overlay__item">
+                                <div class="board-members-overlay__member">
+                                    <span class="board-members-overlay__member-name">@GetDisplayName(member.User)</span>
+                                    <span class="board-members-overlay__member-email">@member.User.Email</span>
+                                    <div class="board-members-overlay__member-aside">
+                                        <span class="board-members-overlay__member-role">@FormatRole(member.Role)</span>
+                                        @if (CanRemoveMember(member))
+                                        {
+                                            <button type="button"
+                                                    class="board-members-overlay__remove-btn"
+                                                    aria-label="@($"Remove {GetDisplayName(member.User)} from board")"
+                                                    disabled="@BoardMembersStore.IsRemovingMember"
+                                                    @onclick="() => RemoveMemberAsync(member)">
+                                                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                                    <path d="M18 6L6 18M6 6l12 12"
+                                                          stroke="currentColor"
+                                                          stroke-width="2"
+                                                          stroke-linecap="round" />
+                                                </svg>
+                                            </button>
+                                        }
+                                    </div>
+                                </div>
+                            </li>
+                        }
+
+                        @if (BoardMembersStore.HasMoreMembers)
+                        {
+                            <li class="board-members-overlay__item board-members-overlay__item--action">
+                                <ExpandableActionButton Text="Show more"
+                                                        Icon="ExpandableActionButtonIcon.ChevronDown"
+                                                        Disabled="@BoardMembersStore.IsLoadingMoreMembers"
+                                                        OnClick="LoadMoreMembersAsync" />
+                            </li>
+                        }
+                    </ul>
+                }
+            }
+            else if (IsAddMemberTabActive && CanManageMembers)
+            {
+                @if (BoardAddMemberStore.IsLoading && BoardAddMemberStore.Users.Count == 0)
+                {
+                    <div class="board-members-overlay__state">
+                        <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Small" />
+                    </div>
+                }
+                else if (string.IsNullOrWhiteSpace(BoardAddMemberStore.SearchText))
+                {
+                    <div class="board-members-overlay__state">
+                        <p class="board-members-overlay__message">Start typing to search users.</p>
+                    </div>
+                }
+                else if (BoardAddMemberStore.Users.Count == 0)
+                {
+                    <div class="board-members-overlay__state">
+                        <p class="board-members-overlay__message">No users found.</p>
+                    </div>
+                }
+                else
+                {
+                    <ul class="board-members-overlay__list">
+                        @foreach (var user in BoardAddMemberStore.Users)
+                        {
+                            <li class="board-members-overlay__item">
+                                <div class="board-members-overlay__member">
+                                    <span class="board-members-overlay__member-name">@GetDisplayName(user)</span>
+                                    <span class="board-members-overlay__member-email">@user.Email</span>
+
+                                    @if (user.BoardMemberRole is { } role)
+                                    {
+                                        <span class="board-members-overlay__member-role">@FormatRole(role)</span>
+                                    }
+                                    else
+                                    {
+                                        <button type="button"
+                                                class="board-members-overlay__add-btn"
+                                                disabled="@BoardAddMemberStore.IsAddingMember"
+                                                @onclick="() => OpenAddMemberDialogAsync(user)">
+                                            Add to board
+                                        </button>
+                                    }
+                                </div>
+                            </li>
+                        }
+
+                        @if (BoardAddMemberStore.HasMoreUsers)
+                        {
+                            <li class="board-members-overlay__item board-members-overlay__item--action">
+                                <ExpandableActionButton Text="Show more"
+                                                        Icon="ExpandableActionButtonIcon.ChevronDown"
+                                                        Disabled="@BoardAddMemberStore.IsLoadingMoreUsers"
+                                                        OnClick="LoadMoreUsersAsync" />
+                            </li>
+                        }
+                    </ul>
+                }
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private bool CanViewBoard => BoardRolePermissions.CanViewBoard(BoardMembersStore.UserRole);
+    private bool CanManageMembers => BoardRolePermissions.CanManageMembers(BoardMembersStore.UserRole);
+    private bool IsMembersTabActive => BoardMembersStore.ActiveTab == BoardMembersOverlayTab.Members;
+    private bool IsAddMemberTabActive => BoardMembersStore.ActiveTab == BoardMembersOverlayTab.AddMember;
+
+    protected override void OnInitialized()
+    {
+        BoardMembersStore.StateChanged += OnStoreStateChanged;
+        BoardAddMemberStore.StateChanged += OnStoreStateChanged;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!CanViewBoard && CanManageMembers && BoardMembersStore.BoardId is { } boardId)
+        {
+            await BoardMembersStore.SetActiveTabAsync(BoardMembersOverlayTab.AddMember);
+            BoardAddMemberStore.Attach(boardId);
+        }
+    }
+
+    public void Dispose()
+    {
+        BoardMembersStore.StateChanged -= OnStoreStateChanged;
+        BoardAddMemberStore.StateChanged -= OnStoreStateChanged;
+    }
+
+    private void OnStoreStateChanged() =>
+        InvokeAsync(StateHasChanged);
+
+    private async Task SetTabAsync(BoardMembersOverlayTab tab)
+    {
+        try
+        {
+            await BoardMembersStore.SetActiveTabAsync(tab);
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+            return;
+        }
+
+        if (tab == BoardMembersOverlayTab.AddMember && BoardMembersStore.BoardId is { } boardId)
+            BoardAddMemberStore.Attach(boardId);
+    }
+
+    private async Task RemoveMemberAsync(BoardMemberDto member)
+    {
+        var displayName = GetDisplayName(member.User);
+        var message =
+            $"Remove {displayName} from this board?{Environment.NewLine}They will lose access to the board.";
+
+        var dialog = await DialogService.ShowConfirmResourceAsync(
+            "Remove member",
+            message,
+            confirmLabel: "Remove");
+
+        var result = await dialog.Result;
+
+        if (result is not { Canceled: false, Data: true })
+            return;
+
+        try
+        {
+            await BoardMembersStore.RemoveMemberAsync(member.User.Id);
+            BoardAddMemberStore.ClearUserMembership(member.User.Id);
+            Snackbar.Add($"{displayName} removed from the board.", Severity.Success);
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+    }
+
+    private bool CanRemoveMember(BoardMemberDto member) =>
+        CanManageMembers
+        && member.Role != BoardMemberRole.Owner
+        && ProfileStore.Profile is { } currentUser
+        && member.User.Id != currentUser.Id;
+
+    private async Task OpenAddMemberDialogAsync(UserForBoardLookupDto user)
+    {
+        var dialog = await DialogService.ShowResourceFormAsync(
+            "Add member",
+            "Add",
+            AddBoardMemberForm.FormId,
+            AddBoardMemberForm.Render(user));
+
+        var result = await dialog.Result;
+
+        if (result is not { Canceled: false, Data: BoardMemberRole role })
+            return;
+
+        try
+        {
+            await BoardAddMemberStore.AddMemberAsync(user.Id, role);
+            Snackbar.Add($"{GetDisplayName(user)} added to the board.", Severity.Success);
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+    }
+
+    private async Task OnAddMemberSearchInputAsync(ChangeEventArgs e)
+    {
+        try
+        {
+            await BoardAddMemberStore.SetSearchAsync(e.Value?.ToString() ?? string.Empty);
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+    }
+
+    private async Task LoadMoreMembersAsync()
+    {
+        try
+        {
+            await BoardMembersStore.LoadMoreAsync();
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+    }
+
+    private async Task LoadMoreUsersAsync()
+    {
+        try
+        {
+            await BoardAddMemberStore.LoadMoreAsync();
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+    }
+
+    private Task CloseAsync()
+    {
+        BoardAddMemberStore.Reset();
+        BoardMembersStore.Close();
+        return Task.CompletedTask;
+    }
+
+    private static string GetDisplayName(BoardMemberDto member) =>
+        GetDisplayName(member.User);
+
+    private static string GetDisplayName(UserForBoardLookupDto user) =>
+        string.IsNullOrWhiteSpace(user.DisplayName)
+            ? user.Email
+            : user.DisplayName!;
+
+    private static string GetDisplayName(UserDto user) =>
+        string.IsNullOrWhiteSpace(user.DisplayName)
+            ? user.Email
+            : user.DisplayName!;
+
+    private static string FormatRole(BoardMemberRole role) =>
+        role switch
+        {
+            BoardMemberRole.Owner => "Owner",
+            BoardMemberRole.Admin => "Admin",
+            BoardMemberRole.ScrumMaster => "Scrum Master",
+            BoardMemberRole.User => "User",
+            _ => role.ToString(),
+        };
+}

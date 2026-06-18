@@ -93,9 +93,9 @@
         </Sortable>
     </div>
 
-    @if (CanManageTasks)
-    {
-        <footer class="board-column__footer">
+    <footer class="board-column__footer @(!CanManageTasks ? "board-column__footer--spacer" : null)">
+        @if (CanManageTasks)
+        {
             @if (_isAddingTask)
             {
                 <textarea @ref="_taskTitleInputRef"
@@ -116,8 +116,8 @@
                     + Add task
                 </button>
             }
-        </footer>
-    }
+        }
+    </footer>
 </article>
 
 @code {

@@ -1,0 +1,59 @@
+@using JustTaskTracker.WebUI.Domain.Auth
+@using JustTaskTracker.WebUI.Domain.Boards.Enums
+
+<form id="@FormId" @onsubmit="SubmitAsync" @onsubmit:preventDefault="true">
+    <MudText Class="confirm-dialog__message add-board-member-form__message"
+             Typo="Typo.body1"
+             Style="white-space: pre-line;">
+        Add @DisplayName to this board?
+    </MudText>
+
+    <fieldset class="add-board-member-form__fieldset">
+        <legend class="add-board-member-form__legend">Role</legend>
+
+        <MudRadioGroup T="BoardMemberRole" @bind-Value="_selectedRole">
+            <MudRadio T="BoardMemberRole"
+                      Value="BoardMemberRole.Admin"
+                      Color="Color.Primary">
+                Admin
+            </MudRadio>
+            <MudRadio T="BoardMemberRole"
+                      Value="BoardMemberRole.ScrumMaster"
+                      Color="Color.Primary">
+                Scrum Master
+            </MudRadio>
+            <MudRadio T="BoardMemberRole"
+                      Value="BoardMemberRole.User"
+                      Color="Color.Primary">
+                User
+            </MudRadio>
+        </MudRadioGroup>
+    </fieldset>
+</form>
+
+@code {
+    public const string FormId = "add-board-member-form";
+
+    [Parameter, EditorRequired]
+    public UserForBoardLookupDto User { get; set; } = default!;
+
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private BoardMemberRole _selectedRole = BoardMemberRole.User;
+
+    private string DisplayName =>
+        string.IsNullOrWhiteSpace(User.DisplayName)
+            ? User.Email
+            : User.DisplayName!;
+
+    public static RenderFragment Render(UserForBoardLookupDto user) => builder =>
+    {
+        builder.OpenComponent<AddBoardMemberForm>(0);
+        builder.AddAttribute(1, nameof(User), user);
+        builder.CloseComponent();
+    };
+
+    private void SubmitAsync() =>
+        MudDialog.Close(DialogResult.Ok(_selectedRole));
+}

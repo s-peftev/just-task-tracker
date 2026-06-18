@@ -18,6 +18,25 @@ internal interface IBoardApi
     [Get("/api/boards/{id}")]
     Task<IApiResponse<ApiEnvelope<BoardDetailsDto>>> GetByIdAsync(Guid id, CancellationToken ct = default);
 
+    [Get("/api/boards/{boardId}/members")]
+    Task<IApiResponse<ApiEnvelope<PagedList<BoardMemberDto>>>> GetMembersAsync(
+        Guid boardId,
+        int pageNumber,
+        int pageSize,
+        CancellationToken ct = default);
+
+    [Post("/api/boards/{boardId}/members")]
+    Task<IApiResponse<ApiEnvelope<object>>> AddMemberAsync(
+        Guid boardId,
+        [Body] AddBoardMemberRequest request,
+        CancellationToken ct = default);
+
+    [Delete("/api/boards/{boardId}/members/{userId}")]
+    Task<IApiResponse<ApiEnvelope<object>>> DeleteMemberAsync(
+        Guid boardId,
+        Guid userId,
+        CancellationToken ct = default);
+
     [Post("/api/boards")]
     Task<IApiResponse<ApiEnvelope<BoardDetailsDto>>> CreateAsync([Body] SaveBoardRequest request, CancellationToken ct = default);
 
@@ -26,6 +45,9 @@ internal interface IBoardApi
 
     [Delete("/api/boards/{id}")]
     Task<IApiResponse<ApiEnvelope<object>>> DeleteAsync(Guid id, CancellationToken ct = default);
+
+    [Post("/api/boards/{boardId}/leave")]
+    Task<IApiResponse<ApiEnvelope<object>>> LeaveAsync(Guid boardId, CancellationToken ct = default);
 
     [Post("/api/boards/{boardId}/columns")]
     Task<IApiResponse<ApiEnvelope<ColumnDto>>> CreateColumnAsync(Guid boardId, [Body] SaveColumnRequest request, CancellationToken ct = default);

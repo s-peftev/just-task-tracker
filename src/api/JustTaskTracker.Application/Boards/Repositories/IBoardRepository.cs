@@ -12,6 +12,12 @@ public interface IBoardRepository : IRepository<Board, Guid>
 {
     void AddMember(BoardMember member);
 
+    void RemoveMember(BoardMember member);
+
+    Task<BoardMember?> GetMemberAsync(Guid boardId, Guid userId, CancellationToken ct = default);
+
+    Task<BoardMember?> GetMemberByAzureAOIAsync(Guid boardId, Guid azureAdObjectId, CancellationToken ct = default);
+
     Task<BoardMemberRole?> GetUserRoleAsync(Guid boardId, Guid azureAdObjectId, CancellationToken ct = default);
 
     Task<(Board? Board, BoardMemberRole? UserRole)> GetBoardWithUserRoleAsync(Guid boardId, Guid azureAdObjectId, CancellationToken ct = default);
@@ -26,4 +32,10 @@ public interface IBoardRepository : IRepository<Board, Guid>
         CancellationToken ct = default);
 
     Task<bool> IsBoardMemberAsync(Guid boardId, Guid userId, CancellationToken ct = default);
+
+    Task<PagedList<BoardMemberDto>> GetMembersPagedAsync(
+        Guid boardId,
+        int pageNumber,
+        int pageSize,
+        CancellationToken ct = default);
 }

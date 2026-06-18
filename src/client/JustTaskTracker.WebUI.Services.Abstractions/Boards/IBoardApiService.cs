@@ -8,10 +8,27 @@ public interface IBoardApiService
 {
     Task<PagedList<BoardLookupDto>> GetMyBoardsAsync(GetBoardsForCurrentUserRequest request, CancellationToken ct = default);
     Task<BoardDetailsDto> GetBoardByIdAsync(Guid boardId, CancellationToken ct = default);
+
+    Task<PagedList<BoardMemberDto>> GetBoardMembersAsync(
+        Guid boardId,
+        int pageNumber,
+        int pageSize,
+        CancellationToken ct = default);
+
+    Task AddBoardMemberAsync(
+        Guid boardId,
+        AddBoardMemberRequest request,
+        CancellationToken ct = default);
+
+    Task DeleteBoardMemberAsync(Guid boardId, Guid userId, CancellationToken ct = default);
+
     Task<BoardDetailsDto> CreateBoardAsync(string name, CancellationToken ct = default);
     Task UpdateBoardAsync(Guid boardId, string name, CancellationToken ct = default);
     Task UpdateColumnAsync(Guid boardId, Guid columnId, string name, CancellationToken ct = default);
     Task DeleteBoardAsync(Guid boardId, CancellationToken ct = default);
+
+    Task LeaveBoardAsync(Guid boardId, CancellationToken ct = default);
+
     Task DeleteColumnAsync(Guid boardId, Guid columnId, DeleteColumnRequest request, CancellationToken ct = default);
     Task<ColumnDto> CreateColumnAsync(Guid boardId, string name, CancellationToken ct = default);
 

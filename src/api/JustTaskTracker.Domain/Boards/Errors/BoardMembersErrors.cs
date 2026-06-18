@@ -8,7 +8,12 @@ public static class BoardMembersErrors
     public static readonly Error OwnerRoleNotAllowed = new(
         nameof(OwnerRoleNotAllowed),
         ErrorType.Validation,
-        ["The Owner role cannot be assigned when adding a board member."]);
+        ["The Owner role cannot be assigned to a board member."]);
+
+    public static readonly Error OwnerRoleCannotBeChanged = new(
+        nameof(OwnerRoleCannotBeChanged),
+        ErrorType.Business,
+        ["The board owner's role cannot be changed."]);
 
     public static readonly Error UserAlreadyMember = new(
         nameof(UserAlreadyMember),

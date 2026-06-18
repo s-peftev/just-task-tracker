@@ -24,10 +24,16 @@ public class UpdateBoardMemberCommandHandler(
         if (request.Role == BoardMemberRole.Owner)
             return Result.Failure(BoardMembersErrors.OwnerRoleNotAllowed);
 
-        var userRole = await boardRepository.GetUserRoleAsync(request.BoardId, currentUserAccessor.AzureAdObjectId, ct);
+        var currentMember = await boardRepository.GetMemberByAzureAOIAsync(
+            request.BoardId,
+            currentUserAccessor.AzureAdObjectId,
+            ct);
 
-        if (userRole is not { } authorizedRole || !BoardRolePermissions.CanManageMembers(authorizedRole))
+        if (currentMember is null || !BoardRolePermissions.CanManageMembers(currentMember.Role))
             return Result.Failure(GeneralErrors.Forbidden);
+
+        if (currentMember.UserId == request.UserId)
+            return Result.Failure(BoardMembersErrors.CannotChangeOwnRole);
 
         var member = await boardRepository.GetMemberAsync(request.BoardId, request.UserId, ct);
 

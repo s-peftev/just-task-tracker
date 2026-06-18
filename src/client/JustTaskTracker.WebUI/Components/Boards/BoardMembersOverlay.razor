@@ -99,7 +99,28 @@
                                     <span class="board-members-overlay__member-name">@GetDisplayName(member.User)</span>
                                     <span class="board-members-overlay__member-email">@member.User.Email</span>
                                     <div class="board-members-overlay__member-aside">
-                                        <span class="board-members-overlay__member-role">@FormatRole(member.Role)</span>
+                                        @if (CanEditMemberRole(member))
+                                        {
+                                            <MudSelect T="BoardMemberRole"
+                                                       Value="member.Role"
+                                                       ValueChanged="role => OnMemberRoleChangedAsync(member, role)"
+                                                       Disabled="@IsMemberRoleSelectDisabled(member)"
+                                                       Dense="true"
+                                                       Margin="Margin.Dense"
+                                                       Variant="Variant.Outlined"
+                                                       Class="board-members-overlay__role-select"
+                                                       AnchorOrigin="Origin.BottomCenter"
+                                                       TransformOrigin="Origin.TopCenter"
+                                                       aria-label="@($"Role for {GetDisplayName(member.User)}")">
+                                                <MudSelectItem T="BoardMemberRole" Value="BoardMemberRole.Admin">Admin</MudSelectItem>
+                                                <MudSelectItem T="BoardMemberRole" Value="BoardMemberRole.ScrumMaster">Scrum Master</MudSelectItem>
+                                                <MudSelectItem T="BoardMemberRole" Value="BoardMemberRole.User">User</MudSelectItem>
+                                            </MudSelect>
+                                        }
+                                        else
+                                        {
+                                            <span class="board-members-overlay__member-role">@FormatRole(member.Role)</span>
+                                        }
                                         @if (CanRemoveMember(member))
                                         {
                                             <button type="button"
@@ -274,6 +295,52 @@
         && member.Role != BoardMemberRole.Owner
         && ProfileStore.Profile is { } currentUser
         && member.User.Id != currentUser.Id;
+
+    private bool CanEditMemberRole(BoardMemberDto member) =>
+        CanManageMembers
+        && member.Role != BoardMemberRole.Owner
+        && ProfileStore.Profile is { } currentUser
+        && member.User.Id != currentUser.Id;
+
+    private bool IsMemberRoleSelectDisabled(BoardMemberDto member) =>
+        BoardMembersStore.IsUpdatingMemberRole
+        && BoardMembersStore.UpdatingMemberRoleUserId == member.User.Id;
+
+    private async Task OnMemberRoleChangedAsync(BoardMemberDto member, BoardMemberRole newRole)
+    {
+        if (newRole == member.Role)
+            return;
+
+        var displayName = GetDisplayName(member.User);
+        var message =
+            $"Change role for {displayName} from {FormatRole(member.Role)} to {FormatRole(newRole)}?";
+
+        var dialog = await DialogService.ShowConfirmResourceAsync(
+            "Change member role",
+            message,
+            confirmLabel: "Confirm",
+            submitButtonClass: "btn-dialog-warning btn-dialog-action");
+
+        var result = await dialog.Result;
+
+        if (result is not { Canceled: false, Data: true })
+        {
+            await InvokeAsync(StateHasChanged);
+            return;
+        }
+
+        try
+        {
+            await BoardMembersStore.UpdateMemberRoleAsync(member.User.Id, newRole);
+            BoardAddMemberStore.SetUserBoardMemberRole(member.User.Id, newRole);
+            Snackbar.Add($"{displayName}'s role changed to {FormatRole(newRole)}.", Severity.Success);
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+            await InvokeAsync(StateHasChanged);
+        }
+    }
 
     private async Task OpenAddMemberDialogAsync(UserForBoardLookupDto user)
     {

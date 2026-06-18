@@ -28,6 +28,8 @@ internal sealed class BoardMembersStore(IBoardApiService boardApiService) : IBoa
     public bool HasMoreMembers => Members.Count < Pagination.TotalCount;
     public bool IsLoadingMoreMembers { get; private set; }
     public bool IsRemovingMember { get; private set; }
+    public bool IsUpdatingMemberRole { get; private set; }
+    public Guid? UpdatingMemberRoleUserId { get; private set; }
     public string SearchText { get; private set; } = string.Empty;
     public string? ErrorMessage { get; private set; }
 
@@ -154,6 +156,33 @@ internal sealed class BoardMembersStore(IBoardApiService boardApiService) : IBoa
         }
     }
 
+    public async Task UpdateMemberRoleAsync(Guid userId, BoardMemberRole role, CancellationToken ct = default)
+    {
+        if (!IsOpen)
+            throw new InvalidOperationException("Board members overlay is not open.");
+
+        IsUpdatingMemberRole = true;
+        UpdatingMemberRoleUserId = userId;
+        NotifyStateChanged();
+
+        try
+        {
+            await boardApiService.UpdateBoardMemberAsync(
+                _boardId,
+                userId,
+                new UpdateBoardMemberRequest(role),
+                ct);
+
+            UpdateMemberRoleInList(userId, role);
+        }
+        finally
+        {
+            IsUpdatingMemberRole = false;
+            UpdatingMemberRoleUserId = null;
+            NotifyStateChanged();
+        }
+    }
+
     public void Close()
     {
         CancelSearchDebounce();
@@ -170,6 +199,8 @@ internal sealed class BoardMembersStore(IBoardApiService boardApiService) : IBoa
         IsLoading = false;
         IsLoadingMoreMembers = false;
         IsRemovingMember = false;
+        IsUpdatingMemberRole = false;
+        UpdatingMemberRoleUserId = null;
         ErrorMessage = null;
         NotifyStateChanged();
     }
@@ -257,6 +288,17 @@ internal sealed class BoardMembersStore(IBoardApiService boardApiService) : IBoa
             PageSize = Pagination.PageSize,
             TotalCount = Math.Max(0, Pagination.TotalCount - 1),
         };
+
+        NotifyStateChanged();
+    }
+
+    private void UpdateMemberRoleInList(Guid userId, BoardMemberRole role)
+    {
+        Members = Members
+            .Select(member => member.User.Id == userId
+                ? member with { Role = role }
+                : member)
+            .ToList();
 
         NotifyStateChanged();
     }

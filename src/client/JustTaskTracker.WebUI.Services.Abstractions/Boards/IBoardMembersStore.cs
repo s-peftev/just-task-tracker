@@ -26,6 +26,8 @@ public interface IBoardMembersStore
     bool HasMoreMembers { get; }
     bool IsLoadingMoreMembers { get; }
     bool IsRemovingMember { get; }
+    bool IsUpdatingMemberRole { get; }
+    Guid? UpdatingMemberRoleUserId { get; }
     string SearchText { get; }
     string? ErrorMessage { get; }
 
@@ -42,6 +44,8 @@ public interface IBoardMembersStore
     Task LoadMoreAsync(CancellationToken ct = default);
 
     Task RemoveMemberAsync(Guid userId, CancellationToken ct = default);
+
+    Task UpdateMemberRoleAsync(Guid userId, BoardMemberRole role, CancellationToken ct = default);
 
     void Close();
 

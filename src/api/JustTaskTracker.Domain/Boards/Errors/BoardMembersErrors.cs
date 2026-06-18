@@ -29,4 +29,9 @@ public static class BoardMembersErrors
         nameof(OwnerCannotLeaveBoard),
         ErrorType.Business,
         ["The board owner cannot leave the board."]);
+
+    public static readonly Error CannotChangeOwnRole = new(
+        nameof(CannotChangeOwnRole),
+        ErrorType.Business,
+        ["You cannot change your own board role."]);
 }

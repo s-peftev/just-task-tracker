@@ -207,6 +207,48 @@
     flex-shrink: 0;
 }
 
+.board-members-overlay ::deep .board-members-overlay__role-select {
+    width: 8rem;
+    min-width: 8rem;
+    max-width: 8rem;
+    flex: 0 0 8rem;
+}
+
+.board-members-overlay ::deep .board-members-overlay__role-select .mud-input-root {
+    font-size: 0.75rem;
+    line-height: 1.2;
+}
+
+.board-members-overlay ::deep .board-members-overlay__role-select .mud-input-control {
+    width: 100%;
+}
+
+.board-members-overlay ::deep .board-members-overlay__role-select .mud-input-outlined-border {
+    border-color: var(--jtt-stroke-muted);
+}
+
+.board-members-overlay ::deep .board-members-overlay__role-select .mud-input-slot,
+.board-members-overlay ::deep .board-members-overlay__role-select .mud-select-input {
+    color: var(--jtt-text-primary);
+    font-size: 0.75rem;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: visible;
+    text-overflow: clip;
+}
+
+.board-members-overlay ::deep .board-members-overlay__role-select .mud-input-label {
+    display: none;
+}
+
+.board-members-overlay ::deep .board-members-overlay__role-select .mud-input-root-outlined {
+    padding-inline: 0.5rem 1.75rem;
+}
+
+.board-members-overlay ::deep .board-members-overlay__role-select .mud-icon-root.mud-icon-size-medium {
+    font-size: 1rem;
+}
+
 .board-members-overlay__remove-btn {
     display: inline-flex;
     align-items: center;

@@ -20,6 +20,8 @@
     --jtt-overlay-white-28: rgba(255, 255, 255, 0.28);
     --jtt-overlay-danger-10: rgba(255, 122, 122, 0.10);
     --jtt-overlay-danger-15: rgba(255, 122, 122, 0.15);
+    --jtt-overlay-warning-10: rgba(255, 204, 102, 0.10);
+    --jtt-overlay-warning-15: rgba(255, 204, 102, 0.15);
 
     /* Strokes */
     --jtt-stroke-subtle: rgba(255, 255, 255, 0.10);
@@ -33,6 +35,8 @@
     --jtt-stroke-danger: rgb(255, 122, 122);
     --jtt-stroke-danger-soft: rgba(255, 122, 122, 0.20);
     --jtt-stroke-danger-strong: rgba(255, 122, 122, 0.40);
+    --jtt-stroke-warning-soft: rgba(255, 204, 102, 0.20);
+    --jtt-stroke-warning-strong: rgba(255, 204, 102, 0.45);
 
     /* Text */
     --jtt-text-strong: #fff;
@@ -43,6 +47,7 @@
     --jtt-text-faint: rgba(255, 255, 255, 0.55);
     --jtt-text-accent: rgba(97, 179, 216, 0.65);
     --jtt-text-danger: #ff7a7a;
+    --jtt-text-warning: #ffcc66;
     --jtt-text-on-app: rgba(255, 255, 255, 0.87);
 
     /* Typography */
@@ -322,6 +327,24 @@ html, body {
     border-color: var(--jtt-stroke-danger-strong) !important;
 }
 
+.btn-dialog-warning {
+    background: var(--jtt-overlay-warning-10) !important;
+    backdrop-filter: blur(12px) !important;
+    color: var(--jtt-text-warning) !important;
+    border: 1px solid var(--jtt-stroke-warning-soft) !important;
+    border-radius: var(--jtt-radius-md) !important;
+    font-weight: 400 !important;
+    text-transform: none !important;
+    box-shadow: none !important;
+    letter-spacing: normal !important;
+    transition: background 0.2s, border-color 0.2s !important;
+}
+
+.btn-dialog-warning:hover {
+    background: var(--jtt-overlay-warning-15) !important;
+    border-color: var(--jtt-stroke-warning-strong) !important;
+}
+
 .btn-dialog-action {
     flex: 1 1 0 !important;
     min-width: 0 !important;
@@ -359,6 +382,15 @@ html, body {
 .board-form-dialog .confirm-dialog__message {
     white-space: pre-line;
     max-width: 100%;
+}
+
+.resource-form-dialog #add-board-member-form {
+    margin-top: -1.25rem;
+}
+
+.resource-form-dialog #add-board-member-form .add-board-member-form__message {
+    margin: 0 0 1.75rem;
+    color: rgba(255, 255, 255, 0.80);
 }
 
 .resource-form-dialog .mud-input.mud-input-outlined:focus-within > .mud-input-outlined-border,

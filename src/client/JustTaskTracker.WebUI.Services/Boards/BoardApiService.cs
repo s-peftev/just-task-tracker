@@ -60,6 +60,17 @@ internal class BoardApiService(IBoardApi api) : IBoardApiService
         ApiResponseGuard.EnsureSuccess(response);
     }
 
+    public async Task UpdateBoardMemberAsync(
+        Guid boardId,
+        Guid userId,
+        UpdateBoardMemberRequest request,
+        CancellationToken ct = default)
+    {
+        var response = await api.UpdateMemberAsync(boardId, userId, request, ct);
+
+        ApiResponseGuard.EnsureSuccess(response);
+    }
+
     public async Task DeleteBoardMemberAsync(Guid boardId, Guid userId, CancellationToken ct = default)
     {
         var response = await api.DeleteMemberAsync(boardId, userId, ct);

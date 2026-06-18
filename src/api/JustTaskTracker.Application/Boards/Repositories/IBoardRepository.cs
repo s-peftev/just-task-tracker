@@ -1,4 +1,5 @@
 using JustTaskTracker.Application.Common.Interfaces.Persistence;
+using JustTaskTracker.Domain.Auth.Enums.SearchFields;
 using JustTaskTracker.Domain.Boards.DTOs.Boards;
 using JustTaskTracker.Domain.Boards.Entities;
 using JustTaskTracker.Domain.Boards.Enums;
@@ -37,5 +38,6 @@ public interface IBoardRepository : IRepository<Board, Guid>
         Guid boardId,
         int pageNumber,
         int pageSize,
+        TextSearchOptions<BoardMemberSearchField>? searchOptions = null,
         CancellationToken ct = default);
 }

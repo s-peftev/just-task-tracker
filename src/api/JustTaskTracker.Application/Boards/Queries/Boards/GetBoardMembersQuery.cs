@@ -1,6 +1,8 @@
 using FluentValidation;
 using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Interfaces;
+using JustTaskTracker.Application.Common.Options;
+using JustTaskTracker.Application.Common.Validators;
 using JustTaskTracker.Domain.Boards.Authorization;
 using JustTaskTracker.Domain.Boards.DTOs.Boards;
 using JustTaskTracker.Domain.Boards.Enums.SearchFields;
@@ -40,9 +42,15 @@ public class GetBoardMembersQueryHandler(
 
 public class GetBoardMembersQueryValidator : AbstractValidator<GetBoardMembersQuery>
 {
-    public GetBoardMembersQueryValidator()
+    public GetBoardMembersQueryValidator(ValidationSettings validationSettings)
     {
         RuleFor(x => x.BoardId)
             .NotEmpty();
+
+        When(x => x.SearchOptions is not null, () =>
+        {
+            RuleFor(x => x.SearchOptions!)
+                .SetValidator(new TextSearchOptionsValidator<BoardMemberSearchField>(validationSettings.Users.MaxTextSearchLength));
+        });
     }
 }

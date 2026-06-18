@@ -33,11 +33,19 @@ internal class BoardApiService(IBoardApi api) : IBoardApiService
 
     public async Task<PagedList<BoardMemberDto>> GetBoardMembersAsync(
         Guid boardId,
-        int pageNumber,
-        int pageSize,
+        GetBoardMembersRequest request,
         CancellationToken ct = default)
     {
-        var response = await api.GetMembersAsync(boardId, pageNumber, pageSize, ct);
+        var search = string.IsNullOrWhiteSpace(request.SearchOptions?.Search)
+            ? null
+            : request.SearchOptions.Search;
+
+        var response = await api.GetMembersAsync(
+            boardId,
+            request.PageNumber!.Value,
+            request.PageSize!.Value,
+            search,
+            ct);
 
         return ApiResponseGuard.Unwrap(response);
     }

@@ -51,7 +51,18 @@
             }
         </div>
 
-        @if (IsAddMemberTabActive && CanManageMembers)
+        @if (IsMembersTabActive && CanViewBoard)
+        {
+            <div class="board-members-overlay__search">
+                <input class="board-members-overlay__search-input"
+                       type="search"
+                       aria-label="Search board members"
+                       placeholder="Search members"
+                       value="@BoardMembersStore.SearchText"
+                       @oninput="OnMembersSearchInputAsync" />
+            </div>
+        }
+        else if (IsAddMemberTabActive && CanManageMembers)
         {
             <div class="board-members-overlay__search">
                 <input class="board-members-overlay__search-input"
@@ -281,6 +292,18 @@
         {
             await BoardAddMemberStore.AddMemberAsync(user.Id, role);
             Snackbar.Add($"{GetDisplayName(user)} added to the board.", Severity.Success);
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+    }
+
+    private async Task OnMembersSearchInputAsync(ChangeEventArgs e)
+    {
+        try
+        {
+            await BoardMembersStore.SetSearchAsync(e.Value?.ToString() ?? string.Empty);
         }
         catch (ApiServiceException ex)
         {

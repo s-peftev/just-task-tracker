@@ -1,6 +1,9 @@
 using JustTaskTracker.WebUI.Domain.Boards;
 using JustTaskTracker.WebUI.Domain.Boards.Enums;
+using JustTaskTracker.WebUI.Domain.Boards.Enums.SearchFields;
+using JustTaskTracker.WebUI.Domain.Boards.Requests;
 using JustTaskTracker.WebUI.Domain.Common.Pagination;
+using JustTaskTracker.WebUI.Domain.Common.Searching;
 using JustTaskTracker.WebUI.Services.Abstractions.Boards;
 
 namespace JustTaskTracker.WebUI.Services.Boards.Stores;
@@ -8,9 +11,11 @@ namespace JustTaskTracker.WebUI.Services.Boards.Stores;
 internal sealed class BoardMembersStore(IBoardApiService boardApiService) : IBoardMembersStore
 {
     public const int PageSize = 20;
+    private const int SearchDebounceMilliseconds = 300;
 
     private Guid _boardId;
     private CancellationTokenSource? _loadCts;
+    private CancellationTokenSource? _searchDebounceCts;
 
     public Guid? BoardId { get; private set; }
     public BoardMemberRole UserRole { get; private set; }
@@ -23,6 +28,7 @@ internal sealed class BoardMembersStore(IBoardApiService boardApiService) : IBoa
     public bool HasMoreMembers => Members.Count < Pagination.TotalCount;
     public bool IsLoadingMoreMembers { get; private set; }
     public bool IsRemovingMember { get; private set; }
+    public string SearchText { get; private set; } = string.Empty;
     public string? ErrorMessage { get; private set; }
 
     public event Action? StateChanged;
@@ -33,6 +39,7 @@ internal sealed class BoardMembersStore(IBoardApiService boardApiService) : IBoa
         BoardId = boardId;
         UserRole = userRole;
         ActiveTab = BoardMembersOverlayTab.Members;
+        SearchText = string.Empty;
         Members = [];
         Pagination = new PaginationMetadata();
         CurrentPage = 1;
@@ -70,6 +77,42 @@ internal sealed class BoardMembersStore(IBoardApiService boardApiService) : IBoa
             return;
 
         await LoadPageAsync(1, replaceExisting: true, ct);
+    }
+
+    public async Task SetSearchAsync(string searchText, CancellationToken ct = default)
+    {
+        SearchText = searchText;
+        NotifyStateChanged();
+
+        if (!IsOpen)
+            return;
+
+        CancelSearchDebounce();
+
+        var debounceCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        _searchDebounceCts = debounceCts;
+
+        try
+        {
+            await Task.Delay(SearchDebounceMilliseconds, debounceCts.Token);
+            await LoadPageAsync(1, replaceExisting: true, ct);
+        }
+        catch (OperationCanceledException) when (debounceCts.IsCancellationRequested)
+        {
+            // Superseded by a newer keystroke or close.
+        }
+        finally
+        {
+            if (ReferenceEquals(_searchDebounceCts, debounceCts))
+            {
+                debounceCts.Dispose();
+                _searchDebounceCts = null;
+            }
+            else
+            {
+                debounceCts.Dispose();
+            }
+        }
     }
 
     public async Task LoadMoreAsync(CancellationToken ct = default)
@@ -113,12 +156,14 @@ internal sealed class BoardMembersStore(IBoardApiService boardApiService) : IBoa
 
     public void Close()
     {
+        CancelSearchDebounce();
         _loadCts?.Cancel();
         _loadCts?.Dispose();
         _loadCts = null;
 
         IsOpen = false;
         BoardId = null;
+        SearchText = string.Empty;
         Members = [];
         Pagination = new PaginationMetadata();
         CurrentPage = 1;
@@ -149,10 +194,19 @@ internal sealed class BoardMembersStore(IBoardApiService boardApiService) : IBoa
 
         try
         {
+            TextSearchOptions<BoardMemberSearchField>? searchOptions = string.IsNullOrWhiteSpace(SearchText)
+                ? null
+                : new TextSearchOptions<BoardMemberSearchField>(SearchText);
+
+            var request = new GetBoardMembersRequest(searchOptions)
+            {
+                PageNumber = pageNumber,
+                PageSize = PageSize,
+            };
+
             var page = await boardApiService.GetBoardMembersAsync(
                 _boardId,
-                pageNumber,
-                PageSize,
+                request,
                 linkedCts.Token);
 
             var incoming = page.Items?.ToList() ?? [];
@@ -215,6 +269,13 @@ internal sealed class BoardMembersStore(IBoardApiService boardApiService) : IBoa
             .GroupBy(member => member.User.Id)
             .Select(group => group.First())
             .ToList();
+
+    private void CancelSearchDebounce()
+    {
+        _searchDebounceCts?.Cancel();
+        _searchDebounceCts?.Dispose();
+        _searchDebounceCts = null;
+    }
 
     private void NotifyStateChanged() => StateChanged?.Invoke();
 }

@@ -30,8 +30,8 @@
     z-index: 1;
     width: 600px;
     max-width: calc(100vw - 3rem);
-    height: 400px;
-    max-height: min(400px, calc(100dvh - var(--jtt-navbar-height) - 2rem));
+    height: 800px;
+    max-height: min(800px, calc(100dvh - var(--jtt-navbar-height) - 2rem));
     box-sizing: border-box;
     display: flex;
     flex-direction: column;

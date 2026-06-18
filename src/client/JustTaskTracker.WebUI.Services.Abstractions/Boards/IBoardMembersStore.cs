@@ -26,6 +26,7 @@ public interface IBoardMembersStore
     bool HasMoreMembers { get; }
     bool IsLoadingMoreMembers { get; }
     bool IsRemovingMember { get; }
+    string SearchText { get; }
     string? ErrorMessage { get; }
 
     event Action? StateChanged;
@@ -35,6 +36,8 @@ public interface IBoardMembersStore
     Task SetActiveTabAsync(BoardMembersOverlayTab tab, CancellationToken ct = default);
 
     Task RefreshAsync(CancellationToken ct = default);
+
+    Task SetSearchAsync(string searchText, CancellationToken ct = default);
 
     Task LoadMoreAsync(CancellationToken ct = default);
 

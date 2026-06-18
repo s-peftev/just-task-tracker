@@ -23,6 +23,7 @@ internal interface IBoardApi
         Guid boardId,
         int pageNumber,
         int pageSize,
+        [AliasAs("SearchOptions.Search")] string? searchOptionsSearch = null,
         CancellationToken ct = default);
 
     [Post("/api/boards/{boardId}/members")]

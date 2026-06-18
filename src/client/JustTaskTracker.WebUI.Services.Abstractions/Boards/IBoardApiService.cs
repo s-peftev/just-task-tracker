@@ -11,8 +11,7 @@ public interface IBoardApiService
 
     Task<PagedList<BoardMemberDto>> GetBoardMembersAsync(
         Guid boardId,
-        int pageNumber,
-        int pageSize,
+        GetBoardMembersRequest request,
         CancellationToken ct = default);
 
     Task AddBoardMemberAsync(

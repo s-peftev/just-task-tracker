@@ -13,6 +13,7 @@ internal sealed class BoardDetailsStore(IBoardApiService boardApiService) : IBoa
     public bool IsLoading { get; private set; }
     public string? ErrorMessage { get; private set; }
     public bool IsReorderingTasks { get; private set; }
+    public bool ShowOnlyMyTasks { get; private set; }
 
     public event Action? StateChanged;
 
@@ -145,6 +146,23 @@ internal sealed class BoardDetailsStore(IBoardApiService boardApiService) : IBoa
         });
     }
 
+    public void UpdateTaskAssigneeId(Guid taskId, Guid? assigneeId)
+    {
+        if (Board is null)
+            return;
+
+        UpdateTaskPreview(taskId, task => task with { AssigneeId = assigneeId });
+    }
+
+    public void SetShowOnlyMyTasks(bool showOnlyMyTasks)
+    {
+        if (ShowOnlyMyTasks == showOnlyMyTasks)
+            return;
+
+        ShowOnlyMyTasks = showOnlyMyTasks;
+        NotifyStateChanged();
+    }
+
     public async Task ReorderColumnAsync(Guid columnId, int position, CancellationToken ct = default)
     {
         if (BoardId is not { } boardId || Board is null)
@@ -230,6 +248,7 @@ internal sealed class BoardDetailsStore(IBoardApiService boardApiService) : IBoa
         Board = null;
         IsLoading = false;
         ErrorMessage = null;
+        ShowOnlyMyTasks = false;
         NotifyStateChanged();
     }
 

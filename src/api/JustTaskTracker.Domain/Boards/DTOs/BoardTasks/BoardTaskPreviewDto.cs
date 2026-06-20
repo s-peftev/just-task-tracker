@@ -5,4 +5,5 @@ public record BoardTaskPreviewDto(
     string Title,
     int Position,
     int CommentsCount,
-    int AttachmentsCount);
+    int AttachmentsCount,
+    Guid? AssigneeId);

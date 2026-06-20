@@ -5,6 +5,7 @@
 @using JustTaskTracker.WebUI.Infrastructure
 @using JustTaskTracker.WebUI.Components.Shared
 @using JustTaskTracker.WebUI.Components.Shared.Forms
+@using JustTaskTracker.WebUI.Services.Abstractions.Auth
 @using JustTaskTracker.WebUI.Services.Abstractions.Boards
 @using JustTaskTracker.WebUI.Services.Exceptions
 @using BlazorSortable
@@ -45,7 +46,7 @@
         </div>
 
         <div class="board-column__header-actions">
-            <span class="board-column__count">@Column.BoardTasks.Count</span>
+            <span class="board-column__count">@GetVisibleTaskCount()</span>
             @if (CanDeleteColumn)
             {
                 <button type="button"
@@ -86,9 +87,13 @@
                   OnUpdate="OnTaskSortableChangedAsync"
                   OnAdd="OnTaskSortableChangedAsync">
             <div class="board-column__task-item">
-                <BoardTaskCard Task="context"
-                               CanDrag="CanMoveTasks"
-                               OnTaskClick="OnTaskClickAsync" />
+                @if (IsTaskVisible(context))
+                {
+                    <BoardTaskCard Task="context"
+                                   CanDrag="CanMoveTasks"
+                                   IsAssignedToCurrentUser="@IsAssignedToCurrentUser(context)"
+                                   OnTaskClick="OnTaskClickAsync" />
+                }
             </div>
         </Sortable>
     </div>
@@ -138,6 +143,9 @@
     private IBoardDetailsStore BoardDetailsStore { get; set; } = default!;
 
     [Inject]
+    private IProfileStore ProfileStore { get; set; } = default!;
+
+    [Inject]
     private ISnackbar Snackbar { get; set; } = default!;
 
     [Inject]
@@ -176,7 +184,7 @@
 
     private bool CanMoveTasks => BoardRolePermissions.CanMoveTasks(UserRole);
 
-    private bool _hasTaskContent => Column.BoardTasks.Count > 0;
+    private bool _hasTaskContent => GetVisibleTaskCount() > 0;
 
     protected override void OnInitialized() =>
         BoardDetailsStore.StateChanged += OnBoardStateChanged;
@@ -454,11 +462,39 @@
     {
         var ordered = Column.BoardTasks
             .OrderBy(task => task.Position)
-            .ToList();
+            .AsEnumerable();
+
+        if (BoardDetailsStore.ShowOnlyMyTasks && ProfileStore.Profile is { } profile)
+            ordered = ordered.Where(task => task.IsAssignedToCurrentUser(profile.Id));
 
         _sortableTasks.Clear();
         _sortableTasks.AddRange(ordered);
     }
+
+    private int GetVisibleTaskCount()
+    {
+        if (!BoardDetailsStore.ShowOnlyMyTasks)
+            return Column.BoardTasks.Count;
+
+        if (ProfileStore.Profile is not { } profile)
+            return 0;
+
+        return Column.BoardTasks.Count(task => task.IsAssignedToCurrentUser(profile.Id));
+    }
+
+    private bool IsTaskVisible(BoardTaskPreviewDto task)
+    {
+        if (!BoardDetailsStore.ShowOnlyMyTasks)
+            return true;
+
+        if (ProfileStore.Profile is not { } profile)
+            return false;
+
+        return task.IsAssignedToCurrentUser(profile.Id);
+    }
+
+    private bool IsAssignedToCurrentUser(BoardTaskPreviewDto task) =>
+        ProfileStore.Profile is { } profile && task.IsAssignedToCurrentUser(profile.Id);
 
     private async Task OnTaskSortableChangedAsync(SortableEventArgs<BoardTaskPreviewDto> args)
     {

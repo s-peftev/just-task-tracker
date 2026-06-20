@@ -14,6 +14,7 @@ public interface IBoardDetailsStore
     bool IsLoading { get; }
     string? ErrorMessage { get; }
     bool IsReorderingTasks { get; }
+    bool ShowOnlyMyTasks { get; }
 
     event Action? StateChanged;
 
@@ -32,6 +33,10 @@ public interface IBoardDetailsStore
     void AdjustTaskCommentsCount(Guid taskId, int delta);
 
     void AdjustTaskAttachmentsCount(Guid taskId, int delta);
+
+    void UpdateTaskAssigneeId(Guid taskId, Guid? assigneeId);
+
+    void SetShowOnlyMyTasks(bool showOnlyMyTasks);
 
     Task DeleteColumnAsync(Guid columnId, DeleteColumnRequest request, CancellationToken ct = default);
 

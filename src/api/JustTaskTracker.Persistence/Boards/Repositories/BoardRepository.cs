@@ -87,7 +87,8 @@ public class BoardRepository(JustTaskTrackerDbContext context)
                                 t.Title,
                                 t.Position,
                                 t.Comments.Count,
-                                t.Attachments.Count))))))
+                                t.Attachments.Count,
+                                t.AssigneeId))))))
             .AsSplitQuery()
             .FirstOrDefaultAsync(ct);
 

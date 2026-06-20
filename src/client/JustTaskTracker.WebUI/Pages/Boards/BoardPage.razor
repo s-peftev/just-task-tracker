@@ -70,6 +70,13 @@
                 </div>
 
                 <div class="board-page__controls">
+                    <label class="board-page__my-tasks-filter">
+                        <input type="checkbox"
+                               checked="@BoardDetailsStore.ShowOnlyMyTasks"
+                               @onchange="OnMyTasksFilterChanged" />
+                        <span class="board-page__my-tasks-filter-label">My tasks</span>
+                    </label>
+
                     <BoardPageMenu UserRole="board.UserRole"
                                    OnMembersClick="OpenMembersOverlayAsync"
                                    OnLeaveBoardClick="LeaveBoardAsync"
@@ -435,6 +442,12 @@
 
     private void OnMembersStoreStateChanged() =>
         InvokeAsync(StateHasChanged);
+
+    private void OnMyTasksFilterChanged(ChangeEventArgs e)
+    {
+        var showOnlyMyTasks = e.Value is true;
+        BoardDetailsStore.SetShowOnlyMyTasks(showOnlyMyTasks);
+    }
 
     private void SyncSortableColumnsFromStore()
     {

@@ -96,6 +96,11 @@
                         {
                             <li class="board-members-overlay__item">
                                 <div class="board-members-overlay__member">
+                                    <UserAvatarPlaceholder Class="board-members-overlay__member-avatar"
+                                                           Preset="UserAvatarPlaceholderPreset.Member"
+                                                           DisplayName="@member.User.DisplayName"
+                                                           Email="@member.User.Email"
+                                                           Title="@member.User.Email" />
                                     <span class="board-members-overlay__member-name">@GetDisplayName(member.User)</span>
                                     <span class="board-members-overlay__member-email">@member.User.Email</span>
                                     <div class="board-members-overlay__member-aside">
@@ -180,6 +185,11 @@
                         {
                             <li class="board-members-overlay__item">
                                 <div class="board-members-overlay__member">
+                                    <UserAvatarPlaceholder Class="board-members-overlay__member-avatar"
+                                                           Preset="UserAvatarPlaceholderPreset.Member"
+                                                           DisplayName="@user.DisplayName"
+                                                           Email="@user.Email"
+                                                           Title="@user.Email" />
                                     <span class="board-members-overlay__member-name">@GetDisplayName(user)</span>
                                     <span class="board-members-overlay__member-email">@user.Email</span>
 

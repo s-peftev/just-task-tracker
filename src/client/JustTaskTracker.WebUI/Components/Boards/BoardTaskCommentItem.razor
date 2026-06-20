@@ -17,11 +17,10 @@
 
 <article class="board-task-comment">
     <div class="board-task-comment__avatar-column">
-        <div class="board-task-comment__avatar text-sidebar-user"
-             aria-hidden="true"
-             title="@GetAuthorTitle()">
-            <span class="board-task-comment__avatar-letter">@GetAvatarLetter(Comment.Author)</span>
-        </div>
+        <UserAvatarPlaceholder Preset="UserAvatarPlaceholderPreset.Comment"
+                               DisplayName="@Comment.Author.DisplayName"
+                               Email="@Comment.Author.Email"
+                               Title="@GetAuthorTitle()" />
     </div>
 
     <div class="board-task-comment__content">
@@ -158,12 +157,6 @@
     private string GetAuthorDisplay() => GetAuthorDisplay(Comment.Author);
 
     private string GetAuthorTitle() => Comment.Author.Email;
-
-    private static char GetAvatarLetter(UserDto author) =>
-        char.ToUpperInvariant(
-            GetAuthorDisplay(author) is { Length: > 0 } source
-                ? source[0]
-                : '?');
 
     private static string FormatCreatedAt(DateTime createdAtUtc) =>
         createdAtUtc.ToLocalTime().ToString("g");

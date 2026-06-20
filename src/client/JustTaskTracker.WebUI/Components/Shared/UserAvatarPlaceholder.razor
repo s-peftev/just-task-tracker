@@ -1,0 +1,42 @@
+<div class="user-avatar-placeholder text-sidebar-user @GetPresetClass() @Class"
+     style="@GetSizeStyle()"
+     aria-hidden="@AriaHidden.ToString().ToLowerInvariant()"
+     title="@Title">
+    <span class="user-avatar-placeholder__letter">@UserAvatarPlaceholderFormatting.GetLetter(DisplayName, Email)</span>
+</div>
+
+@code {
+    [Parameter]
+    public string? DisplayName { get; set; }
+
+    [Parameter]
+    public string? Email { get; set; }
+
+    [Parameter]
+    public string? Title { get; set; }
+
+    [Parameter]
+    public UserAvatarPlaceholderPreset Preset { get; set; } = UserAvatarPlaceholderPreset.Comment;
+
+    [Parameter]
+    public string? Size { get; set; }
+
+    [Parameter]
+    public string? Class { get; set; }
+
+    [Parameter]
+    public bool AriaHidden { get; set; } = true;
+
+    private string GetPresetClass() =>
+        Preset switch
+        {
+            UserAvatarPlaceholderPreset.Sidebar => "user-avatar-placeholder--sidebar",
+            UserAvatarPlaceholderPreset.Member => "user-avatar-placeholder--member",
+            _ => "user-avatar-placeholder--comment",
+        };
+
+    private string? GetSizeStyle() =>
+        string.IsNullOrWhiteSpace(Size)
+            ? null
+            : $"--user-avatar-size: {Size};";
+}

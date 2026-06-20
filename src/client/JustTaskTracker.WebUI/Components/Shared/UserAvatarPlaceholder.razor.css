@@ -1,0 +1,33 @@
+.user-avatar-placeholder {
+    --user-avatar-size: 32px;
+    --user-avatar-letter-scale: 0.375;
+    width: var(--user-avatar-size);
+    height: var(--user-avatar-size);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--jtt-overlay-accent-10);
+    user-select: none;
+    flex-shrink: 0;
+}
+
+.user-avatar-placeholder__letter {
+    font-size: calc(var(--user-avatar-size) * var(--user-avatar-letter-scale));
+    line-height: 1;
+}
+
+.user-avatar-placeholder--sidebar {
+    --user-avatar-size: 7.5rem;
+    --user-avatar-letter-scale: 0.333;
+}
+
+.user-avatar-placeholder--comment {
+    --user-avatar-size: 32px;
+    --user-avatar-letter-scale: 0.375;
+}
+
+.user-avatar-placeholder--member {
+    --user-avatar-size: 2.375rem;
+    --user-avatar-letter-scale: 0.375;
+}

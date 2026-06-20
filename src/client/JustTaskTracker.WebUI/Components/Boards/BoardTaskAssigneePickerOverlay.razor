@@ -76,6 +76,11 @@
                                         class="board-members-overlay__member-select-btn"
                                         disabled="@IsSelectingMember"
                                         @onclick="() => SelectMemberAsync(member)">
+                                    <UserAvatarPlaceholder Class="board-members-overlay__member-avatar"
+                                                           Preset="UserAvatarPlaceholderPreset.Member"
+                                                           DisplayName="@member.User.DisplayName"
+                                                           Email="@member.User.Email"
+                                                           Title="@member.User.Email" />
                                     <span class="board-members-overlay__member-name">@GetDisplayName(member.User)</span>
                                     <span class="board-members-overlay__member-email">@member.User.Email</span>
                                     <span class="board-members-overlay__member-role">@FormatRole(member.Role)</span>

@@ -186,8 +186,11 @@
 
     private bool _hasTaskContent => GetVisibleTaskCount() > 0;
 
-    protected override void OnInitialized() =>
+    protected override void OnInitialized()
+    {
         BoardDetailsStore.StateChanged += OnBoardStateChanged;
+        ProfileStore.StateChanged += OnProfileStateChanged;
+    }
 
     protected override void OnParametersSet()
     {
@@ -197,8 +200,19 @@
         SyncSortableTasksFromColumn();
     }
 
-    public void Dispose() =>
+    public void Dispose()
+    {
         BoardDetailsStore.StateChanged -= OnBoardStateChanged;
+        ProfileStore.StateChanged -= OnProfileStateChanged;
+    }
+
+    private void OnProfileStateChanged()
+    {
+        if (!ShouldSkipSortableSync())
+            SyncSortableTasksFromColumn();
+
+        _ = InvokeAsync(StateHasChanged);
+    }
 
     private void OnBoardStateChanged()
     {

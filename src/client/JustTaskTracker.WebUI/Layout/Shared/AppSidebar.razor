@@ -10,9 +10,9 @@
 {
     <aside class="sidebar">
         <div class="sidebar__profile">
-            <div class="sidebar__avatar text-sidebar-user" aria-hidden="true">
-                <span>@GetAvatarLetter(profile)</span>
-            </div>
+            <UserAvatarPlaceholder Preset="UserAvatarPlaceholderPreset.Sidebar"
+                                   DisplayName="@profile.DisplayName"
+                                   Email="@profile.Email" />
 
             <div class="sidebar__info">
                 <p class="sidebar__name text-sidebar-user">@(profile.DisplayName ?? profile.Email)</p>
@@ -80,12 +80,6 @@
 
     private void OnProfileStoreStateChanged() =>
         InvokeAsync(StateHasChanged);
-
-    private static char GetAvatarLetter(Domain.Auth.UserWithRolesDto profile) =>
-        char.ToUpperInvariant(
-            (profile.DisplayName ?? profile.Email) is { Length: > 0 } source
-                ? source[0]
-                : '?');
 
     private async Task SwitchMicrosoftAccount()
     {

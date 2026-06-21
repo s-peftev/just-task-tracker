@@ -92,16 +92,16 @@
                 else
                 {
                     <ul class="board-members-overlay__list">
-                        @foreach (var member in BoardMembersStore.Members)
+                        @foreach (var member in GetDisplayMembers())
                         {
                             <li class="board-members-overlay__item">
-                                <div class="board-members-overlay__member">
+                                <div class="board-members-overlay__member @(IsCurrentUser(member) ? "board-members-overlay__member--current-user" : null)">
                                     <UserAvatarPlaceholder Class="board-members-overlay__member-avatar"
                                                            Preset="UserAvatarPlaceholderPreset.Member"
                                                            DisplayName="@member.User.DisplayName"
                                                            Email="@member.User.Email"
                                                            Title="@member.User.Email" />
-                                    <span class="board-members-overlay__member-name">@GetDisplayName(member.User)</span>
+                                    <span class="board-members-overlay__member-name">@GetMemberDisplayName(member)</span>
                                     <span class="board-members-overlay__member-email">@member.User.Email</span>
                                     <div class="board-members-overlay__member-aside">
                                         @if (CanEditMemberRole(member))
@@ -116,7 +116,7 @@
                                                        Class="board-members-overlay__role-select"
                                                        AnchorOrigin="Origin.BottomCenter"
                                                        TransformOrigin="Origin.TopCenter"
-                                                       aria-label="@($"Role for {GetDisplayName(member.User)}")">
+                                                       aria-label="@($"Role for {GetMemberDisplayName(member)}")">
                                                 <MudSelectItem T="BoardMemberRole" Value="BoardMemberRole.Admin">Admin</MudSelectItem>
                                                 <MudSelectItem T="BoardMemberRole" Value="BoardMemberRole.ScrumMaster">Scrum Master</MudSelectItem>
                                                 <MudSelectItem T="BoardMemberRole" Value="BoardMemberRole.User">User</MudSelectItem>
@@ -130,7 +130,7 @@
                                         {
                                             <button type="button"
                                                     class="board-members-overlay__remove-btn"
-                                                    aria-label="@($"Remove {GetDisplayName(member.User)} from board")"
+                                                    aria-label="@($"Remove {GetMemberDisplayName(member)} from board")"
                                                     disabled="@BoardMembersStore.IsRemovingMember"
                                                     @onclick="() => RemoveMemberAsync(member)">
                                                 <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -236,6 +236,7 @@
     {
         BoardMembersStore.StateChanged += OnStoreStateChanged;
         BoardAddMemberStore.StateChanged += OnStoreStateChanged;
+        ProfileStore.StateChanged += OnStoreStateChanged;
     }
 
     protected override async Task OnInitializedAsync()
@@ -251,6 +252,7 @@
     {
         BoardMembersStore.StateChanged -= OnStoreStateChanged;
         BoardAddMemberStore.StateChanged -= OnStoreStateChanged;
+        ProfileStore.StateChanged -= OnStoreStateChanged;
     }
 
     private void OnStoreStateChanged() =>
@@ -443,6 +445,32 @@
         string.IsNullOrWhiteSpace(user.DisplayName)
             ? user.Email
             : user.DisplayName!;
+
+    private IEnumerable<BoardMemberDto> GetDisplayMembers()
+    {
+        var members = BoardMembersStore.Members;
+
+        if (ProfileStore.Profile is not { } profile)
+            return members;
+
+        var currentUser = members.FirstOrDefault(member => member.User.Id == profile.Id);
+
+        if (currentUser is null)
+            return members;
+
+        return members
+            .Where(member => member.User.Id != profile.Id)
+            .Prepend(currentUser);
+    }
+
+    private bool IsCurrentUser(BoardMemberDto member) =>
+        ProfileStore.Profile is { } profile && member.User.Id == profile.Id;
+
+    private string GetMemberDisplayName(BoardMemberDto member)
+    {
+        var displayName = GetDisplayName(member.User);
+        return IsCurrentUser(member) ? $"{displayName} (you)" : displayName;
+    }
 
     private static string FormatRole(BoardMemberRole role) =>
         role switch

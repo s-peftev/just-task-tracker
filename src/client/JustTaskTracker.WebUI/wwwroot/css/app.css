@@ -575,8 +575,13 @@ html, body {
     grid-template-rows: auto auto;
     gap: 0.125rem 0.625rem;
     padding: 0.5rem 0.625rem;
+    border: 1px solid transparent;
     border-radius: var(--jtt-radius-md);
     background-color: var(--jtt-overlay-white-10);
+}
+
+.board-members-overlay__member--current-user {
+    border-color: rgb(97, 179, 216);
 }
 
 .board-members-overlay__member-avatar {
@@ -752,6 +757,13 @@ html, body {
 
 .board-members-overlay__member-select-btn--unassign {
     grid-template-columns: minmax(0, 1fr);
+    text-align: center;
+}
+
+.board-members-overlay__member-select-btn--unassign .board-members-overlay__member-name,
+.board-members-overlay__member-select-btn--unassign .board-members-overlay__member-email {
+    grid-column: 1;
+    text-align: center;
 }
 
 .board-members-overlay__member-select-btn--unassign .board-members-overlay__member-name {

@@ -104,7 +104,7 @@
                         </svg>
 
                         <div class="board-task-details-panel__user-line">
-                            <span class="board-task-details-panel__user-name">@FormatUser(task.Reporter)</span>
+                            <span class="board-task-details-panel__user-name">@UserDisplayFormatting.GetNameWithEmail(task.Reporter)</span>
                             <span class="board-task-details-panel__user-meta">
                                 created this task @FormatCreatedAt(task.CreatedAtUtc)
                             </span>
@@ -140,7 +140,7 @@
                                 @if (task.Assignee is { } assignee)
                                 {
                                     <span class="board-task-details-panel__user-line">
-                                        <span class="board-task-details-panel__user-name">@FormatUser(assignee)</span>
+                                        <span class="board-task-details-panel__user-name">@UserDisplayFormatting.GetNameWithEmail(assignee)</span>
                                         <span class="board-task-details-panel__user-meta">has been assigned to this task</span>
                                     </span>
                                 }
@@ -478,12 +478,6 @@
         _ = InvokeAsync(StateHasChanged);
     }
 
-    private static string FormatUser(UserDto user) =>
-        string.IsNullOrWhiteSpace(user.DisplayName) ? user.Email : $"{user.DisplayName} ({user.Email})";
-
-    private static string GetAssigneeDisplayName(UserDto user) =>
-        string.IsNullOrWhiteSpace(user.DisplayName) ? user.Email : user.DisplayName!;
-
     private static string FormatCreatedAt(DateTime createdAtUtc) =>
         createdAtUtc.ToLocalTime().ToString("g");
 
@@ -746,7 +740,7 @@
             return;
         }
 
-        var displayName = GetAssigneeDisplayName(member.User);
+        var displayName = UserDisplayFormatting.GetShortName(member.User);
         var message = $"Assign {displayName} to this task?";
 
         var dialog = await DialogService.ShowConfirmResourceAsync(

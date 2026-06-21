@@ -15,7 +15,7 @@
                                    Email="@profile.Email" />
 
             <div class="sidebar__info">
-                <p class="sidebar__name text-sidebar-user">@(profile.DisplayName ?? profile.Email)</p>
+                <p class="sidebar__name text-sidebar-user">@UserDisplayFormatting.GetShortName(profile)</p>
                 <p class="sidebar__email text-sidebar-user">@profile.Email</p>
 
                 @if (profile.Roles.Count > 0)

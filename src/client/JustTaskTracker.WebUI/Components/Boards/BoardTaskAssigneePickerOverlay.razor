@@ -81,9 +81,9 @@
                                                            DisplayName="@member.User.DisplayName"
                                                            Email="@member.User.Email"
                                                            Title="@member.User.Email" />
-                                    <span class="board-members-overlay__member-name">@GetDisplayName(member.User)</span>
+                                    <span class="board-members-overlay__member-name">@UserDisplayFormatting.GetShortName(member.User)</span>
                                     <span class="board-members-overlay__member-email">@member.User.Email</span>
-                                    <span class="board-members-overlay__member-role">@FormatRole(member.Role)</span>
+                                    <span class="board-members-overlay__member-role">@BoardMemberRoleFormatting.Format(member.Role)</span>
                                 </button>
                             </li>
                         }
@@ -158,19 +158,4 @@
         AssigneePickerStore.Close();
         return Task.CompletedTask;
     }
-
-    private static string GetDisplayName(UserDto user) =>
-        string.IsNullOrWhiteSpace(user.DisplayName)
-            ? user.Email
-            : user.DisplayName!;
-
-    private static string FormatRole(BoardMemberRole role) =>
-        role switch
-        {
-            BoardMemberRole.Owner => "Owner",
-            BoardMemberRole.Admin => "Admin",
-            BoardMemberRole.ScrumMaster => "Scrum Master",
-            BoardMemberRole.User => "User",
-            _ => role.ToString(),
-        };
 }

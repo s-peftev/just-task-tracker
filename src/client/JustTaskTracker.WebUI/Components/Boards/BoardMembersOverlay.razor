@@ -117,14 +117,12 @@
                                                        AnchorOrigin="Origin.BottomCenter"
                                                        TransformOrigin="Origin.TopCenter"
                                                        aria-label="@($"Role for {GetMemberDisplayName(member)}")">
-                                                <MudSelectItem T="BoardMemberRole" Value="BoardMemberRole.Admin">Admin</MudSelectItem>
-                                                <MudSelectItem T="BoardMemberRole" Value="BoardMemberRole.ScrumMaster">Scrum Master</MudSelectItem>
-                                                <MudSelectItem T="BoardMemberRole" Value="BoardMemberRole.User">User</MudSelectItem>
+                                                <BoardMemberRoleSelectItems />
                                             </MudSelect>
                                         }
                                         else
                                         {
-                                            <span class="board-members-overlay__member-role">@FormatRole(member.Role)</span>
+                                            <span class="board-members-overlay__member-role">@BoardMemberRoleFormatting.Format(member.Role)</span>
                                         }
                                         @if (CanRemoveMember(member))
                                         {
@@ -190,12 +188,12 @@
                                                            DisplayName="@user.DisplayName"
                                                            Email="@user.Email"
                                                            Title="@user.Email" />
-                                    <span class="board-members-overlay__member-name">@GetDisplayName(user)</span>
+                                    <span class="board-members-overlay__member-name">@UserDisplayFormatting.GetShortName(user)</span>
                                     <span class="board-members-overlay__member-email">@user.Email</span>
 
                                     @if (user.BoardMemberRole is { } role)
                                     {
-                                        <span class="board-members-overlay__member-role">@FormatRole(role)</span>
+                                        <span class="board-members-overlay__member-role">@BoardMemberRoleFormatting.Format(role)</span>
                                     }
                                     else
                                     {
@@ -276,7 +274,7 @@
 
     private async Task RemoveMemberAsync(BoardMemberDto member)
     {
-        var displayName = GetDisplayName(member.User);
+        var displayName = UserDisplayFormatting.GetShortName(member.User);
         var message =
             $"Remove {displayName} from this board?{Environment.NewLine}They will lose access to the board.";
 
@@ -323,9 +321,9 @@
         if (newRole == member.Role)
             return;
 
-        var displayName = GetDisplayName(member.User);
+        var displayName = UserDisplayFormatting.GetShortName(member.User);
         var message =
-            $"Change role for {displayName} from {FormatRole(member.Role)} to {FormatRole(newRole)}?";
+            $"Change role for {displayName} from {BoardMemberRoleFormatting.Format(member.Role)} to {BoardMemberRoleFormatting.Format(newRole)}?";
 
         var dialog = await DialogService.ShowConfirmResourceAsync(
             "Change member role",
@@ -345,7 +343,7 @@
         {
             await BoardMembersStore.UpdateMemberRoleAsync(member.User.Id, newRole);
             BoardAddMemberStore.SetUserBoardMemberRole(member.User.Id, newRole);
-            Snackbar.Add($"{displayName}'s role changed to {FormatRole(newRole)}.", Severity.Success);
+            Snackbar.Add($"{displayName}'s role changed to {BoardMemberRoleFormatting.Format(newRole)}.", Severity.Success);
         }
         catch (ApiServiceException ex)
         {
@@ -370,7 +368,7 @@
         try
         {
             await BoardAddMemberStore.AddMemberAsync(user.Id, role);
-            Snackbar.Add($"{GetDisplayName(user)} added to the board.", Severity.Success);
+            Snackbar.Add($"{UserDisplayFormatting.GetShortName(user)} added to the board.", Severity.Success);
         }
         catch (ApiServiceException ex)
         {
@@ -433,18 +431,8 @@
         return Task.CompletedTask;
     }
 
-    private static string GetDisplayName(BoardMemberDto member) =>
-        GetDisplayName(member.User);
-
-    private static string GetDisplayName(UserForBoardLookupDto user) =>
-        string.IsNullOrWhiteSpace(user.DisplayName)
-            ? user.Email
-            : user.DisplayName!;
-
-    private static string GetDisplayName(UserDto user) =>
-        string.IsNullOrWhiteSpace(user.DisplayName)
-            ? user.Email
-            : user.DisplayName!;
+    private string GetMemberDisplayName(BoardMemberDto member) =>
+        UserDisplayFormatting.GetShortNameWithYouSuffix(member.User, IsCurrentUser(member));
 
     private IEnumerable<BoardMemberDto> GetDisplayMembers()
     {
@@ -465,20 +453,4 @@
 
     private bool IsCurrentUser(BoardMemberDto member) =>
         ProfileStore.Profile is { } profile && member.User.Id == profile.Id;
-
-    private string GetMemberDisplayName(BoardMemberDto member)
-    {
-        var displayName = GetDisplayName(member.User);
-        return IsCurrentUser(member) ? $"{displayName} (you)" : displayName;
-    }
-
-    private static string FormatRole(BoardMemberRole role) =>
-        role switch
-        {
-            BoardMemberRole.Owner => "Owner",
-            BoardMemberRole.Admin => "Admin",
-            BoardMemberRole.ScrumMaster => "Scrum Master",
-            BoardMemberRole.User => "User",
-            _ => role.ToString(),
-        };
 }

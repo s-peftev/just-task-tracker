@@ -4,6 +4,7 @@ using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Interfaces;
 using JustTaskTracker.Application.Common.Interfaces.ExternalProviders;
 using JustTaskTracker.Application.Common.Interfaces.Persistence;
+using JustTaskTracker.Application.Common.Options;
 using JustTaskTracker.Domain.Boards.Authorization;
 using JustTaskTracker.Domain.Common.Results;
 using JustTaskTracker.Domain.Common.Results.Errors;
@@ -17,8 +18,10 @@ public record DeleteBoardTaskAttachmentCommand(Guid BoardTaskId, Guid Attachment
 public class DeleteBoardTaskAttachmentCommandHandler(
     ICurrentUserAccessor currentUserAccessor,
     IBoardTaskRepository boardTaskRepository,
+    IAttachmentRepository attachmentRepository,
     IBoardPositioningService boardPositioningService,
     IBlobStorageService blobStorageService,
+    BlobStorageSettings blobStorageSettings,
     IUnitOfWork unitOfWork,
     ILogger<DeleteBoardTaskAttachmentCommandHandler> logger)
     : IRequestHandler<DeleteBoardTaskAttachmentCommand, Result>
@@ -30,7 +33,7 @@ public class DeleteBoardTaskAttachmentCommandHandler(
         if (userRole is not { } authorizedRole || !BoardRolePermissions.CanManageTasks(authorizedRole))
             return Result.Failure(GeneralErrors.Forbidden);
 
-        var allAttachments = await boardTaskRepository.GetAttachmentsAsync(request.BoardTaskId, ct);
+        var allAttachments = await attachmentRepository.GetListByBoardTaskIdAsync(request.BoardTaskId, ct);
 
         var attachment = allAttachments
             .FirstOrDefault(a => a.Id == request.AttachmentId);
@@ -38,30 +41,47 @@ public class DeleteBoardTaskAttachmentCommandHandler(
         if (attachment is null)
             return Result.Failure(GeneralErrors.NotFound);
 
-        var blobName = attachment.BlobName;
+        var oldBlobName = attachment.BlobName;
+        var newBlobName = blobStorageSettings.TaskAttachments.ToDeletedBlobName(oldBlobName);
 
         var remainingAttachments = allAttachments
             .Where(a => a.Id != request.AttachmentId)
             .ToList();
 
-        boardTaskRepository.RemoveAttachment(attachment);
-
-        if (remainingAttachments.Count > 0)
-            await boardPositioningService.ApplyCurrentOrderAndSaveAsync(remainingAttachments, ct);
-        else
-            await unitOfWork.SaveChangesAsync(ct);
+        await unitOfWork.BeginTransactionAsync(ct);
 
         try
         {
-            await blobStorageService.DeleteAsync(blobName, ct);
+            attachmentRepository.Remove(attachment);
+            attachment.BlobName = newBlobName;
+
+            if (remainingAttachments.Count > 0)
+                await boardPositioningService.ApplyCurrentOrderAndSaveAsync(remainingAttachments, ct);
+            else
+                await unitOfWork.SaveChangesAsync(ct);
+
+            await unitOfWork.CommitTransactionAsync(ct);
+        }
+        catch (Exception ex)
+        {
+            await unitOfWork.RollbackTransactionAsync(ct);
+
+            logger.LogError(ex, "Failed to delete attachment {AttachmentId}.", request.AttachmentId);
+
+            return Result.Failure(GeneralErrors.InternalServerError);
+        }
+
+        try
+        {
+            await blobStorageService.MoveToDeletedAsync(oldBlobName, newBlobName, ct);
         }
         catch (Exception ex)
         {
             logger.LogError(
                 ex,
-                "Attachment {AttachmentId} removed from database but blob {BlobName} could not be deleted.",
+                "Attachment {AttachmentId} soft-deleted but blob {OldBlobName} could not be moved to deleted storage.",
                 request.AttachmentId,
-                blobName);
+                oldBlobName);
         }
 
         return Result.Success();

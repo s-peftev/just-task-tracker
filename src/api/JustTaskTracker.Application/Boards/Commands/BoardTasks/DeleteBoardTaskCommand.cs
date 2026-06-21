@@ -2,11 +2,14 @@ using FluentValidation;
 using JustTaskTracker.Application.Boards.Positioning;
 using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Interfaces;
+using JustTaskTracker.Application.Common.Interfaces.ExternalProviders;
 using JustTaskTracker.Application.Common.Interfaces.Persistence;
+using JustTaskTracker.Application.Common.Options;
 using JustTaskTracker.Domain.Boards.Authorization;
 using JustTaskTracker.Domain.Common.Results;
 using JustTaskTracker.Domain.Common.Results.Errors;
 using MediatR;
+using Microsoft.Extensions.Logging;
 
 namespace JustTaskTracker.Application.Boards.Commands.BoardTasks;
 
@@ -16,8 +19,12 @@ public class DeleteBoardTaskCommandHandler(
     ICurrentUserAccessor currentUserAccessor,
     IBoardTaskRepository boardTaskRepository,
     IBoardTaskCommentRepository boardTaskCommentRepository,
+    IAttachmentRepository attachmentRepository,
     IBoardPositioningService boardPositioningService,
-    IUnitOfWork unitOfWork)
+    IBlobStorageService blobStorageService,
+    BlobStorageSettings blobStorageSettings,
+    IUnitOfWork unitOfWork,
+    ILogger<DeleteBoardTaskCommandHandler> logger)
     : IRequestHandler<DeleteBoardTaskCommand, Result>
 {
     public async Task<Result> Handle(DeleteBoardTaskCommand request, CancellationToken ct)
@@ -36,7 +43,11 @@ public class DeleteBoardTaskCommandHandler(
             return Result.Failure(GeneralErrors.NotFound);
 
         var comments = await boardTaskCommentRepository.GetListByBoardTaskIdAsync(request.BoardTaskId, ct);
-        
+        var attachments = await attachmentRepository.GetListByBoardTaskIdAsync(request.BoardTaskId, ct);
+
+        var oldBlobNames = attachments.Select(a => a.BlobName).ToList();
+        var newBlobNames = attachments.Select(a => blobStorageSettings.TaskAttachments.ToDeletedBlobName(a.BlobName)).ToList();
+
         await unitOfWork.BeginTransactionAsync(ct);
 
         try
@@ -44,7 +55,11 @@ public class DeleteBoardTaskCommandHandler(
             if (comments.Count > 0)
                 boardTaskCommentRepository.RemoveRange(comments);
 
-            // we don't delete attachments from blob storage here so in case of recovering the task, the attachments are still available
+            foreach (var (attachment, newName) in attachments.Zip(newBlobNames))
+            {
+                attachment.BlobName = newName;
+                attachmentRepository.Remove(attachment);
+            }
 
             boardTaskRepository.Remove(boardTask);
 
@@ -63,6 +78,22 @@ public class DeleteBoardTaskCommandHandler(
         {
             await unitOfWork.RollbackTransactionAsync(ct);
             throw;
+        }
+
+        foreach (var (oldName, newName) in oldBlobNames.Zip(newBlobNames))
+        {
+            try
+            {
+                await blobStorageService.MoveToDeletedAsync(oldName, newName, ct);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(
+                    ex,
+                    "Task {BoardTaskId} deleted but attachment blob {BlobName} could not be moved to deleted storage.",
+                    request.BoardTaskId,
+                    oldName);
+            }
         }
 
         return Result.Success();

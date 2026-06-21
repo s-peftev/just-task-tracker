@@ -3,7 +3,7 @@ using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using JustTaskTracker.Application.Common.Interfaces.ExternalProviders;
 using JustTaskTracker.Application.Common.Models;
-using JustTaskTracker.Infrastructure.Common.Options;
+using JustTaskTracker.Application.Common.Options;
 
 namespace JustTaskTracker.Infrastructure.Common.ExternalProviders;
 
@@ -13,15 +13,15 @@ internal sealed class AzureBlobStorageService : IBlobStorageService
 
     public AzureBlobStorageService(
         BlobServiceClient blobServiceClient,
-        BlobStorageContainersOptions containersOptions)
+        BlobStorageSettings blobStorageSettings)
     {
-        if (string.IsNullOrWhiteSpace(containersOptions.TaskAttachments))
+        if (string.IsNullOrWhiteSpace(blobStorageSettings.TaskAttachments.ContainerName))
         {
             throw new InvalidOperationException(
-                $"{nameof(BlobStorageContainersOptions.TaskAttachments)} is not configured.");
+                $"{nameof(blobStorageSettings.TaskAttachments.ContainerName)} is not configured.");
         }
 
-        _containerClient = blobServiceClient.GetBlobContainerClient(containersOptions.TaskAttachments);
+        _containerClient = blobServiceClient.GetBlobContainerClient(blobStorageSettings.TaskAttachments.ContainerName);
     }
 
     public async Task UploadAsync(string blobName, Stream content, string contentType, CancellationToken ct = default)
@@ -54,6 +54,30 @@ internal sealed class AzureBlobStorageService : IBlobStorageService
             response.Value.Content,
             string.IsNullOrWhiteSpace(details.ContentType) ? "application/octet-stream" : details.ContentType,
             details.ContentLength);
+    }
+
+    public async Task MoveToDeletedAsync(string sourceBlobName, string destinationBlobName, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(sourceBlobName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(destinationBlobName);
+
+        if (string.Equals(sourceBlobName, destinationBlobName, StringComparison.Ordinal))
+            throw new ArgumentException("Source and destination blob names must differ.");
+
+        var sourceClient = GetBlobClient(sourceBlobName);
+        var destinationClient = GetBlobClient(destinationBlobName);
+
+        var copyOperation = await destinationClient.StartCopyFromUriAsync(
+            sourceClient.Uri,
+            new BlobCopyFromUriOptions
+            {
+                DestinationConditions = new BlobRequestConditions { IfNoneMatch = ETag.All },
+            },
+            ct);
+
+        await copyOperation.WaitForCompletionAsync(cancellationToken: ct);
+
+        await sourceClient.DeleteIfExistsAsync(DeleteSnapshotsOption.IncludeSnapshots, cancellationToken: ct);
     }
 
     public async Task DeleteAsync(string blobName, CancellationToken ct = default)

@@ -24,9 +24,11 @@ public class BoardTaskAttachmentConfiguration : IEntityTypeConfiguration<BoardTa
             .OnDelete(DeleteBehavior.NoAction);
 
         builder.HasIndex(a => new { a.BoardTaskId, a.Position })
-            .IsUnique();
+            .IsUnique()
+            .HasFilter("[IsDeleted] = 0");
 
         builder.HasIndex(a => a.BlobName)
-            .IsUnique();
+            .IsUnique()
+            .HasFilter("[IsDeleted] = 0");
     }
 }

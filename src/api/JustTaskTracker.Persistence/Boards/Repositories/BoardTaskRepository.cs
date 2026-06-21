@@ -119,34 +119,4 @@ public class BoardTaskRepository(JustTaskTrackerDbContext context)
         foreach (var task in tasks)
             _dbSet.Remove(task);
     }
-
-    public async Task<(BoardTaskAttachment? Attachment, BoardMemberRole? UserRole)> GetAttachmentWithUserRoleAsync(Guid attachmentId, Guid azureAdObjectId, CancellationToken ct = default)
-    {
-        var result = await _context.Set<BoardTaskAttachment>()
-            .Where(attachment => attachment.Id == attachmentId)
-            .Select(attachment => new
-            {
-                Attachment = attachment,
-                UserRole = attachment.BoardTask!.Column!.Board!.Members
-                    .Where(m => m.User!.AzureAdObjectId == azureAdObjectId)
-                    .Select(m => m.Role)
-                    .FirstOrDefault()
-            })
-            .FirstOrDefaultAsync(ct);
-
-        return (result?.Attachment, result?.UserRole);
-    }
-
-    public async Task<int> GetAttachmentsCountAsync(Guid boardTaskId, CancellationToken ct = default) =>
-        await _context.Set<BoardTaskAttachment>()
-            .CountAsync(a => a.BoardTaskId == boardTaskId, ct);
-
-    public async Task<IReadOnlyList<BoardTaskAttachment>> GetAttachmentsAsync(Guid boardTaskId, CancellationToken ct = default) =>
-        await _context.Set<BoardTaskAttachment>()
-            .Where(attachment => attachment.BoardTaskId == boardTaskId)
-            .OrderBy(attachment => attachment.Position)
-            .ToListAsync(ct);
-
-    public void RemoveAttachment(BoardTaskAttachment attachment) =>
-        _context.Set<BoardTaskAttachment>().Remove(attachment);
 }

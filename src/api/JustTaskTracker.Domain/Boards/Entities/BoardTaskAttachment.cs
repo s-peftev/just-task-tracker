@@ -4,7 +4,7 @@ using JustTaskTracker.Domain.Common.Interfaces;
 
 namespace JustTaskTracker.Domain.Boards.Entities;
 
-public class BoardTaskAttachment : AuditableEntity<Guid>, IPositionedEntity
+public class BoardTaskAttachment : BaseEntity<Guid>, IPositionedEntity
 {
     public required Guid BoardTaskId { get; init; }
     public required Guid UploadedById { get; init; }

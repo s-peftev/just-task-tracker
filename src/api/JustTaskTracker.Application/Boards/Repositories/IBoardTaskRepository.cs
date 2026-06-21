@@ -25,12 +25,4 @@ public interface IBoardTaskRepository : IRepository<BoardTask, Guid>
     Task<int> GetCountByColumnIdAsync(Guid columnId, CancellationToken ct = default);
 
     void RemoveRange(IReadOnlyList<BoardTask> tasks);
-
-    Task<(BoardTaskAttachment? Attachment, BoardMemberRole? UserRole)> GetAttachmentWithUserRoleAsync(Guid attachmentId, Guid azureAdObjectId, CancellationToken ct = default);
-
-    Task<int> GetAttachmentsCountAsync(Guid boardTaskId, CancellationToken ct = default);
-
-    Task<IReadOnlyList<BoardTaskAttachment>> GetAttachmentsAsync(Guid boardTaskId, CancellationToken ct = default);
-
-    void RemoveAttachment(BoardTaskAttachment attachment);
 }

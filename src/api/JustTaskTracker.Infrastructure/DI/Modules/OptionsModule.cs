@@ -7,7 +7,7 @@ namespace JustTaskTracker.Infrastructure.DI.Modules;
 
 internal static class OptionsModule
 {
-    internal static IServiceCollection AddAppOptionsModule(this IServiceCollection services, IConfiguration configuration)
+    internal static IServiceCollection AddOptionsModule(this IServiceCollection services, IConfiguration configuration)
     {
         var frontendOptions = configuration
             .GetSection(ConfigSections.Frontend)
@@ -26,12 +26,6 @@ internal static class OptionsModule
             .Get<PaginationDefaultsOptions>() ?? new PaginationDefaultsOptions();
 
         services.AddSingleton(paginationDefaultsOptions);
-
-        var blobStorageContainersOptions = configuration
-            .GetSection(ConfigSections.BlobStorageContainers)
-            .Get<BlobStorageContainersOptions>() ?? new BlobStorageContainersOptions();
-
-        services.AddSingleton(blobStorageContainersOptions);
 
         return services;
     }

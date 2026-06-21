@@ -16,7 +16,7 @@ public record DownloadBoardTaskAttachmentCommand(Guid AttachmentId)
 
 public class DownloadBoardTaskAttachmentCommandHandler(
     ICurrentUserAccessor currentUserAccessor,
-    IBoardTaskRepository boardTaskRepository,
+    IAttachmentRepository attachmentRepository,
     IBlobStorageService blobStorageService,
     ILogger<DownloadBoardTaskAttachmentCommandHandler> logger)
     : IRequestHandler<DownloadBoardTaskAttachmentCommand, Result<BoardTaskAttachmentDownload>>
@@ -25,7 +25,7 @@ public class DownloadBoardTaskAttachmentCommandHandler(
         DownloadBoardTaskAttachmentCommand request,
         CancellationToken ct)
     {
-        var (attachment, userRole) = await boardTaskRepository.GetAttachmentWithUserRoleAsync(request.AttachmentId, currentUserAccessor.AzureAdObjectId, ct);
+        var (attachment, userRole) = await attachmentRepository.GetAttachmentWithUserRoleAsync(request.AttachmentId, currentUserAccessor.AzureAdObjectId, ct);
 
         if (userRole is not { } authorizedRole || !BoardRolePermissions.CanDownloadAttachments(authorizedRole))
             return Result<BoardTaskAttachmentDownload>.Failure(GeneralErrors.Forbidden);

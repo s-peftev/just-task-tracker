@@ -18,6 +18,7 @@ internal static class RepositoriesModule
         services.AddScoped<IColumnRepository, ColumnRepository>();
         services.AddScoped<IBoardTaskRepository, BoardTaskRepository>();
         services.AddScoped<IBoardTaskCommentRepository, BoardTaskCommentRepository>();
+        services.AddScoped<IAttachmentRepository, AttachmentRepository>();
 
         return services;
     }

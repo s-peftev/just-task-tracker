@@ -24,8 +24,10 @@ public class UploadBoardTaskAttachmentCommandHandler(
     ICurrentUserAccessor currentUserAccessor,
     IUserRepository userRepository,
     IBoardTaskRepository boardTaskRepository,
+    IAttachmentRepository attachmentRepository,
     IBlobStorageService blobStorageService,
     ValidationSettings validationSettings,
+    BlobStorageSettings blobStorageSettings,
     IUnitOfWork unitOfWork,
     ILogger<UploadBoardTaskAttachmentCommandHandler> logger)
     : IRequestHandler<UploadBoardTaskAttachmentCommand, Result<BoardTaskAttachmentDto>>
@@ -37,15 +39,12 @@ public class UploadBoardTaskAttachmentCommandHandler(
         if (currentUser is null)
             return Result<BoardTaskAttachmentDto>.Failure(GeneralErrors.Unauthorized);
 
-        var (boardTask, userRole) = await boardTaskRepository.GetBoardTaskWithUserRoleAsync(request.BoardTaskId, currentUserAccessor.AzureAdObjectId, ct);
+        var userRole = await boardTaskRepository.GetUserRoleAsync(request.BoardTaskId, currentUserAccessor.AzureAdObjectId, ct);
 
         if (userRole is not { } authorizedRole || !BoardRolePermissions.CanManageTasks(authorizedRole))
             return Result<BoardTaskAttachmentDto>.Failure(GeneralErrors.Forbidden);
 
-        if (boardTask is null)
-            return Result<BoardTaskAttachmentDto>.Failure(GeneralErrors.NotFound);
-
-        var attachmentCount = await boardTaskRepository.GetAttachmentsCountAsync(request.BoardTaskId, ct);
+        var attachmentCount = await attachmentRepository.GetCountByBoardTaskIdAsync(request.BoardTaskId, ct);
 
         if (attachmentCount >= validationSettings.BoardTasks.MaxAttachmentsPerTask)
             return Result<BoardTaskAttachmentDto>.Failure(BoardTasksErrors.TooManyAttachments);
@@ -54,8 +53,7 @@ public class UploadBoardTaskAttachmentCommandHandler(
         var originalFileName = Path.GetFileName(file.FileName.Trim());
         var contentType = file.ContentType;
         var fileSizeBytes = file.Length;
-
-        var blobName = $"{request.BoardTaskId}/{Guid.NewGuid()}";
+        var blobName = blobStorageSettings.TaskAttachments.BuildActiveBlobName(request.BoardTaskId, Guid.NewGuid());
         var position = attachmentCount;
 
         await using var stream = file.OpenReadStream();
@@ -72,7 +70,7 @@ public class UploadBoardTaskAttachmentCommandHandler(
 
         var attachment = new BoardTaskAttachment
         {
-            BoardTaskId = boardTask.Id,
+            BoardTaskId = request.BoardTaskId,
             UploadedById = currentUser.Id,
             OriginalFileName = originalFileName,
             ContentType = contentType,
@@ -81,7 +79,7 @@ public class UploadBoardTaskAttachmentCommandHandler(
             Position = position,
         };
 
-        boardTask.Attachments.Add(attachment);
+        attachmentRepository.Add(attachment);
 
         try
         {

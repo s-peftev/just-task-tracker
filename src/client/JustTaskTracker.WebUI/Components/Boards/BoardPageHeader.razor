@@ -1,0 +1,247 @@
+@using JustTaskTracker.WebUI.Domain.Boards.Authorization
+@using JustTaskTracker.WebUI.Infrastructure
+@using JustTaskTracker.WebUI.Services.Abstractions.Boards
+@using JustTaskTracker.WebUI.Services.Exceptions
+@implements IDisposable
+@inject IBoardApiService BoardApiService
+@inject IBoardDetailsStore BoardDetailsStore
+@inject IBoardMembersStore BoardMembersStore
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+
+@if (BoardDetailsStore.Board is { } board)
+{
+    <header class="board-page__header">
+        <div class="board-page__title-area">
+            @if (_isEditingName)
+            {
+                <div class="board-page__title-field">
+                    <span class="board-page__title-sizer">@_editName</span>
+                    <input @ref="_titleInputRef"
+                           class="board-page__title-input"
+                           type="text"
+                           maxlength="100"
+                           @bind="_editName"
+                           @bind:event="oninput"
+                           @onkeydown="OnTitleKeyDownAsync"
+                           @onblur="OnTitleBlurAsync" />
+                </div>
+            }
+            else if (CanRenameBoard)
+            {
+                <h1 class="text-section-title board-page__title board-page__title--editable"
+                    @onclick="StartNameEdit">
+                    @board.Name
+                </h1>
+            }
+            else
+            {
+                <h1 class="text-section-title board-page__title">@board.Name</h1>
+            }
+        </div>
+
+        <div class="board-page__controls">
+            <BoardPageMenu UserRole="board.UserRole"
+                           OnMembersClick="OpenMembersOverlayAsync"
+                           OnLeaveBoardClick="LeaveBoardAsync"
+                           OnDeleteBoardClick="DeleteBoardAsync" />
+
+            <button type="button"
+                    class="btn-icon btn-icon--round btn-icon--sm"
+                    aria-label="Back to boards"
+                    @onclick="GoToBoards">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path d="M18 6L6 18M6 6l12 12"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round" />
+                </svg>
+            </button>
+        </div>
+    </header>
+}
+
+@code {
+    [Parameter]
+    public Guid BoardId { get; set; }
+
+    private bool _isEditingName;
+    private bool _isSavingName;
+    private bool _focusTitleInput;
+    private string _editName = string.Empty;
+    private ElementReference _titleInputRef;
+
+    private bool CanRenameBoard =>
+        BoardDetailsStore.Board is { UserRole: var role } && BoardRolePermissions.CanRenameBoard(role);
+
+    protected override void OnInitialized() =>
+        BoardDetailsStore.StateChanged += OnBoardDetailsStoreStateChanged;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_focusTitleInput)
+        {
+            _focusTitleInput = false;
+            await _titleInputRef.FocusAsync();
+        }
+    }
+
+    public void Dispose() =>
+        BoardDetailsStore.StateChanged -= OnBoardDetailsStoreStateChanged;
+
+    private void OnBoardDetailsStoreStateChanged() =>
+        InvokeAsync(StateHasChanged);
+
+    private void GoToBoards() =>
+        Navigation.NavigateTo("/boards");
+
+    private async Task OpenMembersOverlayAsync()
+    {
+        if (BoardDetailsStore.Board is not { } board)
+            return;
+
+        if (!BoardRolePermissions.CanViewBoard(board.UserRole))
+            return;
+
+        try
+        {
+            await BoardMembersStore.OpenAsync(BoardId, board.UserRole);
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+    }
+
+    private async Task LeaveBoardAsync()
+    {
+        var message =
+            $"Leave board \"{BoardDetailsStore.Board?.Name}\"?{Environment.NewLine}You will lose access to this board.";
+
+        var dialog = await DialogService.ShowConfirmResourceAsync(
+            "Leave board",
+            message,
+            confirmLabel: "Leave",
+            submitButtonClass: "btn-glass btn-dialog-action");
+
+        var result = await dialog.Result;
+
+        if (result is not { Canceled: false, Data: true })
+            return;
+
+        try
+        {
+            await BoardApiService.LeaveBoardAsync(BoardId);
+            Snackbar.Add("You left the board.", Severity.Success);
+            Navigation.NavigateTo("/boards");
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+    }
+
+    private void StartNameEdit()
+    {
+        if (!CanRenameBoard || BoardDetailsStore.Board is null || _isEditingName)
+            return;
+
+        _editName = BoardDetailsStore.Board.Name;
+        _isEditingName = true;
+        _focusTitleInput = true;
+    }
+
+    private void CancelNameEdit()
+    {
+        _isEditingName = false;
+        _editName = BoardDetailsStore.Board?.Name ?? string.Empty;
+    }
+
+    private async Task OnTitleKeyDownAsync(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            await SaveBoardNameAsync();
+        else if (e.Key == "Escape")
+            CancelNameEdit();
+    }
+
+    private async Task OnTitleBlurAsync()
+    {
+        if (!_isEditingName)
+            return;
+
+        await SaveBoardNameAsync();
+    }
+
+    private async Task SaveBoardNameAsync()
+    {
+        if (!_isEditingName || BoardDetailsStore.Board is null || _isSavingName)
+            return;
+
+        var trimmedName = _editName.Trim();
+
+        if (string.IsNullOrEmpty(trimmedName))
+        {
+            Snackbar.Add("Board name is required.", Severity.Error);
+            return;
+        }
+
+        if (trimmedName.Length > 100)
+        {
+            Snackbar.Add("Board name must not exceed 100 characters.", Severity.Error);
+            return;
+        }
+
+        if (string.Equals(trimmedName, BoardDetailsStore.Board.Name, StringComparison.Ordinal))
+        {
+            CancelNameEdit();
+            return;
+        }
+
+        _isSavingName = true;
+
+        try
+        {
+            await BoardApiService.UpdateBoardAsync(BoardId, trimmedName);
+            BoardDetailsStore.UpdateBoardName(trimmedName);
+            _isEditingName = false;
+            Snackbar.Add("Board updated.", Severity.Success);
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+        finally
+        {
+            _isSavingName = false;
+        }
+    }
+
+    private async Task DeleteBoardAsync()
+    {
+        var message =
+            $"Delete board \"{BoardDetailsStore.Board?.Name}\"?{Environment.NewLine}This action cannot be undone.";
+
+        var dialog = await DialogService.ShowConfirmResourceAsync(
+            "Delete board",
+            message,
+            confirmLabel: "Delete");
+
+        var result = await dialog.Result;
+
+        if (result is not { Canceled: false, Data: true })
+            return;
+
+        try
+        {
+            await BoardApiService.DeleteBoardAsync(BoardId);
+            Snackbar.Add("Board deleted.", Severity.Success);
+            Navigation.NavigateTo("/boards");
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+    }
+}

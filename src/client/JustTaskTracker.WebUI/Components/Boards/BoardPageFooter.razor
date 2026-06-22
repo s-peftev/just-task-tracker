@@ -1,0 +1,174 @@
+@using JustTaskTracker.WebUI.Services.Abstractions.Boards
+@implements IDisposable
+@inject IBoardTrayOverlapService BoardTrayOverlap
+@inject IBoardDetailsStore BoardDetailsStore
+@inject IBoardTaskSearchStore BoardTaskSearchStore
+@inject ISnackbar Snackbar
+
+<footer class="board-page__footer @(_isTrayOpen ? "board-page__footer--open" : null)">
+    <div class="board-page__footer-drawer">
+        <div @ref="_footerPanelRef" class="board-page__footer-panel">
+            <div class="board-page__footer-tab">
+                <button type="button"
+                        class="board-page__footer-handle"
+                        aria-label="@(_isTrayOpen ? "Close search" : "Open search")"
+                        aria-expanded="@_isTrayOpen"
+                        @onclick="ToggleTrayAsync">
+                    <svg class="board-page__footer-handle-icon"
+                         viewBox="0 0 24 24"
+                         aria-hidden="true"
+                         focusable="false">
+                        <circle cx="11"
+                                cy="11"
+                                r="6"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                fill="none" />
+                        <path d="M16 16l5 5"
+                              stroke="currentColor"
+                              stroke-width="2"
+                              stroke-linecap="round" />
+                    </svg>
+                </button>
+            </div>
+
+            <div class="board-page__footer-tray">
+                @if (BoardTaskSearchStore.IsOpen)
+                {
+                    <BoardTaskSearchOverlay />
+                }
+
+                <input class="board-page__footer-search-input"
+                       type="search"
+                       aria-label="Search tasks"
+                       placeholder="Search tasks"
+                       value="@BoardTaskSearchStore.SearchText"
+                       @onfocus="OnSearchFocusAsync"
+                       @onblur="OnSearchBlurAsync"
+                       @oninput="OnSearchInputAsync" />
+            </div>
+        </div>
+    </div>
+</footer>
+
+@code {
+    [Parameter]
+    public Guid BoardId { get; set; }
+
+    [Parameter]
+    public ElementReference ScrollBodyRef { get; set; }
+
+    private ElementReference _footerPanelRef;
+    private bool _isTrayOpen;
+    private bool _suppressSearchBlurClose;
+    private Guid _trackedBoardId;
+
+    protected override void OnInitialized() =>
+        BoardTaskSearchStore.StateChanged += OnTaskSearchStoreStateChanged;
+
+    protected override void OnParametersSet()
+    {
+        if (_trackedBoardId != Guid.Empty && _trackedBoardId != BoardId)
+        {
+            BoardTaskSearchStore.Reset();
+            _ = CloseTrayAsync();
+        }
+
+        _trackedBoardId = BoardId;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_isTrayOpen)
+            await BoardTrayOverlap.AttachAsync(ScrollBodyRef, _footerPanelRef);
+    }
+
+    public void Dispose() =>
+        BoardTaskSearchStore.StateChanged -= OnTaskSearchStoreStateChanged;
+
+    private void OnTaskSearchStoreStateChanged() =>
+        InvokeAsync(StateHasChanged);
+
+    private async Task ToggleTrayAsync()
+    {
+        if (_isTrayOpen)
+            await CloseTrayAsync();
+        else
+            await OpenTrayAsync();
+    }
+
+    private async Task OpenTrayAsync()
+    {
+        _isTrayOpen = true;
+        await OnTrayToggledAsync();
+    }
+
+    private async Task CloseTrayAsync()
+    {
+        if (!_isTrayOpen)
+            return;
+
+        _isTrayOpen = false;
+        BoardTaskSearchStore.Close();
+        await OnTrayToggledAsync();
+    }
+
+    private async Task OnTrayToggledAsync()
+    {
+        if (_isTrayOpen)
+        {
+            await InvokeAsync(StateHasChanged);
+            await BoardTrayOverlap.AttachAsync(ScrollBodyRef, _footerPanelRef);
+            await Task.Delay(260);
+            await BoardTrayOverlap.RefreshAsync();
+            return;
+        }
+
+        await BoardTrayOverlap.DetachAsync();
+    }
+
+    private async Task OnSearchFocusAsync()
+    {
+        if (!_isTrayOpen)
+            await OpenTrayAsync();
+
+        if (BoardTaskSearchStore.IsOpen)
+            return;
+
+        if (BoardDetailsStore.Board is not { } board)
+            return;
+
+        var columnId = board.Columns
+            .OrderBy(column => column.Position)
+            .Select(column => column.Id)
+            .FirstOrDefault();
+
+        if (columnId == Guid.Empty)
+        {
+            Snackbar.Add("No columns available for task search.", Severity.Info);
+            return;
+        }
+
+        _suppressSearchBlurClose = true;
+
+        try
+        {
+            await BoardTaskSearchStore.OpenAsync(BoardId, columnId);
+        }
+        finally
+        {
+            _suppressSearchBlurClose = false;
+        }
+    }
+
+    private void OnSearchBlurAsync()
+    {
+        if (_suppressSearchBlurClose)
+            return;
+
+        BoardTaskSearchStore.Close();
+    }
+
+    private Task OnSearchInputAsync(ChangeEventArgs e) =>
+        BoardTaskSearchStore.SetSearchAsync(e.Value?.ToString() ?? string.Empty);
+}

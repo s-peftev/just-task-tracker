@@ -100,6 +100,9 @@
         if (!ProfileStore.IsLoaded || ProfileStore.RequiresLogin)
             return;
 
+        if (BoardStore.IsLoading)
+            return;
+
         await BoardStore.RefreshAsync();
     }
 

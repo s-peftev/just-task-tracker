@@ -15,7 +15,7 @@ public class BoardsController(ISender sender) : ControllerBase
     [HttpGet]
     [Authorize(Policy = AuthorizationPolicies.IsAppMember)]
     public async Task<IActionResult> GetMy([FromQuery] GetBoardsForCurrentUserQuery request, CancellationToken ct)
-    { 
+    {
         var result = await sender.Send(request, ct);
 
         return result.Match(

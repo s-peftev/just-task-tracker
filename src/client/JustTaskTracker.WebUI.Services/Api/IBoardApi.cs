@@ -12,7 +12,7 @@ internal interface IBoardApi
     Task<IApiResponse<ApiEnvelope<PagedList<BoardLookupDto>>>> GetMyAsync(
         int pageNumber,
         int pageSize,
-        [AliasAs("TextSearchOptions.Search")] string? textSearchOptionsSearch = null,
+        [AliasAs("SearchOptions.Search")] string? searchOptionsSearch = null,
         CancellationToken ct = default);
 
     [Get("/api/boards/{id}")]

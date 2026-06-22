@@ -1,31 +1,19 @@
+using System.Collections.Concurrent;
 using Azure;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using JustTaskTracker.Application.Common.Interfaces.ExternalProviders;
 using JustTaskTracker.Application.Common.Models;
-using JustTaskTracker.Application.Common.Options;
 
 namespace JustTaskTracker.Infrastructure.Common.ExternalProviders;
 
-internal sealed class AzureBlobStorageService : IBlobStorageService
+internal sealed class AzureBlobStorageService(BlobServiceClient blobServiceClient) : IBlobStorageService
 {
-    private readonly BlobContainerClient _containerClient;
+    private readonly ConcurrentDictionary<string, BlobContainerClient> _containerClients = new(StringComparer.Ordinal);
 
-    public AzureBlobStorageService(
-        BlobServiceClient blobServiceClient,
-        BlobStorageSettings blobStorageSettings)
+    public async Task UploadAsync(string containerName, string blobName, Stream content, string contentType, CancellationToken ct = default)
     {
-        if (string.IsNullOrWhiteSpace(blobStorageSettings.TaskAttachments.ContainerName))
-        {
-            throw new InvalidOperationException(
-                $"{nameof(blobStorageSettings.TaskAttachments.ContainerName)} is not configured.");
-        }
-
-        _containerClient = blobServiceClient.GetBlobContainerClient(blobStorageSettings.TaskAttachments.ContainerName);
-    }
-
-    public async Task UploadAsync(string blobName, Stream content, string contentType, CancellationToken ct = default)
-    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(containerName);
         ArgumentException.ThrowIfNullOrWhiteSpace(blobName);
         ArgumentNullException.ThrowIfNull(content);
         ArgumentException.ThrowIfNullOrWhiteSpace(contentType);
@@ -33,7 +21,7 @@ internal sealed class AzureBlobStorageService : IBlobStorageService
         if (content.CanSeek)
             content.Position = 0;
 
-        await GetBlobClient(blobName).UploadAsync(
+        await GetBlobClient(containerName, blobName).UploadAsync(
             content,
             new BlobUploadOptions
             {
@@ -43,11 +31,12 @@ internal sealed class AzureBlobStorageService : IBlobStorageService
             ct);
     }
 
-    public async Task<BlobContent> DownloadAsync(string blobName, CancellationToken ct = default)
+    public async Task<BlobContent> DownloadAsync(string containerName, string blobName, CancellationToken ct = default)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(containerName);
         ArgumentException.ThrowIfNullOrWhiteSpace(blobName);
 
-        var response = await GetBlobClient(blobName).DownloadStreamingAsync(cancellationToken: ct);
+        var response = await GetBlobClient(containerName, blobName).DownloadStreamingAsync(cancellationToken: ct);
         var details = response.Value.Details;
 
         return new BlobContent(
@@ -56,16 +45,17 @@ internal sealed class AzureBlobStorageService : IBlobStorageService
             details.ContentLength);
     }
 
-    public async Task MoveToDeletedAsync(string sourceBlobName, string destinationBlobName, CancellationToken ct = default)
+    public async Task MoveAsync(string containerName, string sourceBlobName, string destinationBlobName, CancellationToken ct = default)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(containerName);
         ArgumentException.ThrowIfNullOrWhiteSpace(sourceBlobName);
         ArgumentException.ThrowIfNullOrWhiteSpace(destinationBlobName);
 
         if (string.Equals(sourceBlobName, destinationBlobName, StringComparison.Ordinal))
             throw new ArgumentException("Source and destination blob names must differ.");
 
-        var sourceClient = GetBlobClient(sourceBlobName);
-        var destinationClient = GetBlobClient(destinationBlobName);
+        var sourceClient = GetBlobClient(containerName, sourceBlobName);
+        var destinationClient = GetBlobClient(containerName, destinationBlobName);
 
         var copyOperation = await destinationClient.StartCopyFromUriAsync(
             sourceClient.Uri,
@@ -80,12 +70,20 @@ internal sealed class AzureBlobStorageService : IBlobStorageService
         await sourceClient.DeleteIfExistsAsync(DeleteSnapshotsOption.IncludeSnapshots, cancellationToken: ct);
     }
 
-    public async Task DeleteAsync(string blobName, CancellationToken ct = default)
+    public async Task DeleteAsync(string containerName, string blobName, CancellationToken ct = default)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(containerName);
         ArgumentException.ThrowIfNullOrWhiteSpace(blobName);
 
-        await GetBlobClient(blobName).DeleteIfExistsAsync(DeleteSnapshotsOption.IncludeSnapshots, cancellationToken: ct);
+        await GetBlobClient(containerName, blobName)
+            .DeleteIfExistsAsync(DeleteSnapshotsOption.IncludeSnapshots, cancellationToken: ct);
     }
 
-    private BlobClient GetBlobClient(string blobName) => _containerClient.GetBlobClient(blobName);
+    private BlobClient GetBlobClient(string containerName, string blobName) =>
+        GetContainerClient(containerName).GetBlobClient(blobName);
+
+    private BlobContainerClient GetContainerClient(string containerName) =>
+        _containerClients.GetOrAdd(
+            containerName,
+            name => blobServiceClient.GetBlobContainerClient(name));
 }

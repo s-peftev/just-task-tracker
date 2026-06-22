@@ -22,9 +22,9 @@ public class UpdateBoardTaskCommentCommandHandler(
 {
     public async Task<Result> Handle(UpdateBoardTaskCommentCommand request, CancellationToken ct)
     {
-        var currentUser = await userRepository.GetUserDtoByAzureAOIAsync(currentUserAccessor.AzureAdObjectId, ct);
+        var currentUserInfo = await userRepository.GetUserInfoByAzureAOIAsync(currentUserAccessor.AzureAdObjectId, ct);
 
-        if (currentUser is null)
+        if (currentUserInfo is null)
             return Result.Failure(GeneralErrors.Unauthorized);
 
         var (comment, userRole) = await boardTaskCommentRepository.GetBoardTaskCommentWithUserRole(request.CommentId, currentUserAccessor.AzureAdObjectId, ct);
@@ -35,7 +35,7 @@ public class UpdateBoardTaskCommentCommandHandler(
         if (comment is null)
             return Result.Failure(GeneralErrors.NotFound);
 
-        if (comment.AuthorId != currentUser.Id)
+        if (comment.AuthorId != currentUserInfo.Id)
             return Result.Failure(GeneralErrors.Forbidden);
 
         var body = request.Body.Trim();

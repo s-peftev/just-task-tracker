@@ -3,6 +3,9 @@ using JustTaskTracker.Application.Auth.Repositories;
 using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Interfaces;
 using JustTaskTracker.Application.Common.Interfaces.Persistence;
+using JustTaskTracker.Application.Users.ProfilePhotos;
+using JustTaskTracker.Domain.Auth.DTOs;
+using JustTaskTracker.Domain.Auth.Entities;
 using JustTaskTracker.Domain.Boards.Authorization;
 using JustTaskTracker.Domain.Boards.Constants;
 using JustTaskTracker.Domain.Boards.DTOs.Comments;
@@ -20,14 +23,15 @@ public class CreateBoardTaskCommentCommandHandler(
     IUserRepository userRepository,
     IBoardTaskRepository boardTaskRepository,
     IBoardTaskCommentRepository boardTaskCommentRepository,
-    IUnitOfWork unitOfWork)
+    IUnitOfWork unitOfWork,
+    IProfilePhotoService profilePhotoService)
     : IRequestHandler<CreateBoardTaskCommentCommand, Result<BoardTaskCommentDto>>
 {
     public async Task<Result<BoardTaskCommentDto>> Handle(CreateBoardTaskCommentCommand request, CancellationToken ct)
     {
-        var currentUser = await userRepository.GetUserDtoByAzureAOIAsync(currentUserAccessor.AzureAdObjectId, ct);
+        var currentUserInfo = await userRepository.GetUserInfoByAzureAOIAsync(currentUserAccessor.AzureAdObjectId, ct);
 
-        if (currentUser is null)
+        if (currentUserInfo is null)
             return Result<BoardTaskCommentDto>.Failure(GeneralErrors.Unauthorized);
 
         var userRole = await boardTaskRepository.GetUserRoleAsync(request.BoardTaskId, currentUserAccessor.AzureAdObjectId, ct);
@@ -40,7 +44,7 @@ public class CreateBoardTaskCommentCommandHandler(
         var comment = new BoardTaskComment
         {
             BoardTaskId = request.BoardTaskId,
-            AuthorId = currentUser.Id,
+            AuthorId = currentUserInfo.Id,
             Body = body,
         };
 
@@ -52,7 +56,11 @@ public class CreateBoardTaskCommentCommandHandler(
             comment.Id,
             comment.Body,
             comment.CreatedAtUtc,
-            currentUser));
+            new UserDto(
+                currentUserInfo.Id,
+                currentUserInfo.Email,
+                currentUserInfo.DisplayName,
+                currentUserInfo.ProfilePhotoVersion is null ? null : profilePhotoService.BuildThumbnailUrl(currentUserInfo.Id))));
     }
 }
 

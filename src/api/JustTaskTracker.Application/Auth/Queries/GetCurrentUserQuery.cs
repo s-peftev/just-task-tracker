@@ -16,18 +16,18 @@ public class GetCurrentUserQueryHandler(
 {
     public async Task<Result<UserWithRolesDto>> Handle(GetCurrentUserQuery request, CancellationToken ct)
     {
-        var userDto = await userRepository.GetUserDtoByAzureAOIAsync(currentUser.AzureAdObjectId, ct);
+        var userInfo = await userRepository.GetUserInfoByAzureAOIAsync(currentUser.AzureAdObjectId, ct);
 
-        if (userDto is null)
+        if (userInfo is null)
             return Result<UserWithRolesDto>.Failure(GeneralErrors.NotFound);
 
         var rolesFromToken = currentUser.AppRoles ?? [];
 
         var userWithRoles = new UserWithRolesDto(
-            userDto.Id,
-            userDto.Email,
+            userInfo.Id,
+            userInfo.Email,
             rolesFromToken,
-            userDto.DisplayName);
+            userInfo.DisplayName);
 
         return Result<UserWithRolesDto>.Success(userWithRoles);
     }

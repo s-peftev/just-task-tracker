@@ -1,5 +1,7 @@
+using JustTaskTracker.Application.Boards.ReadModels;
 using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Helpers;
+using JustTaskTracker.Application.Users.ReadModels;
 using JustTaskTracker.Domain.Auth.DTOs;
 using JustTaskTracker.Domain.Boards.DTOs.Boards;
 using JustTaskTracker.Domain.Boards.DTOs.BoardTasks;
@@ -70,9 +72,6 @@ public class BoardRepository(JustTaskTrackerDbContext context)
                     .Where(m => m.User!.AzureAdObjectId == azureAdObjectId)
                     .Select(m => m.Role)
                     .First(),
-                b.Members
-                    .OrderBy(m => m.JoinedAtUtc)
-                    .Select(m => new UserDto(m.User!.Id, m.User.Email, m.User.DisplayName)),
                 b.Columns
                     .OrderBy(c => c.Position)
                     .Select(c => new ColumnDto(
@@ -135,14 +134,17 @@ public class BoardRepository(JustTaskTrackerDbContext context)
                 x => new BoardLookupDto(
                     x.Board.Id,
                     x.Board.Name,
-                    x.Board.CreatedAtUtc,
                     x.Board.Members
                         .Where(m => m.User!.AzureAdObjectId == azureAdObjectId)
                         .Select(m => m.Role)
                         .First(),
                     x.Board.Members
                         .Where(m => m.Role == BoardMemberRole.Owner)
-                        .Select(m => new UserDto(m.User!.Id, m.User.Email, m.User.DisplayName))
+                        .Select(m => m.User!.Email)
+                        .First(),
+                    x.Board.Members
+                        .Where(m => m.Role == BoardMemberRole.Owner)
+                        .Select(m => m.User!.DisplayName)
                         .FirstOrDefault()),
                 pageNumber,
                 pageSize,
@@ -152,7 +154,7 @@ public class BoardRepository(JustTaskTrackerDbContext context)
     public async Task<bool> IsBoardMemberAsync(Guid boardId, Guid userId, CancellationToken ct = default) =>
         await _context.BoardMembers.AnyAsync(m => m.BoardId == boardId && m.UserId == userId, ct);
 
-    public async Task<PagedList<BoardMemberDto>> GetMembersPagedAsync(
+    public async Task<PagedList<BoardMemberReadModel>> GetMembersInfoPagedAsync(
         Guid boardId,
         int pageNumber,
         int pageSize,
@@ -168,8 +170,12 @@ public class BoardRepository(JustTaskTrackerDbContext context)
             .ThenBy(member => member.JoinedAtUtc)
             .ThenBy(member => member.UserId)
             .ToPagedAsync(
-                member => new BoardMemberDto(
-                    new UserDto(member.User!.Id, member.User.Email, member.User.DisplayName),
+                member => new BoardMemberReadModel(
+                    new UserReadModel(
+                        member.User!.Id,
+                        member.User.Email,
+                        member.User.DisplayName,
+                        member.User.ProfilePhotoVersion),
                     member.Role,
                     member.JoinedAtUtc),
                 pageNumber,

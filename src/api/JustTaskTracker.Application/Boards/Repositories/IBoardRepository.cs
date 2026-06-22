@@ -1,5 +1,5 @@
+using JustTaskTracker.Application.Boards.ReadModels;
 using JustTaskTracker.Application.Common.Interfaces.Persistence;
-using JustTaskTracker.Domain.Auth.Enums.SearchFields;
 using JustTaskTracker.Domain.Boards.DTOs.Boards;
 using JustTaskTracker.Domain.Boards.Entities;
 using JustTaskTracker.Domain.Boards.Enums;
@@ -34,7 +34,7 @@ public interface IBoardRepository : IRepository<Board, Guid>
 
     Task<bool> IsBoardMemberAsync(Guid boardId, Guid userId, CancellationToken ct = default);
 
-    Task<PagedList<BoardMemberDto>> GetMembersPagedAsync(
+    Task<PagedList<BoardMemberReadModel>> GetMembersInfoPagedAsync(
         Guid boardId,
         int pageNumber,
         int pageSize,

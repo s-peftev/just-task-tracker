@@ -59,4 +59,13 @@ public class ProfilePhotosStorageOptions
     public string ContainerName { get; set; } = string.Empty;
     public string OriginalsFolder { get; set; } = string.Empty;
     public string ThumbnailsFolder { get; set; } = string.Empty;
+
+    public string BuildOriginalBlobName(Guid userId) =>
+        $"{Normalize(OriginalsFolder)}/{userId}";
+
+    public string BuildThumbnailBlobName(Guid userId) =>
+        $"{Normalize(ThumbnailsFolder)}/{userId}";
+
+    private static string Normalize(string folder) =>
+        folder.Trim().Trim('/');
 }

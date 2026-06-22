@@ -1,5 +1,7 @@
+using JustTaskTracker.Application.Boards.ReadModels;
 using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Helpers;
+using JustTaskTracker.Application.Users.ReadModels;
 using JustTaskTracker.Domain.Auth.DTOs;
 using JustTaskTracker.Domain.Boards.DTOs.Attachments;
 using JustTaskTracker.Domain.Boards.DTOs.BoardTasks;
@@ -42,36 +44,33 @@ public class BoardTaskRepository(JustTaskTrackerDbContext context)
             .Select(m => m.Role)
             .FirstOrDefaultAsync(ct);
 
-    public async Task<BoardTaskDetailsDto?> GetBoardTaskDetailsAsync(Guid boardTaskId, CancellationToken ct = default) =>
+    public async Task<BoardTaskDetailsReadModel?> GetBoardTaskDetailsAsync(Guid boardTaskId, CancellationToken ct = default) =>
         await _dbSet
             .Where(task => task.Id == boardTaskId)
-            .Select(t => new BoardTaskDetailsDto(
+            .Select(t => new BoardTaskDetailsReadModel(
                 t.Id,
                 t.ColumnId,
                 t.Column!.Name,
                 t.Title,
                 t.Position,
                 t.CreatedAtUtc,
-                new UserDto(t.Reporter!.Id, t.Reporter.Email, t.Reporter.DisplayName),
+                new UserReadModel(t.Reporter!.Id, t.Reporter.Email, t.Reporter.DisplayName, t.Reporter.ProfilePhotoVersion),
                 default,
                 t.Attachments
                     .OrderBy(attachment => attachment.Position)
-                    .Select(a => new BoardTaskAttachmentDto(
+                    .Select(a => new BoardTaskAttachmentReadModel(
                         a.Id,
                         a.OriginalFileName,
                         a.ContentType,
                         a.FileSizeBytes,
                         a.Position,
                         a.CreatedAtUtc,
-                        new UserDto(
-                            a.UploadedBy!.Id,
-                            a.UploadedBy.Email,
-                            a.UploadedBy.DisplayName)))
+                        new UserReadModel(a.UploadedBy!.Id, a.UploadedBy.Email, a.UploadedBy.DisplayName, a.UploadedBy.ProfilePhotoVersion)))
                     .ToList(),
                 t.Description,
                 t.Assignee == null
                     ? null
-                    : new UserDto(t.Assignee.Id, t.Assignee.Email, t.Assignee.DisplayName)))
+                    : new UserReadModel(t.Assignee.Id, t.Assignee.Email, t.Assignee.DisplayName, t.Assignee.ProfilePhotoVersion)))
             .FirstOrDefaultAsync(ct);
 
     public async Task<PagedList<BoardTaskLookupDto>> GetBoardTaskLookupListAsync(

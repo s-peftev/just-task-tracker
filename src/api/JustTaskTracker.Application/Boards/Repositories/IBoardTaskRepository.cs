@@ -1,3 +1,4 @@
+using JustTaskTracker.Application.Boards.ReadModels;
 using JustTaskTracker.Application.Common.Interfaces.Persistence;
 using JustTaskTracker.Domain.Boards.DTOs.BoardTasks;
 using JustTaskTracker.Domain.Boards.Entities;
@@ -14,7 +15,7 @@ public interface IBoardTaskRepository : IRepository<BoardTask, Guid>
 
     Task<BoardMemberRole?> GetUserRoleAsync(Guid boardTaskId, Guid azureAdObjectId, CancellationToken ct = default);
 
-    Task<BoardTaskDetailsDto?> GetBoardTaskDetailsAsync(Guid boardTaskId, CancellationToken ct = default);
+    Task<BoardTaskDetailsReadModel?> GetBoardTaskDetailsAsync(Guid boardTaskId, CancellationToken ct = default);
 
     Task<PagedList<BoardTaskLookupDto>> GetBoardTaskLookupListAsync(Guid boardId, int pageNumber, int pageSize, TextSearchOptions<BoardTaskSearchField>? searchOptions = null, CancellationToken ct = default);
 

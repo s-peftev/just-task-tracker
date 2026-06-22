@@ -1,10 +1,9 @@
 using FluentValidation;
+using JustTaskTracker.Application.Boards.Attachments;
 using JustTaskTracker.Application.Boards.Positioning;
 using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Interfaces;
-using JustTaskTracker.Application.Common.Interfaces.ExternalProviders;
 using JustTaskTracker.Application.Common.Interfaces.Persistence;
-using JustTaskTracker.Application.Common.Options;
 using JustTaskTracker.Domain.Boards.Authorization;
 using JustTaskTracker.Domain.Common.Results;
 using JustTaskTracker.Domain.Common.Results.Errors;
@@ -20,8 +19,7 @@ public class DeleteBoardTaskAttachmentCommandHandler(
     IBoardTaskRepository boardTaskRepository,
     IAttachmentRepository attachmentRepository,
     IBoardPositioningService boardPositioningService,
-    IBlobStorageService blobStorageService,
-    BlobStorageSettings blobStorageSettings,
+    IBoardTaskAttachmentService attachmentService,
     IUnitOfWork unitOfWork,
     ILogger<DeleteBoardTaskAttachmentCommandHandler> logger)
     : IRequestHandler<DeleteBoardTaskAttachmentCommand, Result>
@@ -42,7 +40,7 @@ public class DeleteBoardTaskAttachmentCommandHandler(
             return Result.Failure(GeneralErrors.NotFound);
 
         var oldBlobName = attachment.BlobName;
-        var newBlobName = blobStorageSettings.TaskAttachments.ToDeletedBlobName(oldBlobName);
+        var newBlobName = attachmentService.ToDeletedBlobName(oldBlobName);
 
         var remainingAttachments = allAttachments
             .Where(a => a.Id != request.AttachmentId)
@@ -73,7 +71,7 @@ public class DeleteBoardTaskAttachmentCommandHandler(
 
         try
         {
-            await blobStorageService.MoveToDeletedAsync(oldBlobName, newBlobName, ct);
+            await attachmentService.MoveToDeletedAsync(oldBlobName, newBlobName, ct);
         }
         catch (Exception ex)
         {

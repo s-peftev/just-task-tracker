@@ -3,6 +3,8 @@ using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Interfaces;
 using JustTaskTracker.Application.Common.Options;
 using JustTaskTracker.Application.Common.Validators;
+using JustTaskTracker.Application.Users.ProfilePhotos;
+using JustTaskTracker.Domain.Auth.DTOs;
 using JustTaskTracker.Domain.Boards.Authorization;
 using JustTaskTracker.Domain.Boards.DTOs.Boards;
 using JustTaskTracker.Domain.Boards.Enums.SearchFields;
@@ -19,7 +21,8 @@ public record GetBoardMembersQuery(Guid BoardId, TextSearchOptions<BoardMemberSe
 
 public class GetBoardMembersQueryHandler(
     ICurrentUserAccessor currentUserAccessor,
-    IBoardRepository boardRepository)
+    IBoardRepository boardRepository,
+    IProfilePhotoService profilePhotoService)
     : IRequestHandler<GetBoardMembersQuery, Result<PagedList<BoardMemberDto>>>
 {
     public async Task<Result<PagedList<BoardMemberDto>>> Handle(GetBoardMembersQuery request, CancellationToken ct)
@@ -29,12 +32,24 @@ public class GetBoardMembersQueryHandler(
         if (userRole is not { } authorizedRole || !BoardRolePermissions.CanViewBoard(authorizedRole))
             return Result<PagedList<BoardMemberDto>>.Failure(GeneralErrors.Forbidden);
 
-        var members = await boardRepository.GetMembersPagedAsync(
+        var membersInfo = await boardRepository.GetMembersInfoPagedAsync(
             request.BoardId,
             request.PageNumber!.Value,
             request.PageSize!.Value,
             request.SearchOptions,
             ct);
+
+        var members = new PagedList<BoardMemberDto>(
+            membersInfo.Metadata,
+            membersInfo.Items.Select(m => new BoardMemberDto(
+                new UserDto(
+                    m.User.Id,
+                    m.User.Email,
+                    m.User.DisplayName,
+                    m.User.ProfilePhotoVersion is null ? null : profilePhotoService.BuildThumbnailUrl(m.User.Id)),
+                m.Role,
+                m.JoinedAtUtc))
+            );
 
         return Result<PagedList<BoardMemberDto>>.Success(members);
     }

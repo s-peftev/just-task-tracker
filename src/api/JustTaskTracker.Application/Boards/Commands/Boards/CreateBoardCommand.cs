@@ -24,9 +24,9 @@ public class CreateBoardCommandHandler(
 {
     public async Task<Result<BoardDetailsDto>> Handle(CreateBoardCommand request, CancellationToken ct)
     {
-        var currentUser = await userRepository.GetUserDtoByAzureAOIAsync(currentUserAccessor.AzureAdObjectId, ct);
+        var currentUserInfo = await userRepository.GetUserInfoByAzureAOIAsync(currentUserAccessor.AzureAdObjectId, ct);
 
-        if (currentUser is null)
+        if (currentUserInfo is null)
             return Result<BoardDetailsDto>.Failure(GeneralErrors.Unauthorized);
 
         var board = new Board { Name = request.Name };
@@ -35,7 +35,7 @@ public class CreateBoardCommandHandler(
         boardRepository.AddMember(new BoardMember
         {
             BoardId = board.Id,
-            UserId = currentUser.Id,
+            UserId = currentUserInfo.Id,
             Role = BoardMemberRole.Owner
         });
 
@@ -46,7 +46,6 @@ public class CreateBoardCommandHandler(
             board.Name,
             board.CreatedAtUtc,
             BoardMemberRole.Owner,
-            [currentUser],
             []));
     }
 }

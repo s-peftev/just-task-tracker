@@ -1,4 +1,3 @@
-using JustTaskTracker.Domain.Auth.DTOs;
 using JustTaskTracker.Domain.Boards.DTOs.Columns;
 using JustTaskTracker.Domain.Boards.Enums;
 
@@ -9,5 +8,4 @@ public record BoardDetailsDto(
     string Name,
     DateTime CreatedAtUtc,
     BoardMemberRole UserRole,
-    IEnumerable<UserDto> Members,
     IEnumerable<ColumnDto> Columns);

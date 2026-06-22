@@ -23,5 +23,13 @@ public interface IBlobStorageService
     /// </remarks>
     Task<BlobContent> DownloadAsync(string blobName, CancellationToken ct = default);
 
+    /// <summary>
+    /// Moves a blob to <paramref name="destinationBlobName"/> via server-side copy, then deletes the source.
+    /// </summary>
+    /// <remarks>
+    /// Fails when the source blob does not exist or the destination blob already exists.
+    /// </remarks>
+    Task MoveToDeletedAsync(string sourceBlobName, string destinationBlobName, CancellationToken ct = default);
+
     Task DeleteAsync(string blobName, CancellationToken ct = default);
 }

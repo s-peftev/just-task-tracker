@@ -2,13 +2,16 @@ using FluentValidation;
 using JustTaskTracker.Application.Boards.Positioning;
 using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Interfaces;
+using JustTaskTracker.Application.Common.Interfaces.ExternalProviders;
 using JustTaskTracker.Application.Common.Interfaces.Persistence;
+using JustTaskTracker.Application.Common.Options;
 using JustTaskTracker.Domain.Boards.Authorization;
 using JustTaskTracker.Domain.Boards.Entities;
 using JustTaskTracker.Domain.Boards.Enums;
 using JustTaskTracker.Domain.Common.Results;
 using JustTaskTracker.Domain.Common.Results.Errors;
 using MediatR;
+using Microsoft.Extensions.Logging;
 
 namespace JustTaskTracker.Application.Boards.Commands.Columns;
 
@@ -17,7 +20,7 @@ public record DeleteColumnCommand(
     Guid ColumnId,
     DeleteColumnTasksDisposition TasksDisposition,
     Guid? TargetColumnId = null,
-    ColumnTaskMovePlacement? MovePlacement = null) 
+    ColumnTaskMovePlacement? MovePlacement = null)
     : IRequest<Result>;
 
 public class DeleteColumnCommandHandler(
@@ -25,8 +28,12 @@ public class DeleteColumnCommandHandler(
     IColumnRepository columnRepository,
     IBoardTaskRepository boardTaskRepository,
     IBoardTaskCommentRepository boardTaskCommentRepository,
+    IAttachmentRepository attachmentRepository,
     IBoardPositioningService boardPositioningService,
-    IUnitOfWork unitOfWork)
+    IBlobStorageService blobStorageService,
+    BlobStorageSettings blobStorageSettings,
+    IUnitOfWork unitOfWork,
+    ILogger<DeleteColumnCommandHandler> logger)
     : IRequestHandler<DeleteColumnCommand, Result>
 {
     public async Task<Result> Handle(DeleteColumnCommand request, CancellationToken ct)
@@ -43,7 +50,7 @@ public class DeleteColumnCommandHandler(
 
         if (column is null)
             return Result.Failure(GeneralErrors.NotFound);
-        
+
         var columnBoardTasks = await boardTaskRepository.GetListByColumnIdAsync(request.ColumnId, ct);
 
         IReadOnlyList<BoardTask> targetBoardTasks = [];
@@ -57,6 +64,13 @@ public class DeleteColumnCommandHandler(
 
             targetBoardTasks = await boardTaskRepository.GetListByColumnIdAsync(targetColumn.Id, ct);
         }
+
+        var attachments = request.TasksDisposition == DeleteColumnTasksDisposition.DeleteWithColumn
+            ? await attachmentRepository.GetListByColumnIdAsync(request.ColumnId, ct)
+            : [];
+
+        var oldBlobNames = attachments.Select(a => a.BlobName).ToList();
+        var newBlobNames = attachments.Select(a => blobStorageSettings.TaskAttachments.ToDeletedBlobName(a.BlobName)).ToList();
 
         await unitOfWork.BeginTransactionAsync(ct);
 
@@ -73,6 +87,12 @@ public class DeleteColumnCommandHandler(
             }
             else if (columnBoardTasks.Count > 0)
             {
+                foreach (var (attachment, newName) in attachments.Zip(newBlobNames))
+                {
+                    attachment.BlobName = newName;
+                    attachmentRepository.Remove(attachment);
+                }
+
                 boardTaskRepository.RemoveRange(columnBoardTasks);
 
                 var columnBoardTaskComments = await boardTaskCommentRepository.GetListByColumnIdAsync(request.ColumnId, ct);
@@ -95,6 +115,22 @@ public class DeleteColumnCommandHandler(
         {
             await unitOfWork.RollbackTransactionAsync(ct);
             throw;
+        }
+
+        foreach (var (oldName, newName) in oldBlobNames.Zip(newBlobNames))
+        {
+            try
+            {
+                await blobStorageService.MoveToDeletedAsync(oldName, newName, ct);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(
+                    ex,
+                    "Column {ColumnId} deleted but attachment blob {BlobName} could not be moved to deleted storage.",
+                    request.ColumnId,
+                    oldName);
+            }
         }
 
         return Result.Success();

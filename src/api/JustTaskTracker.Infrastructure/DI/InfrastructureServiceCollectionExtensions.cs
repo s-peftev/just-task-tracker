@@ -9,7 +9,7 @@ public static class InfrastructureServiceCollectionExtensions
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
         services
-            .AddAppOptionsModule(configuration)
+            .AddOptionsModule(configuration)
             .AddCorsModule()
             .AddAuthenticationModule(configuration)
             .AddUtilsModule()

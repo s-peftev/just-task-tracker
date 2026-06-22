@@ -64,6 +64,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IBoardMembersStore, BoardMembersStore>();
         services.AddScoped<IBoardAddMemberStore, BoardAddMemberStore>();
         services.AddScoped<IBoardTaskAssigneePickerStore, BoardTaskAssigneePickerStore>();
+        services.AddScoped<IBoardPanScrollService, BoardPanScrollService>();
+        services.AddScoped<IBoardTrayOverlapService, BoardTrayOverlapService>();
 
         return services;
     }

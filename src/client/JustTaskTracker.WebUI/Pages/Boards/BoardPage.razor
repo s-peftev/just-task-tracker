@@ -7,7 +7,8 @@
 @using JustTaskTracker.WebUI.Services.Abstractions.Boards
 @using JustTaskTracker.WebUI.Services.Exceptions
 @using BlazorSortable
-@using Microsoft.JSInterop
+@inject IBoardPanScrollService BoardPanScroll
+@inject IBoardTrayOverlapService BoardTrayOverlap
 @inject IBoardApiService BoardApiService
 @inject IBoardDetailsStore BoardDetailsStore
 @inject IBoardTaskStore BoardTaskStore
@@ -16,7 +17,6 @@
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
-@inject IJSRuntime Js
 
 <PageTitle>@GetPageTitle()</PageTitle>
 
@@ -211,13 +211,6 @@
     private ElementReference _scrollBodyRef;
     private ElementReference _footerPanelRef;
     private readonly List<ColumnDto> _sortableColumns = [];
-    private readonly HashSet<Guid> _trayOverlappingColumnIds = [];
-    private IJSObjectReference? _panScrollModule;
-    private IJSObjectReference? _panScrollHandle;
-    private IJSObjectReference? _trayOverlapModule;
-    private IJSObjectReference? _trayOverlapHandle;
-    private DotNetObjectReference<BoardPage>? _trayOverlapDotNetRef;
-    private bool _panScrollAttached;
     private bool _isFooterTrayOpen;
     private bool _suppressSearchBlurClose;
     private Guid _searchStoreBoardId;
@@ -235,6 +228,7 @@
         BoardTaskStore.StateChanged += OnTaskStoreStateChanged;
         BoardTaskSearchStore.StateChanged += OnTaskSearchStoreStateChanged;
         BoardMembersStore.StateChanged += OnMembersStoreStateChanged;
+        BoardTrayOverlap.OverlapChanged += OnTrayOverlapChanged;
     }
 
     protected override async Task OnParametersSetAsync()
@@ -258,11 +252,11 @@
             await _titleInputRef.FocusAsync();
         }
 
-        if (_renderBoard && BoardDetailsStore.Board is not null && !_panScrollAttached)
+        if (_renderBoard && BoardDetailsStore.Board is not null && !BoardPanScroll.IsAttached)
             await EnsurePanScrollAttachedAsync();
 
         if (_renderBoard && _isFooterTrayOpen)
-            await EnsureTrayOverlapObserverAsync();
+            await BoardTrayOverlap.AttachAsync(_scrollBodyRef, _footerPanelRef);
     }
 
     public async ValueTask DisposeAsync()
@@ -272,93 +266,35 @@
         BoardTaskSearchStore.StateChanged -= OnTaskSearchStoreStateChanged;
         BoardTaskSearchStore.Reset();
         BoardMembersStore.StateChanged -= OnMembersStoreStateChanged;
+        BoardTrayOverlap.OverlapChanged -= OnTrayOverlapChanged;
         BoardMembersStore.Reset();
-        await DisposeTrayOverlapObserverAsync();
-
-        if (_panScrollHandle is not null)
-        {
-            await _panScrollHandle.InvokeVoidAsync("dispose");
-            await _panScrollHandle.DisposeAsync();
-        }
-
-        if (_panScrollModule is not null)
-            await _panScrollModule.DisposeAsync();
-
-        _trayOverlapDotNetRef?.Dispose();
+        await BoardTrayOverlap.ReleaseResourcesAsync();
+        await BoardPanScroll.DetachAsync();
     }
 
-    [JSInvokable]
-    public void SetTrayOverlappingColumnIds(string[] columnIds)
-    {
-        var updatedIds = columnIds
-            .Select(Guid.Parse)
-            .ToHashSet();
-
-        if (_trayOverlappingColumnIds.SetEquals(updatedIds))
-            return;
-
-        _trayOverlappingColumnIds.Clear();
-
-        foreach (var id in updatedIds)
-            _trayOverlappingColumnIds.Add(id);
-
+    private void OnTrayOverlapChanged() =>
         InvokeAsync(StateHasChanged);
-    }
 
     private string? GetColumnTrayOverlapClass(Guid columnId) =>
-        _isFooterTrayOpen && _trayOverlappingColumnIds.Contains(columnId)
+        _isFooterTrayOpen && BoardTrayOverlap.OverlappingColumnIds.Contains(columnId)
             ? "board-page__column-item--tray-overlap"
             : null;
-
-    private async Task EnsureTrayOverlapObserverAsync()
-    {
-        if (!_renderBoard || !_isFooterTrayOpen)
-            return;
-
-        _trayOverlapModule ??= await Js.InvokeAsync<IJSObjectReference>(
-            "import",
-            "./js/boardFooterTrayOverlap.js");
-        _trayOverlapDotNetRef ??= DotNetObjectReference.Create(this);
-
-        if (_trayOverlapHandle is not null)
-            return;
-
-        _trayOverlapHandle = await _trayOverlapModule.InvokeAsync<IJSObjectReference>(
-            "attach",
-            _scrollBodyRef,
-            _footerPanelRef,
-            _trayOverlapDotNetRef);
-    }
-
-    private async Task DisposeTrayOverlapObserverAsync()
-    {
-        if (_trayOverlapHandle is not null)
-        {
-            await _trayOverlapHandle.InvokeVoidAsync("dispose");
-            await _trayOverlapHandle.DisposeAsync();
-            _trayOverlapHandle = null;
-        }
-
-        if (_trayOverlappingColumnIds.Count > 0)
-        {
-            _trayOverlappingColumnIds.Clear();
-            await InvokeAsync(StateHasChanged);
-        }
-    }
 
     private async Task OnFooterTrayToggledAsync()
     {
         if (_isFooterTrayOpen)
         {
             await InvokeAsync(StateHasChanged);
-            await EnsureTrayOverlapObserverAsync();
+
+            if (_renderBoard)
+                await BoardTrayOverlap.AttachAsync(_scrollBodyRef, _footerPanelRef);
+
             await Task.Delay(260);
-            if (_trayOverlapHandle is not null)
-                await _trayOverlapHandle.InvokeVoidAsync("refresh");
+            await BoardTrayOverlap.RefreshAsync();
             return;
         }
 
-        await DisposeTrayOverlapObserverAsync();
+        await BoardTrayOverlap.DetachAsync();
     }
 
     private async Task UpdateRouteStateAsync()
@@ -411,15 +347,8 @@
     private void CloseTaskAsync() =>
         Navigation.NavigateTo(BoardTaskRoutes.GetBoardUrl(Id));
 
-    private async Task EnsurePanScrollAttachedAsync()
-    {
-        _panScrollModule ??= await Js.InvokeAsync<IJSObjectReference>("import", "./js/boardPanScroll.js");
-        _panScrollHandle = await _panScrollModule.InvokeAsync<IJSObjectReference>(
-            "attach",
-            _contentRef,
-            _scrollBodyRef);
-        _panScrollAttached = true;
-    }
+    private async Task EnsurePanScrollAttachedAsync() =>
+        await BoardPanScroll.AttachAsync(_contentRef, _scrollBodyRef);
 
     private void OnBoardStoreStateChanged()
     {
@@ -486,8 +415,8 @@
         {
             _isReorderingColumns = false;
 
-            if (_isFooterTrayOpen && _trayOverlapHandle is not null)
-                await _trayOverlapHandle.InvokeVoidAsync("refresh");
+            if (_isFooterTrayOpen && BoardTrayOverlap.IsAttached)
+                await BoardTrayOverlap.RefreshAsync();
         }
     }
 

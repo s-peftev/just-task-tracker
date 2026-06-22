@@ -1,6 +1,7 @@
 using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Helpers;
 using JustTaskTracker.Domain.Auth.DTOs;
+using JustTaskTracker.Domain.Auth.Enums.SearchFields;
 using JustTaskTracker.Domain.Boards.DTOs.Boards;
 using JustTaskTracker.Domain.Boards.DTOs.BoardTasks;
 using JustTaskTracker.Domain.Boards.DTOs.Columns;
@@ -86,7 +87,8 @@ public class BoardRepository(JustTaskTrackerDbContext context)
                                 t.Title,
                                 t.Position,
                                 t.Comments.Count,
-                                t.Attachments.Count))))))
+                                t.Attachments.Count,
+                                t.AssigneeId))))))
             .AsSplitQuery()
             .FirstOrDefaultAsync(ct);
 
@@ -151,9 +153,18 @@ public class BoardRepository(JustTaskTrackerDbContext context)
     public async Task<bool> IsBoardMemberAsync(Guid boardId, Guid userId, CancellationToken ct = default) =>
         await _context.BoardMembers.AnyAsync(m => m.BoardId == boardId && m.UserId == userId, ct);
 
-    public async Task<PagedList<BoardMemberDto>> GetMembersPagedAsync(Guid boardId, int pageNumber, int pageSize, CancellationToken ct = default) =>
-        await _context.BoardMembers
+    public async Task<PagedList<BoardMemberDto>> GetMembersPagedAsync(
+        Guid boardId,
+        int pageNumber,
+        int pageSize,
+        TextSearchOptions<BoardMemberSearchField>? searchOptions = null,
+        CancellationToken ct = default)
+    {
+        var fields = SearchFieldsResolver.Resolve(searchOptions?.SearchIn, BoardMemberSearchFields.Map);
+
+        return await _context.BoardMembers
             .Where(member => member.BoardId == boardId)
+            .ApplyTextSearch(searchOptions?.Search, fields)
             .OrderBy(member => member.Role)
             .ThenBy(member => member.JoinedAtUtc)
             .ThenBy(member => member.UserId)
@@ -165,4 +176,5 @@ public class BoardRepository(JustTaskTrackerDbContext context)
                 pageNumber,
                 pageSize,
                 ct);
+    }
 }

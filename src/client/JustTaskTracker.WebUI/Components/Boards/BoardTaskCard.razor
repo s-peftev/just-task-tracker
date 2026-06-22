@@ -1,14 +1,42 @@
 @using JustTaskTracker.WebUI.Domain.Boards
 
 <button type="button"
-        class="board-task-card @(CanDrag ? "board-task-card--draggable" : null)"
+        class="board-task-card @(CanDrag ? "board-task-card--draggable" : null) @(IsAssignedToCurrentUser ? "board-task-card--assigned-to-me" : null)"
         @onpointerdown="OnPointerDown"
         @onpointerup="OnPointerUp">
     <span class="board-task-card__title">@Task.Title</span>
 
-    @if (Task.CommentsCount > 0 || Task.AttachmentsCount > 0)
+    @if (Task.AssigneeId is not null || Task.CommentsCount > 0 || Task.AttachmentsCount > 0)
     {
         <span class="board-task-card__meta" aria-hidden="true">
+            @if (Task.AssigneeId is not null)
+            {
+                <span class="board-task-card__stat @(IsAssignedToCurrentUser ? "board-task-card__stat--assigned-to-me" : null)">
+                    <svg class="board-task-card__stat-icon"
+                         viewBox="0 0 24 24"
+                         aria-hidden="true"
+                         focusable="false">
+                        <circle cx="9"
+                                cy="7"
+                                r="4"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                fill="none" />
+                        <path d="M3 21v-2a4 4 0 0 1 4-4h4"
+                              stroke="currentColor"
+                              stroke-width="2"
+                              stroke-linecap="round"
+                              fill="none" />
+                        <path d="M16 11l2 2 5-5"
+                              stroke="currentColor"
+                              stroke-width="2"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              fill="none" />
+                    </svg>
+                </span>
+            }
+
             @if (Task.CommentsCount > 0)
             {
                 <span class="board-task-card__stat">
@@ -64,6 +92,9 @@
 
     [Parameter]
     public bool CanDrag { get; set; }
+
+    [Parameter]
+    public bool IsAssignedToCurrentUser { get; set; }
 
     [Parameter]
     public EventCallback<BoardTaskPreviewDto> OnTaskClick { get; set; }

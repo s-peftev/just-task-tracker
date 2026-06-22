@@ -1,3 +1,4 @@
+using JustTaskTracker.WebUI.Domain.Auth;
 using JustTaskTracker.WebUI.Domain.Boards;
 using JustTaskTracker.WebUI.Domain.Common.Pagination;
 using JustTaskTracker.WebUI.Services.Abstractions.Boards;
@@ -144,6 +145,15 @@ internal sealed class BoardTaskStore(IBoardApiService boardApiService) : IBoardT
             return;
 
         Task = task with { Description = description };
+        NotifyStateChanged();
+    }
+
+    public void UpdateTaskAssignee(UserDto? assignee)
+    {
+        if (Task is not { } task)
+            return;
+
+        Task = task with { Assignee = assignee };
         NotifyStateChanged();
     }
 

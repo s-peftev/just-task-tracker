@@ -1,0 +1,161 @@
+@using JustTaskTracker.WebUI.Components.Shared
+@using JustTaskTracker.WebUI.Domain.Auth
+@using JustTaskTracker.WebUI.Domain.Boards
+@using JustTaskTracker.WebUI.Domain.Boards.Enums
+@using JustTaskTracker.WebUI.Infrastructure
+@using JustTaskTracker.WebUI.Services.Abstractions.Boards
+@using JustTaskTracker.WebUI.Services.Exceptions
+@implements IDisposable
+@inject IBoardTaskAssigneePickerStore AssigneePickerStore
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+@if (AssigneePickerStore.IsOpen)
+{
+    <div class="board-members-overlay board-members-overlay--elevated"
+         role="dialog"
+         aria-modal="true"
+         aria-label="Assign task">
+        <button type="button"
+                class="board-members-overlay__backdrop"
+                aria-label="Close assignee picker"
+                @onclick="CloseAsync"></button>
+
+        <div class="board-members-overlay__panel"
+             @onclick:stopPropagation="true"
+             @onmousedown:stopPropagation="true">
+            <div class="board-members-overlay__tabs" role="tablist" aria-label="Assign task sections">
+                <div class="board-members-overlay__tab board-members-overlay__tab--active"
+                     role="tab"
+                     aria-selected="true">
+                    Board members
+                </div>
+            </div>
+
+            <div class="board-members-overlay__search">
+                <input class="board-members-overlay__search-input"
+                       type="search"
+                       aria-label="Search board members"
+                       placeholder="Search members"
+                       value="@AssigneePickerStore.SearchText"
+                       @oninput="OnSearchInputAsync" />
+            </div>
+
+            <div class="board-members-overlay__body">
+                <ul class="board-members-overlay__list">
+                    <li class="board-members-overlay__item">
+                        <button type="button"
+                                class="board-members-overlay__member-select-btn board-members-overlay__member-select-btn--unassign"
+                                disabled="@IsSelectingMember"
+                                @onclick="UnassignAsync">
+                            <span class="board-members-overlay__member-name">Not assigned</span>
+                            <span class="board-members-overlay__member-email">Remove current assignee</span>
+                        </button>
+                    </li>
+
+                    @if (AssigneePickerStore.IsLoading && AssigneePickerStore.Members.Count == 0)
+                    {
+                        <li class="board-members-overlay__item board-members-overlay__item--state">
+                            <div class="board-members-overlay__state">
+                                <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Small" />
+                            </div>
+                        </li>
+                    }
+                    else if (AssigneePickerStore.Members.Count == 0)
+                    {
+                        <li class="board-members-overlay__item board-members-overlay__item--state">
+                            <p class="board-members-overlay__message">No members found.</p>
+                        </li>
+                    }
+                    else
+                    {
+                        @foreach (var member in AssigneePickerStore.Members)
+                        {
+                            <li class="board-members-overlay__item">
+                                <button type="button"
+                                        class="board-members-overlay__member-select-btn"
+                                        disabled="@IsSelectingMember"
+                                        @onclick="() => SelectMemberAsync(member)">
+                                    <UserAvatarPlaceholder Class="board-members-overlay__member-avatar"
+                                                           Preset="UserAvatarPlaceholderPreset.Member"
+                                                           DisplayName="@member.User.DisplayName"
+                                                           Email="@member.User.Email"
+                                                           Title="@member.User.Email" />
+                                    <span class="board-members-overlay__member-name">@UserDisplayFormatting.GetShortName(member.User)</span>
+                                    <span class="board-members-overlay__member-email">@member.User.Email</span>
+                                    <span class="board-members-overlay__member-role">@BoardMemberRoleFormatting.Format(member.Role)</span>
+                                </button>
+                            </li>
+                        }
+
+                        @if (AssigneePickerStore.HasMoreMembers)
+                        {
+                            <li class="board-members-overlay__item board-members-overlay__item--action">
+                                <ExpandableActionButton Text="Show more"
+                                                        Icon="ExpandableActionButtonIcon.ChevronDown"
+                                                        Disabled="@AssigneePickerStore.IsLoadingMoreMembers"
+                                                        OnClick="LoadMoreAsync" />
+                            </li>
+                        }
+                    }
+                </ul>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public bool IsSelectingMember { get; set; }
+
+    [Parameter, EditorRequired]
+    public EventCallback<BoardMemberDto> OnMemberSelected { get; set; }
+
+    [Parameter, EditorRequired]
+    public EventCallback OnUnassignRequested { get; set; }
+
+    protected override void OnInitialized() =>
+        AssigneePickerStore.StateChanged += OnStoreStateChanged;
+
+    public void Dispose() =>
+        AssigneePickerStore.StateChanged -= OnStoreStateChanged;
+
+    private void OnStoreStateChanged() =>
+        InvokeAsync(StateHasChanged);
+
+    private async Task OnSearchInputAsync(ChangeEventArgs e)
+    {
+        try
+        {
+            await AssigneePickerStore.SetSearchAsync(e.Value?.ToString() ?? string.Empty);
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+    }
+
+    private async Task LoadMoreAsync()
+    {
+        try
+        {
+            await AssigneePickerStore.LoadMoreAsync();
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+    }
+
+    private async Task SelectMemberAsync(BoardMemberDto member) =>
+        await OnMemberSelected.InvokeAsync(member);
+
+    private async Task UnassignAsync() =>
+        await OnUnassignRequested.InvokeAsync();
+
+    private Task CloseAsync()
+    {
+        AssigneePickerStore.Close();
+        return Task.CompletedTask;
+    }
+}

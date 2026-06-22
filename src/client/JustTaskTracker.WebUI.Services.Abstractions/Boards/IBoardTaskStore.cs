@@ -1,3 +1,4 @@
+using JustTaskTracker.WebUI.Domain.Auth;
 using JustTaskTracker.WebUI.Domain.Boards;
 using JustTaskTracker.WebUI.Domain.Common.Pagination;
 
@@ -28,6 +29,8 @@ public interface IBoardTaskStore
     void UpdateTaskTitle(string title);
 
     void UpdateTaskDescription(string? description);
+
+    void UpdateTaskAssignee(UserDto? assignee);
 
     void AddAttachment(BoardTaskAttachmentDto attachment);
 

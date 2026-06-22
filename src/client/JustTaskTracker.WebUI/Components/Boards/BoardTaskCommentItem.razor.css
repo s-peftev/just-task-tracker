@@ -10,22 +10,6 @@
     min-width: 32px;
 }
 
-.board-task-comment__avatar {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: var(--jtt-overlay-accent-10);
-    user-select: none;
-}
-
-.board-task-comment__avatar-letter {
-    font-size: 0.75rem;
-    line-height: 1;
-}
-
 .board-task-comment__content {
     flex: 1 1 0;
     min-width: 0;

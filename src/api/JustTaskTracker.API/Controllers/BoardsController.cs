@@ -15,7 +15,7 @@ public class BoardsController(ISender sender) : ControllerBase
     [HttpGet]
     [Authorize(Policy = AuthorizationPolicies.IsAppMember)]
     public async Task<IActionResult> GetMy([FromQuery] GetBoardsForCurrentUserQuery request, CancellationToken ct)
-    { 
+    {
         var result = await sender.Send(request, ct);
 
         return result.Match(
@@ -50,6 +50,17 @@ public class BoardsController(ISender sender) : ControllerBase
     public async Task<IActionResult> AddMember(Guid id, [FromBody] AddBoardMemberCommand request, CancellationToken ct)
     {
         var result = await sender.Send(request with { BoardId = id }, ct);
+
+        return result.Match(
+            () => NoContent(),
+            error => error.CreateErrorResponse());
+    }
+
+    [HttpPut("{id:guid}/members/{userId:guid}")]
+    [Authorize(Policy = AuthorizationPolicies.IsAppMember)]
+    public async Task<IActionResult> UpdateMember(Guid id, Guid userId, [FromBody] UpdateBoardMemberCommand request, CancellationToken ct)
+    {
+        var result = await sender.Send(request with { BoardId = id, UserId = userId }, ct);
 
         return result.Match(
             () => NoContent(),

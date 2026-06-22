@@ -12,7 +12,7 @@ internal interface IBoardApi
     Task<IApiResponse<ApiEnvelope<PagedList<BoardLookupDto>>>> GetMyAsync(
         int pageNumber,
         int pageSize,
-        [AliasAs("TextSearchOptions.Search")] string? textSearchOptionsSearch = null,
+        [AliasAs("SearchOptions.Search")] string? searchOptionsSearch = null,
         CancellationToken ct = default);
 
     [Get("/api/boards/{id}")]
@@ -23,12 +23,20 @@ internal interface IBoardApi
         Guid boardId,
         int pageNumber,
         int pageSize,
+        [AliasAs("SearchOptions.Search")] string? searchOptionsSearch = null,
         CancellationToken ct = default);
 
     [Post("/api/boards/{boardId}/members")]
     Task<IApiResponse<ApiEnvelope<object>>> AddMemberAsync(
         Guid boardId,
         [Body] AddBoardMemberRequest request,
+        CancellationToken ct = default);
+
+    [Put("/api/boards/{boardId}/members/{userId}")]
+    Task<IApiResponse<ApiEnvelope<object>>> UpdateMemberAsync(
+        Guid boardId,
+        Guid userId,
+        [Body] UpdateBoardMemberRequest request,
         CancellationToken ct = default);
 
     [Delete("/api/boards/{boardId}/members/{userId}")]

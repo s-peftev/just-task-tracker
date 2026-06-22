@@ -144,6 +144,9 @@ internal sealed class BoardAddMemberStore(
         NotifyStateChanged();
     }
 
+    public void SetUserBoardMemberRole(Guid userId, BoardMemberRole role) =>
+        UpdateUserBoardMemberRole(userId, role);
+
     public void Reset()
     {
         CancelSearchDebounce();

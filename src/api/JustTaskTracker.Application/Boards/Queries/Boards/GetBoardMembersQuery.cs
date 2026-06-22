@@ -1,16 +1,21 @@
 using FluentValidation;
 using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Interfaces;
+using JustTaskTracker.Application.Common.Options;
+using JustTaskTracker.Application.Common.Validators;
 using JustTaskTracker.Domain.Boards.Authorization;
 using JustTaskTracker.Domain.Boards.DTOs.Boards;
+using JustTaskTracker.Domain.Boards.Enums.SearchFields;
 using JustTaskTracker.Domain.Common.Pagination;
 using JustTaskTracker.Domain.Common.Results;
 using JustTaskTracker.Domain.Common.Results.Errors;
+using JustTaskTracker.Domain.Common.Searching;
 using MediatR;
 
 namespace JustTaskTracker.Application.Boards.Queries.Boards;
 
-public record GetBoardMembersQuery(Guid BoardId) : PaginatedRequest, IRequest<Result<PagedList<BoardMemberDto>>>;
+public record GetBoardMembersQuery(Guid BoardId, TextSearchOptions<BoardMemberSearchField>? SearchOptions) 
+    : PaginatedRequest, IRequest<Result<PagedList<BoardMemberDto>>>;
 
 public class GetBoardMembersQueryHandler(
     ICurrentUserAccessor currentUserAccessor,
@@ -28,6 +33,7 @@ public class GetBoardMembersQueryHandler(
             request.BoardId,
             request.PageNumber!.Value,
             request.PageSize!.Value,
+            request.SearchOptions,
             ct);
 
         return Result<PagedList<BoardMemberDto>>.Success(members);
@@ -36,9 +42,15 @@ public class GetBoardMembersQueryHandler(
 
 public class GetBoardMembersQueryValidator : AbstractValidator<GetBoardMembersQuery>
 {
-    public GetBoardMembersQueryValidator()
+    public GetBoardMembersQueryValidator(ValidationSettings validationSettings)
     {
         RuleFor(x => x.BoardId)
             .NotEmpty();
+
+        When(x => x.SearchOptions is not null, () =>
+        {
+            RuleFor(x => x.SearchOptions!)
+                .SetValidator(new TextSearchOptionsValidator<BoardMemberSearchField>(validationSettings.Users.MaxTextSearchLength));
+        });
     }
 }

@@ -31,5 +31,7 @@ public interface IBoardAddMemberStore
 
     void ClearUserMembership(Guid userId);
 
+    void SetUserBoardMemberRole(Guid userId, BoardMemberRole role);
+
     void Reset();
 }

@@ -32,6 +32,10 @@
     cursor: grabbing;
 }
 
+.board-task-card--assigned-to-me {
+    border: 1px solid rgb(97, 179, 216);
+}
+
 .board-task-card__title {
     flex: 1 1 auto;
     min-width: 0;
@@ -66,4 +70,8 @@
 
 .board-task-card__stat-value {
     font-variant-numeric: tabular-nums;
+}
+
+.board-task-card__stat--assigned-to-me {
+    color: rgb(97, 179, 216);
 }

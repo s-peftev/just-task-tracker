@@ -11,13 +11,18 @@ public interface IBoardApiService
 
     Task<PagedList<BoardMemberDto>> GetBoardMembersAsync(
         Guid boardId,
-        int pageNumber,
-        int pageSize,
+        GetBoardMembersRequest request,
         CancellationToken ct = default);
 
     Task AddBoardMemberAsync(
         Guid boardId,
         AddBoardMemberRequest request,
+        CancellationToken ct = default);
+
+    Task UpdateBoardMemberAsync(
+        Guid boardId,
+        Guid userId,
+        UpdateBoardMemberRequest request,
         CancellationToken ct = default);
 
     Task DeleteBoardMemberAsync(Guid boardId, Guid userId, CancellationToken ct = default);

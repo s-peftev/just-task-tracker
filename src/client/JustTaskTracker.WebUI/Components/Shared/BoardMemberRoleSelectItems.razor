@@ -1,0 +1,7 @@
+@using JustTaskTracker.WebUI.Domain.Boards
+@using JustTaskTracker.WebUI.Domain.Boards.Enums
+
+@foreach (var role in BoardMemberRoleFormatting.AssignableRoles)
+{
+    <MudSelectItem T="BoardMemberRole" Value="@role">@BoardMemberRoleFormatting.Format(role)</MudSelectItem>
+}

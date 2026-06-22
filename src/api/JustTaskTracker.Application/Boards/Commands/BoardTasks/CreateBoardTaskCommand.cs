@@ -56,7 +56,8 @@ public class CreateBoardTaskCommandHandler(
             task.Title,
             task.Position,
             0,
-            0));
+            0,
+            null));
     }
 }
 

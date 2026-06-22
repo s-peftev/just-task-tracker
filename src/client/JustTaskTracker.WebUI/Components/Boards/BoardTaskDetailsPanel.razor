@@ -1,10 +1,14 @@
 @using JustTaskTracker.WebUI.Components.Shared
+@using JustTaskTracker.WebUI.Domain.Auth
+@using JustTaskTracker.WebUI.Domain.Boards
+@using JustTaskTracker.WebUI.Domain.Boards.Authorization
 @using JustTaskTracker.WebUI.Domain.Boards.Constants
 @using JustTaskTracker.WebUI.Infrastructure
 @using JustTaskTracker.WebUI.Services.Abstractions.Boards
 @using JustTaskTracker.WebUI.Services.Configuration
 @using JustTaskTracker.WebUI.Services.Exceptions
 @implements IDisposable
+@inject IBoardTaskAssigneePickerStore AssigneePickerStore
 @inject IBoardTaskStore BoardTaskStore
 @inject IBoardDetailsStore BoardDetailsStore
 @inject IBoardApiService BoardApiService
@@ -80,42 +84,97 @@
             </section>
 
             <section class="board-task-details-panel__block board-task-details-panel__block--users">
-                <div class="board-task-details-panel__users-row">
-                    <div class="board-task-details-panel__reporter-row">
-                        <div class="board-task-details-panel__reporter-details">
-                            <span class="board-task-details-panel__user-name">@FormatUser(task.Reporter)</span>
-                            <span class="board-task-details-panel__reporter-meta">
+                <div class="board-task-details-panel__users-column">
+                    <div class="board-task-details-panel__user-row">
+                        <svg class="board-task-details-panel__user-icon"
+                             viewBox="0 0 24 24"
+                             aria-hidden="true"
+                             focusable="false">
+                            <circle cx="12"
+                                    cy="8"
+                                    r="4"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    fill="none" />
+                            <path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"
+                                  stroke="currentColor"
+                                  stroke-width="2"
+                                  stroke-linecap="round"
+                                  fill="none" />
+                        </svg>
+
+                        <div class="board-task-details-panel__user-line">
+                            <span class="board-task-details-panel__user-name">@UserDisplayFormatting.GetNameWithEmail(task.Reporter)</span>
+                            <span class="board-task-details-panel__user-meta">
                                 created this task @FormatCreatedAt(task.CreatedAtUtc)
                             </span>
                         </div>
                     </div>
 
-                    <div class="board-task-details-panel__assignee-row">
-                        @if (CanManageAssignee(task))
-                        {
-                            <select class="board-task-details-panel__assignee-select @(task.Assignee is null ? "board-task-details-panel__assignee-select--unassigned" : null)"
-                                    aria-label="Assignee"
-                                    value="@GetAssigneeSelectValue(task)"
-                                    @onchange="OnAssigneeSelectChanged">
+                    <div class="board-task-details-panel__user-row">
+                        <svg class="board-task-details-panel__user-icon"
+                             viewBox="0 0 24 24"
+                             aria-hidden="true"
+                             focusable="false">
+                            <circle cx="9"
+                                    cy="7"
+                                    r="4"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    fill="none" />
+                            <path d="M3 21v-2a4 4 0 0 1 4-4h4"
+                                  stroke="currentColor"
+                                  stroke-width="2"
+                                  stroke-linecap="round"
+                                  fill="none" />
+                            <path d="M16 11l2 2 5-5"
+                                  stroke="currentColor"
+                                  stroke-width="2"
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                  fill="none" />
+                        </svg>
+
+                        <div class="board-task-details-panel__assignee-content">
+                            <div class="board-task-details-panel__assignee-info">
                                 @if (task.Assignee is { } assignee)
                                 {
-                                    <option value="@assignee.Id">@FormatUser(assignee)</option>
+                                    <span class="board-task-details-panel__user-line">
+                                        <span class="board-task-details-panel__user-name">@UserDisplayFormatting.GetNameWithEmail(assignee)</span>
+                                        <span class="board-task-details-panel__user-meta">has been assigned to this task</span>
+                                    </span>
                                 }
+                                else
+                                {
+                                    <span class="board-task-details-panel__user-meta board-task-details-panel__user-meta--unassigned">
+                                        Not assigned yet
+                                    </span>
+                                }
+                            </div>
 
-                                <option value="">Not assigned yet</option>
-                                <option disabled value="__in-development__">In development</option>
-                            </select>
-                        }
-                        else if (task.Assignee is { } assignee)
-                        {
-                            <span class="board-task-details-panel__assignee-text">@FormatUser(assignee)</span>
-                        }
-                        else
-                        {
-                            <span class="board-task-details-panel__assignee-text board-task-details-panel__assignee-text--unassigned">
-                                Not assigned yet
-                            </span>
-                        }
+                            @if (CanManageAssignee(task))
+                            {
+                                <button type="button"
+                                        class="btn-icon btn-icon--sm board-task-details-panel__assignee-edit"
+                                        aria-label="Change assignee"
+                                        disabled="@_isSavingAssignee"
+                                        @onclick="OpenAssigneePickerAsync">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                        <path d="M12 20h9"
+                                              stroke="currentColor"
+                                              stroke-width="2"
+                                              stroke-linecap="round"
+                                              fill="none" />
+                                        <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5a2.1 2.1 0 0 1 3-3z"
+                                              stroke="currentColor"
+                                              stroke-width="2"
+                                              stroke-linecap="round"
+                                              stroke-linejoin="round"
+                                              fill="none" />
+                                    </svg>
+                                </button>
+                            }
+                        </div>
                     </div>
                 </div>
             </section>
@@ -306,6 +365,10 @@
     }
 </div>
 
+<BoardTaskAssigneePickerOverlay IsSelectingMember="_isSavingAssignee"
+                                OnMemberSelected="AssignMemberAsync"
+                                OnUnassignRequested="UnassignAsync" />
+
 @code {
     private const int DescriptionCollapsedMaxHeightPx = 400;
 
@@ -341,6 +404,7 @@
 
     private Guid? _deletingAttachmentId;
     private Guid? _downloadingAttachmentId;
+    private bool _isSavingAssignee;
     private IJSObjectReference? _fileDownloadModule;
 
     protected override void OnInitialized() =>
@@ -397,6 +461,7 @@
     public void Dispose()
     {
         BoardTaskStore.StateChanged -= OnStoreStateChanged;
+        AssigneePickerStore.Close();
 
         if (_fileDownloadModule is not null)
             _ = _fileDownloadModule.DisposeAsync();
@@ -413,14 +478,8 @@
         _ = InvokeAsync(StateHasChanged);
     }
 
-    private static string FormatUser(UserDto user) =>
-        string.IsNullOrWhiteSpace(user.DisplayName) ? user.Email : $"{user.DisplayName} ({user.Email})";
-
     private static string FormatCreatedAt(DateTime createdAtUtc) =>
         createdAtUtc.ToLocalTime().ToString("g");
-
-    private static string GetAssigneeSelectValue(BoardTaskDetailsDto task) =>
-        task.Assignee?.Id.ToString() ?? string.Empty;
 
     private static bool CanManageAssignee(BoardTaskDetailsDto task) =>
         BoardRolePermissions.CanManageTasks(task.UserRole);
@@ -655,8 +714,119 @@
         await InvokeAsync(StateHasChanged);
     }
 
-    private void OnAssigneeSelectChanged(ChangeEventArgs _) =>
-        StateHasChanged();
+    private async Task OpenAssigneePickerAsync()
+    {
+        if (BoardTaskStore.Task is not { } task || !CanManageAssignee(task) || _isSavingAssignee)
+            return;
+
+        try
+        {
+            await AssigneePickerStore.OpenAsync(BoardId);
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+    }
+
+    private async Task AssignMemberAsync(BoardMemberDto member)
+    {
+        if (BoardTaskStore.Task is not { } task || _isSavingAssignee)
+            return;
+
+        if (task.Assignee?.Id == member.User.Id)
+        {
+            AssigneePickerStore.Close();
+            return;
+        }
+
+        var displayName = UserDisplayFormatting.GetShortName(member.User);
+        var message = $"Assign {displayName} to this task?";
+
+        var dialog = await DialogService.ShowConfirmResourceAsync(
+            "Assign task",
+            message,
+            confirmLabel: "Confirm",
+            submitButtonClass: "btn-dialog-warning btn-dialog-action");
+
+        var result = await dialog.Result;
+
+        if (result is not { Canceled: false, Data: true })
+            return;
+
+        _isSavingAssignee = true;
+
+        try
+        {
+            await BoardApiService.UpdateBoardTaskAssigneeAsync(
+                BoardId,
+                ColumnId,
+                TaskId,
+                member.User.Id);
+
+            BoardTaskStore.UpdateTaskAssignee(member.User);
+            BoardDetailsStore.UpdateTaskAssigneeId(TaskId, member.User.Id);
+            AssigneePickerStore.Close();
+            Snackbar.Add($"{displayName} assigned to this task.", Severity.Success);
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+        finally
+        {
+            _isSavingAssignee = false;
+        }
+    }
+
+    private async Task UnassignAsync()
+    {
+        if (BoardTaskStore.Task is not { } task || _isSavingAssignee)
+            return;
+
+        if (task.Assignee is null)
+        {
+            AssigneePickerStore.Close();
+            return;
+        }
+
+        var message = "Remove assignee from this task?";
+
+        var dialog = await DialogService.ShowConfirmResourceAsync(
+            "Unassign task",
+            message,
+            confirmLabel: "Confirm",
+            submitButtonClass: "btn-dialog-warning btn-dialog-action");
+
+        var result = await dialog.Result;
+
+        if (result is not { Canceled: false, Data: true })
+            return;
+
+        _isSavingAssignee = true;
+
+        try
+        {
+            await BoardApiService.UpdateBoardTaskAssigneeAsync(
+                BoardId,
+                ColumnId,
+                TaskId,
+                assigneeId: null);
+
+            BoardTaskStore.UpdateTaskAssignee(null);
+            BoardDetailsStore.UpdateTaskAssigneeId(TaskId, null);
+            AssigneePickerStore.Close();
+            Snackbar.Add("Assignee removed from this task.", Severity.Success);
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+        finally
+        {
+            _isSavingAssignee = false;
+        }
+    }
 
     private async Task OpenAddAttachmentDialogAsync()
     {

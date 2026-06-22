@@ -21,22 +21,6 @@
     padding: 0 2rem;
 }
 
-.sidebar__avatar {
-    width: 7.5rem;
-    height: 7.5rem;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: var(--jtt-overlay-accent-10);
-    user-select: none;
-}
-
-.sidebar__avatar span {
-    font-size: 2.5rem;
-    line-height: 1;
-}
-
 .sidebar__info {
     width: 100%;
     text-align: center;

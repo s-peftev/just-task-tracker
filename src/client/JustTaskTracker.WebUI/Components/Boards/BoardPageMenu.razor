@@ -1,3 +1,7 @@
+@using JustTaskTracker.WebUI.Services.Abstractions.Boards
+@implements IDisposable
+@inject IBoardDetailsStore BoardDetailsStore
+
 <div class="board-menu">
     <button type="button"
             class="btn-icon btn-icon--round btn-icon--md"
@@ -35,6 +39,20 @@
                     </svg>
                 </button>
             </div>
+
+            <label class="board-menu__filter"
+                   role="menuitemcheckbox"
+                   aria-checked="@BoardDetailsStore.ShowOnlyMyTasks">
+                <input type="checkbox"
+                       checked="@BoardDetailsStore.ShowOnlyMyTasks"
+                       @onchange="OnMyTasksFilterChanged" />
+                <span>Show only tasks assigned to me</span>
+            </label>
+
+            @if (CanViewBoard || CanLeaveBoard || CanDeleteBoard)
+            {
+                <div class="board-menu__divider" role="separator"></div>
+            }
 
             @if (CanViewBoard)
             {
@@ -111,11 +129,26 @@
 
     private bool _isOpen;
 
+    protected override void OnInitialized() =>
+        BoardDetailsStore.StateChanged += OnBoardDetailsStoreStateChanged;
+
+    public void Dispose() =>
+        BoardDetailsStore.StateChanged -= OnBoardDetailsStoreStateChanged;
+
+    private void OnBoardDetailsStoreStateChanged() =>
+        InvokeAsync(StateHasChanged);
+
     private void Toggle() =>
         _isOpen = !_isOpen;
 
     private void Close() =>
         _isOpen = false;
+
+    private void OnMyTasksFilterChanged(ChangeEventArgs e)
+    {
+        var showOnlyMyTasks = e.Value is true;
+        BoardDetailsStore.SetShowOnlyMyTasks(showOnlyMyTasks);
+    }
 
     private async Task HandleMembersClickAsync()
     {

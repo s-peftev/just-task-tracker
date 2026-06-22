@@ -63,6 +63,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IBoardTaskSearchStore, BoardTaskSearchStore>();
         services.AddScoped<IBoardMembersStore, BoardMembersStore>();
         services.AddScoped<IBoardAddMemberStore, BoardAddMemberStore>();
+        services.AddScoped<IBoardTaskAssigneePickerStore, BoardTaskAssigneePickerStore>();
 
         return services;
     }

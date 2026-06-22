@@ -1,34 +1,21 @@
 @using JustTaskTracker.WebUI.Domain.Auth
 @using JustTaskTracker.WebUI.Domain.Boards.Enums
 
-<form id="@FormId" @onsubmit="SubmitAsync" @onsubmit:preventDefault="true">
-    <MudText Class="confirm-dialog__message add-board-member-form__message"
-             Typo="Typo.body1"
-             Style="white-space: pre-line;">
+<form id="@FormId" class="add-board-member-form" @onsubmit="SubmitAsync" @onsubmit:preventDefault="true">
+    <p class="confirm-dialog__message add-board-member-form__message">
         Add @DisplayName to this board?
-    </MudText>
+    </p>
 
-    <fieldset class="add-board-member-form__fieldset">
-        <legend class="add-board-member-form__legend">Role</legend>
-
-        <MudRadioGroup T="BoardMemberRole" @bind-Value="_selectedRole">
-            <MudRadio T="BoardMemberRole"
-                      Value="BoardMemberRole.Admin"
-                      Color="Color.Primary">
-                Admin
-            </MudRadio>
-            <MudRadio T="BoardMemberRole"
-                      Value="BoardMemberRole.ScrumMaster"
-                      Color="Color.Primary">
-                Scrum Master
-            </MudRadio>
-            <MudRadio T="BoardMemberRole"
-                      Value="BoardMemberRole.User"
-                      Color="Color.Primary">
-                User
-            </MudRadio>
-        </MudRadioGroup>
-    </fieldset>
+    <div class="add-board-member-form__role-field">
+        <MudSelect T="BoardMemberRole"
+                   @bind-Value="_selectedRole"
+                   Label="Role"
+                   Variant="Variant.Outlined"
+                   AnchorOrigin="Origin.BottomCenter"
+                   TransformOrigin="Origin.TopCenter">
+            <BoardMemberRoleSelectItems />
+        </MudSelect>
+    </div>
 </form>
 
 @code {
@@ -42,10 +29,7 @@
 
     private BoardMemberRole _selectedRole = BoardMemberRole.User;
 
-    private string DisplayName =>
-        string.IsNullOrWhiteSpace(User.DisplayName)
-            ? User.Email
-            : User.DisplayName!;
+    private string DisplayName => UserDisplayFormatting.GetShortName(User);
 
     public static RenderFragment Render(UserForBoardLookupDto user) => builder =>
     {

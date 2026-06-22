@@ -1,5 +1,4 @@
 using JustTaskTracker.WebUI.Domain.Boards;
-using JustTaskTracker.WebUI.Domain.Boards.Enums;
 using JustTaskTracker.WebUI.Domain.Boards.Enums.SearchFields;
 using JustTaskTracker.WebUI.Domain.Boards.Requests;
 using JustTaskTracker.WebUI.Domain.Common.Pagination;
@@ -8,7 +7,7 @@ using JustTaskTracker.WebUI.Services.Abstractions.Boards;
 
 namespace JustTaskTracker.WebUI.Services.Boards.Stores;
 
-internal sealed class BoardMembersStore(IBoardApiService boardApiService) : IBoardMembersStore
+internal sealed class BoardTaskAssigneePickerStore(IBoardApiService boardApiService) : IBoardTaskAssigneePickerStore
 {
     public const int PageSize = 20;
     private const int SearchDebounceMilliseconds = 300;
@@ -18,8 +17,6 @@ internal sealed class BoardMembersStore(IBoardApiService boardApiService) : IBoa
     private CancellationTokenSource? _searchDebounceCts;
 
     public Guid? BoardId { get; private set; }
-    public BoardMemberRole UserRole { get; private set; }
-    public BoardMembersOverlayTab ActiveTab { get; private set; } = BoardMembersOverlayTab.Members;
     public IReadOnlyList<BoardMemberDto> Members { get; private set; } = [];
     public PaginationMetadata Pagination { get; private set; } = new();
     public int CurrentPage { get; private set; } = 1;
@@ -27,26 +24,19 @@ internal sealed class BoardMembersStore(IBoardApiService boardApiService) : IBoa
     public bool IsLoading { get; private set; }
     public bool HasMoreMembers => Members.Count < Pagination.TotalCount;
     public bool IsLoadingMoreMembers { get; private set; }
-    public bool IsRemovingMember { get; private set; }
-    public bool IsUpdatingMemberRole { get; private set; }
-    public Guid? UpdatingMemberRoleUserId { get; private set; }
     public string SearchText { get; private set; } = string.Empty;
-    public string? ErrorMessage { get; private set; }
 
     public event Action? StateChanged;
 
-    public async Task OpenAsync(Guid boardId, BoardMemberRole userRole, CancellationToken ct = default)
+    public async Task OpenAsync(Guid boardId, CancellationToken ct = default)
     {
         _boardId = boardId;
         BoardId = boardId;
-        UserRole = userRole;
-        ActiveTab = BoardMembersOverlayTab.Members;
         SearchText = string.Empty;
         Members = [];
         Pagination = new PaginationMetadata();
         CurrentPage = 1;
         IsLoadingMoreMembers = false;
-        ErrorMessage = null;
         IsOpen = true;
         NotifyStateChanged();
 
@@ -59,26 +49,6 @@ internal sealed class BoardMembersStore(IBoardApiService boardApiService) : IBoa
             Close();
             throw;
         }
-    }
-
-    public async Task SetActiveTabAsync(BoardMembersOverlayTab tab, CancellationToken ct = default)
-    {
-        if (ActiveTab == tab)
-            return;
-
-        ActiveTab = tab;
-        NotifyStateChanged();
-
-        if (tab == BoardMembersOverlayTab.Members && IsOpen)
-            await RefreshAsync(ct);
-    }
-
-    public async Task RefreshAsync(CancellationToken ct = default)
-    {
-        if (!IsOpen)
-            return;
-
-        await LoadPageAsync(1, replaceExisting: true, ct);
     }
 
     public async Task SetSearchAsync(string searchText, CancellationToken ct = default)
@@ -136,53 +106,6 @@ internal sealed class BoardMembersStore(IBoardApiService boardApiService) : IBoa
         }
     }
 
-    public async Task RemoveMemberAsync(Guid userId, CancellationToken ct = default)
-    {
-        if (!IsOpen)
-            throw new InvalidOperationException("Board members overlay is not open.");
-
-        IsRemovingMember = true;
-        NotifyStateChanged();
-
-        try
-        {
-            await boardApiService.DeleteBoardMemberAsync(_boardId, userId, ct);
-            RemoveMemberFromList(userId);
-        }
-        finally
-        {
-            IsRemovingMember = false;
-            NotifyStateChanged();
-        }
-    }
-
-    public async Task UpdateMemberRoleAsync(Guid userId, BoardMemberRole role, CancellationToken ct = default)
-    {
-        if (!IsOpen)
-            throw new InvalidOperationException("Board members overlay is not open.");
-
-        IsUpdatingMemberRole = true;
-        UpdatingMemberRoleUserId = userId;
-        NotifyStateChanged();
-
-        try
-        {
-            await boardApiService.UpdateBoardMemberAsync(
-                _boardId,
-                userId,
-                new UpdateBoardMemberRequest(role),
-                ct);
-
-            UpdateMemberRoleInList(userId, role);
-        }
-        finally
-        {
-            IsUpdatingMemberRole = false;
-            UpdatingMemberRoleUserId = null;
-            NotifyStateChanged();
-        }
-    }
-
     public void Close()
     {
         CancelSearchDebounce();
@@ -198,16 +121,6 @@ internal sealed class BoardMembersStore(IBoardApiService boardApiService) : IBoa
         CurrentPage = 1;
         IsLoading = false;
         IsLoadingMoreMembers = false;
-        IsRemovingMember = false;
-        IsUpdatingMemberRole = false;
-        UpdatingMemberRoleUserId = null;
-        ErrorMessage = null;
-        NotifyStateChanged();
-    }
-
-    public void Reset()
-    {
-        Close();
         NotifyStateChanged();
     }
 
@@ -220,7 +133,6 @@ internal sealed class BoardMembersStore(IBoardApiService boardApiService) : IBoa
         _loadCts = linkedCts;
 
         IsLoading = true;
-        ErrorMessage = null;
         NotifyStateChanged();
 
         try
@@ -253,13 +165,6 @@ internal sealed class BoardMembersStore(IBoardApiService boardApiService) : IBoa
         {
             // Superseded by a newer page request or close.
         }
-        catch (Exception ex)
-        {
-            if (replaceExisting)
-                throw;
-
-            ErrorMessage = ex.Message;
-        }
         finally
         {
             if (ReferenceEquals(_loadCts, linkedCts))
@@ -274,33 +179,6 @@ internal sealed class BoardMembersStore(IBoardApiService boardApiService) : IBoa
                 linkedCts.Dispose();
             }
         }
-    }
-
-    private void RemoveMemberFromList(Guid userId)
-    {
-        Members = Members
-            .Where(member => member.User.Id != userId)
-            .ToList();
-
-        Pagination = new PaginationMetadata
-        {
-            CurrentPage = Pagination.CurrentPage,
-            PageSize = Pagination.PageSize,
-            TotalCount = Math.Max(0, Pagination.TotalCount - 1),
-        };
-
-        NotifyStateChanged();
-    }
-
-    private void UpdateMemberRoleInList(Guid userId, BoardMemberRole role)
-    {
-        Members = Members
-            .Select(member => member.User.Id == userId
-                ? member with { Role = role }
-                : member)
-            .ToList();
-
-        NotifyStateChanged();
     }
 
     private static List<BoardMemberDto> MergeMembers(

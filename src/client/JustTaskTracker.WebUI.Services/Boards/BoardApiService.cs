@@ -33,11 +33,19 @@ internal class BoardApiService(IBoardApi api) : IBoardApiService
 
     public async Task<PagedList<BoardMemberDto>> GetBoardMembersAsync(
         Guid boardId,
-        int pageNumber,
-        int pageSize,
+        GetBoardMembersRequest request,
         CancellationToken ct = default)
     {
-        var response = await api.GetMembersAsync(boardId, pageNumber, pageSize, ct);
+        var search = string.IsNullOrWhiteSpace(request.SearchOptions?.Search)
+            ? null
+            : request.SearchOptions.Search;
+
+        var response = await api.GetMembersAsync(
+            boardId,
+            request.PageNumber!.Value,
+            request.PageSize!.Value,
+            search,
+            ct);
 
         return ApiResponseGuard.Unwrap(response);
     }
@@ -48,6 +56,17 @@ internal class BoardApiService(IBoardApi api) : IBoardApiService
         CancellationToken ct = default)
     {
         var response = await api.AddMemberAsync(boardId, request, ct);
+
+        ApiResponseGuard.EnsureSuccess(response);
+    }
+
+    public async Task UpdateBoardMemberAsync(
+        Guid boardId,
+        Guid userId,
+        UpdateBoardMemberRequest request,
+        CancellationToken ct = default)
+    {
+        var response = await api.UpdateMemberAsync(boardId, userId, request, ct);
 
         ApiResponseGuard.EnsureSuccess(response);
     }

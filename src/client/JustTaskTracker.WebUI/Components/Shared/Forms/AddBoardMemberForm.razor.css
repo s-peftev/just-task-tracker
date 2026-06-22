@@ -1,19 +1,14 @@
+.add-board-member-form {
+    margin-top: -1.25rem;
+}
+
 .add-board-member-form__message {
-    margin: 0 0 1rem;
+    margin: 0 0 1.75rem;
     color: rgba(255, 255, 255, 0.80);
+    font-size: var(--mud-typography-body1-size, 1rem);
+    line-height: var(--mud-typography-body1-lineheight, 1.5);
 }
 
-.add-board-member-form__fieldset {
-    margin: 0;
-    padding: 0;
-    border: 0;
-    min-width: 0;
-}
-
-.add-board-member-form__legend {
-    margin-bottom: 0.5rem;
-    padding: 0;
-    font-size: var(--jtt-font-size-meta);
-    font-weight: var(--jtt-font-weight-strong);
-    color: var(--jtt-text-primary);
+.add-board-member-form__role-field {
+    margin-top: 0;
 }

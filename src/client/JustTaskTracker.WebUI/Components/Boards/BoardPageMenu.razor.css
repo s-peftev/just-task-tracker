@@ -51,6 +51,39 @@
     background-color: var(--jtt-stroke-separator);
 }
 
+.board-menu__filter {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    width: 100%;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0.625rem 0.75rem;
+    color: var(--jtt-text-body);
+    font-family: inherit;
+    font-size: 0.875rem;
+    font-weight: var(--jtt-font-weight-body);
+    line-height: 1.35;
+    text-align: center;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.2s;
+}
+
+.board-menu__filter:hover {
+    background-color: var(--jtt-overlay-white-08);
+}
+
+.board-menu__filter input[type="checkbox"] {
+    width: 1rem;
+    height: 1rem;
+    margin: 0;
+    accent-color: rgb(97, 179, 216);
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
 .board-menu__item {
     display: flex;
     align-items: center;

@@ -18,7 +18,7 @@ internal sealed class BoardStore(IBoardApiService boardApiService) : IBoardStore
     private const int SearchDebounceMilliseconds = 300;
 
     private readonly Dictionary<Guid, BoardMemberRole> _roleCache = [];
-    private CancellationTokenSource? _loadCts;
+    private int _loadGeneration;
     private CancellationTokenSource? _searchDebounceCts;
 
     public IReadOnlyList<BoardLookupDto> Boards { get; private set; } = [];
@@ -82,9 +82,7 @@ internal sealed class BoardStore(IBoardApiService boardApiService) : IBoardStore
     {
         CancelSearchDebounce();
 
-        _loadCts?.Cancel();
-        _loadCts?.Dispose();
-        _loadCts = null;
+        Interlocked.Increment(ref _loadGeneration);
 
         Boards = [];
         Pagination = new PaginationMetadata();
@@ -99,11 +97,7 @@ internal sealed class BoardStore(IBoardApiService boardApiService) : IBoardStore
 
     private async Task LoadInternalAsync(int pageNumber, string searchText, CancellationToken ct)
     {
-        _loadCts?.Cancel();
-        _loadCts?.Dispose();
-
-        var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        _loadCts = linkedCts;
+        var generation = Interlocked.Increment(ref _loadGeneration);
 
         IsLoading = true;
         ErrorMessage = null;
@@ -120,7 +114,10 @@ internal sealed class BoardStore(IBoardApiService boardApiService) : IBoardStore
                 PageNumber = pageNumber,
                 PageSize = PageSize,
             };
-            var page = await boardApiService.GetMyBoardsAsync(request, linkedCts.Token);
+            var page = await boardApiService.GetMyBoardsAsync(request, ct);
+
+            if (generation != _loadGeneration)
+                return;
 
             Boards = page.Items;
             Pagination = page.Metadata;
@@ -130,27 +127,24 @@ internal sealed class BoardStore(IBoardApiService boardApiService) : IBoardStore
             foreach (var board in page.Items)
                 _roleCache[board.Id] = board.UserRole;
         }
-        catch (OperationCanceledException) when (linkedCts.IsCancellationRequested)
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
-            // Superseded by a newer search/page request.
+            // Component disposed or navigation away.
         }
         catch (Exception ex)
         {
+            if (generation != _loadGeneration)
+                return;
+
             // ApiServiceException carries the server message; other exceptions (network, etc.) fall through here too.
             ErrorMessage = ex.Message;
         }
         finally
         {
-            if (ReferenceEquals(_loadCts, linkedCts))
+            if (generation == _loadGeneration)
             {
                 IsLoading = false;
-                linkedCts.Dispose();
-                _loadCts = null;
                 NotifyStateChanged();
-            }
-            else
-            {
-                linkedCts.Dispose();
             }
         }
     }

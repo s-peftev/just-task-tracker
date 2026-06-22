@@ -4,18 +4,30 @@ public class BlobStorageSettings
 {
     public TaskAttachmentsStorageOptions TaskAttachments { get; set; } = new();
 
+    public ProfilePhotosStorageOptions ProfilePhotos { get; set; } = new();
+
     public void Validate()
     {
-        var section = "BlobStorageContainers:TaskAttachments";
+        var attachmentsSection = "BlobStorageContainers:TaskAttachments";
+        var profilePhotosSection = "BlobStorageContainers:TaskAttachments";
 
         if (string.IsNullOrWhiteSpace(TaskAttachments.ContainerName))
-            throw new InvalidOperationException($"{section}:ContainerName is not configured.");
+            throw new InvalidOperationException($"{attachmentsSection}:ContainerName is not configured.");
 
         if (string.IsNullOrWhiteSpace(TaskAttachments.ActiveFolder))
-            throw new InvalidOperationException($"{section}:ActiveFolder is not configured.");
+            throw new InvalidOperationException($"{attachmentsSection}:ActiveFolder is not configured.");
 
         if (string.IsNullOrWhiteSpace(TaskAttachments.DeletedFolder))
-            throw new InvalidOperationException($"{section}:DeletedFolder is not configured.");
+            throw new InvalidOperationException($"{attachmentsSection}:DeletedFolder is not configured.");
+
+        if (string.IsNullOrWhiteSpace(ProfilePhotos.ContainerName))
+            throw new InvalidOperationException($"{profilePhotosSection}:ContainerName is not configured.");
+
+        if (string.IsNullOrWhiteSpace(ProfilePhotos.OriginalsFolder))
+            throw new InvalidOperationException($"{profilePhotosSection}:OriginalsFolder is not configured.");
+
+        if (string.IsNullOrWhiteSpace(ProfilePhotos.ThumbnailsFolder))
+            throw new InvalidOperationException($"{profilePhotosSection}:ThumbnailsFolder is not configured.");
     }
 }
 
@@ -40,4 +52,11 @@ public class TaskAttachmentsStorageOptions
 
     private static string Normalize(string folder) =>
         folder.Trim().Trim('/');
+}
+
+public class ProfilePhotosStorageOptions
+{
+    public string ContainerName { get; set; } = string.Empty;
+    public string OriginalsFolder { get; set; } = string.Empty;
+    public string ThumbnailsFolder { get; set; } = string.Empty;
 }

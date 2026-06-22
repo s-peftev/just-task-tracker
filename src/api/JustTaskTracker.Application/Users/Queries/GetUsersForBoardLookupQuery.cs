@@ -4,6 +4,7 @@ using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Interfaces;
 using JustTaskTracker.Application.Common.Options;
 using JustTaskTracker.Application.Common.Validators;
+using JustTaskTracker.Application.Users.Mappings;
 using JustTaskTracker.Application.Users.ProfilePhotos;
 using JustTaskTracker.Domain.Auth.DTOs;
 using JustTaskTracker.Domain.Auth.Enums.SearchFields;
@@ -43,12 +44,7 @@ public class GetUsersForBoardLookupQueryHandler(
 
         var users = new PagedList<UserForBoardLookupDto>(
             usersReadModel.Metadata,
-            usersReadModel.Items.Select(user => new UserForBoardLookupDto(
-                user.Id,
-                user.Email,
-                user.DisplayName,
-                user.ProfilePhotoVersion is null ? null : profilePhotoService.BuildThumbnailUrl(user.Id),
-                user.BoardMemberRole)));
+            usersReadModel.Items.Select(user => user.ToDto(profilePhotoService)));
 
         return Result<PagedList<UserForBoardLookupDto>>.Success(users);
     }

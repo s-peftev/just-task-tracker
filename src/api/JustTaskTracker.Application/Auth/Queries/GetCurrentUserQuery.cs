@@ -1,5 +1,7 @@
 ﻿using JustTaskTracker.Application.Auth.Repositories;
 using JustTaskTracker.Application.Common.Interfaces;
+using JustTaskTracker.Application.Users.Mappings;
+using JustTaskTracker.Application.Users.ProfilePhotos;
 using JustTaskTracker.Domain.Auth.DTOs;
 using JustTaskTracker.Domain.Common.Results;
 using JustTaskTracker.Domain.Common.Results.Errors;
@@ -11,7 +13,8 @@ public record GetCurrentUserQuery : IRequest<Result<UserWithRolesDto>>;
 
 public class GetCurrentUserQueryHandler(
     ICurrentUserAccessor currentUser,
-    IUserRepository userRepository) 
+    IUserRepository userRepository,
+    IProfilePhotoService profilePhotoService) 
     : IRequestHandler<GetCurrentUserQuery, Result<UserWithRolesDto>>
 {
     public async Task<Result<UserWithRolesDto>> Handle(GetCurrentUserQuery request, CancellationToken ct)
@@ -23,12 +26,6 @@ public class GetCurrentUserQueryHandler(
 
         var rolesFromToken = currentUser.AppRoles ?? [];
 
-        var userWithRoles = new UserWithRolesDto(
-            userInfo.Id,
-            userInfo.Email,
-            rolesFromToken,
-            userInfo.DisplayName);
-
-        return Result<UserWithRolesDto>.Success(userWithRoles);
+        return Result<UserWithRolesDto>.Success(userInfo.ToUserWithRolesDto(rolesFromToken, profilePhotoService));
     }
 }

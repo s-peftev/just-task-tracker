@@ -1,7 +1,7 @@
+using JustTaskTracker.Application.Boards.Mappings;
 using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Interfaces;
 using JustTaskTracker.Application.Users.ProfilePhotos;
-using JustTaskTracker.Domain.Auth.DTOs;
 using JustTaskTracker.Domain.Boards.Authorization;
 using JustTaskTracker.Domain.Boards.DTOs.Comments;
 using JustTaskTracker.Domain.Common.Pagination;
@@ -31,16 +31,7 @@ public class GetBoardTaskCommentsQueryHandler(
 
         var comments = new PagedList<BoardTaskCommentDto>(
             commentsInfo.Metadata,
-            commentsInfo.Items.Select(c => new BoardTaskCommentDto(
-                c.Id,
-                c.Body,
-                c.CreatedAtUtc,
-                new UserDto(
-                    c.Author.Id,
-                    c.Author.Email,
-                    c.Author.DisplayName,
-                    c.Author.ProfilePhotoVersion is null ? null : profilePhotoService.BuildThumbnailUrl(c.Author.Id)),
-                c.LastModifiedAtUtc)));
+            commentsInfo.Items.Select(c => c.ToDto(profilePhotoService)));
 
         return Result<PagedList<BoardTaskCommentDto>>.Success(comments);
     }

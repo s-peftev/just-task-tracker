@@ -1,10 +1,10 @@
 using FluentValidation;
+using JustTaskTracker.Application.Boards.Mappings;
 using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Interfaces;
 using JustTaskTracker.Application.Common.Options;
 using JustTaskTracker.Application.Common.Validators;
 using JustTaskTracker.Application.Users.ProfilePhotos;
-using JustTaskTracker.Domain.Auth.DTOs;
 using JustTaskTracker.Domain.Boards.Authorization;
 using JustTaskTracker.Domain.Boards.DTOs.Boards;
 using JustTaskTracker.Domain.Boards.Enums.SearchFields;
@@ -41,15 +41,7 @@ public class GetBoardMembersQueryHandler(
 
         var members = new PagedList<BoardMemberDto>(
             membersInfo.Metadata,
-            membersInfo.Items.Select(m => new BoardMemberDto(
-                new UserDto(
-                    m.User.Id,
-                    m.User.Email,
-                    m.User.DisplayName,
-                    m.User.ProfilePhotoVersion is null ? null : profilePhotoService.BuildThumbnailUrl(m.User.Id)),
-                m.Role,
-                m.JoinedAtUtc))
-            );
+            membersInfo.Items.Select(m => m.ToDto(profilePhotoService)));
 
         return Result<PagedList<BoardMemberDto>>.Success(members);
     }

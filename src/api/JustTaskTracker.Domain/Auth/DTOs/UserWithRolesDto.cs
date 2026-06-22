@@ -4,4 +4,5 @@ public record UserWithRolesDto(
     Guid Id,
     string Email,
     IReadOnlyList<string> Roles,
-    string? DisplayName);
+    string? DisplayName,
+    string? ProfilePhotoUrl);

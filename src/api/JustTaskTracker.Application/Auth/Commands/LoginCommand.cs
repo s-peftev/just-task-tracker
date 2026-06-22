@@ -1,6 +1,9 @@
 ﻿using JustTaskTracker.Application.Auth.Repositories;
 using JustTaskTracker.Application.Common.Interfaces;
 using JustTaskTracker.Application.Common.Interfaces.Persistence;
+using JustTaskTracker.Application.Users.Mappings;
+using JustTaskTracker.Application.Users.ProfilePhotos;
+using JustTaskTracker.Application.Users.ReadModels;
 using JustTaskTracker.Domain.Auth.DTOs;
 using JustTaskTracker.Domain.Auth.Entities;
 using JustTaskTracker.Domain.Common.Results;
@@ -13,7 +16,8 @@ public record LoginCommand : IRequest<Result<UserWithRolesDto>>;
 public class LoginCommandHandler(
     ICurrentUserAccessor currentUser,
     IUserRepository userRepository,
-    IUnitOfWork unitOfWork)
+    IUnitOfWork unitOfWork,
+    IProfilePhotoService profilePhotoService)
     : IRequestHandler<LoginCommand, Result<UserWithRolesDto>>
 {
     public async Task<Result<UserWithRolesDto>> Handle(LoginCommand request, CancellationToken ct)
@@ -27,11 +31,9 @@ public class LoginCommandHandler(
 
         var rolesFromToken = currentUser.AppRoles ?? [];
 
-        return Result<UserWithRolesDto>.Success(new UserWithRolesDto(
-            user.Id,
-            user.Email,
-            rolesFromToken,
-            user.DisplayName));
+        var userInfo = new UserReadModel(user.Id, user.Email, user.DisplayName, user.ProfilePhotoVersion);
+
+        return Result<UserWithRolesDto>.Success(userInfo.ToUserWithRolesDto(rolesFromToken, profilePhotoService));
     }
 
     private User CreateUser()

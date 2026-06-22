@@ -5,8 +5,8 @@ using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Interfaces;
 using JustTaskTracker.Application.Common.Interfaces.Persistence;
 using JustTaskTracker.Application.Common.Options;
+using JustTaskTracker.Application.Users.Mappings;
 using JustTaskTracker.Application.Users.ProfilePhotos;
-using JustTaskTracker.Domain.Auth.DTOs;
 using JustTaskTracker.Domain.Boards.Authorization;
 using JustTaskTracker.Domain.Boards.Constants;
 using JustTaskTracker.Domain.Boards.DTOs.Attachments;
@@ -114,11 +114,7 @@ public class UploadBoardTaskAttachmentCommandHandler(
             attachment.FileSizeBytes,
             attachment.Position,
             attachment.CreatedAtUtc,
-            new UserDto(
-                currentUserInfo.Id,
-                currentUserInfo.Email,
-                currentUserInfo.DisplayName,
-                currentUserInfo.ProfilePhotoVersion is null ? null : profilePhotoService.BuildThumbnailUrl(currentUserInfo.Id))));
+            currentUserInfo.ToDto(profilePhotoService)));
     }
 }
 

@@ -9,7 +9,7 @@ using JustTaskTracker.WebUI.Services.Abstractions.Boards;
 namespace JustTaskTracker.WebUI.Services.Boards.Stores;
 
 /// <summary>
-/// Scoped store for the dashboard boards list. Loads pages on demand and keeps a
+/// Scoped store for the boards list page. Loads pages on demand and keeps a
 /// per-board role cache so board-scoped pages can resolve permissions locally.
 /// </summary>
 internal sealed class BoardStore(IBoardApiService boardApiService) : IBoardStore

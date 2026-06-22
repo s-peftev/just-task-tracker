@@ -5,7 +5,7 @@ using JustTaskTracker.WebUI.Domain.Common.Pagination;
 namespace JustTaskTracker.WebUI.Services.Abstractions.Boards;
 
 /// <summary>
-/// Scoped store for the current user's boards list shown on the dashboard.
+/// Scoped store for the current user's boards list shown on the boards page.
 /// Tracks pagination state and caches each board's role so that board-scoped
 /// pages can resolve the current user's permissions without an extra request.
 /// </summary>

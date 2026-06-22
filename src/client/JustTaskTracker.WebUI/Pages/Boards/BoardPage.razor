@@ -33,8 +33,8 @@
         {
             <div class="page-state page-state--stacked">
                 <MudAlert Severity="Severity.Error">@error</MudAlert>
-                <button type="button" class="btn-noir" @onclick="GoToDashboard">
-                    <span>Back to dashboard</span>
+                <button type="button" class="btn-noir" @onclick="GoToBoards">
+                    <span>Back to boards</span>
                 </button>
             </div>
         }
@@ -77,8 +77,8 @@
 
                     <button type="button"
                             class="btn-icon btn-icon--round btn-icon--sm"
-                            aria-label="Back to dashboard"
-                            @onclick="GoToDashboard">
+                            aria-label="Back to boards"
+                            @onclick="GoToBoards">
                         <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                             <path d="M18 6L6 18M6 6l12 12"
                                   stroke="currentColor"
@@ -491,7 +491,7 @@
         }
     }
 
-    private void GoToDashboard() => Navigation.NavigateTo("/dashboard");
+    private void GoToBoards() => Navigation.NavigateTo("/boards");
 
     private async Task ToggleFooterTray()
     {
@@ -587,7 +587,7 @@
         {
             await BoardApiService.LeaveBoardAsync(Id);
             Snackbar.Add("You left the board.", Severity.Success);
-            Navigation.NavigateTo("/dashboard");
+            Navigation.NavigateTo("/boards");
         }
         catch (ApiServiceException ex)
         {
@@ -713,7 +713,7 @@
         {
             await BoardApiService.DeleteBoardAsync(Id);
             Snackbar.Add("Board deleted.", Severity.Success);
-            Navigation.NavigateTo("/dashboard");
+            Navigation.NavigateTo("/boards");
         }
         catch (ApiServiceException ex)
         {

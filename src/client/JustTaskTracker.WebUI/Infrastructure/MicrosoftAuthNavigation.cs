@@ -26,7 +26,7 @@ public static class MicrosoftAuthNavigation
 
     public static void NavigateToMicrosoftLogin(
         NavigationManager navigation,
-        string returnUrl = "dashboard")
+        string returnUrl = "boards")
     {
         var requestOptions = new InteractiveRequestOptions
         {
@@ -67,6 +67,8 @@ public static class MicrosoftAuthNavigation
 
         await js.InvokeVoidAsync("sessionStorage.setItem", SwitchAccountPreviousUserStorageKey, previousUser);
         await js.InvokeVoidAsync("sessionStorage.setItem", SwitchAccountPendingStorageKey, "1");
+
+        await js.InvokeVoidAsync(LocalSignOutJsMethod);
 
         NavigateToMicrosoftLogin(navigation);
     }

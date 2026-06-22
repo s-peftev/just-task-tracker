@@ -28,7 +28,7 @@
         var state = await AuthState.GetAuthenticationStateAsync();
         if (state.User.Identity?.IsAuthenticated == true)
         {
-            Navigation.NavigateTo("/dashboard");
+            Navigation.NavigateTo("/boards");
             return;
         }
 

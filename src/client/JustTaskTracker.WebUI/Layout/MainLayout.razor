@@ -1,8 +1,12 @@
 ﻿@inherits LayoutComponentBase
 @implements IDisposable
 @using Microsoft.AspNetCore.Components.Authorization
+@using JustTaskTracker.WebUI.Infrastructure
 @inject IProfileStore ProfileStore
+@inject IBoardStore BoardStore
 @inject AuthenticationStateProvider AuthState
+@inject NavigationManager Navigation
+@inject IJSRuntime Js
 
 <MudThemeProvider Theme="@_theme" IsDarkMode="true" />
 <MudPopoverProvider />
@@ -12,7 +16,39 @@
 <div class="layout-wrapper">
     <AppNavBar />
     <main class="layout-main">
-        @Body
+        @if (ProfileStore.Profile is { } profile)
+        {
+            <div class="sidebar-shell">
+                <div class="sidebar-shell__sidebar">
+                    <AppSidebar @key="profile.Id" />
+                </div>
+
+                <section class="sidebar-shell__content">
+                    @Body
+                </section>
+            </div>
+        }
+        else if (_isAuthenticated)
+        {
+            <div class="sidebar-shell sidebar-shell--center">
+                @if (ProfileStore.IsLoading)
+                {
+                    <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+                }
+                else if (ProfileStore.ErrorMessage is { } error)
+                {
+                    <MudAlert Severity="Severity.Error">@error</MudAlert>
+                }
+                else
+                {
+                    <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+                }
+            </div>
+        }
+        else
+        {
+            @Body
+        }
     </main>
 </div>
 
@@ -26,18 +62,50 @@
         }
     };
 
+    private bool _isAuthenticated;
+
     protected override void OnInitialized() =>
         ProfileStore.StateChanged += OnStoreStateChanged;
 
     protected override async Task OnInitializedAsync()
     {
         var authState = await AuthState.GetAuthenticationStateAsync();
+        _isAuthenticated = authState.User.Identity?.IsAuthenticated == true;
 
-        if (authState.User.Identity?.IsAuthenticated == true)
-            await ProfileStore.EnsureLoadedAsync();
+        if (!_isAuthenticated)
+            return;
+
+        var switchResult = await MicrosoftAuthNavigation.TryCompleteAccountSwitchAsync(Js, AuthState);
+        if (switchResult == AccountSwitchResult.SameAccountRequiresFullLogout)
+        {
+            await EnsureProfileAsync(AccountSwitchResult.Switched);
+            return;
+        }
+
+        await EnsureProfileAsync(switchResult);
+
+        if (ProfileStore.RequiresLogin)
+            Navigation.NavigateTo("/login");
     }
 
     public void Dispose() => ProfileStore.StateChanged -= OnStoreStateChanged;
 
     private void OnStoreStateChanged() => InvokeAsync(StateHasChanged);
+
+    private async Task EnsureProfileAsync(AccountSwitchResult switchResult)
+    {
+        var authState = await AuthState.GetAuthenticationStateAsync();
+        if (authState.User.Identity?.IsAuthenticated != true)
+            return;
+
+        var needsRefresh = switchResult == AccountSwitchResult.Switched
+            || !ProfileStore.IsLoaded
+            || ProfileStore.Profile is not { } cached
+            || !MicrosoftAuthNavigation.ProfileMatchesAuth(cached, authState.User);
+
+        if (needsRefresh)
+            await ProfileStore.RefreshAsync();
+        else
+            await ProfileStore.EnsureLoadedAsync();
+    }
 }

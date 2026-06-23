@@ -25,5 +25,5 @@ public static class UserReadModelMappings
             user.Email,
             roles,
             user.DisplayName,
-            user.ProfilePhotoVersion is null ? null : profilePhotoService.BuildThumbnailUrl(user.Id));
+            user.ProfilePhotoVersion is null ? null : profilePhotoService.BuildOriginalUrl(user.Id));
 }

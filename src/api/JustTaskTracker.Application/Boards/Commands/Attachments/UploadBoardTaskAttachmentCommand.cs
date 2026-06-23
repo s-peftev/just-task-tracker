@@ -48,7 +48,7 @@ public class UploadBoardTaskAttachmentCommandHandler(
 
         var attachmentCount = await attachmentRepository.GetCountByBoardTaskIdAsync(request.BoardTaskId, ct);
 
-        if (attachmentCount >= validationSettings.BoardTasks.MaxAttachmentsPerTask)
+        if (attachmentCount >= validationSettings.BoardTasks!.MaxAttachmentsPerTask)
             return Result<BoardTaskAttachmentDto>.Failure(BoardTasksErrors.TooManyAttachments);
 
         var file = request.File!;
@@ -123,7 +123,7 @@ public class UploadBoardTaskAttachmentCommandValidator : AbstractValidator<Uploa
     public UploadBoardTaskAttachmentCommandValidator(ValidationSettings validationSettings)
     {
         var allowedContentTypes = new HashSet<string>(
-            validationSettings.BoardTasks.AllowedContentTypes,
+            validationSettings.BoardTasks!.AllowedContentTypes!,
             StringComparer.OrdinalIgnoreCase);
 
         RuleFor(x => x.BoardTaskId)
@@ -149,7 +149,7 @@ public class UploadBoardTaskAttachmentCommandValidator : AbstractValidator<Uploa
 
             RuleFor(x => x.File!.Length)
                 .GreaterThan(0)
-                .LessThanOrEqualTo(validationSettings.BoardTasks.MaxAttachmentSizeBytes);
+                .LessThanOrEqualTo(validationSettings.BoardTasks!.MaxAttachmentSizeBytes);
         });
     }
 }

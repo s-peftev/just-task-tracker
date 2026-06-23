@@ -1,51 +1,117 @@
-﻿using JustTaskTracker.Domain.Auth.Constants;
+﻿using JustTaskTracker.Application.Common.Constants;
+using JustTaskTracker.Domain.Auth.Constants;
 using JustTaskTracker.Domain.Boards.Constants;
 
 namespace JustTaskTracker.Application.Common.Options;
 
 public class ValidationSettings
 {
-    public BoardValidationSettings Boards { get; set; } = new();
+    public BoardValidationSettings? Boards { get; set; }
 
-    public BoardTaskValidationSettings BoardTasks { get; set; } = new();
+    public BoardTaskValidationSettings? BoardTasks { get; set; }
 
-    public UserValidationSettings Users { get; set; } = new();
+    public UserValidationSettings? Users { get; set; }
+
+    public void Validate()
+    {
+        var section = ConfigSections.ValidationSettings;
+
+        if (Boards is null)
+            throw new InvalidOperationException($"{section}:Boards is not configured.");
+
+        if (BoardTasks is null)
+            throw new InvalidOperationException($"{section}:BoardTasks is not configured.");
+
+        if (Users is null)
+            throw new InvalidOperationException($"{section}:Users is not configured.");
+
+        Boards.Validate($"{section}:Boards");
+        BoardTasks.Validate($"{section}:BoardTasks");
+        Users.Validate($"{section}:Users");
+    }
 }
 
 public class BoardValidationSettings
 {
-    public int MaxNameSearchLength { get; set; } = BoardFieldLengths.MaxNameLength;
+    public int MaxBoardNameSearchLength { get; set; }
+
+    internal void Validate(string sectionPath)
+    {
+        if (MaxBoardNameSearchLength == 0)
+            throw new InvalidOperationException($"{sectionPath}:MaxBoardNameSearchLength is not configured.");
+
+        if (MaxBoardNameSearchLength < 0)
+            throw new InvalidOperationException($"{sectionPath}:MaxBoardNameSearchLength must be greater than 0.");
+
+        if (MaxBoardNameSearchLength > BoardFieldLengths.MaxNameLength)
+            throw new InvalidOperationException(
+                $"{sectionPath}:MaxBoardNameSearchLength must not exceed {BoardFieldLengths.MaxNameLength}.");
+    }
 }
 
 public class BoardTaskValidationSettings
 {
-    private const long DefaultMaxAttachmentSizeBytes = 10 * 1024 * 1024;
+    public long MaxAttachmentSizeBytes { get; set; }
 
-    private const int DefaultMaxAttachmentsPerTask = 10;
+    public int MaxAttachmentsPerTask { get; set; }
 
-    private static readonly string[] DefaultAllowedContentTypes =
-    [
-        "application/pdf",
-        "image/png",
-        "image/jpeg",
-        "image/gif",
-        "image/webp",
-        "text/plain",
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "application/zip",
-    ];
+    public string[]? AllowedContentTypes { get; set; }
 
-    public long MaxAttachmentSizeBytes { get; set; } = DefaultMaxAttachmentSizeBytes;
+    public int MaxTextSearchLength { get; set; }
 
-    public int MaxAttachmentsPerTask { get; set; } = DefaultMaxAttachmentsPerTask;
+    internal void Validate(string sectionPath)
+    {
+        if (MaxAttachmentSizeBytes == 0)
+            throw new InvalidOperationException($"{sectionPath}:MaxAttachmentSizeBytes is not configured.");
 
-    public string[] AllowedContentTypes { get; set; } = DefaultAllowedContentTypes.ToArray();
+        if (MaxAttachmentSizeBytes < 0)
+            throw new InvalidOperationException($"{sectionPath}:MaxAttachmentSizeBytes must be greater than 0.");
 
-    public int MaxTextSearchLength { get; set; } = BoardTaskFieldLengths.MaxDescriptionLength;
+        if (MaxAttachmentsPerTask == 0)
+            throw new InvalidOperationException($"{sectionPath}:MaxAttachmentsPerTask is not configured.");
+
+        if (MaxAttachmentsPerTask < 0)
+            throw new InvalidOperationException($"{sectionPath}:MaxAttachmentsPerTask must be greater than 0.");
+
+        if (AllowedContentTypes is null || AllowedContentTypes.Length == 0)
+            throw new InvalidOperationException($"{sectionPath}:AllowedContentTypes is not configured.");
+
+        if (AllowedContentTypes.Any(string.IsNullOrWhiteSpace))
+            throw new InvalidOperationException($"{sectionPath}:AllowedContentTypes must not contain empty values.");
+
+        foreach (var contentType in AllowedContentTypes)
+        {
+            if (contentType.Length > BoardTaskAttachmentFieldLengths.MaxContentTypeLength)
+                throw new InvalidOperationException(
+                    $"{sectionPath}:AllowedContentTypes entries must not exceed {BoardTaskAttachmentFieldLengths.MaxContentTypeLength} characters.");
+        }
+
+        if (MaxTextSearchLength == 0)
+            throw new InvalidOperationException($"{sectionPath}:MaxTextSearchLength is not configured.");
+
+        if (MaxTextSearchLength < 0)
+            throw new InvalidOperationException($"{sectionPath}:MaxTextSearchLength must be greater than 0.");
+
+        if (MaxTextSearchLength > BoardTaskFieldLengths.MaxDescriptionLength)
+            throw new InvalidOperationException(
+                $"{sectionPath}:MaxTextSearchLength must not exceed {BoardTaskFieldLengths.MaxDescriptionLength}.");
+    }
 }
 
 public class UserValidationSettings
 {
-    public int MaxTextSearchLength { get; set; } = UserFieldLengths.MaxEmailLength;
+    public int MaxTextSearchLength { get; set; }
+
+    internal void Validate(string sectionPath)
+    {
+        if (MaxTextSearchLength == 0)
+            throw new InvalidOperationException($"{sectionPath}:MaxTextSearchLength is not configured.");
+
+        if (MaxTextSearchLength < 0)
+            throw new InvalidOperationException($"{sectionPath}:MaxTextSearchLength must be greater than 0.");
+
+        if (MaxTextSearchLength > UserFieldLengths.MaxEmailLength)
+            throw new InvalidOperationException(
+                $"{sectionPath}:MaxTextSearchLength must not exceed {UserFieldLengths.MaxEmailLength}.");
+    }
 }

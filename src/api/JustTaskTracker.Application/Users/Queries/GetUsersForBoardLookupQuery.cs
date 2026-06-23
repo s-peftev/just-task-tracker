@@ -60,7 +60,7 @@ public class GetUsersForBoardLookupQueryValidator : AbstractValidator<GetUsersFo
         When(x => x.SearchOptions is not null, () =>
         {
             RuleFor(x => x.SearchOptions!)
-                .SetValidator(new TextSearchOptionsValidator<UserSearchField>(validationSettings.Users.MaxTextSearchLength));
+                .SetValidator(new TextSearchOptionsValidator<UserSearchField>(validationSettings.Users!.MaxTextSearchLength));
         });
     }
 }

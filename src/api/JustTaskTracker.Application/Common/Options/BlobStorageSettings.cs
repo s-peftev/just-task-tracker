@@ -1,4 +1,6 @@
-﻿namespace JustTaskTracker.Application.Common.Options;
+﻿using JustTaskTracker.Application.Common.Constants;
+
+namespace JustTaskTracker.Application.Common.Options;
 
 public class BlobStorageSettings
 {
@@ -8,8 +10,10 @@ public class BlobStorageSettings
 
     public void Validate()
     {
-        var attachmentsSection = "BlobStorageContainers:TaskAttachments";
-        var profilePhotosSection = "BlobStorageContainers:TaskAttachments";
+        var section = ConfigSections.BlobStorage;
+
+        var attachmentsSection = $"{section}:TaskAttachments";
+        var profilePhotosSection = $"{section}:ProfilePhotos";
 
         if (string.IsNullOrWhiteSpace(TaskAttachments.ContainerName))
             throw new InvalidOperationException($"{attachmentsSection}:ContainerName is not configured.");

@@ -34,7 +34,7 @@ public class GetBoardsForCurrentUserQueryValidator : AbstractValidator<GetBoards
 {
     public GetBoardsForCurrentUserQueryValidator(ValidationSettings validationSettings)
     {
-        var maxBoardNameSearchLength = validationSettings.Boards.MaxNameSearchLength;
+        var maxBoardNameSearchLength = validationSettings.Boards!.MaxBoardNameSearchLength;
 
         When(x => x.SearchOptions is not null, () =>
         {

@@ -44,7 +44,7 @@ public class GetBoardTasksLookupQueryValidator : AbstractValidator<GetBoardTasks
 {
     public GetBoardTasksLookupQueryValidator(ValidationSettings validationSettings)
     {
-        var maxBoardTaskTextSearchLength = validationSettings.BoardTasks.MaxTextSearchLength;
+        var maxBoardTaskTextSearchLength = validationSettings.BoardTasks!.MaxTextSearchLength;
 
         When(x => x.SearchOptions is not null, () =>
         {

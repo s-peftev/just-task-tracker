@@ -57,7 +57,7 @@ public class GetBoardMembersQueryValidator : AbstractValidator<GetBoardMembersQu
         When(x => x.SearchOptions is not null, () =>
         {
             RuleFor(x => x.SearchOptions!)
-                .SetValidator(new TextSearchOptionsValidator<BoardMemberSearchField>(validationSettings.Users.MaxTextSearchLength));
+                .SetValidator(new TextSearchOptionsValidator<BoardMemberSearchField>(validationSettings.Users!.MaxTextSearchLength));
         });
     }
 }

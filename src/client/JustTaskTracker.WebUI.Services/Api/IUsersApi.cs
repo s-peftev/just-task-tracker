@@ -19,4 +19,7 @@ internal interface IUsersApi
     Task<IApiResponse<ApiEnvelope<ProfilePhotoDto>>> UploadProfilePhotoAsync(
         [AliasAs("photo")] ByteArrayPart photo,
         CancellationToken ct = default);
+
+    [Delete("/api/users/profile-photo")]
+    Task<IApiResponse<ApiEnvelope<object>>> DeleteProfilePhotoAsync(CancellationToken ct = default);
 }

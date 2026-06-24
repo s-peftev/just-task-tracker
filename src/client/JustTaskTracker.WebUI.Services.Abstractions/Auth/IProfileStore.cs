@@ -39,4 +39,9 @@ public interface IProfileStore
     /// Updates the cached profile photo URL after a successful upload.
     /// </summary>
     void SetProfilePhotoUrl(string profilePhotoUrl);
+
+    /// <summary>
+    /// Clears the cached profile photo URL after a successful delete.
+    /// </summary>
+    void ClearProfilePhotoUrl();
 }

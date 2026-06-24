@@ -15,4 +15,6 @@ public interface IUsersApiService
         string fileName,
         string contentType,
         CancellationToken ct = default);
+
+    Task DeleteProfilePhotoAsync(DeleteProfilePhotoRequest request, CancellationToken ct = default);
 }

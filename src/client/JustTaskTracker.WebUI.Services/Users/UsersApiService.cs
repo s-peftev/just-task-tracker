@@ -39,4 +39,11 @@ internal sealed class UsersApiService(IUsersApi api) : IUsersApiService
 
         return ApiResponseGuard.Unwrap(response);
     }
+
+    public async Task DeleteProfilePhotoAsync(DeleteProfilePhotoRequest _, CancellationToken ct = default)
+    {
+        var response = await api.DeleteProfilePhotoAsync(ct);
+
+        ApiResponseGuard.EnsureSuccess(response);
+    }
 }

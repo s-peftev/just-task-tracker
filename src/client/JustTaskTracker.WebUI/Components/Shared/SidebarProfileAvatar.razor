@@ -1,6 +1,7 @@
 @using JustTaskTracker.WebUI.Domain.Auth
-@using JustTaskTracker.WebUI.Infrastructure
-@using JustTaskTracker.WebUI.Services.Abstractions.Auth
+@using JustTaskTracker.WebUI.Domain.Auth.Requests
+@using JustTaskTracker.WebUI.Components.Shared
+@using JustTaskTracker.WebUI.Infrastructure@using JustTaskTracker.WebUI.Services.Abstractions.Auth
 @using JustTaskTracker.WebUI.Services.Abstractions.Users
 @using JustTaskTracker.WebUI.Services.Exceptions
 
@@ -15,14 +16,14 @@
         {
             <button type="button"
                     class="sidebar-profile-avatar__action"
-                    disabled="@_isUploading"
+                    disabled="@_isBusy"
                     @onclick="OpenUploadDialogAsync">
                 Change
             </button>
             <button type="button"
                     class="sidebar-profile-avatar__action sidebar-profile-avatar__action--danger"
-                    disabled
-                    title="Coming soon">
+                    disabled="@_isBusy"
+                    @onclick="OpenDeleteDialogAsync">
                 Delete
             </button>
         }
@@ -30,7 +31,7 @@
         {
             <button type="button"
                     class="sidebar-profile-avatar__action"
-                    disabled="@_isUploading"
+                    disabled="@_isBusy"
                     @onclick="OpenUploadDialogAsync">
                 Upload
             </button>
@@ -60,13 +61,13 @@
     [Inject]
     private IProfileStore ProfileStore { get; set; } = default!;
 
-    private bool _isUploading;
+    private bool _isBusy;
 
     private bool HasPhoto => !string.IsNullOrEmpty(ProfilePhotoUrl);
 
     private async Task OpenUploadDialogAsync()
     {
-        if (_isUploading)
+        if (_isBusy)
             return;
 
         var dialog = await DialogService.ShowAsync<UploadProfilePhotoDialog>(
@@ -79,7 +80,7 @@
         if (result is not { Canceled: false, Data: ProfilePhotoCroppedUpload upload })
             return;
 
-        _isUploading = true;
+        _isBusy = true;
 
         try
         {
@@ -99,7 +100,41 @@
         }
         finally
         {
-            _isUploading = false;
+            _isBusy = false;
+        }
+    }
+
+    private async Task OpenDeleteDialogAsync()
+    {
+        if (_isBusy)
+            return;
+
+        var dialog = await DialogService.ShowConfirmResourceAsync(
+            "Delete profile photo",
+            "Remove your profile photo? This action cannot be undone.",
+            confirmLabel: "Delete");
+
+        var result = await dialog.Result;
+
+        if (result is not { Canceled: false, Data: true })
+            return;
+
+        _isBusy = true;
+
+        try
+        {
+            await UsersApiService.DeleteProfilePhotoAsync(new DeleteProfilePhotoRequest());
+
+            ProfileStore.ClearProfilePhotoUrl();
+            Snackbar.Add("Profile photo removed.", Severity.Success);
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+        finally
+        {
+            _isBusy = false;
         }
     }
 }

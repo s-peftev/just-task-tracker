@@ -64,6 +64,18 @@ internal sealed class ProfilePhotoService(
             blobStorageService.UploadAsync(_containerName, thumbnailBlobName, thumbnailStream, WebpContentType, ct));
     }
 
+    public async Task DeleteProfilePhotoAsync(Guid userId, CancellationToken ct = default)
+    {
+        ArgumentOutOfRangeException.ThrowIfEqual(userId, Guid.Empty);
+
+        var originalBlobName = blobStorageSettings.ProfilePhotos!.BuildOriginalBlobName(userId);
+        var thumbnailBlobName = blobStorageSettings.ProfilePhotos!.BuildThumbnailBlobName(userId);
+
+        await Task.WhenAll(
+            blobStorageService.DeleteAsync(_containerName, originalBlobName, ct),
+            blobStorageService.DeleteAsync(_containerName, thumbnailBlobName, ct));
+    }
+
     private static ImageProcessingSpec ToSpec(ProfilePhotoOutputSettings settings) =>
         new(settings.Width, settings.Height, settings.WebpQuality);
 

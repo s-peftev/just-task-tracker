@@ -33,4 +33,14 @@ public class UsersController(ISender sender) : ControllerBase
             data => Ok(data),
             error => error.CreateErrorResponse());
     }
+
+    [HttpDelete("profile-photo")]
+    public async Task<IActionResult> DeleteProfilePhoto(CancellationToken ct)
+    {
+        var result = await sender.Send(new DeleteProfilePhotoCommand(), ct);
+
+        return result.Match(
+            () => NoContent(),
+            error => error.CreateErrorResponse());
+    }
 }

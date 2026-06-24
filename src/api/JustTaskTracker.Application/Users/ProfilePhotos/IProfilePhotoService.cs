@@ -23,4 +23,13 @@ public interface IProfilePhotoService
     /// <exception cref="ArgumentNullException"><paramref name="source"/> is <see langword="null"/>.</exception>
     /// <exception cref="InvalidOperationException">The source stream is empty.</exception>
     Task UploadPhotoAsync(Guid userId, Stream source, CancellationToken ct = default);
+
+    /// <summary>
+    /// Deletes the original and thumbnail profile photo blobs for <paramref name="userId"/>.
+    /// </summary>
+    /// <remarks>
+    /// Missing blobs are ignored. Clearing <c>ProfilePhotoVersion</c> on the user entity is the caller's responsibility.
+    /// </remarks>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="userId"/> is empty.</exception>
+    Task DeleteProfilePhotoAsync(Guid userId, CancellationToken ct = default);
 }

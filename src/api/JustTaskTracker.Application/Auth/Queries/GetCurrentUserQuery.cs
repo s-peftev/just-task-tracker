@@ -1,6 +1,7 @@
 ﻿using JustTaskTracker.Application.Auth.Repositories;
 using JustTaskTracker.Application.Users.Mappings;
 using JustTaskTracker.Application.Users.ProfilePhotos;
+using JustTaskTracker.Application.Users.ReadModels;
 using JustTaskTracker.Domain.Auth.DTOs;
 using JustTaskTracker.Domain.Common.Results;
 using JustTaskTracker.Domain.Common.Results.Errors;
@@ -25,6 +26,9 @@ public class GetCurrentUserQueryHandler(
 
         var rolesFromToken = currentUser.AppRoles ?? [];
 
-        return Result<UserWithRolesDto>.Success(userInfo.ToUserWithRolesDto(rolesFromToken, profilePhotoService));
+        Func<UserReadModel, string?> profilePhotoUrlResolver = user =>
+            user.ProfilePhotoVersion is null ? null : profilePhotoService.BuildOriginalUrl(user.Id);
+
+        return Result<UserWithRolesDto>.Success(userInfo.ToUserWithRolesDto(rolesFromToken, profilePhotoUrlResolver));
     }
 }

@@ -2,6 +2,7 @@ using JustTaskTracker.Application.Auth;
 using JustTaskTracker.Application.Boards.Mappings;
 using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Users.ProfilePhotos;
+using JustTaskTracker.Application.Users.ReadModels;
 using JustTaskTracker.Domain.Boards.Authorization;
 using JustTaskTracker.Domain.Boards.DTOs.BoardTasks;
 using JustTaskTracker.Domain.Common.Results;
@@ -30,6 +31,9 @@ public class GetBoardTaskByIdQueryHandler(
         if (taskInfo is null)
             return Result<BoardTaskDetailsDto>.Failure(GeneralErrors.NotFound);
 
-        return Result<BoardTaskDetailsDto>.Success(taskInfo.ToDto(profilePhotoService, userRole!.Value));
+        Func<UserReadModel, string?> profilePhotoUrlResolver = user =>
+            user.ProfilePhotoVersion is null ? null : profilePhotoService.BuildThumbnailUrl(user.Id);
+
+        return Result<BoardTaskDetailsDto>.Success(taskInfo.ToDto(profilePhotoUrlResolver, userRole!.Value));
     }
 }

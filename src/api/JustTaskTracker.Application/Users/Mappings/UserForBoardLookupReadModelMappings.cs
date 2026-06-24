@@ -1,4 +1,3 @@
-using JustTaskTracker.Application.Users.ProfilePhotos;
 using JustTaskTracker.Application.Users.ReadModels;
 using JustTaskTracker.Domain.Auth.DTOs;
 
@@ -8,11 +7,11 @@ public static class UserForBoardLookupReadModelMappings
 {
     public static UserForBoardLookupDto ToDto(
         this UserForBoardLookupReadModel user,
-        IProfilePhotoService profilePhotoService) =>
+        Func<UserForBoardLookupReadModel, string?> profilePhotoUrlResolver) =>
         new(
             user.Id,
             user.Email,
             user.DisplayName,
-            user.ProfilePhotoVersion is null ? null : profilePhotoService.BuildThumbnailUrl(user.Id),
+            profilePhotoUrlResolver(user),
             user.BoardMemberRole);
 }

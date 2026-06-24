@@ -1,6 +1,6 @@
 using JustTaskTracker.Application.Boards.ReadModels;
 using JustTaskTracker.Application.Users.Mappings;
-using JustTaskTracker.Application.Users.ProfilePhotos;
+using JustTaskTracker.Application.Users.ReadModels;
 using JustTaskTracker.Domain.Boards.DTOs.BoardTasks;
 using JustTaskTracker.Domain.Boards.Enums;
 
@@ -10,7 +10,7 @@ public static class BoardTaskDetailsReadModelMappings
 {
     public static BoardTaskDetailsDto ToDto(
         this BoardTaskDetailsReadModel task,
-        IProfilePhotoService profilePhotoService,
+        Func<UserReadModel, string?> profilePhotoUrlResolver,
         BoardMemberRole userRole) =>
         new(
             task.Id,
@@ -19,9 +19,9 @@ public static class BoardTaskDetailsReadModelMappings
             task.Title,
             task.Position,
             task.CreatedAtUtc,
-            task.Reporter.ToDto(profilePhotoService),
+            task.Reporter.ToDto(profilePhotoUrlResolver),
             userRole,
-            task.Attachments.Select(attachment => attachment.ToDto(profilePhotoService)).ToList(),
+            task.Attachments.Select(attachment => attachment.ToDto(profilePhotoUrlResolver)).ToList(),
             task.Description,
-            task.Assignee.ToNullableDto(profilePhotoService));
+            task.Assignee.ToNullableDto(profilePhotoUrlResolver));
 }

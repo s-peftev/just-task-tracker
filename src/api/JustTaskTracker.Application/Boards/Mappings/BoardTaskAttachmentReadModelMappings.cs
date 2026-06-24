@@ -1,6 +1,6 @@
 using JustTaskTracker.Application.Boards.ReadModels;
 using JustTaskTracker.Application.Users.Mappings;
-using JustTaskTracker.Application.Users.ProfilePhotos;
+using JustTaskTracker.Application.Users.ReadModels;
 using JustTaskTracker.Domain.Boards.DTOs.Attachments;
 
 namespace JustTaskTracker.Application.Boards.Mappings;
@@ -9,7 +9,7 @@ public static class BoardTaskAttachmentReadModelMappings
 {
     public static BoardTaskAttachmentDto ToDto(
         this BoardTaskAttachmentReadModel attachment,
-        IProfilePhotoService profilePhotoService) =>
+        Func<UserReadModel, string?> profilePhotoUrlResolver) =>
         new(
             attachment.Id,
             attachment.OriginalFileName,
@@ -17,5 +17,5 @@ public static class BoardTaskAttachmentReadModelMappings
             attachment.FileSizeBytes,
             attachment.Position,
             attachment.CreatedAtUtc,
-            attachment.UploadedBy.ToDto(profilePhotoService));
+            attachment.UploadedBy.ToDto(profilePhotoUrlResolver));
 }

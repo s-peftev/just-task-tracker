@@ -7,6 +7,7 @@ using JustTaskTracker.Application.Common.Options;
 using JustTaskTracker.Application.Common.Persistence;
 using JustTaskTracker.Application.Users.Mappings;
 using JustTaskTracker.Application.Users.ProfilePhotos;
+using JustTaskTracker.Application.Users.ReadModels;
 using JustTaskTracker.Domain.Boards.Authorization;
 using JustTaskTracker.Domain.Boards.Constants;
 using JustTaskTracker.Domain.Boards.DTOs.Attachments;
@@ -107,6 +108,9 @@ public class UploadBoardTaskAttachmentCommandHandler(
             return Result<BoardTaskAttachmentDto>.Failure(GeneralErrors.InternalServerError);
         }
 
+        Func<UserReadModel, string?> profilePhotoUrlResolver = user =>
+            user.ProfilePhotoVersion is null ? null : profilePhotoService.BuildThumbnailUrl(user.Id);
+
         return Result<BoardTaskAttachmentDto>.Success(new BoardTaskAttachmentDto(
             attachment.Id,
             attachment.OriginalFileName,
@@ -114,7 +118,7 @@ public class UploadBoardTaskAttachmentCommandHandler(
             attachment.FileSizeBytes,
             attachment.Position,
             attachment.CreatedAtUtc,
-            currentUserInfo.ToDto(profilePhotoService)));
+            currentUserInfo.ToDto(profilePhotoUrlResolver)));
     }
 }
 

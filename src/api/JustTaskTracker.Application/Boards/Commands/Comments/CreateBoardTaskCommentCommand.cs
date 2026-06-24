@@ -5,6 +5,7 @@ using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Persistence;
 using JustTaskTracker.Application.Users.Mappings;
 using JustTaskTracker.Application.Users.ProfilePhotos;
+using JustTaskTracker.Application.Users.ReadModels;
 using JustTaskTracker.Domain.Auth.Entities;
 using JustTaskTracker.Domain.Boards.Authorization;
 using JustTaskTracker.Domain.Boards.Constants;
@@ -52,11 +53,14 @@ public class CreateBoardTaskCommentCommandHandler(
 
         await unitOfWork.SaveChangesAsync(ct);
 
+        Func<UserReadModel, string?> profilePhotoUrlResolver = user =>
+            user.ProfilePhotoVersion is null ? null : profilePhotoService.BuildThumbnailUrl(user.Id);
+
         return Result<BoardTaskCommentDto>.Success(new BoardTaskCommentDto(
             comment.Id,
             comment.Body,
             comment.CreatedAtUtc,
-            currentUserInfo.ToDto(profilePhotoService)));
+            currentUserInfo.ToDto(profilePhotoUrlResolver)));
     }
 }
 

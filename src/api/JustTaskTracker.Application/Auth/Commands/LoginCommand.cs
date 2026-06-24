@@ -30,9 +30,14 @@ public class LoginCommandHandler(
 
         var rolesFromToken = currentUser.AppRoles ?? [];
 
-        var userInfo = new UserReadModel(user.Id, user.Email, user.DisplayName, user.ProfilePhotoVersion);
+        var userInfo = new UserWithRolesDto(
+            user.Id,
+            user.Email,
+            rolesFromToken,
+            user.DisplayName,
+            user.ProfilePhotoVersion is null ? null : profilePhotoService.BuildOriginalUrl(user.Id));
 
-        return Result<UserWithRolesDto>.Success(userInfo.ToUserWithRolesDto(rolesFromToken, profilePhotoService));
+        return Result<UserWithRolesDto>.Success(userInfo);
     }
 
     private User CreateUser()

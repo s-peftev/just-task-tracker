@@ -12,25 +12,26 @@ internal sealed class ProfilePhotoService(
 {
     private const string WebpContentType = "image/webp";
 
-    private readonly string _containerName = blobStorageSettings.ProfilePhotos.ContainerName
-        is { Length: > 0 } containerName
-            ? containerName
-            : throw new InvalidOperationException(
-                $"{nameof(blobStorageSettings.ProfilePhotos.ContainerName)} is not configured.");
+    private readonly string _containerName = blobStorageSettings.ProfilePhotos.ContainerName;
 
-    public string BuildOriginalUrl(Guid userId)
+    public string BuildOriginalUrl(Guid userId, string version)
     {
         ArgumentOutOfRangeException.ThrowIfEqual(userId, Guid.Empty);
+        ArgumentException.ThrowIfNullOrWhiteSpace(version);
 
-        return blobStorageSettings.ProfilePhotos.BuildOriginalBlobName(userId);
+        return AppendVersion(blobStorageSettings.ProfilePhotos.BuildOriginalBlobName(userId), version);
     }
 
-    public string BuildThumbnailUrl(Guid userId)
+    public string BuildThumbnailUrl(Guid userId, string version)
     {
         ArgumentOutOfRangeException.ThrowIfEqual(userId, Guid.Empty);
+        ArgumentException.ThrowIfNullOrWhiteSpace(version);
 
-        return blobStorageSettings.ProfilePhotos.BuildThumbnailBlobName(userId);
+        return AppendVersion(blobStorageSettings.ProfilePhotos.BuildThumbnailBlobName(userId), version);
     }
+
+    private static string AppendVersion(string blobPath, string version) =>
+        $"{blobPath}?v={Uri.EscapeDataString(version)}";
 
     public async Task UploadPhotoAsync(Guid userId, Stream source, CancellationToken ct = default)
     {

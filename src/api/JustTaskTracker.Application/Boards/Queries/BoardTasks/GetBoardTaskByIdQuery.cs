@@ -32,7 +32,7 @@ public class GetBoardTaskByIdQueryHandler(
             return Result<BoardTaskDetailsDto>.Failure(GeneralErrors.NotFound);
 
         Func<UserReadModel, string?> profilePhotoUrlResolver = user =>
-            user.ProfilePhotoVersion is null ? null : profilePhotoService.BuildThumbnailUrl(user.Id);
+            user.ProfilePhotoVersion is null ? null : profilePhotoService.BuildThumbnailUrl(user.Id, user.ProfilePhotoVersion);
 
         return Result<BoardTaskDetailsDto>.Success(taskInfo.ToDto(profilePhotoUrlResolver, userRole!.Value));
     }

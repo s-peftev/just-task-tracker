@@ -109,7 +109,7 @@ public class UploadBoardTaskAttachmentCommandHandler(
         }
 
         Func<UserReadModel, string?> profilePhotoUrlResolver = user =>
-            user.ProfilePhotoVersion is null ? null : profilePhotoService.BuildThumbnailUrl(user.Id);
+            user.ProfilePhotoVersion is null ? null : profilePhotoService.BuildThumbnailUrl(user.Id, user.ProfilePhotoVersion);
 
         return Result<BoardTaskAttachmentDto>.Success(new BoardTaskAttachmentDto(
             attachment.Id,

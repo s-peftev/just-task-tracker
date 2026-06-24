@@ -6,14 +6,14 @@ namespace JustTaskTracker.Application.Users.ProfilePhotos;
 public interface IProfilePhotoService
 {
     /// <summary>
-    /// Returns the public URL for the user's original profile photo blob.
+    /// Returns the public URL for the user's original profile photo blob with cache-busting version.
     /// </summary>
-    string BuildOriginalUrl(Guid userId);
+    string BuildOriginalUrl(Guid userId, string version);
 
     /// <summary>
-    /// Returns the public URL for the user's thumbnail profile photo blob.
+    /// Returns the public URL for the user's thumbnail profile photo blob with cache-busting version.
     /// </summary>
-    string BuildThumbnailUrl(Guid userId);
+    string BuildThumbnailUrl(Guid userId, string version);
 
     /// <summary>
     /// Processes <paramref name="source"/> into original and thumbnail WebP blobs and uploads them for <paramref name="userId"/>.

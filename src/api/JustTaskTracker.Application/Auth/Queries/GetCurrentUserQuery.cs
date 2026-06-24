@@ -27,7 +27,7 @@ public class GetCurrentUserQueryHandler(
         var rolesFromToken = currentUser.AppRoles ?? [];
 
         Func<UserReadModel, string?> profilePhotoUrlResolver = user =>
-            user.ProfilePhotoVersion is null ? null : profilePhotoService.BuildOriginalUrl(user.Id);
+            user.ProfilePhotoVersion is null ? null : profilePhotoService.BuildOriginalUrl(user.Id, user.ProfilePhotoVersion);
 
         return Result<UserWithRolesDto>.Success(userInfo.ToUserWithRolesDto(rolesFromToken, profilePhotoUrlResolver));
     }

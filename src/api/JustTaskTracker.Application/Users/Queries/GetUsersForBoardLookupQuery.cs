@@ -44,7 +44,7 @@ public class GetUsersForBoardLookupQueryHandler(
             ct);
 
         Func<UserForBoardLookupReadModel, string?> profilePhotoUrlResolver = user =>
-            user.ProfilePhotoVersion is null ? null : profilePhotoService.BuildThumbnailUrl(user.Id);
+            user.ProfilePhotoVersion is null ? null : profilePhotoService.BuildThumbnailUrl(user.Id, user.ProfilePhotoVersion);
 
         var users = new PagedList<UserForBoardLookupDto>(
             usersReadModel.Metadata,

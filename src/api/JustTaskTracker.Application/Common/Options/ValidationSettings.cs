@@ -12,6 +12,8 @@ public class ValidationSettings
 
     public UserValidationSettings? Users { get; set; }
 
+    public ProfilePhotoValidationSettings? ProfilePhotos { get; set; }
+
     public void Validate()
     {
         var section = ConfigSections.ValidationSettings;
@@ -25,9 +27,13 @@ public class ValidationSettings
         if (Users is null)
             throw new InvalidOperationException($"{section}:Users is not configured.");
 
+        if (ProfilePhotos is null)
+            throw new InvalidOperationException($"{section}:ProfilePhotos is not configured.");
+
         Boards.Validate($"{section}:Boards");
         BoardTasks.Validate($"{section}:BoardTasks");
         Users.Validate($"{section}:Users");
+        ProfilePhotos.Validate($"{section}:ProfilePhotos");
     }
 }
 
@@ -113,5 +119,27 @@ public class UserValidationSettings
         if (MaxTextSearchLength > UserFieldLengths.MaxEmailLength)
             throw new InvalidOperationException(
                 $"{sectionPath}:MaxTextSearchLength must not exceed {UserFieldLengths.MaxEmailLength}.");
+    }
+}
+
+public class ProfilePhotoValidationSettings
+{
+    public long MaxPhotoSizeBytes { get; set; }
+
+    public string[]? AllowedContentTypes { get; set; }
+
+    internal void Validate(string sectionPath)
+    {
+        if (MaxPhotoSizeBytes == 0)
+            throw new InvalidOperationException($"{sectionPath}:MaxAttachmentSizeBytes is not configured.");
+
+        if (MaxPhotoSizeBytes < 0)
+            throw new InvalidOperationException($"{sectionPath}:MaxAttachmentSizeBytes must be greater than 0.");
+
+        if (AllowedContentTypes is null || AllowedContentTypes.Length == 0)
+            throw new InvalidOperationException($"{sectionPath}:AllowedContentTypes is not configured.");
+
+        if (AllowedContentTypes.Any(string.IsNullOrWhiteSpace))
+            throw new InvalidOperationException($"{sectionPath}:AllowedContentTypes must not contain empty values.");
     }
 }

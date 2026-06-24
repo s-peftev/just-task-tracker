@@ -35,7 +35,7 @@ public class LoginCommandHandler(
             user.Email,
             rolesFromToken,
             user.DisplayName,
-            user.ProfilePhotoVersion is null ? null : profilePhotoService.BuildOriginalUrl(user.Id));
+            user.ProfilePhotoVersion is null ? null : profilePhotoService.BuildOriginalUrl(user.Id, user.ProfilePhotoVersion));
 
         return Result<UserWithRolesDto>.Success(userInfo);
     }

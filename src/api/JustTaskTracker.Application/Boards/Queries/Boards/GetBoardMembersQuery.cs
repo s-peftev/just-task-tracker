@@ -41,7 +41,7 @@ public class GetBoardMembersQueryHandler(
             ct);
 
         Func<UserReadModel, string?> profilePhotoUrlResolver = user =>
-            user.ProfilePhotoVersion is null ? null : profilePhotoService.BuildThumbnailUrl(user.Id);
+            user.ProfilePhotoVersion is null ? null : profilePhotoService.BuildThumbnailUrl(user.Id, user.ProfilePhotoVersion);
 
         var members = new PagedList<BoardMemberDto>(
             membersInfo.Metadata,

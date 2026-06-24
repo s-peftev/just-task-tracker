@@ -8,11 +8,7 @@ internal sealed class BoardTaskAttachmentService(
     IBlobStorageService blobStorageService,
     BlobStorageSettings blobStorageSettings) : IBoardTaskAttachmentService
 {
-    private readonly string _containerName = blobStorageSettings.TaskAttachments.ContainerName
-        is { Length: > 0 } containerName
-            ? containerName
-            : throw new InvalidOperationException(
-                $"{nameof(blobStorageSettings.TaskAttachments.ContainerName)} is not configured.");
+    private readonly string _containerName = blobStorageSettings.TaskAttachments.ContainerName;
 
     public string BuildActiveBlobName(Guid boardTaskId, Guid blobId)
     {

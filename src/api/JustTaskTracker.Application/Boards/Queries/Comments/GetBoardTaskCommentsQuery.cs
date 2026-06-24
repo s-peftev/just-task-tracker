@@ -31,7 +31,7 @@ public class GetBoardTaskCommentsQueryHandler(
         var commentsInfo = await boardTaskCommentRepository.GetPagedInfoByBoardTaskIdAsync(request.BoardTaskId, request.PageNumber!.Value, request.PageSize!.Value, ct);
 
         Func<UserReadModel, string?> profilePhotoUrlResolver = user =>
-            user.ProfilePhotoVersion is null ? null : profilePhotoService.BuildThumbnailUrl(user.Id);
+            user.ProfilePhotoVersion is null ? null : profilePhotoService.BuildThumbnailUrl(user.Id, user.ProfilePhotoVersion);
 
         var comments = new PagedList<BoardTaskCommentDto>(
             commentsInfo.Metadata,

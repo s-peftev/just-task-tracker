@@ -26,7 +26,6 @@ internal sealed class AzureBlobStorageService(BlobServiceClient blobServiceClien
             new BlobUploadOptions
             {
                 HttpHeaders = new BlobHttpHeaders { ContentType = contentType },
-                Conditions = new BlobRequestConditions { IfNoneMatch = ETag.All },
             },
             ct);
     }

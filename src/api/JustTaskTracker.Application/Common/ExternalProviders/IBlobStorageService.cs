@@ -8,7 +8,7 @@ public interface IBlobStorageService
     /// Uploads content to the specified container.
     /// </summary>
     /// <remarks>
-    /// Upload fails with HTTP 409 from storage when <paramref name="blobName"/> already exists.
+    /// Overwrites the blob when <paramref name="blobName"/> already exists.
     /// When <paramref name="content"/> is seekable, its position is reset to the start before upload.
     /// </remarks>
     Task UploadAsync(

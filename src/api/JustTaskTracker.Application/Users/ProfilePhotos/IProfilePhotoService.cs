@@ -1,7 +1,7 @@
 namespace JustTaskTracker.Application.Users.ProfilePhotos;
 
 /// <summary>
-/// Builds profile photo storage paths and public URLs.
+/// Profile photo URL building and blob upload.
 /// </summary>
 public interface IProfilePhotoService
 {
@@ -14,4 +14,13 @@ public interface IProfilePhotoService
     /// Returns the public URL for the user's thumbnail profile photo blob.
     /// </summary>
     string BuildThumbnailUrl(Guid userId);
+
+    /// <summary>
+    /// Processes <paramref name="source"/> into original and thumbnail WebP blobs and uploads them for <paramref name="userId"/>.
+    /// Existing blobs at the configured paths are overwritten.
+    /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="userId"/> is empty.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="source"/> is <see langword="null"/>.</exception>
+    /// <exception cref="InvalidOperationException">The source stream is empty.</exception>
+    Task UploadPhotoAsync(Guid userId, Stream source, CancellationToken ct = default);
 }

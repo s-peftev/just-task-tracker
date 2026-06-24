@@ -8,18 +8,18 @@ internal sealed class BoardTaskAttachmentService(
     IBlobStorageService blobStorageService,
     BlobStorageSettings blobStorageSettings) : IBoardTaskAttachmentService
 {
-    private readonly string _containerName = blobStorageSettings.TaskAttachments.ContainerName;
+    private readonly string _containerName = blobStorageSettings.TaskAttachments!.ContainerName;
 
     public string BuildActiveBlobName(Guid boardTaskId, Guid blobId)
     {
         ArgumentOutOfRangeException.ThrowIfEqual(boardTaskId, Guid.Empty);
         ArgumentOutOfRangeException.ThrowIfEqual(blobId, Guid.Empty);
 
-        return blobStorageSettings.TaskAttachments.BuildActiveBlobName(boardTaskId, blobId);
+        return blobStorageSettings.TaskAttachments!.BuildActiveBlobName(boardTaskId, blobId);
     }
 
     public string ToDeletedBlobName(string activeBlobName) =>
-        blobStorageSettings.TaskAttachments.ToDeletedBlobName(activeBlobName);
+        blobStorageSettings.TaskAttachments!.ToDeletedBlobName(activeBlobName);
 
     public Task UploadAsync(string blobName, Stream content, string contentType, CancellationToken ct = default) =>
         blobStorageService.UploadAsync(_containerName, blobName, content, contentType, ct);

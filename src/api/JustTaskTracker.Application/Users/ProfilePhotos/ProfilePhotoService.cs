@@ -12,14 +12,16 @@ internal sealed class ProfilePhotoService(
 {
     private const string WebpContentType = "image/webp";
 
-    private readonly string _containerName = blobStorageSettings.ProfilePhotos.ContainerName;
+    private readonly string _containerName = blobStorageSettings.ProfilePhotos!.ContainerName;
 
     public string BuildOriginalUrl(Guid userId, string version)
     {
         ArgumentOutOfRangeException.ThrowIfEqual(userId, Guid.Empty);
         ArgumentException.ThrowIfNullOrWhiteSpace(version);
 
-        return AppendVersion(blobStorageSettings.ProfilePhotos.BuildOriginalBlobName(userId), version);
+        return BuildVersionedUrl(
+            blobStorageSettings.ProfilePhotos!.BuildOriginalBlobName(userId),
+            version);
     }
 
     public string BuildThumbnailUrl(Guid userId, string version)
@@ -27,11 +29,10 @@ internal sealed class ProfilePhotoService(
         ArgumentOutOfRangeException.ThrowIfEqual(userId, Guid.Empty);
         ArgumentException.ThrowIfNullOrWhiteSpace(version);
 
-        return AppendVersion(blobStorageSettings.ProfilePhotos.BuildThumbnailBlobName(userId), version);
+        return BuildVersionedUrl(
+            blobStorageSettings.ProfilePhotos!.BuildThumbnailBlobName(userId),
+            version);
     }
-
-    private static string AppendVersion(string blobPath, string version) =>
-        $"{blobPath}?v={Uri.EscapeDataString(version)}";
 
     public async Task UploadPhotoAsync(Guid userId, Stream source, CancellationToken ct = default)
     {
@@ -55,8 +56,8 @@ internal sealed class ProfilePhotoService(
 
         await using var thumbnailStream = await imageProcessor.ProcessToWebpAsync(buffer, specThumbnail, ct);
 
-        var originalBlobName = blobStorageSettings.ProfilePhotos.BuildOriginalBlobName(userId);
-        var thumbnailBlobName = blobStorageSettings.ProfilePhotos.BuildThumbnailBlobName(userId);
+        var originalBlobName = blobStorageSettings.ProfilePhotos!.BuildOriginalBlobName(userId);
+        var thumbnailBlobName = blobStorageSettings.ProfilePhotos!.BuildThumbnailBlobName(userId);
 
         await Task.WhenAll(
             blobStorageService.UploadAsync(_containerName, originalBlobName, originalStream, WebpContentType, ct),
@@ -65,4 +66,7 @@ internal sealed class ProfilePhotoService(
 
     private static ImageProcessingSpec ToSpec(ProfilePhotoOutputSettings settings) =>
         new(settings.Width, settings.Height, settings.WebpQuality);
+
+    private string BuildVersionedUrl(string blobName, string version) =>
+        $"{blobStorageService.GetBlobUri(_containerName, blobName)}?v={Uri.EscapeDataString(version)}";
 }

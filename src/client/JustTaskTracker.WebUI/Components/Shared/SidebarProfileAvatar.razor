@@ -1,0 +1,105 @@
+@using JustTaskTracker.WebUI.Domain.Auth
+@using JustTaskTracker.WebUI.Infrastructure
+@using JustTaskTracker.WebUI.Services.Abstractions.Auth
+@using JustTaskTracker.WebUI.Services.Abstractions.Users
+@using JustTaskTracker.WebUI.Services.Exceptions
+
+<div class="sidebar-profile-avatar">
+    <UserAvatarPlaceholder Preset="UserAvatarPlaceholderPreset.Sidebar"
+                           DisplayName="@DisplayName"
+                           Email="@Email"
+                           ProfilePhotoUrl="@ProfilePhotoUrl" />
+
+    <div class="sidebar-profile-avatar__actions" aria-hidden="true">
+        @if (HasPhoto)
+        {
+            <button type="button"
+                    class="sidebar-profile-avatar__action"
+                    disabled="@_isUploading"
+                    @onclick="OpenUploadDialogAsync">
+                Change
+            </button>
+            <button type="button"
+                    class="sidebar-profile-avatar__action sidebar-profile-avatar__action--danger"
+                    disabled
+                    title="Coming soon">
+                Delete
+            </button>
+        }
+        else
+        {
+            <button type="button"
+                    class="sidebar-profile-avatar__action"
+                    disabled="@_isUploading"
+                    @onclick="OpenUploadDialogAsync">
+                Upload
+            </button>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string? DisplayName { get; set; }
+
+    [Parameter]
+    public string? Email { get; set; }
+
+    [Parameter]
+    public string? ProfilePhotoUrl { get; set; }
+
+    [Inject]
+    private IDialogService DialogService { get; set; } = default!;
+
+    [Inject]
+    private ISnackbar Snackbar { get; set; } = default!;
+
+    [Inject]
+    private IUsersApiService UsersApiService { get; set; } = default!;
+
+    [Inject]
+    private IProfileStore ProfileStore { get; set; } = default!;
+
+    private bool _isUploading;
+
+    private bool HasPhoto => !string.IsNullOrEmpty(ProfilePhotoUrl);
+
+    private async Task OpenUploadDialogAsync()
+    {
+        if (_isUploading)
+            return;
+
+        var dialog = await DialogService.ShowAsync<UploadProfilePhotoDialog>(
+            "Crop your photo",
+            new DialogParameters(),
+            UploadProfilePhotoDialog.DefaultOptions);
+
+        var result = await dialog.Result;
+
+        if (result is not { Canceled: false, Data: ProfilePhotoCroppedUpload upload })
+            return;
+
+        _isUploading = true;
+
+        try
+        {
+            Snackbar.Add("Uploading profile photo...", Severity.Info);
+
+            var response = await UsersApiService.UploadProfilePhotoAsync(
+                upload.Content,
+                upload.FileName,
+                upload.ContentType);
+
+            ProfileStore.SetProfilePhotoUrl(response.ProfilePhotoUrl);
+            Snackbar.Add("Profile photo updated.", Severity.Success);
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+        finally
+        {
+            _isUploading = false;
+        }
+    }
+}

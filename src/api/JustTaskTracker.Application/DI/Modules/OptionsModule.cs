@@ -20,7 +20,7 @@ internal static class OptionsModule
         var blobStorageSettings = configuration
             .GetSection(ConfigSections.BlobStorage)
             .Get<BlobStorageSettings>()
-            ?? throw new InvalidOperationException("BlobStorageContainers section is not configured.");
+            ?? throw new InvalidOperationException($"{ConfigSections.BlobStorage} section is not configured.");
 
         blobStorageSettings.Validate();
         services.AddSingleton(blobStorageSettings);

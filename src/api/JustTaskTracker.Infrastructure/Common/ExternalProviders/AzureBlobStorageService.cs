@@ -78,6 +78,14 @@ internal sealed class AzureBlobStorageService(BlobServiceClient blobServiceClien
             .DeleteIfExistsAsync(DeleteSnapshotsOption.IncludeSnapshots, cancellationToken: ct);
     }
 
+    public string GetBlobUri(string containerName, string blobName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(containerName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(blobName);
+
+        return GetBlobClient(containerName, blobName).Uri.ToString();
+    }
+
     private BlobClient GetBlobClient(string containerName, string blobName) =>
         GetContainerClient(containerName).GetBlobClient(blobName);
 

@@ -131,10 +131,10 @@ public class ProfilePhotoValidationSettings
     internal void Validate(string sectionPath)
     {
         if (MaxPhotoSizeBytes == 0)
-            throw new InvalidOperationException($"{sectionPath}:MaxAttachmentSizeBytes is not configured.");
+            throw new InvalidOperationException($"{sectionPath}:MaxPhotoSizeBytes is not configured.");
 
         if (MaxPhotoSizeBytes < 0)
-            throw new InvalidOperationException($"{sectionPath}:MaxAttachmentSizeBytes must be greater than 0.");
+            throw new InvalidOperationException($"{sectionPath}:MaxPhotoSizeBytes must be greater than 0.");
 
         if (AllowedContentTypes is null || AllowedContentTypes.Length == 0)
             throw new InvalidOperationException($"{sectionPath}:AllowedContentTypes is not configured.");

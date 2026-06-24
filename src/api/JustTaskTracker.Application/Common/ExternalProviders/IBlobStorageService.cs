@@ -41,4 +41,12 @@ public interface IBlobStorageService
         CancellationToken ct = default);
 
     Task DeleteAsync(string containerName, string blobName, CancellationToken ct = default);
+
+    /// <summary>
+    /// Returns the absolute public URI for the blob identified by <paramref name="blobName"/>.
+    /// </summary>
+    /// <remarks>
+    /// The host and account are derived from the configured blob storage connection string.
+    /// </remarks>
+    string GetBlobUri(string containerName, string blobName);
 }

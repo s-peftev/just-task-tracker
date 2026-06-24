@@ -45,6 +45,15 @@ internal sealed class ProfileStore(IAuthApiService authApiService) : IProfileSto
         NotifyStateChanged();
     }
 
+    public void SetProfilePhotoUrl(string profilePhotoUrl)
+    {
+        if (Profile is null)
+            return;
+
+        Profile = Profile with { ProfilePhotoUrl = profilePhotoUrl };
+        NotifyStateChanged();
+    }
+
     public void Dispose() => _sync.Dispose();
 
     // -----------------------------------------------------------------

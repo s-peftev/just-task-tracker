@@ -34,4 +34,9 @@ public interface IProfileStore
     /// Clears all cached profile state. Call on logout before MSAL redirect.
     /// </summary>
     void Reset();
+
+    /// <summary>
+    /// Updates the cached profile photo URL after a successful upload.
+    /// </summary>
+    void SetProfilePhotoUrl(string profilePhotoUrl);
 }

@@ -1,4 +1,4 @@
-﻿namespace JustTaskTracker.Application.Common.Interfaces.Utils;
+﻿namespace JustTaskTracker.Application.Common.Utils;
 
 public interface IDateTimeProvider
 {

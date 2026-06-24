@@ -1,4 +1,4 @@
-using JustTaskTracker.Application.Common.Interfaces.Persistence;
+using JustTaskTracker.Application.Common.Persistence;
 using JustTaskTracker.Persistence.Common.Constants;
 using Microsoft.EntityFrameworkCore.Storage;
 

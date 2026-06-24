@@ -1,4 +1,4 @@
-﻿namespace JustTaskTracker.Application.Common.Interfaces;
+﻿namespace JustTaskTracker.Application.Auth;
 
 public interface ICurrentUserAccessor
 {

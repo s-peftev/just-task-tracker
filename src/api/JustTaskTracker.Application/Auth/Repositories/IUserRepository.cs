@@ -1,4 +1,4 @@
-using JustTaskTracker.Application.Common.Interfaces.Persistence;
+using JustTaskTracker.Application.Common.Persistence;
 using JustTaskTracker.Application.Users.ReadModels;
 using JustTaskTracker.Domain.Auth.Entities;
 using JustTaskTracker.Domain.Auth.Enums.SearchFields;

@@ -1,4 +1,4 @@
-using JustTaskTracker.Application.Common.Interfaces.ExternalProviders;
+using JustTaskTracker.Application.Common.ExternalProviders;
 using JustTaskTracker.Application.Common.Models;
 using JustTaskTracker.Application.Common.Options;
 

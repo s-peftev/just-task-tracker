@@ -2,7 +2,7 @@ using System.Collections.Concurrent;
 using Azure;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
-using JustTaskTracker.Application.Common.Interfaces.ExternalProviders;
+using JustTaskTracker.Application.Common.ExternalProviders;
 using JustTaskTracker.Application.Common.Models;
 
 namespace JustTaskTracker.Infrastructure.Common.ExternalProviders;

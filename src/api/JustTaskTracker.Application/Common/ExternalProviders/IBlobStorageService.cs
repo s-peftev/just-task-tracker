@@ -1,6 +1,6 @@
 ﻿using JustTaskTracker.Application.Common.Models;
 
-namespace JustTaskTracker.Application.Common.Interfaces.ExternalProviders;
+namespace JustTaskTracker.Application.Common.ExternalProviders;
 
 public interface IBlobStorageService
 {

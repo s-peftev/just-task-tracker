@@ -1,5 +1,4 @@
 ﻿using JustTaskTracker.Application.Auth.Repositories;
-using JustTaskTracker.Application.Common.Interfaces;
 using JustTaskTracker.Application.Users.Mappings;
 using JustTaskTracker.Application.Users.ProfilePhotos;
 using JustTaskTracker.Domain.Auth.DTOs;

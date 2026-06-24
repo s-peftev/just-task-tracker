@@ -1,6 +1,6 @@
 ﻿using JustTaskTracker.Domain.Common.Entities;
 
-namespace JustTaskTracker.Application.Common.Interfaces.Persistence;
+namespace JustTaskTracker.Application.Common.Persistence;
 
 public interface IRepository<TEntity, TId>
         where TEntity : BaseEntity<TId>

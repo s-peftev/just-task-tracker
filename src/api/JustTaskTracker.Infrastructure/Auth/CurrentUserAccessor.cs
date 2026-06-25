@@ -1,4 +1,4 @@
-﻿using JustTaskTracker.Application.Common.Interfaces;
+﻿using JustTaskTracker.Application.Auth;
 using JustTaskTracker.Infrastructure.Auth.Constants;
 using Microsoft.AspNetCore.Http;
 using System.Security.Claims;

@@ -1,6 +1,6 @@
 using FluentValidation;
+using JustTaskTracker.Application.Auth;
 using JustTaskTracker.Application.Boards.Repositories;
-using JustTaskTracker.Application.Common.Interfaces;
 using JustTaskTracker.Application.Common.Options;
 using JustTaskTracker.Application.Common.Validators;
 using JustTaskTracker.Domain.Boards.DTOs.Boards;
@@ -34,7 +34,7 @@ public class GetBoardsForCurrentUserQueryValidator : AbstractValidator<GetBoards
 {
     public GetBoardsForCurrentUserQueryValidator(ValidationSettings validationSettings)
     {
-        var maxBoardNameSearchLength = validationSettings.Boards.MaxNameSearchLength;
+        var maxBoardNameSearchLength = validationSettings.Boards!.MaxBoardNameSearchLength;
 
         When(x => x.SearchOptions is not null, () =>
         {

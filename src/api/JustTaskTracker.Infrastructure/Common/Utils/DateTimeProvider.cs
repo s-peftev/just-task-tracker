@@ -1,4 +1,4 @@
-﻿using JustTaskTracker.Application.Common.Interfaces.Utils;
+﻿using JustTaskTracker.Application.Common.Utils;
 
 namespace JustTaskTracker.Infrastructure.Common.Utils;
 

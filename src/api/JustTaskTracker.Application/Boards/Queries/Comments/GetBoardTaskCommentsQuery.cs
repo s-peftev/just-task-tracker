@@ -1,5 +1,8 @@
+using JustTaskTracker.Application.Auth;
+using JustTaskTracker.Application.Boards.Mappings;
 using JustTaskTracker.Application.Boards.Repositories;
-using JustTaskTracker.Application.Common.Interfaces;
+using JustTaskTracker.Application.Users.ProfilePhotos;
+using JustTaskTracker.Application.Users.ReadModels;
 using JustTaskTracker.Domain.Boards.Authorization;
 using JustTaskTracker.Domain.Boards.DTOs.Comments;
 using JustTaskTracker.Domain.Common.Pagination;
@@ -14,7 +17,8 @@ public record GetBoardTaskCommentsQuery(Guid BoardTaskId) : PaginatedRequest, IR
 public class GetBoardTaskCommentsQueryHandler(
     ICurrentUserAccessor currentUserAccessor,
     IBoardTaskRepository boardTaskRepository,
-    IBoardTaskCommentRepository boardTaskCommentRepository)
+    IBoardTaskCommentRepository boardTaskCommentRepository,
+    IProfilePhotoService profilePhotoService)
     : IRequestHandler<GetBoardTaskCommentsQuery, Result<PagedList<BoardTaskCommentDto>>>
 {
     public async Task<Result<PagedList<BoardTaskCommentDto>>> Handle(GetBoardTaskCommentsQuery request, CancellationToken ct)
@@ -24,7 +28,14 @@ public class GetBoardTaskCommentsQueryHandler(
         if (userRole is not { } authorizedRole || !BoardRolePermissions.CanViewBoard(authorizedRole))
             return Result<PagedList<BoardTaskCommentDto>>.Failure(GeneralErrors.Forbidden);
 
-        var comments = await boardTaskCommentRepository.GetPagedByBoardTaskIdAsync(request.BoardTaskId, request.PageNumber!.Value, request.PageSize!.Value, ct);
+        var commentsInfo = await boardTaskCommentRepository.GetPagedInfoByBoardTaskIdAsync(request.BoardTaskId, request.PageNumber!.Value, request.PageSize!.Value, ct);
+
+        Func<UserReadModel, string?> profilePhotoUrlResolver = user =>
+            user.ProfilePhotoVersion is null ? null : profilePhotoService.BuildThumbnailUrl(user.Id, user.ProfilePhotoVersion);
+
+        var comments = new PagedList<BoardTaskCommentDto>(
+            commentsInfo.Metadata,
+            commentsInfo.Items.Select(comment => comment.ToDto(profilePhotoUrlResolver)));
 
         return Result<PagedList<BoardTaskCommentDto>>.Success(comments);
     }

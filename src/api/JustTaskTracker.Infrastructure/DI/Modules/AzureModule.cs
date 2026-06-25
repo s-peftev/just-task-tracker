@@ -1,5 +1,5 @@
 ﻿using Azure.Storage.Blobs;
-using JustTaskTracker.Application.Common.Interfaces.ExternalProviders;
+using JustTaskTracker.Application.Common.ExternalProviders;
 using JustTaskTracker.Infrastructure.Common.Constants;
 using JustTaskTracker.Infrastructure.Common.ExternalProviders;
 using Microsoft.Extensions.Configuration;

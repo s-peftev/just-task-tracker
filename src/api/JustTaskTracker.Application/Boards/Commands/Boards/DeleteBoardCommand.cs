@@ -1,8 +1,7 @@
+using JustTaskTracker.Application.Auth;
+using JustTaskTracker.Application.Boards.Attachments;
 using JustTaskTracker.Application.Boards.Repositories;
-using JustTaskTracker.Application.Common.Interfaces;
-using JustTaskTracker.Application.Common.Interfaces.ExternalProviders;
-using JustTaskTracker.Application.Common.Interfaces.Persistence;
-using JustTaskTracker.Application.Common.Options;
+using JustTaskTracker.Application.Common.Persistence;
 using JustTaskTracker.Domain.Boards.Authorization;
 using JustTaskTracker.Domain.Common.Results;
 using JustTaskTracker.Domain.Common.Results.Errors;
@@ -20,8 +19,7 @@ public class DeleteBoardCommandHandler(
     IBoardTaskRepository boardTaskRepository,
     IBoardTaskCommentRepository boardTaskCommentRepository,
     IAttachmentRepository attachmentRepository,
-    IBlobStorageService blobStorageService,
-    BlobStorageSettings blobStorageSettings,
+    IBoardTaskAttachmentService attachmentService,
     IUnitOfWork unitOfWork,
     ILogger<DeleteBoardCommandHandler> logger)
     : IRequestHandler<DeleteBoardCommand, Result>
@@ -39,7 +37,7 @@ public class DeleteBoardCommandHandler(
         var attachments = await attachmentRepository.GetListByBoardIdAsync(request.BoardId, ct);
 
         var oldBlobNames = attachments.Select(a => a.BlobName).ToList();
-        var newBlobNames = attachments.Select(a => blobStorageSettings.TaskAttachments.ToDeletedBlobName(a.BlobName)).ToList();
+        var newBlobNames = attachments.Select(a => attachmentService.ToDeletedBlobName(a.BlobName)).ToList();
 
         var boardColumns = await columnRepository.GetListByBoardIdAsync(request.BoardId, ct);
         var boardTasks = await boardTaskRepository.GetListByBoardIdAsync(request.BoardId, ct);
@@ -62,7 +60,7 @@ public class DeleteBoardCommandHandler(
         {
             try
             {
-                await blobStorageService.MoveToDeletedAsync(oldName, newName, ct);
+                await attachmentService.MoveToDeletedAsync(oldName, newName, ct);
             }
             catch (Exception ex)
             {

@@ -11,6 +11,7 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
     {
         builder.Property(u => u.Email).HasMaxLength(UserFieldLengths.MaxEmailLength);
         builder.Property(u => u.DisplayName).HasMaxLength(UserFieldLengths.MaxDisplayNameLength);
+        builder.Property(u => u.ProfilePhotoVersion).HasMaxLength(UserFieldLengths.MaxProfilePhotoVersionLength);
 
         builder.HasIndex(u => u.AzureAdObjectId)
             .IsUnique()

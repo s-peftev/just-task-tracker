@@ -1,9 +1,12 @@
 ﻿using FluentValidation;
+using JustTaskTracker.Application.Auth;
 using JustTaskTracker.Application.Auth.Repositories;
 using JustTaskTracker.Application.Boards.Repositories;
-using JustTaskTracker.Application.Common.Interfaces;
 using JustTaskTracker.Application.Common.Options;
 using JustTaskTracker.Application.Common.Validators;
+using JustTaskTracker.Application.Users.Mappings;
+using JustTaskTracker.Application.Users.ProfilePhotos;
+using JustTaskTracker.Application.Users.ReadModels;
 using JustTaskTracker.Domain.Auth.DTOs;
 using JustTaskTracker.Domain.Auth.Enums.SearchFields;
 using JustTaskTracker.Domain.Boards.Authorization;
@@ -21,7 +24,8 @@ public record GetUsersForBoardLookupQuery(Guid BoardId, TextSearchOptions<UserSe
 public class GetUsersForBoardLookupQueryHandler(
     ICurrentUserAccessor currentUserAccessor,
     IBoardRepository boardRepository,
-    IUserRepository userRepository)
+    IUserRepository userRepository,
+    IProfilePhotoService profilePhotoService)
     : IRequestHandler<GetUsersForBoardLookupQuery, Result<PagedList<UserForBoardLookupDto>>>
 {
     public async Task<Result<PagedList<UserForBoardLookupDto>>> Handle(GetUsersForBoardLookupQuery request, CancellationToken ct)
@@ -31,13 +35,20 @@ public class GetUsersForBoardLookupQueryHandler(
         if (userRole is not { } authorizedRole || !BoardRolePermissions.CanManageMembers(authorizedRole))
             return Result<PagedList<UserForBoardLookupDto>>.Failure(GeneralErrors.Forbidden);
 
-        var users = await userRepository.GetPagedUserForBoardLookupDto(
+        var usersReadModel = await userRepository.GetPagedUserForBoardLookup(
             request.BoardId,
             currentUserAccessor.AzureAdObjectId,
             request.PageNumber!.Value,
             request.PageSize!.Value,
             request.SearchOptions,
             ct);
+
+        Func<UserForBoardLookupReadModel, string?> profilePhotoUrlResolver = user =>
+            user.ProfilePhotoVersion is null ? null : profilePhotoService.BuildThumbnailUrl(user.Id, user.ProfilePhotoVersion);
+
+        var users = new PagedList<UserForBoardLookupDto>(
+            usersReadModel.Metadata,
+            usersReadModel.Items.Select(user => user.ToDto(profilePhotoUrlResolver)));
 
         return Result<PagedList<UserForBoardLookupDto>>.Success(users);
     }
@@ -53,7 +64,7 @@ public class GetUsersForBoardLookupQueryValidator : AbstractValidator<GetUsersFo
         When(x => x.SearchOptions is not null, () =>
         {
             RuleFor(x => x.SearchOptions!)
-                .SetValidator(new TextSearchOptionsValidator<UserSearchField>(validationSettings.Users.MaxTextSearchLength));
+                .SetValidator(new TextSearchOptionsValidator<UserSearchField>(validationSettings.Users!.MaxTextSearchLength));
         });
     }
 }

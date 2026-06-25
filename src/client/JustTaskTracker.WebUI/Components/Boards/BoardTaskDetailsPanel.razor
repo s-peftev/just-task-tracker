@@ -104,7 +104,14 @@
                         </svg>
 
                         <div class="board-task-details-panel__user-line">
-                            <span class="board-task-details-panel__user-name">@UserDisplayFormatting.GetNameWithEmail(task.Reporter)</span>
+                            <span class="board-task-details-panel__user-identity">
+                                <UserAvatarPlaceholder Size="24px"
+                                                       DisplayName="@task.Reporter.DisplayName"
+                                                       Email="@task.Reporter.Email"
+                                                       ProfilePhotoUrl="@task.Reporter.ProfilePhotoUrl"
+                                                       Title="@task.Reporter.Email" />
+                                <span class="board-task-details-panel__user-name">@UserDisplayFormatting.GetNameWithEmail(task.Reporter)</span>
+                            </span>
                             <span class="board-task-details-panel__user-meta">
                                 created this task @FormatCreatedAt(task.CreatedAtUtc)
                             </span>
@@ -140,7 +147,14 @@
                                 @if (task.Assignee is { } assignee)
                                 {
                                     <span class="board-task-details-panel__user-line">
-                                        <span class="board-task-details-panel__user-name">@UserDisplayFormatting.GetNameWithEmail(assignee)</span>
+                                        <span class="board-task-details-panel__user-identity">
+                                            <UserAvatarPlaceholder Size="24px"
+                                                                   DisplayName="@assignee.DisplayName"
+                                                                   Email="@assignee.Email"
+                                                                   ProfilePhotoUrl="@assignee.ProfilePhotoUrl"
+                                                                   Title="@assignee.Email" />
+                                            <span class="board-task-details-panel__user-name">@UserDisplayFormatting.GetNameWithEmail(assignee)</span>
+                                        </span>
                                         <span class="board-task-details-panel__user-meta">has been assigned to this task</span>
                                     </span>
                                 }
@@ -313,13 +327,36 @@
                             @foreach (var attachment in task.Attachments)
                             {
                                 <li class="board-task-details-panel__attachment-item">
-                                    <span class="board-task-details-panel__attachment-name"
-                                          title="@attachment.OriginalFileName">
-                                        @attachment.OriginalFileName
-                                    </span>
+                                    <div class="board-task-details-panel__attachment-main">
+                                        <span class="board-task-details-panel__attachment-format"
+                                              aria-hidden="true"
+                                              title="@GetFileFormatLabel(attachment.OriginalFileName)">
+                                            @GetFileFormatLabel(attachment.OriginalFileName)
+                                        </span>
+                                        <div class="board-task-details-panel__attachment-info">
+                                            <span class="board-task-details-panel__attachment-name"
+                                                  title="@attachment.OriginalFileName">
+                                                @attachment.OriginalFileName
+                                            </span>
+                                            <span class="board-task-details-panel__attachment-date">
+                                                Added @FormatCreatedAt(attachment.CreatedAtUtc) by
+                                                <span class="board-task-details-panel__attachment-uploader">
+                                                    <UserAvatarPlaceholder Size="24px"
+                                                                           DisplayName="@attachment.UploadedBy.DisplayName"
+                                                                           Email="@attachment.UploadedBy.Email"
+                                                                           ProfilePhotoUrl="@attachment.UploadedBy.ProfilePhotoUrl"
+                                                                           Title="@attachment.UploadedBy.Email" />
+                                                    <span>@UserDisplayFormatting.GetShortName(attachment.UploadedBy)</span>
+                                                </span>
+                                            </span>
+                                        </div>
+                                    </div>
                                     <div class="board-task-details-panel__attachment-actions">
                                         @if (CanDownloadAttachments(task))
                                         {
+                                            <span class="board-task-details-panel__attachment-size">
+                                                @FormatAttachmentSizeMb(attachment.FileSizeBytes)
+                                            </span>
                                             <button type="button"
                                                     class="btn-icon btn-icon--sm board-task-details-panel__attachment-download"
                                                     aria-label="@($"Download {attachment.OriginalFileName}")"
@@ -480,6 +517,18 @@
 
     private static string FormatCreatedAt(DateTime createdAtUtc) =>
         createdAtUtc.ToLocalTime().ToString("g");
+
+    private static string GetFileFormatLabel(string originalFileName)
+    {
+        var extension = Path.GetExtension(originalFileName);
+
+        return string.IsNullOrWhiteSpace(extension)
+            ? "FILE"
+            : extension.TrimStart('.').ToUpperInvariant();
+    }
+
+    private static string FormatAttachmentSizeMb(long bytes) =>
+        $"{bytes / (1024d * 1024d):0.00} MB";
 
     private static bool CanManageAssignee(BoardTaskDetailsDto task) =>
         BoardRolePermissions.CanManageTasks(task.UserRole);

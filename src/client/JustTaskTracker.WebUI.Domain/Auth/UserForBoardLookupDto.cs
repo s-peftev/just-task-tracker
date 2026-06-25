@@ -6,4 +6,5 @@ public record UserForBoardLookupDto(
     Guid Id,
     string Email,
     string? DisplayName,
+    string? ProfilePhotoUrl,
     BoardMemberRole? BoardMemberRole);

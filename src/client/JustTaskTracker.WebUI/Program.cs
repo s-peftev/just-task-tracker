@@ -1,4 +1,5 @@
 using BlazorSortable;
+using Cropper.Blazor.Extensions;
 using JustTaskTracker.WebUI;
 using JustTaskTracker.WebUI.Services.Configuration;
 using JustTaskTracker.WebUI.Services.DI;
@@ -18,6 +19,7 @@ builder.Services.AddMudServices(config =>
     config.SnackbarConfiguration.PreventDuplicates = false;
 });
 builder.Services.AddWebUIServices(builder.Configuration);
+builder.Services.AddCropper();
 builder.Services.AddSortable(options =>
 {
     options.Defaults.Delay = 0;

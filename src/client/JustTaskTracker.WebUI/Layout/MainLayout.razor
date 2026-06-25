@@ -18,10 +18,19 @@
     <main class="layout-main">
         @if (ProfileStore.Profile is { } profile)
         {
-            <div class="sidebar-shell">
+            <div class="sidebar-shell @(_isSidebarCollapsed ? "sidebar-shell--collapsed" : null)">
                 <div class="sidebar-shell__sidebar">
                     <AppSidebar @key="profile.Id" />
                 </div>
+
+                <button type="button"
+                        class="sidebar-shell__toggle"
+                        aria-label="@(_isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar")"
+                        title="@(_isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar")"
+                        @onclick="ToggleSidebar">
+                    <span class="sidebar-shell__toggle-icon @(_isSidebarCollapsed ? "sidebar-shell__toggle-icon--right" : "sidebar-shell__toggle-icon--left")"
+                          aria-hidden="true"></span>
+                </button>
 
                 <section class="sidebar-shell__content">
                     @Body
@@ -63,6 +72,7 @@
     };
 
     private bool _isAuthenticated;
+    private bool _isSidebarCollapsed;
 
     protected override void OnInitialized() =>
         ProfileStore.StateChanged += OnStoreStateChanged;
@@ -91,6 +101,8 @@
     public void Dispose() => ProfileStore.StateChanged -= OnStoreStateChanged;
 
     private void OnStoreStateChanged() => InvokeAsync(StateHasChanged);
+
+    private void ToggleSidebar() => _isSidebarCollapsed = !_isSidebarCollapsed;
 
     private async Task EnsureProfileAsync(AccountSwitchResult switchResult)
     {

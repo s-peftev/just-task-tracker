@@ -28,7 +28,7 @@
     private Task OnClickHandler() => OnClick.InvokeAsync(Board);
 
     private string OwnerDisplayName =>
-        Board.Owner is { } owner
-            ? UserDisplayFormatting.GetShortName(owner)
-            : "—";
+        string.IsNullOrWhiteSpace(Board.OwnerEmail)
+            ? "—"
+            : UserDisplayFormatting.GetShortName(Board.OwnerDisplayName, Board.OwnerEmail);
 }

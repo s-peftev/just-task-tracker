@@ -1,5 +1,5 @@
-using JustTaskTracker.Application.Common.Interfaces.Persistence;
-using JustTaskTracker.Domain.Boards.DTOs.Comments;
+using JustTaskTracker.Application.Boards.ReadModels;
+using JustTaskTracker.Application.Common.Persistence;
 using JustTaskTracker.Domain.Boards.Entities;
 using JustTaskTracker.Domain.Boards.Enums;
 using JustTaskTracker.Domain.Common.Pagination;
@@ -16,7 +16,7 @@ public interface IBoardTaskCommentRepository : IRepository<BoardTaskComment, Gui
 
     Task<(BoardTaskComment? BoardTaskComment, BoardMemberRole? UserRole)> GetBoardTaskCommentWithUserRole(Guid boardTaskCommentId, Guid azureAdObjectId, CancellationToken ct = default);
 
-    Task<PagedList<BoardTaskCommentDto>> GetPagedByBoardTaskIdAsync(Guid boardTaskId, int pageNumber, int pageSize, CancellationToken ct = default);
+    Task<PagedList<BoardTaskCommentReadModel>> GetPagedInfoByBoardTaskIdAsync(Guid boardTaskId, int pageNumber, int pageSize, CancellationToken ct = default);
 
     void RemoveRange(IReadOnlyList<BoardTaskComment> comments);
 }

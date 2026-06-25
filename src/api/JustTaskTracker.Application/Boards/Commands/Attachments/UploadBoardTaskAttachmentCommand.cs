@@ -1,10 +1,13 @@
 using FluentValidation;
+using JustTaskTracker.Application.Auth;
 using JustTaskTracker.Application.Auth.Repositories;
+using JustTaskTracker.Application.Boards.Attachments;
 using JustTaskTracker.Application.Boards.Repositories;
-using JustTaskTracker.Application.Common.Interfaces;
-using JustTaskTracker.Application.Common.Interfaces.ExternalProviders;
-using JustTaskTracker.Application.Common.Interfaces.Persistence;
 using JustTaskTracker.Application.Common.Options;
+using JustTaskTracker.Application.Common.Persistence;
+using JustTaskTracker.Application.Users.Mappings;
+using JustTaskTracker.Application.Users.ProfilePhotos;
+using JustTaskTracker.Application.Users.ReadModels;
 using JustTaskTracker.Domain.Boards.Authorization;
 using JustTaskTracker.Domain.Boards.Constants;
 using JustTaskTracker.Domain.Boards.DTOs.Attachments;
@@ -25,18 +28,18 @@ public class UploadBoardTaskAttachmentCommandHandler(
     IUserRepository userRepository,
     IBoardTaskRepository boardTaskRepository,
     IAttachmentRepository attachmentRepository,
-    IBlobStorageService blobStorageService,
+    IBoardTaskAttachmentService attachmentService,
     ValidationSettings validationSettings,
-    BlobStorageSettings blobStorageSettings,
     IUnitOfWork unitOfWork,
-    ILogger<UploadBoardTaskAttachmentCommandHandler> logger)
+    ILogger<UploadBoardTaskAttachmentCommandHandler> logger,
+    IProfilePhotoService profilePhotoService)
     : IRequestHandler<UploadBoardTaskAttachmentCommand, Result<BoardTaskAttachmentDto>>
 {
     public async Task<Result<BoardTaskAttachmentDto>> Handle(UploadBoardTaskAttachmentCommand request, CancellationToken ct)
     {
-        var currentUser = await userRepository.GetUserDtoByAzureAOIAsync(currentUserAccessor.AzureAdObjectId, ct);
+        var currentUserInfo = await userRepository.GetUserInfoByAzureAOIAsync(currentUserAccessor.AzureAdObjectId, ct);
 
-        if (currentUser is null)
+        if (currentUserInfo is null)
             return Result<BoardTaskAttachmentDto>.Failure(GeneralErrors.Unauthorized);
 
         var userRole = await boardTaskRepository.GetUserRoleAsync(request.BoardTaskId, currentUserAccessor.AzureAdObjectId, ct);
@@ -46,21 +49,21 @@ public class UploadBoardTaskAttachmentCommandHandler(
 
         var attachmentCount = await attachmentRepository.GetCountByBoardTaskIdAsync(request.BoardTaskId, ct);
 
-        if (attachmentCount >= validationSettings.BoardTasks.MaxAttachmentsPerTask)
+        if (attachmentCount >= validationSettings.BoardTasks!.MaxAttachmentsPerTask)
             return Result<BoardTaskAttachmentDto>.Failure(BoardTasksErrors.TooManyAttachments);
 
         var file = request.File!;
         var originalFileName = Path.GetFileName(file.FileName.Trim());
         var contentType = file.ContentType;
         var fileSizeBytes = file.Length;
-        var blobName = blobStorageSettings.TaskAttachments.BuildActiveBlobName(request.BoardTaskId, Guid.NewGuid());
+        var blobName = attachmentService.BuildActiveBlobName(request.BoardTaskId, Guid.NewGuid());
         var position = attachmentCount;
 
         await using var stream = file.OpenReadStream();
 
         try
         {
-            await blobStorageService.UploadAsync(blobName, stream, contentType, ct);
+            await attachmentService.UploadAsync(blobName, stream, contentType, ct);
         }
         catch (Exception ex)
         {
@@ -71,7 +74,7 @@ public class UploadBoardTaskAttachmentCommandHandler(
         var attachment = new BoardTaskAttachment
         {
             BoardTaskId = request.BoardTaskId,
-            UploadedById = currentUser.Id,
+            UploadedById = currentUserInfo.Id,
             OriginalFileName = originalFileName,
             ContentType = contentType,
             FileSizeBytes = fileSizeBytes,
@@ -95,7 +98,7 @@ public class UploadBoardTaskAttachmentCommandHandler(
 
             try
             {
-                await blobStorageService.DeleteAsync(blobName, ct);
+                await attachmentService.DeleteAsync(blobName, ct);
             }
             catch (Exception deleteEx)
             {
@@ -105,6 +108,9 @@ public class UploadBoardTaskAttachmentCommandHandler(
             return Result<BoardTaskAttachmentDto>.Failure(GeneralErrors.InternalServerError);
         }
 
+        Func<UserReadModel, string?> profilePhotoUrlResolver = user =>
+            user.ProfilePhotoVersion is null ? null : profilePhotoService.BuildThumbnailUrl(user.Id, user.ProfilePhotoVersion);
+
         return Result<BoardTaskAttachmentDto>.Success(new BoardTaskAttachmentDto(
             attachment.Id,
             attachment.OriginalFileName,
@@ -112,7 +118,7 @@ public class UploadBoardTaskAttachmentCommandHandler(
             attachment.FileSizeBytes,
             attachment.Position,
             attachment.CreatedAtUtc,
-            currentUser));
+            currentUserInfo.ToDto(profilePhotoUrlResolver)));
     }
 }
 
@@ -121,7 +127,7 @@ public class UploadBoardTaskAttachmentCommandValidator : AbstractValidator<Uploa
     public UploadBoardTaskAttachmentCommandValidator(ValidationSettings validationSettings)
     {
         var allowedContentTypes = new HashSet<string>(
-            validationSettings.BoardTasks.AllowedContentTypes,
+            validationSettings.BoardTasks!.AllowedContentTypes!,
             StringComparer.OrdinalIgnoreCase);
 
         RuleFor(x => x.BoardTaskId)
@@ -147,7 +153,7 @@ public class UploadBoardTaskAttachmentCommandValidator : AbstractValidator<Uploa
 
             RuleFor(x => x.File!.Length)
                 .GreaterThan(0)
-                .LessThanOrEqualTo(validationSettings.BoardTasks.MaxAttachmentSizeBytes);
+                .LessThanOrEqualTo(validationSettings.BoardTasks!.MaxAttachmentSizeBytes);
         });
     }
 }

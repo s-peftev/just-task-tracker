@@ -1,8 +1,8 @@
 ﻿using FluentValidation;
+using JustTaskTracker.Application.Auth;
 using JustTaskTracker.Application.Auth.Repositories;
 using JustTaskTracker.Application.Boards.Repositories;
-using JustTaskTracker.Application.Common.Interfaces;
-using JustTaskTracker.Application.Common.Interfaces.Persistence;
+using JustTaskTracker.Application.Common.Persistence;
 using JustTaskTracker.Domain.Boards.Authorization;
 using JustTaskTracker.Domain.Boards.Constants;
 using JustTaskTracker.Domain.Boards.DTOs.BoardTasks;
@@ -25,9 +25,9 @@ public class CreateBoardTaskCommandHandler(
 {
     public async Task<Result<BoardTaskPreviewDto>> Handle(CreateBoardTaskCommand request, CancellationToken ct)
     {
-        var currentUser = await userRepository.GetUserDtoByAzureAOIAsync(currentUserAccessor.AzureAdObjectId, ct);
+        var currentUserInfo = await userRepository.GetUserInfoByAzureAOIAsync(currentUserAccessor.AzureAdObjectId, ct);
 
-        if (currentUser is null)
+        if (currentUserInfo is null)
             return Result<BoardTaskPreviewDto>.Failure(GeneralErrors.Unauthorized);
 
         var userRole = await columnRepository.GetUserRoleAsync(request.ColumnId, currentUserAccessor.AzureAdObjectId, ct);
@@ -44,7 +44,7 @@ public class CreateBoardTaskCommandHandler(
             ColumnId = request.ColumnId,
             Title = title,
             Position = position,
-            ReporterId = currentUser.Id
+            ReporterId = currentUserInfo.Id
         };
 
         boardTaskRepository.Add(task);

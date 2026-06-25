@@ -1,0 +1,71 @@
+@using Cropper.Blazor.Components
+@using Cropper.Blazor.Models
+@using JustTaskTracker.WebUI.Domain.Auth
+
+<div class="profile-photo-crop-overlay">
+    <p class="profile-photo-crop-overlay__hint">
+        Drag to reposition, resize the selection. Result will be @ProfilePhotoConstants.OriginalOutputSizePx×@ProfilePhotoConstants.OriginalOutputSizePx px.
+    </p>
+
+    <div class="profile-photo-crop-overlay__canvas">
+        <CropperComponent @ref="_cropper"
+                          Class="profile-photo-crop-overlay__cropper"
+                          Src="@ImageSrc"
+                          Options="@_options" />
+    </div>
+</div>
+
+@code {
+    private const string PngContentType = "image/png";
+
+    [Parameter, EditorRequired]
+    public string ImageSrc { get; set; } = string.Empty;
+
+    private CropperComponent? _cropper;
+
+    private readonly Options _options = new()
+    {
+        AspectRatio = 1m,
+        ViewMode = ViewMode.Vm1,
+        DragMode = "move",
+        AutoCropArea = 1m,
+        Responsive = true,
+        Restore = false,
+    };
+
+    public async Task<ProfilePhotoCroppedUpload?> GetCroppedUploadAsync(string originalFileName)
+    {
+        if (_cropper is null)
+            return null;
+
+        var options = new GetCroppedCanvasOptions
+        {
+            Width = ProfilePhotoConstants.OriginalOutputSizePx,
+            Height = ProfilePhotoConstants.OriginalOutputSizePx,
+        };
+
+        var imageReceiver = await _cropper.GetCroppedCanvasDataInBackgroundAsync(options);
+        await using var croppedStream = await imageReceiver.GetImageChunkStreamAsync();
+
+        if (croppedStream.CanSeek && croppedStream.Position != 0)
+            croppedStream.Position = 0;
+
+        using var buffer = new MemoryStream();
+        await croppedStream.CopyToAsync(buffer);
+
+        return new ProfilePhotoCroppedUpload(
+            buffer.ToArray(),
+            BuildUploadFileName(originalFileName),
+            PngContentType);
+    }
+
+    private static string BuildUploadFileName(string originalFileName)
+    {
+        var stem = Path.GetFileNameWithoutExtension(originalFileName.Trim());
+
+        if (string.IsNullOrWhiteSpace(stem))
+            stem = "profile-photo";
+
+        return $"{stem}.png";
+    }
+}

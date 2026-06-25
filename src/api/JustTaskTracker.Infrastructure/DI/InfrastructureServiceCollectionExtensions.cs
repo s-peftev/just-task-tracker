@@ -13,6 +13,7 @@ public static class InfrastructureServiceCollectionExtensions
             .AddCorsModule()
             .AddAuthenticationModule(configuration)
             .AddUtilsModule()
+            .AddServicesModule()
             .AddAzureModule(configuration);
 
         return services;

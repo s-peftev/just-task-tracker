@@ -1,0 +1,56 @@
+.sidebar-profile-avatar {
+    position: relative;
+    display: inline-flex;
+    flex-shrink: 0;
+}
+
+.sidebar-profile-avatar__actions {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.58);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    pointer-events: none;
+}
+
+.sidebar-profile-avatar:hover .sidebar-profile-avatar__actions,
+.sidebar-profile-avatar:focus-within .sidebar-profile-avatar__actions {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.sidebar-profile-avatar__action {
+    min-width: 5.5rem;
+    padding: 0.375rem 0.75rem;
+    border: 1px solid var(--jtt-stroke-default);
+    border-radius: var(--jtt-radius-sm);
+    background: var(--jtt-surface-raised);
+    color: var(--jtt-text-strong);
+    font-size: 0.8125rem;
+    line-height: 1.2;
+    cursor: pointer;
+    transition: color 0.2s, border-color 0.2s, background 0.2s;
+}
+
+.sidebar-profile-avatar__action:hover:not(:disabled) {
+    background: var(--jtt-surface-app);
+    color: var(--jtt-text-accent);
+    border-color: var(--jtt-text-accent);
+}
+
+.sidebar-profile-avatar__action--danger:hover:not(:disabled) {
+    color: #f87171;
+    border-color: #f87171;
+}
+
+.sidebar-profile-avatar__action:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}

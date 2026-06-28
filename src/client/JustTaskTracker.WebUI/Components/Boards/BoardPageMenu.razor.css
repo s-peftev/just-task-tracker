@@ -115,6 +115,14 @@
     background-color: var(--jtt-overlay-danger-10);
 }
 
+.board-menu__item--warning {
+    color: var(--jtt-text-warning);
+}
+
+.board-menu__item--warning:hover {
+    background-color: var(--jtt-overlay-warning-10);
+}
+
 .board-menu__item-icon {
     flex-shrink: 0;
     width: 1.125rem;

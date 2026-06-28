@@ -49,7 +49,7 @@
                 <span>Show only tasks assigned to me</span>
             </label>
 
-            @if (CanViewBoard || CanLeaveBoard || CanDeleteBoard)
+            @if (CanViewBoard || CanLeaveBoard || CanArchiveBoard || CanDeleteBoard)
             {
                 <div class="board-menu__divider" role="separator"></div>
             }
@@ -87,6 +87,25 @@
                 </button>
             }
 
+            @if (CanArchiveBoard)
+            {
+                @if (CanManageMembers || CanLeaveBoard)
+                {
+                    <div class="board-menu__divider" role="separator"></div>
+                }
+
+                <button type="button"
+                        class="board-menu__item board-menu__item--warning"
+                        role="menuitem"
+                        @onclick="HandleArchiveBoardClickAsync">
+                    <svg class="board-menu__item-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path d="M20.54 5.23l-1.39-1.68C18.88 3.21 18.47 3 18 3H6c-.47 0-.88.21-1.16.55L3.46 5.23C3.17 5.57 3 6.02 3 6.5V19c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6.5c0-.48-.17-.93-.46-1.27zM12 17.5 6.5 12H10v-2h4v2h3.5L12 17.5zM5.12 5l.81-1h12l.94 1H5.12z"
+                              fill="currentColor" />
+                    </svg>
+                    <span>Archive board</span>
+                </button>
+            }
+
             @if (CanDeleteBoard)
             {
                 @if (CanManageMembers || CanLeaveBoard)
@@ -120,11 +139,17 @@
     public EventCallback OnLeaveBoardClick { get; set; }
 
     [Parameter]
+    public EventCallback OnArchiveBoardClick { get; set; }
+
+    [Parameter]
     public EventCallback OnDeleteBoardClick { get; set; }
 
     private bool CanViewBoard => BoardRolePermissions.CanViewBoard(UserRole);
     private bool CanManageMembers => BoardRolePermissions.CanManageMembers(UserRole);
     private bool CanLeaveBoard => BoardRolePermissions.CanLeaveBoard(UserRole);
+    private bool CanArchiveBoard =>
+        BoardRolePermissions.CanArchiveBoard(UserRole)
+        && BoardDetailsStore.Board is { IsArchived: false };
     private bool CanDeleteBoard => BoardRolePermissions.CanDeleteBoard(UserRole);
 
     private bool _isOpen;
@@ -160,6 +185,12 @@
     {
         Close();
         await OnLeaveBoardClick.InvokeAsync();
+    }
+
+    private async Task HandleArchiveBoardClickAsync()
+    {
+        Close();
+        await OnArchiveBoardClick.InvokeAsync();
     }
 
     private async Task HandleDeleteBoardClickAsync()

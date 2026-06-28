@@ -63,7 +63,7 @@ public class BoardsController(ISender sender) : ControllerBase
         var result = await sender.Send(new ArchiveBoardCommand(id), ct);
 
         return result.Match(
-            () => NoContent(),
+            data => Ok(data),
             error => error.CreateErrorResponse());
     }
 

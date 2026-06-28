@@ -26,6 +26,8 @@ public interface IBoardDetailsStore
 
     void UpdateBoardName(string name);
 
+    void SetBoardArchived(DateTime archivedAtUtc);
+
     void UpdateColumnName(Guid columnId, string name);
 
     void UpdateTaskTitle(Guid taskId, string title);

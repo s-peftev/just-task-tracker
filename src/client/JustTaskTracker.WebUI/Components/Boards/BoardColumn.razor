@@ -455,6 +455,7 @@
         catch (ApiServiceException ex)
         {
             Snackbar.ShowApiError(ex);
+            CancelAddTask();
         }
         finally
         {

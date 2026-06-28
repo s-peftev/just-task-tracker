@@ -93,6 +93,20 @@ internal sealed class BoardDetailsStore(IBoardApiService boardApiService) : IBoa
         NotifyStateChanged();
     }
 
+    public void SetBoardArchived(DateTime archivedAtUtc)
+    {
+        if (Board is null)
+            return;
+
+        Board = Board with
+        {
+            IsArchived = true,
+            ArchivedAtUtc = archivedAtUtc,
+        };
+
+        NotifyStateChanged();
+    }
+
     public void UpdateColumnName(Guid columnId, string name)
     {
         if (Board is null)

@@ -6,5 +6,7 @@ public record BoardDetailsDto(
     Guid Id,
     string Name,
     DateTime CreatedAtUtc,
+    bool IsArchived,
     BoardMemberRole UserRole,
-    IReadOnlyList<ColumnDto> Columns);
+    IReadOnlyList<ColumnDto> Columns,
+    DateTime? ArchivedAtUtc);

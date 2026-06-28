@@ -19,7 +19,7 @@
 
 <PageTitle>@GetPageTitle()</PageTitle>
 
-<div class="board-page @(_taskOnlyMode ? "board-page--task-only" : null)">
+<div class="board-page @GetBoardPageRootClass()">
     @if (_renderBoard)
     {
         @if (BoardDetailsStore.IsLoading && BoardDetailsStore.Board is null)
@@ -120,6 +120,17 @@
         !BoardDetailsStore.IsReadOnly
         && BoardDetailsStore.Board is { UserRole: var role }
         && BoardRolePermissions.CanManageColumns(role);
+
+    private string? GetBoardPageRootClass()
+    {
+        if (_taskOnlyMode)
+            return "board-page--task-only";
+
+        if (BoardDetailsStore.Board is { IsArchived: true })
+            return "board-page--archived";
+
+        return null;
+    }
 
     protected override void OnInitialized()
     {

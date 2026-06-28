@@ -8,51 +8,83 @@ using JustTaskTracker.WebUI.Services.Abstractions.Boards;
 
 namespace JustTaskTracker.WebUI.Services.Boards.Stores;
 
-/// <summary>
-/// Scoped store for the boards list page. Loads pages on demand and keeps a
-/// per-board role cache so board-scoped pages can resolve permissions locally.
-/// </summary>
 internal sealed class BoardStore(IBoardApiService boardApiService) : IBoardStore
 {
-    public const int PageSize = 23;
+    public const int ActivePageSize = 11;
+    public const int ArchivedPageSize = 12;
     private const int SearchDebounceMilliseconds = 300;
 
     private readonly Dictionary<Guid, BoardMemberRole> _roleCache = [];
-    private int _loadGeneration;
-    private CancellationTokenSource? _searchDebounceCts;
+    private readonly SectionData _active = new();
+    private readonly SectionData _archived = new();
 
-    public IReadOnlyList<BoardLookupDto> Boards { get; private set; } = [];
-    public PaginationMetadata Pagination { get; private set; } = new();
-    public int CurrentPage { get; private set; } = 1;
-    public string SearchText { get; private set; } = string.Empty;
-    public bool IsLoading { get; private set; }
-    public bool IsLoaded { get; private set; }
-    public string? ErrorMessage { get; private set; }
+    public BoardListSectionState Active => _active.ToState();
+    public BoardListSectionState Archived => _archived.ToState();
 
     public event Action? StateChanged;
 
-    public Task LoadAsync(int pageNumber, CancellationToken ct = default)
+    public Task LoadActiveAsync(int pageNumber, CancellationToken ct = default)
     {
-        if (IsLoaded && pageNumber == CurrentPage && !IsLoading)
+        if (_active.IsLoaded && pageNumber == _active.CurrentPage && !_active.IsLoading)
             return Task.CompletedTask;
 
-        return LoadInternalAsync(pageNumber, SearchText, ct);
+        return LoadInternalAsync(_active, isArchived: false, pageNumber, _active.SearchText, ct);
     }
 
-    public async Task SetSearchAsync(string searchText, CancellationToken ct = default)
+    public Task LoadArchivedAsync(int pageNumber, CancellationToken ct = default)
     {
-        SearchText = searchText;
+        if (_archived.IsLoaded && pageNumber == _archived.CurrentPage && !_archived.IsLoading)
+            return Task.CompletedTask;
+
+        return LoadInternalAsync(_archived, isArchived: true, pageNumber, _archived.SearchText, ct);
+    }
+
+    public Task SetActiveSearchAsync(string searchText, CancellationToken ct = default) =>
+        SetSearchInternalAsync(_active, isArchived: false, searchText, ct);
+
+    public Task SetArchivedSearchAsync(string searchText, CancellationToken ct = default) =>
+        SetSearchInternalAsync(_archived, isArchived: true, searchText, ct);
+
+    public Task RefreshAsync(CancellationToken ct = default) =>
+        Task.WhenAll(
+            LoadInternalAsync(_active, isArchived: false, _active.CurrentPage, _active.SearchText, ct),
+            LoadInternalAsync(_archived, isArchived: true, _archived.CurrentPage, _archived.SearchText, ct));
+
+    public BoardMemberRole? GetCachedRole(Guid boardId) =>
+        _roleCache.TryGetValue(boardId, out var role) ? role : null;
+
+    public void Reset()
+    {
+        CancelSearchDebounce(_active);
+        CancelSearchDebounce(_archived);
+
+        Interlocked.Increment(ref _active.LoadGeneration);
+        Interlocked.Increment(ref _archived.LoadGeneration);
+
+        _active.Reset();
+        _archived.Reset();
+        _roleCache.Clear();
+        NotifyStateChanged();
+    }
+
+    private async Task SetSearchInternalAsync(
+        SectionData section,
+        bool isArchived,
+        string searchText,
+        CancellationToken ct)
+    {
+        section.SearchText = searchText;
         NotifyStateChanged();
 
-        CancelSearchDebounce();
+        CancelSearchDebounce(section);
 
         var debounceCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        _searchDebounceCts = debounceCts;
+        section.SearchDebounceCts = debounceCts;
 
         try
         {
             await Task.Delay(SearchDebounceMilliseconds, debounceCts.Token);
-            await LoadInternalAsync(1, searchText, ct);
+            await LoadInternalAsync(section, isArchived, 1, searchText, ct);
         }
         catch (OperationCanceledException) when (debounceCts.IsCancellationRequested)
         {
@@ -60,10 +92,10 @@ internal sealed class BoardStore(IBoardApiService boardApiService) : IBoardStore
         }
         finally
         {
-            if (ReferenceEquals(_searchDebounceCts, debounceCts))
+            if (ReferenceEquals(section.SearchDebounceCts, debounceCts))
             {
                 debounceCts.Dispose();
-                _searchDebounceCts = null;
+                section.SearchDebounceCts = null;
             }
             else
             {
@@ -72,35 +104,17 @@ internal sealed class BoardStore(IBoardApiService boardApiService) : IBoardStore
         }
     }
 
-    public Task RefreshAsync(CancellationToken ct = default) =>
-        LoadInternalAsync(CurrentPage, SearchText, ct);
-
-    public BoardMemberRole? GetCachedRole(Guid boardId) =>
-        _roleCache.TryGetValue(boardId, out var role) ? role : null;
-
-    public void Reset()
+    private async Task LoadInternalAsync(
+        SectionData section,
+        bool isArchived,
+        int pageNumber,
+        string searchText,
+        CancellationToken ct)
     {
-        CancelSearchDebounce();
+        var generation = Interlocked.Increment(ref section.LoadGeneration);
 
-        Interlocked.Increment(ref _loadGeneration);
-
-        Boards = [];
-        Pagination = new PaginationMetadata();
-        CurrentPage = 1;
-        SearchText = string.Empty;
-        IsLoading = false;
-        IsLoaded = false;
-        ErrorMessage = null;
-        _roleCache.Clear();
-        NotifyStateChanged();
-    }
-
-    private async Task LoadInternalAsync(int pageNumber, string searchText, CancellationToken ct)
-    {
-        var generation = Interlocked.Increment(ref _loadGeneration);
-
-        IsLoading = true;
-        ErrorMessage = null;
+        section.IsLoading = true;
+        section.ErrorMessage = null;
         NotifyStateChanged();
 
         try
@@ -109,20 +123,20 @@ internal sealed class BoardStore(IBoardApiService boardApiService) : IBoardStore
                 ? null
                 : new TextSearchOptions<BoardSearchField>(searchText);
 
-            var request = new GetBoardsForCurrentUserRequest(textSearch)
+            var request = new GetBoardsForCurrentUserRequest(textSearch, isArchived)
             {
                 PageNumber = pageNumber,
-                PageSize = PageSize,
+                PageSize = isArchived ? ArchivedPageSize : ActivePageSize,
             };
             var page = await boardApiService.GetMyBoardsAsync(request, ct);
 
-            if (generation != _loadGeneration)
+            if (generation != section.LoadGeneration)
                 return;
 
-            Boards = page.Items;
-            Pagination = page.Metadata;
-            CurrentPage = page.Metadata.CurrentPage;
-            IsLoaded = true;
+            section.Boards = page.Items;
+            section.Pagination = page.Metadata;
+            section.CurrentPage = page.Metadata.CurrentPage;
+            section.IsLoaded = true;
 
             foreach (var board in page.Items)
                 _roleCache[board.Id] = board.UserRole;
@@ -133,28 +147,62 @@ internal sealed class BoardStore(IBoardApiService boardApiService) : IBoardStore
         }
         catch (Exception ex)
         {
-            if (generation != _loadGeneration)
+            if (generation != section.LoadGeneration)
                 return;
 
-            // ApiServiceException carries the server message; other exceptions (network, etc.) fall through here too.
-            ErrorMessage = ex.Message;
+            section.ErrorMessage = ex.Message;
         }
         finally
         {
-            if (generation == _loadGeneration)
+            if (generation == section.LoadGeneration)
             {
-                IsLoading = false;
+                section.IsLoading = false;
                 NotifyStateChanged();
             }
         }
     }
 
-    private void CancelSearchDebounce()
+    private static void CancelSearchDebounce(SectionData section)
     {
-        _searchDebounceCts?.Cancel();
-        _searchDebounceCts?.Dispose();
-        _searchDebounceCts = null;
+        section.SearchDebounceCts?.Cancel();
+        section.SearchDebounceCts?.Dispose();
+        section.SearchDebounceCts = null;
     }
 
     private void NotifyStateChanged() => StateChanged?.Invoke();
+
+    private sealed class SectionData
+    {
+        public int LoadGeneration;
+        public CancellationTokenSource? SearchDebounceCts;
+        public IReadOnlyList<BoardLookupDto> Boards { get; set; } = [];
+        public PaginationMetadata Pagination { get; set; } = new();
+        public int CurrentPage { get; set; } = 1;
+        public string SearchText { get; set; } = string.Empty;
+        public bool IsLoading { get; set; }
+        public bool IsLoaded { get; set; }
+        public string? ErrorMessage { get; set; }
+
+        public void Reset()
+        {
+            Boards = [];
+            Pagination = new PaginationMetadata();
+            CurrentPage = 1;
+            SearchText = string.Empty;
+            IsLoading = false;
+            IsLoaded = false;
+            ErrorMessage = null;
+        }
+
+        public BoardListSectionState ToState() => new()
+        {
+            Boards = Boards,
+            Pagination = Pagination,
+            CurrentPage = CurrentPage,
+            SearchText = SearchText,
+            IsLoading = IsLoading,
+            IsLoaded = IsLoaded,
+            ErrorMessage = ErrorMessage,
+        };
+    }
 }

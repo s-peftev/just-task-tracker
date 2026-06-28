@@ -97,12 +97,14 @@ public class BoardRepository(JustTaskTrackerDbContext context)
         int pageNumber,
         int pageSize,
         TextSearchOptions<BoardSearchField>? searchOptions = null,
+        bool? isArchived = null,
         CancellationToken ct = default)
     {
         var fields = SearchFieldsResolver.Resolve(searchOptions?.SearchIn, BoardSearchFields.Map);
 
         return await _dbSet
             .Where(b => b.Members.Any(m => m.User!.AzureAdObjectId == azureAdObjectId))
+            .Where(b => isArchived == null || b.IsArchived == isArchived)
             .ApplyTextSearch(searchOptions?.Search, fields)
             .Select(b => new
             {

@@ -12,7 +12,9 @@ using MediatR;
 
 namespace JustTaskTracker.Application.Boards.Queries.Boards;
 
-public record GetBoardsForCurrentUserQuery(TextSearchOptions<BoardSearchField>? SearchOptions) : PaginatedRequest, IRequest<Result<PagedList<BoardLookupDto>>>;
+public record GetBoardsForCurrentUserQuery(
+    TextSearchOptions<BoardSearchField>? SearchOptions,
+    bool? IsArchived = null) : PaginatedRequest, IRequest<Result<PagedList<BoardLookupDto>>>;
 
 public class GetBoardsForCurrentUserQueryHandler(ICurrentUserAccessor currentUser, IBoardRepository boardRepository) 
     : IRequestHandler<GetBoardsForCurrentUserQuery, Result<PagedList<BoardLookupDto>>>
@@ -24,6 +26,7 @@ public class GetBoardsForCurrentUserQueryHandler(ICurrentUserAccessor currentUse
             request.PageNumber!.Value,
             request.PageSize!.Value,
             request.SearchOptions,
+            request.IsArchived,
             ct);
 
         return Result<PagedList<BoardLookupDto>>.Success(boards);

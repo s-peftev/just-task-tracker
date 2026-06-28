@@ -13,6 +13,7 @@ internal interface IBoardApi
         int pageNumber,
         int pageSize,
         [AliasAs("SearchOptions.Search")] string? searchOptionsSearch = null,
+        bool? isArchived = null,
         CancellationToken ct = default);
 
     [Get("/api/boards/{id}")]

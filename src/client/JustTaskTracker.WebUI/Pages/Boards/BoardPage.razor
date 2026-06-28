@@ -117,7 +117,9 @@
     private Guid _membersStoreBoardId;
 
     private bool CanManageColumns =>
-        BoardDetailsStore.Board is { UserRole: var role } && BoardRolePermissions.CanManageColumns(role);
+        !BoardDetailsStore.IsReadOnly
+        && BoardDetailsStore.Board is { UserRole: var role }
+        && BoardRolePermissions.CanManageColumns(role);
 
     protected override void OnInitialized()
     {

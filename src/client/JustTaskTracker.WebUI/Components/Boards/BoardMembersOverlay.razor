@@ -11,6 +11,7 @@
 @implements IDisposable
 @inject IBoardMembersStore BoardMembersStore
 @inject IBoardAddMemberStore BoardAddMemberStore
+@inject IBoardDetailsStore BoardDetailsStore
 @inject IProfileStore ProfileStore
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
@@ -228,7 +229,9 @@
 
 @code {
     private bool CanViewBoard => BoardRolePermissions.CanViewBoard(BoardMembersStore.UserRole);
-    private bool CanManageMembers => BoardRolePermissions.CanManageMembers(BoardMembersStore.UserRole);
+
+    private bool CanManageMembers =>
+        !BoardDetailsStore.IsReadOnly && BoardRolePermissions.CanManageMembers(BoardMembersStore.UserRole);
     private bool IsMembersTabActive => BoardMembersStore.ActiveTab == BoardMembersOverlayTab.Members;
     private bool IsAddMemberTabActive => BoardMembersStore.ActiveTab == BoardMembersOverlayTab.AddMember;
 
@@ -237,6 +240,7 @@
         BoardMembersStore.StateChanged += OnStoreStateChanged;
         BoardAddMemberStore.StateChanged += OnStoreStateChanged;
         ProfileStore.StateChanged += OnStoreStateChanged;
+        BoardDetailsStore.StateChanged += OnBoardDetailsStoreStateChanged;
     }
 
     protected override async Task OnInitializedAsync()
@@ -253,6 +257,18 @@
         BoardMembersStore.StateChanged -= OnStoreStateChanged;
         BoardAddMemberStore.StateChanged -= OnStoreStateChanged;
         ProfileStore.StateChanged -= OnStoreStateChanged;
+        BoardDetailsStore.StateChanged -= OnBoardDetailsStoreStateChanged;
+    }
+
+    private void OnBoardDetailsStoreStateChanged()
+    {
+        if (BoardDetailsStore.IsReadOnly && IsAddMemberTabActive)
+        {
+            BoardAddMemberStore.Reset();
+            _ = BoardMembersStore.SetActiveTabAsync(BoardMembersOverlayTab.Members);
+        }
+
+        _ = InvokeAsync(StateHasChanged);
     }
 
     private void OnStoreStateChanged() =>

@@ -14,6 +14,7 @@ internal sealed class BoardDetailsStore(IBoardApiService boardApiService) : IBoa
     public string? ErrorMessage { get; private set; }
     public bool IsReorderingTasks { get; private set; }
     public bool ShowOnlyMyTasks { get; private set; }
+    public bool IsReadOnly => Board?.IsArchived == true;
 
     public event Action? StateChanged;
 

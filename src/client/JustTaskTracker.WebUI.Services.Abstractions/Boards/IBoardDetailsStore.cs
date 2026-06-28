@@ -15,6 +15,7 @@ public interface IBoardDetailsStore
     string? ErrorMessage { get; }
     bool IsReorderingTasks { get; }
     bool ShowOnlyMyTasks { get; }
+    bool IsReadOnly { get; }
 
     event Action? StateChanged;
 

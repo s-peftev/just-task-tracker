@@ -2,6 +2,7 @@ using FluentValidation;
 using JustTaskTracker.Application.Auth;
 using JustTaskTracker.Application.Auth.Repositories;
 using JustTaskTracker.Application.Boards.Repositories;
+using JustTaskTracker.Application.Common.Behaviors;
 using JustTaskTracker.Application.Common.Persistence;
 using JustTaskTracker.Domain.Boards.Authorization;
 using JustTaskTracker.Domain.Boards.Constants;
@@ -11,7 +12,8 @@ using MediatR;
 
 namespace JustTaskTracker.Application.Boards.Commands.Comments;
 
-public record UpdateBoardTaskCommentCommand(Guid CommentId, string Body) : IRequest<Result>;
+public record UpdateBoardTaskCommentCommand(Guid BoardId, Guid CommentId, string Body)
+    : IRequest<Result>, IRequireActiveBoard;
 
 public class UpdateBoardTaskCommentCommandHandler(
     ICurrentUserAccessor currentUserAccessor,
@@ -55,6 +57,9 @@ public class UpdateBoardTaskCommentCommandValidator : AbstractValidator<UpdateBo
 {
     public UpdateBoardTaskCommentCommandValidator()
     {
+        RuleFor(x => x.BoardId)
+            .NotEmpty();
+
         RuleFor(x => x.CommentId)
             .NotEmpty();
 

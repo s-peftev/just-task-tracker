@@ -2,6 +2,7 @@ using FluentValidation;
 using JustTaskTracker.Application.Auth;
 using JustTaskTracker.Application.Auth.Repositories;
 using JustTaskTracker.Application.Boards.Repositories;
+using JustTaskTracker.Application.Common.Behaviors;
 using JustTaskTracker.Application.Common.Persistence;
 using JustTaskTracker.Application.Users.Mappings;
 using JustTaskTracker.Application.Users.ProfilePhotos;
@@ -17,7 +18,8 @@ using MediatR;
 
 namespace JustTaskTracker.Application.Boards.Commands.Comments;
 
-public record CreateBoardTaskCommentCommand(Guid BoardTaskId, string Body) : IRequest<Result<BoardTaskCommentDto>>;
+public record CreateBoardTaskCommentCommand(Guid BoardId, Guid BoardTaskId, string Body)
+    : IRequest<Result<BoardTaskCommentDto>>, IRequireActiveBoard;
 
 public class CreateBoardTaskCommentCommandHandler(
     ICurrentUserAccessor currentUserAccessor,
@@ -68,6 +70,9 @@ public class CreateBoardTaskCommentCommandValidator : AbstractValidator<CreateBo
 {
     public CreateBoardTaskCommentCommandValidator()
     {
+        RuleFor(x => x.BoardId)
+            .NotEmpty();
+
         RuleFor(x => x.BoardTaskId)
             .NotEmpty();
 

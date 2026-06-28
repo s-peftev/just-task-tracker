@@ -34,6 +34,8 @@ public interface IBoardRepository : IRepository<Board, Guid>
 
     Task<bool> IsBoardMemberAsync(Guid boardId, Guid userId, CancellationToken ct = default);
 
+    Task<bool> IsArchivedAsync(Guid boardId, CancellationToken ct = default);
+
     Task<PagedList<BoardMemberReadModel>> GetMembersInfoPagedAsync(
         Guid boardId,
         int pageNumber,

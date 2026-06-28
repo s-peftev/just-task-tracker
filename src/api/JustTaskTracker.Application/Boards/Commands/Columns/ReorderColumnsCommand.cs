@@ -2,6 +2,7 @@ using FluentValidation;
 using JustTaskTracker.Application.Auth;
 using JustTaskTracker.Application.Boards.Positioning;
 using JustTaskTracker.Application.Boards.Repositories;
+using JustTaskTracker.Application.Common.Behaviors;
 using JustTaskTracker.Application.Common.Persistence;
 using JustTaskTracker.Domain.Boards.Authorization;
 using JustTaskTracker.Domain.Boards.Errors;
@@ -11,7 +12,8 @@ using MediatR;
 
 namespace JustTaskTracker.Application.Boards.Commands.Columns;
 
-public record ReorderColumnsCommand(Guid BoardId, Guid ColumnId, int Position) : IRequest<Result>;
+public record ReorderColumnsCommand(Guid BoardId, Guid ColumnId, int Position)
+    : IRequest<Result>, IRequireActiveBoard;
 
 public class ReorderColumnsCommandHandler(
     ICurrentUserAccessor currentUserAccessor,

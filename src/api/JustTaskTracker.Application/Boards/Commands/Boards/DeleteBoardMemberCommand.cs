@@ -1,6 +1,7 @@
 using FluentValidation;
 using JustTaskTracker.Application.Auth;
 using JustTaskTracker.Application.Boards.Repositories;
+using JustTaskTracker.Application.Common.Behaviors;
 using JustTaskTracker.Application.Common.Persistence;
 using JustTaskTracker.Domain.Boards.Authorization;
 using JustTaskTracker.Domain.Boards.Enums;
@@ -11,7 +12,8 @@ using MediatR;
 
 namespace JustTaskTracker.Application.Boards.Commands.Boards;
 
-public record DeleteBoardMemberCommand(Guid BoardId, Guid UserId) : IRequest<Result>;
+public record DeleteBoardMemberCommand(Guid BoardId, Guid UserId)
+    : IRequest<Result>, IRequireActiveBoard;
 
 public class DeleteBoardMemberCommandHandler(
     ICurrentUserAccessor currentUserAccessor,

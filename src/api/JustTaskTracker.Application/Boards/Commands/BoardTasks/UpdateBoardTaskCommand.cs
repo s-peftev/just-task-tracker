@@ -1,6 +1,7 @@
 using FluentValidation;
 using JustTaskTracker.Application.Auth;
 using JustTaskTracker.Application.Boards.Repositories;
+using JustTaskTracker.Application.Common.Behaviors;
 using JustTaskTracker.Application.Common.Models;
 using JustTaskTracker.Application.Common.Persistence;
 using JustTaskTracker.Domain.Boards.Authorization;
@@ -18,7 +19,7 @@ public record UpdateBoardTaskCommand(
     PatchField<string> Title = default,
     PatchField<string?> Description = default,
     PatchField<Guid?> AssigneeId = default)
-    : IRequest<Result>;
+    : IRequest<Result>, IRequireActiveBoard;
 
 public class UpdateBoardTaskCommandHandler(
     ICurrentUserAccessor currentUserAccessor,

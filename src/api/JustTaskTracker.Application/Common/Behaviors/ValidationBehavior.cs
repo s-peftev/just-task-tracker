@@ -2,7 +2,6 @@ using FluentValidation;
 using JustTaskTracker.Domain.Common.Results;
 using JustTaskTracker.Domain.Common.Results.Errors;
 using MediatR;
-using System.Reflection;
 
 namespace JustTaskTracker.Application.Common.Behaviors;
 
@@ -42,19 +41,6 @@ public class ValidationBehavior<TRequest, TResponse>(IEnumerable<IValidator<TReq
             Details = failures.Select(e => e.ErrorMessage)
         };
 
-        return CreateFailure(error);
-    }
-
-    private static TResponse CreateFailure(Error error)
-    {
-        if (typeof(TResponse) == typeof(Result))
-            return (TResponse)(object)Result.Failure(error);
-
-        var failureMethod = typeof(TResponse).GetMethod(
-            nameof(Result<object>.Failure),
-            BindingFlags.Public | BindingFlags.Static,
-            [typeof(Error)])!;
-
-        return (TResponse)failureMethod.Invoke(null, [error])!;
+        return ResultResponseFactory.CreateFailure<TResponse>(error);
     }
 }

@@ -45,8 +45,10 @@ public class CreateBoardCommandHandler(
             board.Id,
             board.Name,
             board.CreatedAtUtc,
+            board.IsArchived,
             BoardMemberRole.Owner,
-            []));
+            [],
+            board.ArchivedAtUtc));
     }
 }
 

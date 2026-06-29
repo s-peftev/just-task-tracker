@@ -1,7 +1,9 @@
+using JustTaskTracker.Application.Common.ExternalProviders;
+
 namespace JustTaskTracker.Application.Common.Models;
 
 /// <summary>
-/// Blob payload returned by <see cref="Interfaces.ExternalProviders.IBlobStorageService.DownloadAsync"/>.
+/// Blob payload returned by <see cref="IBlobStorageService.DownloadAsync"/>.
 /// </summary>
 /// <param name="Content">
 /// Readable stream backed by blob storage. When returned to ASP.NET via <c>Results.File</c> or

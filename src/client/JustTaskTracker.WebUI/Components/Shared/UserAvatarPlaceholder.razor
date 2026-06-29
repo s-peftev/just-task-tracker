@@ -2,7 +2,16 @@
      style="@GetSizeStyle()"
      aria-hidden="@AriaHidden.ToString().ToLowerInvariant()"
      title="@Title">
-    <span class="user-avatar-placeholder__letter">@UserAvatarPlaceholderFormatting.GetLetter(DisplayName, Email)</span>
+    @if (!string.IsNullOrEmpty(ProfilePhotoUrl))
+    {
+        <img class="user-avatar-placeholder__photo"
+             src="@ProfilePhotoUrl"
+             alt="" />
+    }
+    else
+    {
+        <span class="user-avatar-placeholder__letter">@UserAvatarPlaceholderFormatting.GetLetter(DisplayName, Email)</span>
+    }
 </div>
 
 @code {
@@ -11,6 +20,9 @@
 
     [Parameter]
     public string? Email { get; set; }
+
+    [Parameter]
+    public string? ProfilePhotoUrl { get; set; }
 
     [Parameter]
     public string? Title { get; set; }

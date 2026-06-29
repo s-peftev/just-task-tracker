@@ -9,19 +9,29 @@ internal static class OptionsModule
 {
     internal static IServiceCollection AddOptionsModule(this IServiceCollection services, IConfiguration configuration)
     {
-        var validationSettingsOptions = configuration
+        var validationSettings = configuration
             .GetSection(ConfigSections.ValidationSettings)
-            .Get<ValidationSettings>() ?? new ValidationSettings();
+            .Get<ValidationSettings>()
+            ?? throw new InvalidOperationException($"{ConfigSections.ValidationSettings} section is not configured.");
 
-        services.AddSingleton(validationSettingsOptions);
+        validationSettings.Validate();
+        services.AddSingleton(validationSettings);
 
         var blobStorageSettings = configuration
             .GetSection(ConfigSections.BlobStorage)
             .Get<BlobStorageSettings>()
-            ?? throw new InvalidOperationException("BlobStorageContainers section is not configured.");
+            ?? throw new InvalidOperationException($"{ConfigSections.BlobStorage} section is not configured.");
 
         blobStorageSettings.Validate();
         services.AddSingleton(blobStorageSettings);
+
+        var profilePhotoProcessingSettings = configuration
+            .GetSection(ConfigSections.ProfilePhotoProcessing)
+            .Get<ProfilePhotoProcessingSettings>()
+            ?? throw new InvalidOperationException($"{ConfigSections.ProfilePhotoProcessing} section is not configured.");
+
+        profilePhotoProcessingSettings.Validate();
+        services.AddSingleton(profilePhotoProcessingSettings);
 
         return services;
     }

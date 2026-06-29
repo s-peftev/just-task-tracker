@@ -20,11 +20,14 @@
 }
 
 .sidebar-shell {
+    --sidebar-width: 300px;
+    --sidebar-transition-duration: 220ms;
     display: flex;
     flex: 1 1 0;
     min-height: 0;
     overflow: hidden;
     box-sizing: border-box;
+    position: relative;
 }
 
 .sidebar-shell--center {
@@ -34,12 +37,17 @@
 }
 
 .sidebar-shell__sidebar {
+    width: var(--sidebar-width);
+    flex-basis: var(--sidebar-width);
     flex-shrink: 0;
     display: flex;
     height: 100%;
     min-height: 0;
+    overflow: hidden;
     position: relative;
     z-index: 1;
+    transition: width var(--sidebar-transition-duration) ease,
+        flex-basis var(--sidebar-transition-duration) ease;
 }
 
 .sidebar-shell__content {
@@ -48,7 +56,75 @@
     min-height: 0;
     display: flex;
     flex-direction: column;
-    padding: 1rem;
+    padding: 0;
     overflow: hidden;
     box-sizing: border-box;
+    transition: width var(--sidebar-transition-duration) ease;
+}
+
+.sidebar-shell__toggle {
+    position: absolute;
+    left: var(--sidebar-width);
+    bottom: 1rem;
+    width: 33px;
+    height: 33px;
+    border-radius: 0 12px 12px 0;
+    border: 1px solid transparent;
+    box-sizing: border-box;
+    background: #000000;
+    color: #fff;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: left var(--sidebar-transition-duration) ease,
+        border-color 0.2s ease;
+    z-index: 3;
+}
+
+.sidebar-shell__toggle::before {
+    content: "";
+    position: absolute;
+    left: -28px;
+    top: 0;
+    width: 20px;
+    height: 100%;
+    border: 1px solid transparent;
+    box-sizing: border-box;
+    border-radius: 12px 0 0 12px;
+    background: #000000;
+    transition: border-color 0.2s ease;
+}
+
+.sidebar-shell__toggle:hover {
+    border-color: rgba(97, 179, 216, 0.4);
+}
+
+.sidebar-shell__toggle:hover::before {
+    border-color: rgba(97, 179, 216, 0.4);
+}
+
+.sidebar-shell__toggle-icon {
+    width: 10px;
+    height: 10px;
+    border-left: 3px solid #fff;
+    border-bottom: 3px solid #fff;
+    border-radius: 2px;
+}
+
+.sidebar-shell__toggle-icon--left {
+    transform: rotate(45deg) translate(2px, -2px);
+}
+
+.sidebar-shell__toggle-icon--right {
+    transform: rotate(-135deg) translate(2px, -2px);
+}
+
+.sidebar-shell--collapsed .sidebar-shell__sidebar {
+    width: 0;
+    flex-basis: 0;
+}
+
+.sidebar-shell--collapsed .sidebar-shell__toggle {
+    left: 0;
 }

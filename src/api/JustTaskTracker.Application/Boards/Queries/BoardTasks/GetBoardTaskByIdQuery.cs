@@ -1,5 +1,8 @@
+using JustTaskTracker.Application.Auth;
+using JustTaskTracker.Application.Boards.Mappings;
 using JustTaskTracker.Application.Boards.Repositories;
-using JustTaskTracker.Application.Common.Interfaces;
+using JustTaskTracker.Application.Users.ProfilePhotos;
+using JustTaskTracker.Application.Users.ReadModels;
 using JustTaskTracker.Domain.Boards.Authorization;
 using JustTaskTracker.Domain.Boards.DTOs.BoardTasks;
 using JustTaskTracker.Domain.Common.Results;
@@ -10,7 +13,10 @@ namespace JustTaskTracker.Application.Boards.Queries.BoardTasks;
 
 public record GetBoardTaskByIdQuery(Guid BoardTaskId) : IRequest<Result<BoardTaskDetailsDto>>;
 
-public class GetBoardTaskByIdQueryHandler(ICurrentUserAccessor currentUserAccessor, IBoardTaskRepository boardTaskRepository)
+public class GetBoardTaskByIdQueryHandler(
+    ICurrentUserAccessor currentUserAccessor,
+    IBoardTaskRepository boardTaskRepository,
+    IProfilePhotoService profilePhotoService)
     : IRequestHandler<GetBoardTaskByIdQuery, Result<BoardTaskDetailsDto>>
 {
     public async Task<Result<BoardTaskDetailsDto>> Handle(GetBoardTaskByIdQuery request, CancellationToken ct)
@@ -20,11 +26,14 @@ public class GetBoardTaskByIdQueryHandler(ICurrentUserAccessor currentUserAccess
         if (userRole is not { } authorizedRole || !BoardRolePermissions.CanViewBoard(authorizedRole))
             return Result<BoardTaskDetailsDto>.Failure(GeneralErrors.Forbidden);
 
-        var task = await boardTaskRepository.GetBoardTaskDetailsAsync(request.BoardTaskId, ct);
+        var taskInfo = await boardTaskRepository.GetBoardTaskDetailsAsync(request.BoardTaskId, ct);
 
-        if (task is null)
+        if (taskInfo is null)
             return Result<BoardTaskDetailsDto>.Failure(GeneralErrors.NotFound);
 
-        return Result<BoardTaskDetailsDto>.Success(task with { UserRole = userRole!.Value });
+        Func<UserReadModel, string?> profilePhotoUrlResolver = user =>
+            user.ProfilePhotoVersion is null ? null : profilePhotoService.BuildThumbnailUrl(user.Id, user.ProfilePhotoVersion);
+
+        return Result<BoardTaskDetailsDto>.Success(taskInfo.ToDto(profilePhotoUrlResolver, userRole!.Value));
     }
 }

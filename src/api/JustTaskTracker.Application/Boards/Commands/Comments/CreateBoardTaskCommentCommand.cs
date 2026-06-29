@@ -1,8 +1,12 @@
 using FluentValidation;
+using JustTaskTracker.Application.Auth;
 using JustTaskTracker.Application.Auth.Repositories;
 using JustTaskTracker.Application.Boards.Repositories;
-using JustTaskTracker.Application.Common.Interfaces;
-using JustTaskTracker.Application.Common.Interfaces.Persistence;
+using JustTaskTracker.Application.Common.Persistence;
+using JustTaskTracker.Application.Users.Mappings;
+using JustTaskTracker.Application.Users.ProfilePhotos;
+using JustTaskTracker.Application.Users.ReadModels;
+using JustTaskTracker.Domain.Auth.Entities;
 using JustTaskTracker.Domain.Boards.Authorization;
 using JustTaskTracker.Domain.Boards.Constants;
 using JustTaskTracker.Domain.Boards.DTOs.Comments;
@@ -20,14 +24,15 @@ public class CreateBoardTaskCommentCommandHandler(
     IUserRepository userRepository,
     IBoardTaskRepository boardTaskRepository,
     IBoardTaskCommentRepository boardTaskCommentRepository,
-    IUnitOfWork unitOfWork)
+    IUnitOfWork unitOfWork,
+    IProfilePhotoService profilePhotoService)
     : IRequestHandler<CreateBoardTaskCommentCommand, Result<BoardTaskCommentDto>>
 {
     public async Task<Result<BoardTaskCommentDto>> Handle(CreateBoardTaskCommentCommand request, CancellationToken ct)
     {
-        var currentUser = await userRepository.GetUserDtoByAzureAOIAsync(currentUserAccessor.AzureAdObjectId, ct);
+        var currentUserInfo = await userRepository.GetUserInfoByAzureAOIAsync(currentUserAccessor.AzureAdObjectId, ct);
 
-        if (currentUser is null)
+        if (currentUserInfo is null)
             return Result<BoardTaskCommentDto>.Failure(GeneralErrors.Unauthorized);
 
         var userRole = await boardTaskRepository.GetUserRoleAsync(request.BoardTaskId, currentUserAccessor.AzureAdObjectId, ct);
@@ -40,7 +45,7 @@ public class CreateBoardTaskCommentCommandHandler(
         var comment = new BoardTaskComment
         {
             BoardTaskId = request.BoardTaskId,
-            AuthorId = currentUser.Id,
+            AuthorId = currentUserInfo.Id,
             Body = body,
         };
 
@@ -48,11 +53,14 @@ public class CreateBoardTaskCommentCommandHandler(
 
         await unitOfWork.SaveChangesAsync(ct);
 
+        Func<UserReadModel, string?> profilePhotoUrlResolver = user =>
+            user.ProfilePhotoVersion is null ? null : profilePhotoService.BuildThumbnailUrl(user.Id, user.ProfilePhotoVersion);
+
         return Result<BoardTaskCommentDto>.Success(new BoardTaskCommentDto(
             comment.Id,
             comment.Body,
             comment.CreatedAtUtc,
-            currentUser));
+            currentUserInfo.ToDto(profilePhotoUrlResolver)));
     }
 }
 

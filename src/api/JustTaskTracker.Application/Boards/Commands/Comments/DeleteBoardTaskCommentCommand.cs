@@ -1,8 +1,8 @@
 using FluentValidation;
+using JustTaskTracker.Application.Auth;
 using JustTaskTracker.Application.Auth.Repositories;
 using JustTaskTracker.Application.Boards.Repositories;
-using JustTaskTracker.Application.Common.Interfaces;
-using JustTaskTracker.Application.Common.Interfaces.Persistence;
+using JustTaskTracker.Application.Common.Persistence;
 using JustTaskTracker.Domain.Boards.Authorization;
 using JustTaskTracker.Domain.Common.Results;
 using JustTaskTracker.Domain.Common.Results.Errors;
@@ -21,9 +21,9 @@ public class DeleteBoardTaskCommentCommandHandler(
 {
     public async Task<Result> Handle(DeleteBoardTaskCommentCommand request, CancellationToken ct)
     {
-        var currentUser = await userRepository.GetUserDtoByAzureAOIAsync(currentUserAccessor.AzureAdObjectId, ct);
+        var currentUserInfo = await userRepository.GetUserInfoByAzureAOIAsync(currentUserAccessor.AzureAdObjectId, ct);
 
-        if (currentUser is null)
+        if (currentUserInfo is null)
             return Result.Failure(GeneralErrors.Unauthorized);
 
         var (comment, userRole) = await boardTaskCommentRepository.GetBoardTaskCommentWithUserRole(request.CommentId, currentUserAccessor.AzureAdObjectId, ct);
@@ -34,7 +34,7 @@ public class DeleteBoardTaskCommentCommandHandler(
         if (comment is null)
             return Result.Failure(GeneralErrors.NotFound);
 
-        if (comment.AuthorId != currentUser.Id)
+        if (comment.AuthorId != currentUserInfo.Id)
             return Result.Failure(GeneralErrors.Forbidden);
 
         boardTaskCommentRepository.Remove(comment);

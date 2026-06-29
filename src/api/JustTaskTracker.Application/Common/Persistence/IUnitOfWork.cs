@@ -1,4 +1,4 @@
-﻿namespace JustTaskTracker.Application.Common.Interfaces.Persistence;
+﻿namespace JustTaskTracker.Application.Common.Persistence;
 
 public interface IUnitOfWork
 {

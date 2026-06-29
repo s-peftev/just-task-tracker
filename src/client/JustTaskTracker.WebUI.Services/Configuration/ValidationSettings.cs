@@ -5,6 +5,8 @@ public class ValidationSettings
     public const string SectionName = "ValidationSettings";
 
     public BoardTaskValidationSettings BoardTasks { get; set; } = new();
+
+    public ProfilePhotoValidationSettings ProfilePhotos { get; set; } = new();
 }
 
 public class BoardTaskValidationSettings
@@ -29,6 +31,22 @@ public class BoardTaskValidationSettings
     public long MaxAttachmentSizeBytes { get; set; } = DefaultMaxAttachmentSizeBytes;
 
     public int MaxAttachmentsPerTask { get; set; } = DefaultMaxAttachmentsPerTask;
+
+    public string[] AllowedContentTypes { get; set; } = DefaultAllowedContentTypes.ToArray();
+}
+
+public class ProfilePhotoValidationSettings
+{
+    private const long DefaultMaxPhotoSizeBytes = 10 * 1024 * 1024;
+
+    private static readonly string[] DefaultAllowedContentTypes =
+    [
+        "image/png",
+        "image/jpeg",
+        "image/webp",
+    ];
+
+    public long MaxPhotoSizeBytes { get; set; } = DefaultMaxPhotoSizeBytes;
 
     public string[] AllowedContentTypes { get; set; } = DefaultAllowedContentTypes.ToArray();
 }

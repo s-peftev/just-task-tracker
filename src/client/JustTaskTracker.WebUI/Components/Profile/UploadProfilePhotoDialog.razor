@@ -1,0 +1,224 @@
+@using Cropper.Blazor.Services
+@using JustTaskTracker.WebUI.Domain.Auth
+@using JustTaskTracker.WebUI.Services.Configuration
+@using JustTaskTracker.WebUI.Validation
+@implements IAsyncDisposable
+@inject ValidationSettings ValidationSettings
+@inject IUrlImageInterop UrlImageInterop
+
+<MudDialog Class="resource-form-dialog upload-profile-photo-dialog" ActionsClass="resource-form-dialog__actions">
+    <DialogContent>
+        <div class="upload-profile-photo-dialog__intro">
+            <p class="upload-profile-photo-dialog__hint">
+                Accepted formats: @AllowedTypesDescription.
+            </p>
+            <p class="upload-profile-photo-dialog__hint">
+                Maximum file size: @MaxFileSizeDescription.
+            </p>
+        </div>
+
+        @if (_validationErrors.Count > 0)
+        {
+            <MudAlert Severity="Severity.Error" Class="upload-profile-photo-dialog__alert" Dense="true">
+                @foreach (var error in _validationErrors)
+                {
+                    <div>@error</div>
+                }
+            </MudAlert>
+        }
+
+        @if (_selectedFile is not null && _validationErrors.Count == 0 && !string.IsNullOrEmpty(_imageSrc))
+        {
+            <div class="upload-profile-photo-dialog__meta">
+                <div class="upload-profile-photo-dialog__meta-row">
+                    <span class="upload-profile-photo-dialog__meta-label">Name</span>
+                    <span class="upload-profile-photo-dialog__meta-value">@Path.GetFileName(_selectedFile.Name)</span>
+                </div>
+                <div class="upload-profile-photo-dialog__meta-row">
+                    <span class="upload-profile-photo-dialog__meta-label">Type</span>
+                    <span class="upload-profile-photo-dialog__meta-value">@_selectedFile.ContentType</span>
+                </div>
+                <div class="upload-profile-photo-dialog__meta-row">
+                    <span class="upload-profile-photo-dialog__meta-label">Size</span>
+                    <span class="upload-profile-photo-dialog__meta-value">@FormatFileSize(_selectedFile.Size)</span>
+                </div>
+            </div>
+
+            <ProfilePhotoCropOverlay @ref="_cropOverlay"
+                                     @key="_imageSrc"
+                                     ImageSrc="@_imageSrc" />
+        }
+
+        <InputFile class="upload-profile-photo-dialog__file-input"
+                   accept="@_acceptAttribute"
+                   OnChange="OnFileSelectedAsync" />
+    </DialogContent>
+    <DialogActions>
+        <MudButton Class="btn-dialog-cancel btn-dialog-action"
+                   ButtonType="ButtonType.Button"
+                   Disabled="@_isSaving"
+                   OnClick="Cancel">
+            Cancel
+        </MudButton>
+        <MudButton Class="btn-glass btn-dialog-action"
+                   ButtonType="ButtonType.Button"
+                   Disabled="@(!CanSaveAndUpload)"
+                   OnClick="SaveAndUploadAsync">
+            Save &amp; upload
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    public static DialogOptions DefaultOptions { get; } = new()
+    {
+        CloseOnEscapeKey = true,
+        MaxWidth = MaxWidth.Medium,
+        FullWidth = true,
+    };
+
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private ProfilePhotoUploadModelValidator? _validator;
+    private ProfilePhotoCropOverlay? _cropOverlay;
+    private IBrowserFile? _selectedFile;
+    private string? _imageSrc;
+    private List<string> _validationErrors = [];
+    private string _acceptAttribute = string.Empty;
+    private bool _isSaving;
+
+    private string AllowedTypesDescription =>
+        ProfilePhotoValidationDisplay.FormatAllowedContentTypes(ValidationSettings.ProfilePhotos.AllowedContentTypes);
+
+    private string MaxFileSizeDescription =>
+        ProfilePhotoValidationDisplay.FormatMaxFileSize(ValidationSettings.ProfilePhotos.MaxPhotoSizeBytes);
+
+    private bool CanSaveAndUpload =>
+        !_isSaving
+        && _selectedFile is not null
+        && _validationErrors.Count == 0
+        && !string.IsNullOrEmpty(_imageSrc);
+
+    protected override void OnInitialized()
+    {
+        _validator = new ProfilePhotoUploadModelValidator(ValidationSettings);
+        _acceptAttribute = ProfilePhotoValidationDisplay.ToAcceptAttribute(
+            ValidationSettings.ProfilePhotos.AllowedContentTypes);
+    }
+
+    private async Task OnFileSelectedAsync(InputFileChangeEventArgs e)
+    {
+        await RevokeImageSrcAsync();
+
+        _selectedFile = e.File;
+        await ValidateSelectedFileAsync();
+
+        if (_selectedFile is not null && _validationErrors.Count == 0)
+        {
+            _imageSrc = await UrlImageInterop.GetImageUsingStreamingAsync(
+                _selectedFile,
+                ValidationSettings.ProfilePhotos.MaxPhotoSizeBytes);
+        }
+    }
+
+    private async Task ValidateSelectedFileAsync()
+    {
+        if (_selectedFile is null || _validator is null)
+        {
+            _validationErrors = [];
+            return;
+        }
+
+        var model = new ProfilePhotoUploadModel
+        {
+            ContentType = _selectedFile.ContentType,
+            FileSizeBytes = _selectedFile.Size,
+        };
+
+        var result = await _validator.ValidateAsync(model);
+        _validationErrors = result.Errors
+            .Select(error => error.ErrorMessage)
+            .Distinct()
+            .ToList();
+    }
+
+    private void Cancel()
+    {
+        if (_isSaving)
+            return;
+
+        MudDialog.Cancel();
+    }
+
+    private async Task SaveAndUploadAsync()
+    {
+        if (!CanSaveAndUpload || _selectedFile is null || _cropOverlay is null)
+            return;
+
+        _isSaving = true;
+        _validationErrors = [];
+
+        try
+        {
+            var croppedUpload = await _cropOverlay.GetCroppedUploadAsync(_selectedFile.Name);
+
+            if (croppedUpload is null)
+            {
+                _validationErrors = ["Failed to process the cropped image."];
+                return;
+            }
+
+            if (croppedUpload.Content.Length == 0)
+            {
+                _validationErrors = ["Failed to process the cropped image."];
+                return;
+            }
+
+            if (croppedUpload.Content.Length > ValidationSettings.ProfilePhotos.MaxPhotoSizeBytes)
+            {
+                _validationErrors =
+                [
+                    $"Photo size must not exceed {ProfilePhotoValidationDisplay.FormatMaxFileSize(ValidationSettings.ProfilePhotos.MaxPhotoSizeBytes)}.",
+                ];
+                return;
+            }
+
+            MudDialog.Close(DialogResult.Ok(croppedUpload));
+        }
+        catch (Exception)
+        {
+            _validationErrors = ["Failed to process the cropped image."];
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+
+    public async ValueTask DisposeAsync() =>
+        await RevokeImageSrcAsync();
+
+    private async Task RevokeImageSrcAsync()
+    {
+        if (string.IsNullOrEmpty(_imageSrc))
+            return;
+
+        await UrlImageInterop.RevokeObjectUrlAsync(_imageSrc);
+        _imageSrc = null;
+    }
+
+    private static string FormatFileSize(long bytes)
+    {
+        const long kb = 1024;
+        const long mb = kb * 1024;
+
+        if (bytes >= mb)
+            return $"{bytes / (double)mb:0.##} MB";
+
+        if (bytes >= kb)
+            return $"{bytes / (double)kb:0.##} KB";
+
+        return $"{bytes} B";
+    }
+}

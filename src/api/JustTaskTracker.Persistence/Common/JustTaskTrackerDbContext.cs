@@ -1,11 +1,11 @@
-using JustTaskTracker.Application.Common.Interfaces;
-using JustTaskTracker.Application.Common.Interfaces.Utils;
 using JustTaskTracker.Domain.Auth.Entities;
 using JustTaskTracker.Domain.Common.Interfaces;
 using JustTaskTracker.Domain.Boards.Entities;
 using JustTaskTracker.Persistence.Common.Configurations;
 using Microsoft.EntityFrameworkCore;
 using System.Reflection;
+using JustTaskTracker.Application.Common.Utils;
+using JustTaskTracker.Application.Auth;
 
 namespace JustTaskTracker.Persistence.Common;
 

@@ -1,4 +1,4 @@
-﻿using JustTaskTracker.Application.Common.Interfaces.Utils;
+﻿using JustTaskTracker.Application.Common.Utils;
 using JustTaskTracker.Infrastructure.Common.Utils;
 using Microsoft.Extensions.DependencyInjection;
 

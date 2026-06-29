@@ -1,4 +1,6 @@
+using JustTaskTracker.Application.Boards.ReadModels;
 using JustTaskTracker.Application.Boards.Repositories;
+using JustTaskTracker.Application.Users.ReadModels;
 using JustTaskTracker.Domain.Auth.DTOs;
 using JustTaskTracker.Domain.Boards.DTOs.Comments;
 using JustTaskTracker.Domain.Boards.Entities;
@@ -51,20 +53,21 @@ public class BoardTaskCommentRepository(JustTaskTrackerDbContext context)
         return (result?.BoardTaskComment, result?.UserRole);
     }
 
-    public async Task<PagedList<BoardTaskCommentDto>> GetPagedByBoardTaskIdAsync(Guid boardTaskId, int pageNumber, int pageSize, CancellationToken ct = default) =>
+    public async Task<PagedList<BoardTaskCommentReadModel>> GetPagedInfoByBoardTaskIdAsync(Guid boardTaskId, int pageNumber, int pageSize, CancellationToken ct = default) =>
         await _dbSet
             .Where(comment => comment.BoardTaskId == boardTaskId)
             .OrderByDescending(comment => comment.CreatedAtUtc)
             .ThenByDescending(comment => comment.Id)
             .ToPagedAsync(
-                comment => new BoardTaskCommentDto(
+                comment => new BoardTaskCommentReadModel(
                     comment.Id,
                     comment.Body,
                     comment.CreatedAtUtc,
-                    new UserDto(
+                    new UserReadModel(
                         comment.Author!.Id,
                         comment.Author.Email,
-                        comment.Author.DisplayName),
+                        comment.Author.DisplayName,
+                        comment.Author.ProfilePhotoVersion),
                     comment.LastModifiedAtUtc),
                 pageNumber,
                 pageSize,

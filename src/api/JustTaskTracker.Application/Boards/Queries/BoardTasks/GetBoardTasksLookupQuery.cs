@@ -1,6 +1,6 @@
 ﻿using FluentValidation;
+using JustTaskTracker.Application.Auth;
 using JustTaskTracker.Application.Boards.Repositories;
-using JustTaskTracker.Application.Common.Interfaces;
 using JustTaskTracker.Application.Common.Options;
 using JustTaskTracker.Application.Common.Validators;
 using JustTaskTracker.Domain.Boards.Authorization;
@@ -44,7 +44,7 @@ public class GetBoardTasksLookupQueryValidator : AbstractValidator<GetBoardTasks
 {
     public GetBoardTasksLookupQueryValidator(ValidationSettings validationSettings)
     {
-        var maxBoardTaskTextSearchLength = validationSettings.BoardTasks.MaxTextSearchLength;
+        var maxBoardTaskTextSearchLength = validationSettings.BoardTasks!.MaxTextSearchLength;
 
         When(x => x.SearchOptions is not null, () =>
         {

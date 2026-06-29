@@ -1,0 +1,140 @@
+@using JustTaskTracker.WebUI.Domain.Auth
+@using JustTaskTracker.WebUI.Domain.Auth.Requests
+@using JustTaskTracker.WebUI.Components.Shared
+@using JustTaskTracker.WebUI.Infrastructure@using JustTaskTracker.WebUI.Services.Abstractions.Auth
+@using JustTaskTracker.WebUI.Services.Abstractions.Users
+@using JustTaskTracker.WebUI.Services.Exceptions
+
+<div class="sidebar-profile-avatar">
+    <UserAvatarPlaceholder Preset="UserAvatarPlaceholderPreset.Sidebar"
+                           DisplayName="@DisplayName"
+                           Email="@Email"
+                           ProfilePhotoUrl="@ProfilePhotoUrl" />
+
+    <div class="sidebar-profile-avatar__actions" aria-hidden="true">
+        @if (HasPhoto)
+        {
+            <button type="button"
+                    class="sidebar-profile-avatar__action"
+                    disabled="@_isBusy"
+                    @onclick="OpenUploadDialogAsync">
+                Change
+            </button>
+            <button type="button"
+                    class="sidebar-profile-avatar__action sidebar-profile-avatar__action--danger"
+                    disabled="@_isBusy"
+                    @onclick="OpenDeleteDialogAsync">
+                Delete
+            </button>
+        }
+        else
+        {
+            <button type="button"
+                    class="sidebar-profile-avatar__action"
+                    disabled="@_isBusy"
+                    @onclick="OpenUploadDialogAsync">
+                Upload
+            </button>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string? DisplayName { get; set; }
+
+    [Parameter]
+    public string? Email { get; set; }
+
+    [Parameter]
+    public string? ProfilePhotoUrl { get; set; }
+
+    [Inject]
+    private IDialogService DialogService { get; set; } = default!;
+
+    [Inject]
+    private ISnackbar Snackbar { get; set; } = default!;
+
+    [Inject]
+    private IUsersApiService UsersApiService { get; set; } = default!;
+
+    [Inject]
+    private IProfileStore ProfileStore { get; set; } = default!;
+
+    private bool _isBusy;
+
+    private bool HasPhoto => !string.IsNullOrEmpty(ProfilePhotoUrl);
+
+    private async Task OpenUploadDialogAsync()
+    {
+        if (_isBusy)
+            return;
+
+        var dialog = await DialogService.ShowAsync<UploadProfilePhotoDialog>(
+            "Crop your photo",
+            new DialogParameters(),
+            UploadProfilePhotoDialog.DefaultOptions);
+
+        var result = await dialog.Result;
+
+        if (result is not { Canceled: false, Data: ProfilePhotoCroppedUpload upload })
+            return;
+
+        _isBusy = true;
+
+        try
+        {
+            Snackbar.Add("Uploading profile photo...", Severity.Info);
+
+            var response = await UsersApiService.UploadProfilePhotoAsync(
+                upload.Content,
+                upload.FileName,
+                upload.ContentType);
+
+            ProfileStore.SetProfilePhotoUrl(response.ProfilePhotoUrl);
+            Snackbar.Add("Profile photo updated.", Severity.Success);
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+        finally
+        {
+            _isBusy = false;
+        }
+    }
+
+    private async Task OpenDeleteDialogAsync()
+    {
+        if (_isBusy)
+            return;
+
+        var dialog = await DialogService.ShowConfirmResourceAsync(
+            "Delete profile photo",
+            "Remove your profile photo? This action cannot be undone.",
+            confirmLabel: "Delete");
+
+        var result = await dialog.Result;
+
+        if (result is not { Canceled: false, Data: true })
+            return;
+
+        _isBusy = true;
+
+        try
+        {
+            await UsersApiService.DeleteProfilePhotoAsync(new DeleteProfilePhotoRequest());
+
+            ProfileStore.ClearProfilePhotoUrl();
+            Snackbar.Add("Profile photo removed.", Severity.Success);
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+        finally
+        {
+            _isBusy = false;
+        }
+    }
+}

@@ -1,8 +1,8 @@
 using FluentValidation;
+using JustTaskTracker.Application.Auth;
 using JustTaskTracker.Application.Boards.Repositories;
-using JustTaskTracker.Application.Common.Interfaces;
-using JustTaskTracker.Application.Common.Interfaces.Persistence;
 using JustTaskTracker.Application.Common.Models;
+using JustTaskTracker.Application.Common.Persistence;
 using JustTaskTracker.Domain.Boards.Authorization;
 using JustTaskTracker.Domain.Boards.Constants;
 using JustTaskTracker.Domain.Boards.Errors;

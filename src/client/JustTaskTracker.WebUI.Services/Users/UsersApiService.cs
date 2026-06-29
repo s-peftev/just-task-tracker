@@ -3,7 +3,7 @@ using JustTaskTracker.WebUI.Domain.Auth.Requests;
 using JustTaskTracker.WebUI.Domain.Common.Pagination;
 using JustTaskTracker.WebUI.Services.Abstractions.Users;
 using JustTaskTracker.WebUI.Services.Api;
-
+using Refit;
 namespace JustTaskTracker.WebUI.Services.Users;
 
 internal sealed class UsersApiService(IUsersApi api) : IUsersApiService
@@ -25,5 +25,25 @@ internal sealed class UsersApiService(IUsersApi api) : IUsersApiService
             ct);
 
         return ApiResponseGuard.Unwrap(response);
+    }
+
+    public async Task<ProfilePhotoDto> UploadProfilePhotoAsync(
+        byte[] content,
+        string fileName,
+        string contentType,
+        CancellationToken ct = default)
+    {
+        var part = new ByteArrayPart(content, fileName, contentType);
+
+        var response = await api.UploadProfilePhotoAsync(part, ct);
+
+        return ApiResponseGuard.Unwrap(response);
+    }
+
+    public async Task DeleteProfilePhotoAsync(DeleteProfilePhotoRequest _, CancellationToken ct = default)
+    {
+        var response = await api.DeleteProfilePhotoAsync(ct);
+
+        ApiResponseGuard.EnsureSuccess(response);
     }
 }

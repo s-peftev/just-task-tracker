@@ -2,7 +2,7 @@
 using DbUp;
 using Microsoft.Extensions.Configuration;
 
-const string connectionStringKey = "MSSQLDb";
+const string connectionStringKey = "JustTaskTracker";
 const string scriptsNamespacePrefix = "JustTaskTracker.Database.Scripts.";
 
 var configuration = new ConfigurationBuilder()

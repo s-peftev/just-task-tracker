@@ -10,7 +10,7 @@ internal static class HangfireModule
 {
     internal static IServiceCollection AddHangfireModule(this IServiceCollection services, IConfiguration configuration)
     {
-        var connectionString = configuration.GetConnectionString(ConnectionStringNames.MSSQLDb)
+        var connectionString = configuration.GetConnectionString(ConnectionStringNames.JustTaskTracker)
             ?? throw new InvalidOperationException("DB connection string is not configured.");
 
         services.AddHangfire(hangfireConfiguration => hangfireConfiguration

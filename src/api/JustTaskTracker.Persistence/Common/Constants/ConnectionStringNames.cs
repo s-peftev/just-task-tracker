@@ -2,5 +2,5 @@
 
 internal static class ConnectionStringNames
 {
-    public const string MSSQLDb = nameof(MSSQLDb);
+    public const string JustTaskTracker = nameof(JustTaskTracker);
 }

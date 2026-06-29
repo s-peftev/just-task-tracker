@@ -1,10 +1,11 @@
 ﻿using Azure.Messaging.ServiceBus;
 using Azure.Storage.Blobs;
-using Microsoft.Azure.Cosmos;
 using JustTaskTracker.Application.Common.ExternalProviders;
 using JustTaskTracker.Infrastructure.Common.Constants;
 using JustTaskTracker.Infrastructure.Common.ExternalProviders;
+using JustTaskTracker.Infrastructure.Common.ExternalProviders.CosmosDb;
 using JustTaskTracker.Infrastructure.Common.Options;
+using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -66,6 +67,8 @@ internal static class AzureModule
                 options.DatabaseName,
                 options.Containers!.BoardArchivalStatuses);
         });
+
+        services.AddSingleton<IBoardSerializationStatusService, CosmosBoardSerializationStatusService>();
 
         return services;
     }

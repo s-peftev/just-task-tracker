@@ -2,13 +2,16 @@ using FluentValidation;
 using JustTaskTracker.Application.Auth;
 using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Behaviors;
+using JustTaskTracker.Application.Common.ExternalProviders;
 using JustTaskTracker.Application.Common.Persistence;
 using JustTaskTracker.Application.Common.Utils;
 using JustTaskTracker.Domain.Boards.Authorization;
 using JustTaskTracker.Domain.Boards.DTOs.Boards;
+using JustTaskTracker.Domain.Boards.Enums;
 using JustTaskTracker.Domain.Common.Results;
 using JustTaskTracker.Domain.Common.Results.Errors;
 using MediatR;
+using Microsoft.Extensions.Logging;
 
 namespace JustTaskTracker.Application.Boards.Commands.Boards;
 
@@ -18,8 +21,10 @@ public record ArchiveBoardCommand(Guid BoardId)
 public class ArchiveBoardCommandHandler(
     ICurrentUserAccessor currentUserAccessor,
     IBoardRepository boardRepository,
+    IBoardSerializationStatusService boardSerializationStatusService,
     IUnitOfWork unitOfWork,
-    IDateTimeProvider dateTimeProvider)
+    IDateTimeProvider dateTimeProvider,
+    ILogger<ArchiveBoardCommandHandler> logger)
     : IRequestHandler<ArchiveBoardCommand, Result<BoardArchivedDto>>
 {
     public async Task<Result<BoardArchivedDto>> Handle(ArchiveBoardCommand request, CancellationToken ct)
@@ -34,6 +39,19 @@ public class ArchiveBoardCommandHandler(
 
         if (board is null)
             return Result<BoardArchivedDto>.Failure(GeneralErrors.NotFound);
+
+        try
+        {
+            await boardSerializationStatusService.UpdateSerializationStatusAsync(
+                board.Id,
+                BoardSerializationStatus.Pending,
+                ct: ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to update serialization status for board {BoardId}.", board.Id);
+            return Result<BoardArchivedDto>.Failure(GeneralErrors.ServiceUnavailable);
+        }
 
         var archivedAtUtc = dateTimeProvider.UtcNow;
 

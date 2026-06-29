@@ -26,5 +26,7 @@ public interface IBoardStore
 
     BoardMemberRole? GetCachedRole(Guid boardId);
 
+    void ApplyBoardArchived(Guid boardId, DateTime archivedAtUtc, BoardSerializationStatus boardSerializationStatus);
+
     void Reset();
 }

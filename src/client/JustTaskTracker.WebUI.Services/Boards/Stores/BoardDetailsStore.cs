@@ -94,7 +94,7 @@ internal sealed class BoardDetailsStore(IBoardApiService boardApiService) : IBoa
         NotifyStateChanged();
     }
 
-    public void SetBoardArchived(DateTime archivedAtUtc)
+    public void SetBoardArchived(DateTime archivedAtUtc, BoardSerializationStatus boardSerializationStatus)
     {
         if (Board is null)
             return;
@@ -103,6 +103,7 @@ internal sealed class BoardDetailsStore(IBoardApiService boardApiService) : IBoa
         {
             IsArchived = true,
             ArchivedAtUtc = archivedAtUtc,
+            BoardSerializationStatus = boardSerializationStatus,
         };
 
         NotifyStateChanged();

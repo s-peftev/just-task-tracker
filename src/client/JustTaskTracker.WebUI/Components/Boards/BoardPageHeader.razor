@@ -1,10 +1,13 @@
+@using JustTaskTracker.WebUI.Domain.Boards
 @using JustTaskTracker.WebUI.Domain.Boards.Authorization
+@using JustTaskTracker.WebUI.Domain.Boards.Enums
 @using JustTaskTracker.WebUI.Infrastructure
 @using JustTaskTracker.WebUI.Services.Abstractions.Boards
 @using JustTaskTracker.WebUI.Services.Exceptions
 @implements IDisposable
 @inject IBoardApiService BoardApiService
 @inject IBoardDetailsStore BoardDetailsStore
+@inject IBoardStore BoardStore
 @inject IBoardMembersStore BoardMembersStore
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
@@ -48,6 +51,33 @@
                     This board was archived on @FormatArchivedAt(archivedAtUtc)<br />
                     Available in read-only mode.
                 </p>
+                @if (CanViewBoardDownloadStatus)
+                {
+                    @if (board.BoardSerializationStatus == BoardSerializationStatus.Completed)
+                    {
+                        <div class="board-page__serialization-status">
+                            <button type="button"
+                                    class="board-page__download-btn btn-icon"
+                                    aria-label="@DownloadTooltip"
+                                    @onclick="OnDownloadClick">
+                                <svg viewBox="0 0 24 24"
+                                     aria-hidden="true"
+                                     focusable="false">
+                                    <path d="M20.54 5.23l-1.39-1.68C18.88 3.21 18.47 3 18 3H6c-.47 0-.88.21-1.16.55L3.46 5.23C3.17 5.57 3 6.02 3 6.5V19c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6.5c0-.48-.17-.93-.46-1.27zM12 17.5 6.5 12H10v-2h4v2h3.5L12 17.5zM5.12 5l.81-1h12l.94 1H5.12z"
+                                          fill="currentColor" />
+                                </svg>
+                                <span class="board-page__download-tooltip" aria-hidden="true">@DownloadTooltip</span>
+                            </button>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="board-page__serialization-status">
+                            <BoardSerializationStatusIndicator Status="board.BoardSerializationStatus"
+                                                               TooltipBelow="true" />
+                        </div>
+                    }
+                }
             }
 
             <BoardPageMenu UserRole="board.UserRole"
@@ -86,8 +116,18 @@
         && BoardDetailsStore.Board is { UserRole: var role }
         && BoardRolePermissions.CanRenameBoard(role);
 
+    private bool CanViewBoardDownloadStatus =>
+        BoardDetailsStore.Board is { UserRole: var role }
+        && BoardRolePermissions.CanArchiveBoard(role);
+
     private static string FormatArchivedAt(DateTime archivedAtUtc) =>
         archivedAtUtc.ToLocalTime().ToString("g");
+
+    private static string DownloadTooltip =>
+        BoardSerializationStatusFormatting.GetDescription(BoardSerializationStatus.Completed);
+
+    private void OnDownloadClick() =>
+        Snackbar.Add("Board download is coming soon.", Severity.Info);
 
     protected override void OnInitialized() =>
         BoardDetailsStore.StateChanged += OnBoardDetailsStoreStateChanged;
@@ -278,7 +318,8 @@
         try
         {
             var archived = await BoardApiService.ArchiveBoardAsync(BoardId);
-            BoardDetailsStore.SetBoardArchived(archived.ArchivedAtUtc);
+            BoardDetailsStore.SetBoardArchived(archived.ArchivedAtUtc, archived.BoardSerializationStatus);
+            BoardStore.ApplyBoardArchived(BoardId, archived.ArchivedAtUtc, archived.BoardSerializationStatus);
             Snackbar.Add("Board archived.", Severity.Success);
         }
         catch (ApiServiceException ex)

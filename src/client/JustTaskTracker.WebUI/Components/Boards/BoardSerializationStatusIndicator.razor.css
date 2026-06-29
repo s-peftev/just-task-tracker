@@ -1,0 +1,70 @@
+.board-serialization-status {
+    --jtt-serialization-accent: #61b3d8;
+
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 0;
+}
+
+.board-serialization-status__icon {
+    width: 1.125rem;
+    height: 1.125rem;
+}
+
+.board-serialization-status__segment {
+    fill: none;
+    stroke-width: 2.75;
+    stroke-linecap: butt;
+}
+
+.board-serialization-status__segment--inactive {
+    stroke: var(--jtt-overlay-white-16);
+}
+
+.board-serialization-status__segment--warning {
+    stroke: var(--jtt-text-warning);
+}
+
+.board-serialization-status__segment--accent {
+    stroke: var(--jtt-serialization-accent);
+}
+
+.board-serialization-status__segment--danger {
+    stroke: var(--jtt-text-danger);
+}
+
+.board-serialization-status__tooltip {
+    position: absolute;
+    bottom: calc(100% + 0.375rem);
+    left: 0;
+    z-index: 2;
+    width: max-content;
+    max-width: 16rem;
+    padding: 0.5rem 0.625rem;
+    background-color: var(--jtt-surface-app);
+    border: 1px solid var(--jtt-stroke-default);
+    border-radius: var(--jtt-radius-sm);
+    color: var(--jtt-text-body);
+    font-size: 0.8125rem;
+    font-weight: var(--jtt-font-weight-body);
+    line-height: 1.35;
+    text-align: left;
+    white-space: normal;
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease, visibility 0.15s ease;
+}
+
+.board-serialization-status--tooltip:hover .board-serialization-status__tooltip,
+.board-serialization-status--tooltip:focus-visible .board-serialization-status__tooltip {
+    visibility: visible;
+    opacity: 1;
+}
+
+.board-serialization-status--tooltip-below .board-serialization-status__tooltip {
+    top: calc(100% + 0.375rem);
+    bottom: auto;
+}

@@ -9,4 +9,5 @@ public record BoardDetailsDto(
     bool IsArchived,
     BoardMemberRole UserRole,
     IReadOnlyList<ColumnDto> Columns,
+    BoardSerializationStatus BoardSerializationStatus,
     DateTime? ArchivedAtUtc);

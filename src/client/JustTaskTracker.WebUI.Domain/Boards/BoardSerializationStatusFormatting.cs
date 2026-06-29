@@ -20,4 +20,19 @@ public static class BoardSerializationStatusFormatting
                 "Couldn't create a downloadable copy. We'll try again automatically.",
             _ => status.ToString(),
         };
+
+    public static string GetAriaLabel(BoardSerializationStatus status, BoardArchiveExportOptions? exportOptions)
+    {
+        var description = GetDescription(status);
+
+        if (exportOptions is null)
+            return description;
+
+        var optionsSummary = string.Join(
+            ", ",
+            BoardArchiveExportOptionsFormatting.GetOptionStates(exportOptions)
+                .Select(entry => $"{entry.Label}: {(entry.IsIncluded ? "yes" : "no")}"));
+
+        return $"{description} Options: {optionsSummary}.";
+    }
 }

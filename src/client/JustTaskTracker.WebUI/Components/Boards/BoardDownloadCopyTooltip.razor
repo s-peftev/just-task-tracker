@@ -1,0 +1,48 @@
+@using JustTaskTracker.WebUI.Domain.Boards
+@using JustTaskTracker.WebUI.Domain.Boards.Enums
+
+<div class="board-download-copy-tooltip">
+    <p class="board-download-copy-tooltip__message">
+        @BoardSerializationStatusFormatting.GetDescription(Status)
+    </p>
+
+    @if (ExportOptions is { } exportOptions)
+    {
+        <ul class="board-download-copy-tooltip__options">
+            @foreach (var (label, isIncluded) in BoardArchiveExportOptionsFormatting.GetOptionStates(exportOptions))
+            {
+                <li class="board-download-copy-tooltip__option">
+                    @if (isIncluded)
+                    {
+                        <svg class="board-download-copy-tooltip__mark board-download-copy-tooltip__mark--included"
+                             viewBox="0 0 24 24"
+                             aria-hidden="true"
+                             focusable="false">
+                            <path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"
+                                  fill="currentColor" />
+                        </svg>
+                    }
+                    else
+                    {
+                        <svg class="board-download-copy-tooltip__mark board-download-copy-tooltip__mark--excluded"
+                             viewBox="0 0 24 24"
+                             aria-hidden="true"
+                             focusable="false">
+                            <path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
+                                  fill="currentColor" />
+                        </svg>
+                    }
+                    <span>@label</span>
+                </li>
+            }
+        </ul>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public BoardSerializationStatus Status { get; set; }
+
+    [Parameter]
+    public BoardArchiveExportOptions? ExportOptions { get; set; }
+}

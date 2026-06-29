@@ -1,0 +1,51 @@
+.archive-board-form__message {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.80);
+}
+
+.archive-board-form__warning {
+    margin: 0.25rem 0 0;
+    color: var(--jtt-text-danger);
+    font-size: var(--jtt-font-size-body);
+    font-weight: var(--jtt-font-weight-strong);
+    line-height: 1.5;
+}
+
+.archive-board-form__fieldset {
+    margin: 1.25rem 0 0;
+    padding: 0;
+    border: 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.archive-board-form__legend {
+    margin-bottom: 0.35rem;
+    padding: 0;
+    font-size: var(--jtt-font-size-meta);
+    font-weight: var(--jtt-font-weight-body);
+    color: var(--jtt-text-primary);
+}
+
+.archive-board-form__hint {
+    margin: 0 0 0.75rem;
+    color: var(--jtt-text-subtle);
+    font-size: var(--jtt-font-size-meta);
+    font-weight: var(--jtt-font-weight-body);
+    line-height: 1.45;
+}
+
+.archive-board-form__fieldset ::deep .mud-checkbox .mud-typography {
+    font-size: var(--jtt-font-size-meta);
+    font-weight: var(--jtt-font-weight-body);
+}
+
+.archive-board-form__fieldset ::deep .mud-checkbox .mud-icon-root {
+    color: var(--jtt-text-warning);
+}
+
+.archive-board-form__fieldset ::deep .mud-checkbox:hover .mud-icon-root {
+    color: var(--jtt-text-warning);
+}

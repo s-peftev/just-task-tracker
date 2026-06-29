@@ -94,7 +94,7 @@
     left: 0;
     z-index: 1;
     width: max-content;
-    max-width: 16rem;
+    max-width: 18rem;
     padding: 0.5rem 0.625rem;
     background-color: var(--jtt-surface-app);
     border: 1px solid var(--jtt-stroke-warning-soft);

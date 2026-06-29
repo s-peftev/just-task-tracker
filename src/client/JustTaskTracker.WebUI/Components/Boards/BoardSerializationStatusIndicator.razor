@@ -1,91 +1,99 @@
-@using JustTaskTracker.WebUI.Domain.Boards
-@using JustTaskTracker.WebUI.Domain.Boards.Enums
-
-@if (EffectiveStatus != BoardSerializationStatus.Completed)
-{
-    <span class="@RootCssClass"
-          aria-label="@TooltipText"
-          title="@(ShowTooltip ? null : TooltipText)">
-        <svg class="board-serialization-status__icon"
-             viewBox="0 0 24 24"
-             aria-hidden="true"
-             focusable="false">
-            <path class="board-serialization-status__segment @GetSegmentClass(1)"
-                  d="@GetSegmentPath(1)" />
-            <path class="board-serialization-status__segment @GetSegmentClass(2)"
-                  d="@GetSegmentPath(2)" />
-            <path class="board-serialization-status__segment @GetSegmentClass(3)"
-                  d="@GetSegmentPath(3)" />
-        </svg>
-
-        @if (ShowTooltip)
-        {
-            <span class="board-serialization-status__tooltip" aria-hidden="true">@TooltipText</span>
-        }
-    </span>
-}
-
-@code {
-    private const double Center = 12;
-    private const double Radius = 9;
-    private const double SegmentGap = 18;
-    private const double SegmentSweep = 120 - SegmentGap;
-
-    [Parameter, EditorRequired]
-    public BoardSerializationStatus Status { get; set; }
-
-    [Parameter]
-    public bool ShowTooltip { get; set; } = true;
-
-    [Parameter]
-    public bool TooltipBelow { get; set; }
-
-    private BoardSerializationStatus EffectiveStatus =>
-        Status is BoardSerializationStatus.None ? BoardSerializationStatus.Pending : Status;
-
-    private string RootCssClass =>
-        string.Join(
-            ' ',
-            new[]
-            {
-                "board-serialization-status",
-                ShowTooltip ? "board-serialization-status--tooltip" : null,
-                TooltipBelow ? "board-serialization-status--tooltip-below" : null,
-            }.Where(static cssClass => cssClass is not null));
-
-    private string TooltipText => BoardSerializationStatusFormatting.GetDescription(EffectiveStatus);
-
-    private string GetSegmentClass(int segmentIndex) =>
-        (EffectiveStatus, segmentIndex) switch
-        {
-            (BoardSerializationStatus.Processing, 1 or 2) => "board-serialization-status__segment--accent",
-            (BoardSerializationStatus.Failed, 1 or 2) => "board-serialization-status__segment--danger",
-            (BoardSerializationStatus.Pending, 1) => "board-serialization-status__segment--warning",
-            _ => "board-serialization-status__segment--inactive",
-        };
-
-    private static string GetSegmentPath(int segmentIndex)
-    {
-        var startAngle = (segmentIndex - 1) * 120 + SegmentGap / 2;
-        var endAngle = startAngle + SegmentSweep;
-
-        return DescribeArc(Center, Center, Radius, startAngle, endAngle);
-    }
-
-    private static string DescribeArc(double centerX, double centerY, double radius, double startAngleDeg, double endAngleDeg)
-    {
-        var start = Polar(centerX, centerY, radius, startAngleDeg);
-        var end = Polar(centerX, centerY, radius, endAngleDeg);
-        var sweep = endAngleDeg - startAngleDeg;
-        var largeArc = sweep > 180 ? 1 : 0;
-
-        return FormattableString.Invariant(
-            $"M {start.X:F3},{start.Y:F3} A {radius},{radius} 0 {largeArc} 1 {end.X:F3},{end.Y:F3}");
-    }
-
-    private static (double X, double Y) Polar(double centerX, double centerY, double radius, double angleFromTopDeg)
-    {
-        var radians = angleFromTopDeg * Math.PI / 180;
-        return (centerX + radius * Math.Sin(radians), centerY - radius * Math.Cos(radians));
-    }
-}
+@using JustTaskTracker.WebUI.Domain.Boards
+@using JustTaskTracker.WebUI.Domain.Boards.Enums
+
+@if (EffectiveStatus != BoardSerializationStatus.Completed)
+{
+    <span class="@RootCssClass"
+          aria-label="@AriaLabel"
+          title="@(ShowTooltip ? null : AriaLabel)">
+        <svg class="board-serialization-status__icon"
+             viewBox="0 0 24 24"
+             aria-hidden="true"
+             focusable="false">
+            <path class="board-serialization-status__segment @GetSegmentClass(1)"
+                  d="@GetSegmentPath(1)" />
+            <path class="board-serialization-status__segment @GetSegmentClass(2)"
+                  d="@GetSegmentPath(2)" />
+            <path class="board-serialization-status__segment @GetSegmentClass(3)"
+                  d="@GetSegmentPath(3)" />
+        </svg>
+
+        @if (ShowTooltip)
+        {
+            <span class="board-serialization-status__tooltip" aria-hidden="true">
+                <BoardDownloadCopyTooltip Status="EffectiveStatus"
+                                          ExportOptions="ExportOptions" />
+            </span>
+        }
+    </span>
+}
+
+@code {
+    private const double Center = 12;
+    private const double Radius = 9;
+    private const double SegmentGap = 18;
+    private const double SegmentSweep = 120 - SegmentGap;
+
+    [Parameter, EditorRequired]
+    public BoardSerializationStatus Status { get; set; }
+
+    [Parameter]
+    public BoardArchiveExportOptions? ExportOptions { get; set; }
+
+    [Parameter]
+    public bool ShowTooltip { get; set; } = true;
+
+    [Parameter]
+    public bool TooltipBelow { get; set; }
+
+    private BoardSerializationStatus EffectiveStatus =>
+        Status is BoardSerializationStatus.None ? BoardSerializationStatus.Pending : Status;
+
+    private string AriaLabel =>
+        BoardSerializationStatusFormatting.GetAriaLabel(EffectiveStatus, ExportOptions);
+
+    private string RootCssClass =>
+        string.Join(
+            ' ',
+            new[]
+            {
+                "board-serialization-status",
+                ShowTooltip ? "board-serialization-status--tooltip" : null,
+                TooltipBelow ? "board-serialization-status--tooltip-below" : null,
+            }.Where(static cssClass => cssClass is not null));
+
+    private string GetSegmentClass(int segmentIndex) =>
+        (EffectiveStatus, segmentIndex) switch
+        {
+            (BoardSerializationStatus.Processing, 1 or 2) => "board-serialization-status__segment--accent",
+            (BoardSerializationStatus.Failed, 1 or 2) => "board-serialization-status__segment--danger",
+            (BoardSerializationStatus.Pending, 1) => "board-serialization-status__segment--warning",
+            _ => "board-serialization-status__segment--inactive",
+        };
+
+    private static string GetSegmentPath(int segmentIndex)
+    {
+        var startAngle = (segmentIndex - 1) * 120 + SegmentGap / 2;
+        var endAngle = startAngle + SegmentSweep;
+
+        return DescribeArc(Center, Center, Radius, startAngle, endAngle);
+    }
+
+    private static string DescribeArc(double centerX, double centerY, double radius, double startAngleDeg, double endAngleDeg)
+    {
+        var start = Polar(centerX, centerY, radius, startAngleDeg);
+        var end = Polar(centerX, centerY, radius, endAngleDeg);
+        var sweep = endAngleDeg - startAngleDeg;
+        var largeArc = sweep > 180 ? 1 : 0;
+
+        return FormattableString.Invariant(
+            $"M {start.X:F3},{start.Y:F3} A {radius},{radius} 0 {largeArc} 1 {end.X:F3},{end.Y:F3}");
+    }
+
+    private static (double X, double Y) Polar(double centerX, double centerY, double radius, double angleFromTopDeg)
+    {
+        var radians = angleFromTopDeg * Math.PI / 180;
+        return (centerX + radius * Math.Sin(radians), centerY - radius * Math.Cos(radians));
+    }
+}
+

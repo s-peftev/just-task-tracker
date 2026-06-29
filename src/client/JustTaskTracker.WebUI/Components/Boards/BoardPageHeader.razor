@@ -1,3 +1,5 @@
+@using JustTaskTracker.WebUI.Components.Shared
+@using JustTaskTracker.WebUI.Components.Shared.Forms
 @using JustTaskTracker.WebUI.Domain.Boards
 @using JustTaskTracker.WebUI.Domain.Boards.Authorization
 @using JustTaskTracker.WebUI.Domain.Boards.Enums
@@ -55,25 +57,44 @@
                 {
                     @if (board.BoardSerializationStatus == BoardSerializationStatus.Completed)
                     {
-                        <div class="board-page__serialization-status">
-                            <button type="button"
-                                    class="board-page__download-btn btn-icon"
-                                    aria-label="@DownloadTooltip"
-                                    @onclick="OnDownloadClick">
-                                <svg viewBox="0 0 24 24"
-                                     aria-hidden="true"
-                                     focusable="false">
-                                    <path d="M20.54 5.23l-1.39-1.68C18.88 3.21 18.47 3 18 3H6c-.47 0-.88.21-1.16.55L3.46 5.23C3.17 5.57 3 6.02 3 6.5V19c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6.5c0-.48-.17-.93-.46-1.27zM12 17.5 6.5 12H10v-2h4v2h3.5L12 17.5zM5.12 5l.81-1h12l.94 1H5.12z"
-                                          fill="currentColor" />
-                                </svg>
-                                <span class="board-page__download-tooltip" aria-hidden="true">@DownloadTooltip</span>
-                            </button>
+                        <div class="board-page__serialization-actions">
+                            <div class="board-page__serialization-status">
+                                <button type="button"
+                                        class="board-page__download-btn btn-icon"
+                                        aria-label="@DownloadAriaLabel"
+                                        @onclick="OnDownloadClick">
+                                    <svg viewBox="0 0 24 24"
+                                         aria-hidden="true"
+                                         focusable="false">
+                                        <path d="M20.54 5.23l-1.39-1.68C18.88 3.21 18.47 3 18 3H6c-.47 0-.88.21-1.16.55L3.46 5.23C3.17 5.57 3 6.02 3 6.5V19c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6.5c0-.48-.17-.93-.46-1.27zM12 17.5 6.5 12H10v-2h4v2h3.5L12 17.5zM5.12 5l.81-1h12l.94 1H5.12z"
+                                              fill="currentColor" />
+                                    </svg>
+                                    <span class="board-page__download-tooltip" aria-hidden="true">
+                                        <BoardDownloadCopyTooltip Status="BoardSerializationStatus.Completed"
+                                                                  ExportOptions="board.ExportOptions" />
+                                    </span>
+                                </button>
+                            </div>
+                            <div class="board-page__serialization-status">
+                                <button type="button"
+                                        class="board-page__re-export-btn btn-icon"
+                                        aria-label="Create a new downloadable copy with different options"
+                                        @onclick="ReExportBoardAsync">
+                                    <svg viewBox="0 0 24 24"
+                                         aria-hidden="true"
+                                         focusable="false">
+                                        <path d="M17.65 6.35A7.96 7.96 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A4.997 4.997 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"
+                                              fill="currentColor" />
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
                     }
                     else
                     {
                         <div class="board-page__serialization-status">
                             <BoardSerializationStatusIndicator Status="board.BoardSerializationStatus"
+                                                               ExportOptions="board.ExportOptions"
                                                                TooltipBelow="true" />
                         </div>
                     }
@@ -123,11 +144,36 @@
     private static string FormatArchivedAt(DateTime archivedAtUtc) =>
         archivedAtUtc.ToLocalTime().ToString("g");
 
-    private static string DownloadTooltip =>
-        BoardSerializationStatusFormatting.GetDescription(BoardSerializationStatus.Completed);
+    private string DownloadAriaLabel =>
+        BoardDetailsStore.Board is { ExportOptions: var exportOptions }
+            ? BoardSerializationStatusFormatting.GetAriaLabel(BoardSerializationStatus.Completed, exportOptions)
+            : BoardSerializationStatusFormatting.GetDescription(BoardSerializationStatus.Completed);
 
     private void OnDownloadClick() =>
         Snackbar.Add("Board download is coming soon.", Severity.Info);
+
+    private async Task ReExportBoardAsync()
+    {
+        if (BoardDetailsStore.Board is not { } board)
+            return;
+
+        var submitState = new ResourceFormDialogState();
+
+        var dialog = await DialogService.ShowResourceFormAsync(
+            "Create new copy",
+            "Create copy",
+            ReExportBoardForm.FormId,
+            ReExportBoardForm.Render(board.ExportOptions, submitState),
+            submitButtonClass: "btn-dialog-warning btn-dialog-action",
+            submitState: submitState);
+
+        var result = await dialog.Result;
+
+        if (result is not { Canceled: false, Data: BoardArchiveExportOptions exportOptions })
+            return;
+
+        Snackbar.Add("Board re-export is coming soon.", Severity.Info);
+    }
 
     protected override void OnInitialized() =>
         BoardDetailsStore.StateChanged += OnBoardDetailsStoreStateChanged;
@@ -301,24 +347,28 @@
 
     private async Task ArchiveBoardAsync()
     {
-        var message =
-            $"Archive board \"{BoardDetailsStore.Board?.Name}\"?{Environment.NewLine}This action cannot be undone.";
+        if (BoardDetailsStore.Board is not { Name: var boardName })
+            return;
 
-        var dialog = await DialogService.ShowConfirmResourceAsync(
+        var dialog = await DialogService.ShowResourceFormAsync(
             "Archive board",
-            message,
-            confirmLabel: "Archive",
+            "Archive",
+            ArchiveBoardForm.FormId,
+            ArchiveBoardForm.Render(boardName),
             submitButtonClass: "btn-dialog-warning btn-dialog-action");
 
         var result = await dialog.Result;
 
-        if (result is not { Canceled: false, Data: true })
+        if (result is not { Canceled: false, Data: BoardArchiveExportOptions exportOptions })
             return;
 
         try
         {
-            var archived = await BoardApiService.ArchiveBoardAsync(BoardId);
-            BoardDetailsStore.SetBoardArchived(archived.ArchivedAtUtc, archived.BoardSerializationStatus);
+            var archived = await BoardApiService.ArchiveBoardAsync(BoardId, exportOptions);
+            BoardDetailsStore.SetBoardArchived(
+                archived.ArchivedAtUtc,
+                archived.BoardSerializationStatus,
+                exportOptions);
             BoardStore.ApplyBoardArchived(BoardId, archived.ArchivedAtUtc, archived.BoardSerializationStatus);
             Snackbar.Add("Board archived.", Severity.Success);
         }

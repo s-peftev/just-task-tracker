@@ -101,6 +101,13 @@
     text-align: right;
 }
 
+.board-page__serialization-actions {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+}
+
 .board-page__serialization-status {
     flex-shrink: 0;
     display: inline-flex;
@@ -145,7 +152,7 @@
     left: auto;
     z-index: 4;
     width: max-content;
-    max-width: 16rem;
+    max-width: 18rem;
     padding: 0.5rem 0.625rem;
     background-color: var(--jtt-surface-app);
     border: 1px solid var(--jtt-stroke-warning-soft);
@@ -166,4 +173,15 @@
 .board-page__download-btn:focus-visible .board-page__download-tooltip {
     visibility: visible;
     opacity: 1;
+}
+
+.board-page__re-export-btn {
+    color: var(--jtt-text-warning);
+    border: none;
+    border-radius: var(--jtt-radius-sm);
+}
+
+.board-page__re-export-btn svg {
+    width: 1.75rem;
+    height: 1.75rem;
 }

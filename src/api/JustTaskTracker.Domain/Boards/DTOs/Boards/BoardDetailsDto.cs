@@ -11,4 +11,5 @@ public record BoardDetailsDto(
     BoardMemberRole UserRole,
     IEnumerable<ColumnDto> Columns,
     BoardSerializationStatus BoardSerializationStatus,
-    DateTime? ArchivedAtUtc);
+    BoardArchiveExportOptions? ExportOptions = null,
+    DateTime? ArchivedAtUtc = null);

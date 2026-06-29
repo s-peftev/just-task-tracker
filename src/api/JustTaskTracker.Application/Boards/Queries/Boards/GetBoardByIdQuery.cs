@@ -4,7 +4,6 @@ using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.ExternalProviders;
 using JustTaskTracker.Domain.Boards.Authorization;
 using JustTaskTracker.Domain.Boards.DTOs.Boards;
-using JustTaskTracker.Domain.Boards.Enums;
 using JustTaskTracker.Domain.Common.Results;
 using JustTaskTracker.Domain.Common.Results.Errors;
 using MediatR;
@@ -31,11 +30,10 @@ public class GetBoardByIdQueryHandler(
         if (board is null)
             return Result<BoardDetailsDto>.Failure(GeneralErrors.NotFound);
 
-        var serializationStatus = board.IsArchived
-            ? (await boardSerializationStatusService.GetBoardSerializationStatusAsync(board.Id, ct))?.Status
-                ?? BoardSerializationStatus.None
-            : BoardSerializationStatus.None;
+        var serializationInfo = board.IsArchived
+            ? await boardSerializationStatusService.GetBoardSerializationInfoAsync(board.Id, ct)
+            : null;
 
-        return Result<BoardDetailsDto>.Success(board.ToDto(serializationStatus));
+        return Result<BoardDetailsDto>.Success(board.ToDto(serializationInfo));
     }
 }

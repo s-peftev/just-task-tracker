@@ -1,4 +1,5 @@
 using JustTaskTracker.Application.Boards.ReadModels;
+using JustTaskTracker.Domain.Boards.DTOs.Boards;
 using JustTaskTracker.Domain.Boards.Enums;
 
 namespace JustTaskTracker.Application.Common.ExternalProviders;
@@ -6,21 +7,33 @@ namespace JustTaskTracker.Application.Common.ExternalProviders;
 public interface IBoardSerializationStatusService
 {
     /// <summary>
-    /// Creates or replaces the serialization status document for the given board.
+    /// Creates or replaces the serialization document for the given board, including export options.
     /// </summary>
     /// <remarks>
     /// Uses upsert semantics: one document per board, keyed by <paramref name="boardId"/>.
     /// </remarks>
-    Task UpdateSerializationStatusAsync(
+    Task SetSerializationAsync(
+        Guid boardId,
+        BoardSerializationStatus status,
+        BoardArchiveExportOptions exportOptions,
+        CancellationToken ct = default);
+
+    /// <summary>
+    /// Updates only serialization status fields on an existing document.
+    /// </summary>
+    /// <remarks>
+    /// Uses patch semantics and does not modify <c>exportOptions</c>.
+    /// </remarks>
+    Task UpdateStatusAsync(
         Guid boardId,
         BoardSerializationStatus status,
         string? errorMessage = null,
         CancellationToken ct = default);
 
     /// <summary>
-    /// Returns the serialization status document for <paramref name="boardId"/>, or <see langword="null"/> when none exists.
+    /// Returns the serialization info document for <paramref name="boardId"/>, or <see langword="null"/> when none exists.
     /// </summary>
-    Task<BoardSerializationStatusInfo?> GetBoardSerializationStatusAsync(
+    Task<BoardSerializationStatusInfo?> GetBoardSerializationInfoAsync(
         Guid boardId,
         CancellationToken ct = default);
 

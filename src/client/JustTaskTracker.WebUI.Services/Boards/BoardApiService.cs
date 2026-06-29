@@ -121,9 +121,12 @@ internal class BoardApiService(IBoardApi api) : IBoardApiService
         ApiResponseGuard.EnsureSuccess(response);
     }
 
-    public async Task<BoardArchivedDto> ArchiveBoardAsync(Guid boardId, CancellationToken ct = default)
+    public async Task<BoardArchivedDto> ArchiveBoardAsync(
+        Guid boardId,
+        BoardArchiveExportOptions exportOptions,
+        CancellationToken ct = default)
     {
-        var response = await api.ArchiveAsync(boardId, ct);
+        var response = await api.ArchiveAsync(boardId, exportOptions, ct);
 
         return ApiResponseGuard.Unwrap(response);
     }

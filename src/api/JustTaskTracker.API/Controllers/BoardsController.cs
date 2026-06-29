@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using JustTaskTracker.Application.Boards.Commands.Boards;
 using JustTaskTracker.Application.Boards.Queries.Boards;
+using JustTaskTracker.Domain.Boards.DTOs.Boards;
 
 namespace JustTaskTracker.API.Controllers;
 
@@ -58,9 +59,9 @@ public class BoardsController(ISender sender) : ControllerBase
 
     [HttpPost("{id:guid}/archive")]
     [Authorize(Policy = AuthorizationPolicies.IsAppMember)]
-    public async Task<IActionResult> Archive(Guid id, CancellationToken ct)
+    public async Task<IActionResult> Archive(Guid id, [FromBody] BoardArchiveExportOptions exportOptions, CancellationToken ct)
     {
-        var result = await sender.Send(new ArchiveBoardCommand(id), ct);
+        var result = await sender.Send(new ArchiveBoardCommand(id, exportOptions), ct);
 
         return result.Match(
             data => Ok(data),

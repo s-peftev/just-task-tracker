@@ -1,0 +1,32 @@
+.board-download-copy-tooltip__message {
+    margin: 0;
+}
+
+.board-download-copy-tooltip__options {
+    margin: 0.5rem 0 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.board-download-copy-tooltip__option {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+.board-download-copy-tooltip__mark {
+    flex-shrink: 0;
+    width: 0.875rem;
+    height: 0.875rem;
+}
+
+.board-download-copy-tooltip__mark--included {
+    color: var(--jtt-text-warning);
+}
+
+.board-download-copy-tooltip__mark--excluded {
+    color: var(--jtt-text-danger);
+}

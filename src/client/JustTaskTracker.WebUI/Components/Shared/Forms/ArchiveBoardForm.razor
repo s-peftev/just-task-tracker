@@ -1,0 +1,66 @@
+@using JustTaskTracker.WebUI.Domain.Boards
+
+<form id="@FormId" @onsubmit="SubmitAsync" @onsubmit:preventDefault="true">
+    <MudText Class="confirm-dialog__message archive-board-form__message"
+             Typo="Typo.body1">
+        @($"Archive board \"{BoardName}\"?")
+    </MudText>
+
+    <p class="archive-board-form__warning">
+        This action cannot be undone.
+    </p>
+
+    <fieldset class="archive-board-form__fieldset">
+        <legend class="archive-board-form__legend">Include in downloadable copy</legend>
+
+        <p class="archive-board-form__hint">
+            When the copy is ready, you can create a new one with different options.
+        </p>
+
+        <MudCheckBox @bind-Value="_includeDescriptions"
+                     Label="Task descriptions"
+                     Color="Color.Warning" />
+        <MudCheckBox @bind-Value="_includeComments"
+                     Label="Comments"
+                     Color="Color.Warning" />
+        <MudCheckBox @bind-Value="_includeAttachments"
+                     Label="Task attachments"
+                     Color="Color.Warning" />
+        <MudCheckBox @bind-Value="_includeMembers"
+                     Label="Board members"
+                     Color="Color.Warning" />
+    </fieldset>
+</form>
+
+@code {
+    public const string FormId = "archive-board-form";
+
+    [Parameter, EditorRequired]
+    public string BoardName { get; set; } = string.Empty;
+
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private bool _includeDescriptions = true;
+    private bool _includeComments = true;
+    private bool _includeAttachments;
+    private bool _includeMembers = true;
+
+    public static RenderFragment Render(string boardName) => builder =>
+    {
+        builder.OpenComponent<ArchiveBoardForm>(0);
+        builder.AddAttribute(1, nameof(BoardName), boardName);
+        builder.CloseComponent();
+    };
+
+    private void SubmitAsync()
+    {
+        var exportOptions = new BoardArchiveExportOptions(
+            _includeDescriptions,
+            _includeComments,
+            _includeAttachments,
+            _includeMembers);
+
+        MudDialog.Close(DialogResult.Ok(exportOptions));
+    }
+}

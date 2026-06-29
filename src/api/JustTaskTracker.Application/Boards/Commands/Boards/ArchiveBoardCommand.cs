@@ -15,7 +15,7 @@ using Microsoft.Extensions.Logging;
 
 namespace JustTaskTracker.Application.Boards.Commands.Boards;
 
-public record ArchiveBoardCommand(Guid BoardId)
+public record ArchiveBoardCommand(Guid BoardId, BoardArchiveExportOptions ExportOptions)
     : IRequest<Result<BoardArchivedDto>>, IRequireActiveBoard;
 
 public class ArchiveBoardCommandHandler(
@@ -42,10 +42,11 @@ public class ArchiveBoardCommandHandler(
 
         try
         {
-            await boardSerializationStatusService.UpdateSerializationStatusAsync(
+            await boardSerializationStatusService.SetSerializationAsync(
                 board.Id,
                 BoardSerializationStatus.Pending,
-                ct: ct);
+                request.ExportOptions,
+                ct);
         }
         catch (Exception ex)
         {
@@ -70,5 +71,8 @@ public class ArchiveBoardCommandValidator : AbstractValidator<ArchiveBoardComman
     {
         RuleFor(x => x.BoardId)
             .NotEmpty();
+
+        RuleFor(x => x.ExportOptions)
+            .NotNull();
     }
 }

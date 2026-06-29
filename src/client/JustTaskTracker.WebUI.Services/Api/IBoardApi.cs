@@ -59,7 +59,10 @@ internal interface IBoardApi
     Task<IApiResponse<ApiEnvelope<object>>> LeaveAsync(Guid boardId, CancellationToken ct = default);
 
     [Post("/api/boards/{boardId}/archive")]
-    Task<IApiResponse<ApiEnvelope<BoardArchivedDto>>> ArchiveAsync(Guid boardId, CancellationToken ct = default);
+    Task<IApiResponse<ApiEnvelope<BoardArchivedDto>>> ArchiveAsync(
+        Guid boardId,
+        [Body] BoardArchiveExportOptions exportOptions,
+        CancellationToken ct = default);
 
     [Post("/api/boards/{boardId}/columns")]
     Task<IApiResponse<ApiEnvelope<ColumnDto>>> CreateColumnAsync(Guid boardId, [Body] SaveColumnRequest request, CancellationToken ct = default);

@@ -10,7 +10,7 @@ internal static class DatabaseModule
 {
     public static IServiceCollection AddDatabaseModule(this IServiceCollection services, IConfiguration configuration)
     {
-        var connectionString = configuration.GetConnectionString(ConnectionStringNames.JustTaskTracker)
+        var connectionString = configuration.GetConnectionString(ConnectionStringNames.MSSQLDb)
             ?? throw new InvalidOperationException("DB connection string is not configured.");
 
         services.AddDbContext<JustTaskTrackerDbContext>(options =>

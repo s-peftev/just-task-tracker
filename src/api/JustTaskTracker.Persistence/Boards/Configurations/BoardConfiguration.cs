@@ -11,5 +11,6 @@ public class BoardConfiguration : IEntityTypeConfiguration<Board>
     {
         builder.Property(b => b.Name).HasMaxLength(BoardFieldLengths.MaxNameLength);
         builder.Property(b => b.IsArchived).HasDefaultValue(false);
+        builder.Property(b => b.IsSerialized).HasDefaultValue(false);
     }
 }

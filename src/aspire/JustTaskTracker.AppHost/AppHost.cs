@@ -13,7 +13,12 @@ var migrations = builder.AddProject<Projects.JustTaskTracker_Database>("migratio
 var api = builder.AddProject<Projects.JustTaskTracker_API>("api")
     .WithReference(database)
     .WaitFor(database)
-    .WaitForCompletion(migrations);
+    .WaitForCompletion(migrations)
+    .WithUrlForEndpoint("https", _ => new()
+    {
+        Url = "/hangfire",
+        DisplayText = "Hangfire",
+    });
 
 builder.AddProject<Projects.JustTaskTracker_WebUI>("webui");
 

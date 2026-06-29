@@ -1,14 +1,13 @@
 using JustTaskTracker.Domain.Boards.DTOs.Columns;
 using JustTaskTracker.Domain.Boards.Enums;
 
-namespace JustTaskTracker.Domain.Boards.DTOs.Boards;
+namespace JustTaskTracker.Application.Boards.ReadModels;
 
-public record BoardDetailsDto(
+public record BoardDetailsReadModel(
     Guid Id,
     string Name,
     DateTime CreatedAtUtc,
     bool IsArchived,
     BoardMemberRole UserRole,
     IEnumerable<ColumnDto> Columns,
-    BoardSerializationStatus BoardSerializationStatus,
     DateTime? ArchivedAtUtc);

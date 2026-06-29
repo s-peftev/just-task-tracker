@@ -1,6 +1,6 @@
 using Newtonsoft.Json;
 
-namespace JustTaskTracker.Infrastructure.Common.ExternalProviders.CosmosDb;
+namespace JustTaskTracker.Infrastructure.Boards.Serialization;
 
 /// <summary>
 /// Cosmos DB document that tracks the serialization/export status of an archived board.

@@ -2,8 +2,6 @@ using JustTaskTracker.Application.Boards.ReadModels;
 using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Helpers;
 using JustTaskTracker.Application.Users.ReadModels;
-using JustTaskTracker.Domain.Auth.DTOs;
-using JustTaskTracker.Domain.Boards.DTOs.Boards;
 using JustTaskTracker.Domain.Boards.DTOs.BoardTasks;
 using JustTaskTracker.Domain.Boards.DTOs.Columns;
 using JustTaskTracker.Domain.Boards.Entities;
@@ -61,10 +59,10 @@ public class BoardRepository(JustTaskTrackerDbContext context)
         return (result?.Board, result?.UserRole);
     }
 
-    public async Task<BoardDetailsDto?> GetBoardDetailsByIdAsync(Guid boardId, Guid azureAdObjectId, CancellationToken ct = default) =>
+    public async Task<BoardDetailsReadModel?> GetBoardDetailsByIdAsync(Guid boardId, Guid azureAdObjectId, CancellationToken ct = default) =>
         await _dbSet
             .Where(b => b.Id == boardId)
-            .Select(b => new BoardDetailsDto(
+            .Select(b => new BoardDetailsReadModel(
                 b.Id,
                 b.Name,
                 b.CreatedAtUtc,
@@ -92,7 +90,7 @@ public class BoardRepository(JustTaskTrackerDbContext context)
             .AsSplitQuery()
             .FirstOrDefaultAsync(ct);
 
-    public async Task<PagedList<BoardLookupDto>> GetBoardsByUserAzureAOIAsync(
+    public async Task<PagedList<BoardLookupReadModel>> GetBoardsByUserAzureAOIAsync(
         Guid azureAdObjectId,
         int pageNumber,
         int pageSize,
@@ -135,7 +133,7 @@ public class BoardRepository(JustTaskTrackerDbContext context)
             })
             .OrderByDescending(x => x.LastActivity)
             .ToPagedAsync(
-                x => new BoardLookupDto(
+                x => new BoardLookupReadModel(
                     x.Board.Id,
                     x.Board.Name,
                     x.Board.IsArchived,

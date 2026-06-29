@@ -1,13 +1,12 @@
 using JustTaskTracker.Domain.Boards.Enums;
 
-namespace JustTaskTracker.Domain.Boards.DTOs.Boards;
+namespace JustTaskTracker.Application.Boards.ReadModels;
 
-public record BoardLookupDto(
+public record BoardLookupReadModel(
     Guid Id,
     string Name,
     bool IsArchived,
     BoardMemberRole UserRole,
     string OwnerEmail,
-    BoardSerializationStatus BoardSerializationStatus,
     string? OwnerDisplayName,
     DateTime? ArchivedAtUtc);

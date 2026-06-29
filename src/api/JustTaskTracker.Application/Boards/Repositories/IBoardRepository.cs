@@ -1,6 +1,5 @@
 using JustTaskTracker.Application.Boards.ReadModels;
 using JustTaskTracker.Application.Common.Persistence;
-using JustTaskTracker.Domain.Boards.DTOs.Boards;
 using JustTaskTracker.Domain.Boards.Entities;
 using JustTaskTracker.Domain.Boards.Enums;
 using JustTaskTracker.Domain.Boards.Enums.SearchFields;
@@ -23,9 +22,9 @@ public interface IBoardRepository : IRepository<Board, Guid>
 
     Task<(Board? Board, BoardMemberRole? UserRole)> GetBoardWithUserRoleAsync(Guid boardId, Guid azureAdObjectId, CancellationToken ct = default);
 
-    Task<BoardDetailsDto?> GetBoardDetailsByIdAsync(Guid boardId, Guid azureAdObjectId, CancellationToken ct = default);
+    Task<BoardDetailsReadModel?> GetBoardDetailsByIdAsync(Guid boardId, Guid azureAdObjectId, CancellationToken ct = default);
 
-    Task<PagedList<BoardLookupDto>> GetBoardsByUserAzureAOIAsync(
+    Task<PagedList<BoardLookupReadModel>> GetBoardsByUserAzureAOIAsync(
         Guid azureAdObjectId,
         int pageNumber,
         int pageSize,

@@ -3,7 +3,7 @@ using Azure.Storage.Blobs;
 using JustTaskTracker.Application.Common.ExternalProviders;
 using JustTaskTracker.Infrastructure.Common.Constants;
 using JustTaskTracker.Infrastructure.Common.ExternalProviders;
-using JustTaskTracker.Infrastructure.Common.ExternalProviders.CosmosDb;
+using JustTaskTracker.Infrastructure.Boards.Serialization;
 using JustTaskTracker.Infrastructure.Common.Options;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Configuration;

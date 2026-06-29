@@ -60,7 +60,7 @@ public class ArchiveBoardCommandHandler(
 
         await unitOfWork.SaveChangesAsync(ct);
 
-        return Result<BoardArchivedDto>.Success(new BoardArchivedDto(archivedAtUtc));
+        return Result<BoardArchivedDto>.Success(new BoardArchivedDto(archivedAtUtc, BoardSerializationStatus.Pending));
     }
 }
 

@@ -11,4 +11,6 @@ public record BoardDetailsDto(
     IReadOnlyList<ColumnDto> Columns,
     BoardExportStatus BoardExportStatus,
     BoardExportOptions? ExportOptions = null,
+    BoardExportStatus ReExportStatus = BoardExportStatus.None,
+    BoardExportOptions? ReExportOptions = null,
     DateTime? ArchivedAtUtc = null);

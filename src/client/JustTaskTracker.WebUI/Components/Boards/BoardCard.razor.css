@@ -55,22 +55,28 @@
     );
 }
 
-.board-card__corner-action {
+.board-card__corner-actions {
     position: absolute;
     top: 0.5rem;
     left: 0.75rem;
     display: inline-flex;
     align-items: center;
-    justify-content: center;
-    line-height: 0;
+    gap: 0.375rem;
     z-index: 1;
 }
 
-.board-card__corner-action--indicator:hover {
+.board-card__corner-actions:hover {
     z-index: 3;
 }
 
-.board-card__corner-action--indicator ::deep .board-serialization-status__tooltip {
+.board-card__corner-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 0;
+}
+
+.board-card__corner-actions .board-card__corner-action--indicator ::deep .board-serialization-status__tooltip {
     z-index: 4;
 }
 

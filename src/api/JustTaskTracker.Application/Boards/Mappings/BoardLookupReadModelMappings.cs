@@ -8,14 +8,25 @@ public static class BoardLookupReadModelMappings
 {
     public static BoardLookupDto ToDto(
         this BoardLookupReadModel board,
-        BoardExportStatus boardExportStatus) =>
-        new(
+        BoardExportStatusInfo? exportInfo)
+    {
+        var boardExportStatus = board.IsArchived
+            ? exportInfo?.Status ?? BoardExportStatus.None
+            : BoardExportStatus.None;
+
+        var reExportStatus = board.IsArchived
+            ? exportInfo?.ReExportStatus ?? BoardExportStatus.None
+            : BoardExportStatus.None;
+
+        return new BoardLookupDto(
             board.Id,
             board.Name,
             board.IsArchived,
             board.UserRole,
             board.OwnerEmail,
             boardExportStatus,
+            reExportStatus,
             board.OwnerDisplayName,
             board.ArchivedAtUtc);
+    }
 }

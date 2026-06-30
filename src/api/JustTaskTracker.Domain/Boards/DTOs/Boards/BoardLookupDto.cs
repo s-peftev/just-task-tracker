@@ -9,5 +9,6 @@ public record BoardLookupDto(
     BoardMemberRole UserRole,
     string OwnerEmail,
     BoardExportStatus BoardExportStatus,
-    string? OwnerDisplayName,
-    DateTime? ArchivedAtUtc);
+    BoardExportStatus ReExportStatus = BoardExportStatus.None,
+    string? OwnerDisplayName = null,
+    DateTime? ArchivedAtUtc = null);

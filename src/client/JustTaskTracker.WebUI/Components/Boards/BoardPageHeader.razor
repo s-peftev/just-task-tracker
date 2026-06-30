@@ -55,9 +55,9 @@
                 </p>
                 @if (CanViewBoardDownloadStatus)
                 {
-                    @if (board.BoardExportStatus == BoardExportStatus.Completed)
-                    {
-                        <div class="board-page__serialization-actions">
+                    <div class="board-page__serialization-actions">
+                        @if (ShowPreviousExportDownload(board))
+                        {
                             <div class="board-page__serialization-status">
                                 <button type="button"
                                         class="board-page__download-btn btn-icon"
@@ -75,6 +75,10 @@
                                     </span>
                                 </button>
                             </div>
+                        }
+
+                        @if (ShowReExportButton(board))
+                        {
                             <div class="board-page__serialization-status">
                                 <button type="button"
                                         class="board-page__re-export-btn btn-icon"
@@ -88,16 +92,25 @@
                                     </svg>
                                 </button>
                             </div>
-                        </div>
-                    }
-                    else
-                    {
-                        <div class="board-page__serialization-status">
-                            <BoardExportStatusIndicator Status="board.BoardExportStatus"
-                                                               ExportOptions="board.ExportOptions"
-                                                               TooltipBelow="true" />
-                        </div>
-                    }
+                        }
+
+                        @if (board.ReExportStatus != BoardExportStatus.None)
+                        {
+                            <div class="board-page__serialization-status">
+                                <BoardExportStatusIndicator Status="board.ReExportStatus"
+                                                            ExportOptions="board.ReExportOptions"
+                                                            TooltipBelow="true" />
+                            </div>
+                        }
+                        else if (board.BoardExportStatus != BoardExportStatus.Completed)
+                        {
+                            <div class="board-page__serialization-status">
+                                <BoardExportStatusIndicator Status="board.BoardExportStatus"
+                                                            ExportOptions="board.ExportOptions"
+                                                            TooltipBelow="true" />
+                            </div>
+                        }
+                    </div>
                 }
             }
 
@@ -149,6 +162,15 @@
             ? BoardExportStatusFormatting.GetAriaLabel(BoardExportStatus.Completed, exportOptions)
             : BoardExportStatusFormatting.GetDescription(BoardExportStatus.Completed);
 
+    private static bool ShowPreviousExportDownload(BoardDetailsDto board) =>
+        board.BoardExportStatus == BoardExportStatus.Completed
+        && (board.ReExportStatus == BoardExportStatus.None
+            || board.ReExportStatus == BoardExportStatus.Pending);
+
+    private static bool ShowReExportButton(BoardDetailsDto board) =>
+        board.BoardExportStatus == BoardExportStatus.Completed
+        && board.ReExportStatus == BoardExportStatus.None;
+
     private void OnDownloadClick() =>
         Snackbar.Add("Board download is coming soon.", Severity.Info);
 
@@ -172,7 +194,17 @@
         if (result is not { Canceled: false, Data: BoardExportOptions exportOptions })
             return;
 
-        Snackbar.Add("Board re-export is coming soon.", Severity.Info);
+        try
+        {
+            await BoardApiService.ReExportArchivedBoardAsync(BoardId, exportOptions);
+            BoardDetailsStore.SetBoardReExportPending(exportOptions);
+            BoardStore.ApplyBoardReExportPending(BoardId);
+            Snackbar.Add("New copy creation started.", Severity.Success);
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
     }
 
     protected override void OnInitialized() =>
@@ -364,7 +396,7 @@
 
         try
         {
-            var archived = await BoardApiService.ArchiveBoardAsync(BoardId, exportOptions);
+            var archived = await BoardApiService.ArchiveAndExportBoardAsync(BoardId, exportOptions);
             BoardDetailsStore.SetBoardArchived(
                 archived.ArchivedAtUtc,
                 archived.BoardExportStatus,

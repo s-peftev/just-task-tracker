@@ -12,4 +12,6 @@ public record BoardDetailsDto(
     IEnumerable<ColumnDto> Columns,
     BoardExportStatus BoardExportStatus,
     BoardExportOptions? ExportOptions = null,
+    BoardExportStatus ReExportStatus = BoardExportStatus.None,
+    BoardExportOptions? ReExportOptions = null,
     DateTime? ArchivedAtUtc = null);

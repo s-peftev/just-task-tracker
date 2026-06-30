@@ -80,6 +80,23 @@ internal sealed class BoardStore(IBoardApiService boardApiService) : IBoardStore
         NotifyStateChanged();
     }
 
+    public void ApplyBoardReExportPending(Guid boardId)
+    {
+        var archivedBoards = _archived.Boards.ToList();
+        var archivedIndex = archivedBoards.FindIndex(board => board.Id == boardId);
+
+        if (archivedIndex < 0)
+            return;
+
+        archivedBoards[archivedIndex] = archivedBoards[archivedIndex] with
+        {
+            ReExportStatus = BoardExportStatus.Pending,
+        };
+
+        _archived.Boards = archivedBoards;
+        NotifyStateChanged();
+    }
+
     public void Reset()
     {
         CancelSearchDebounce(_active);

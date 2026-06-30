@@ -45,13 +45,11 @@ public class GetBoardsForCurrentUserQueryHandler(
 
         var boardDtos = boards.Items.Select(board =>
         {
-            var exportStatus = board.IsArchived
-                ? exportStatuses.TryGetValue(board.Id, out var status)
-                    ? status.Status
-                    : BoardExportStatus.None
-                : BoardExportStatus.None;
+            var exportInfo = board.IsArchived && exportStatuses.TryGetValue(board.Id, out var status)
+                ? status
+                : null;
 
-            return board.ToDto(exportStatus);
+            return board.ToDto(exportInfo);
         });
 
         return Result<PagedList<BoardLookupDto>>.Success(new PagedList<BoardLookupDto>(boards.Metadata, boardDtos));

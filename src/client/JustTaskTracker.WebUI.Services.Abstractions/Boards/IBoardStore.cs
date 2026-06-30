@@ -28,5 +28,7 @@ public interface IBoardStore
 
     void ApplyBoardArchived(Guid boardId, DateTime archivedAtUtc, BoardExportStatus boardExportStatus);
 
+    void ApplyBoardReExportPending(Guid boardId);
+
     void Reset();
 }

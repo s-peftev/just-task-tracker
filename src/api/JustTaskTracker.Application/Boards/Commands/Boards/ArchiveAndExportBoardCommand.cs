@@ -15,19 +15,19 @@ using Microsoft.Extensions.Logging;
 
 namespace JustTaskTracker.Application.Boards.Commands.Boards;
 
-public record ArchiveBoardCommand(Guid BoardId, BoardExportOptions ExportOptions)
+public record ArchiveAndExportBoardCommand(Guid BoardId, BoardExportOptions ExportOptions)
     : IRequest<Result<BoardArchivedDto>>, IRequireActiveBoard;
 
-public class ArchiveBoardCommandHandler(
+public class ArchiveAndExportBoardCommandHandler(
     ICurrentUserAccessor currentUserAccessor,
     IBoardRepository boardRepository,
     IBoardExportService boardExportService,
     IUnitOfWork unitOfWork,
     IDateTimeProvider dateTimeProvider,
-    ILogger<ArchiveBoardCommandHandler> logger)
-    : IRequestHandler<ArchiveBoardCommand, Result<BoardArchivedDto>>
+    ILogger<ArchiveAndExportBoardCommandHandler> logger)
+    : IRequestHandler<ArchiveAndExportBoardCommand, Result<BoardArchivedDto>>
 {
-    public async Task<Result<BoardArchivedDto>> Handle(ArchiveBoardCommand request, CancellationToken ct)
+    public async Task<Result<BoardArchivedDto>> Handle(ArchiveAndExportBoardCommand request, CancellationToken ct)
     {
         var (board, userRole) = await boardRepository.GetBoardWithUserRoleAsync(
             request.BoardId,
@@ -65,9 +65,9 @@ public class ArchiveBoardCommandHandler(
     }
 }
 
-public class ArchiveBoardCommandValidator : AbstractValidator<ArchiveBoardCommand>
+public class ArchiveAndExportBoardCommandValidator : AbstractValidator<ArchiveAndExportBoardCommand>
 {
-    public ArchiveBoardCommandValidator()
+    public ArchiveAndExportBoardCommandValidator()
     {
         RuleFor(x => x.BoardId)
             .NotEmpty();

@@ -126,5 +126,9 @@ internal sealed class CosmosBoardExportService(Container container, IDateTimePro
             (BoardExportStatus)document.ExportStatus,
             document.UpdatedAtUtc,
             document.ErrorMessage,
-            document.ExportOptions);
+            document.ExportOptions,
+            document.ReExportStatus is { } reExportStatus
+                ? (BoardExportStatus)reExportStatus
+                : BoardExportStatus.None,
+            document.ReExportOptions);
 }

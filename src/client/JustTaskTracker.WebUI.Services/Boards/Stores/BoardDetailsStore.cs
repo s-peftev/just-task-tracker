@@ -113,6 +113,20 @@ internal sealed class BoardDetailsStore(IBoardApiService boardApiService) : IBoa
         NotifyStateChanged();
     }
 
+    public void SetBoardReExportPending(BoardExportOptions reExportOptions)
+    {
+        if (Board is null)
+            return;
+
+        Board = Board with
+        {
+            ReExportStatus = BoardExportStatus.Pending,
+            ReExportOptions = reExportOptions,
+        };
+
+        NotifyStateChanged();
+    }
+
     public void UpdateColumnName(Guid columnId, string name)
     {
         if (Board is null)

@@ -32,6 +32,8 @@ public interface IBoardDetailsStore
         BoardExportStatus boardExportStatus,
         BoardExportOptions? exportOptions = null);
 
+    void SetBoardReExportPending(BoardExportOptions reExportOptions);
+
     void UpdateColumnName(Guid columnId, string name);
 
     void UpdateTaskTitle(Guid taskId, string title);

@@ -18,6 +18,14 @@ public static class BoardDetailsReadModelMappings
             ? exportInfo?.ExportOptions
             : null;
 
+        var reExportStatus = board.IsArchived
+            ? exportInfo?.ReExportStatus ?? BoardExportStatus.None
+            : BoardExportStatus.None;
+
+        var reExportOptions = board.IsArchived && reExportStatus != BoardExportStatus.None
+            ? exportInfo?.ReExportOptions
+            : null;
+
         return new BoardDetailsDto(
             board.Id,
             board.Name,
@@ -27,6 +35,8 @@ public static class BoardDetailsReadModelMappings
             board.Columns,
             boardExportStatus,
             exportOptions,
+            reExportStatus,
+            reExportOptions,
             board.ArchivedAtUtc);
     }
 }

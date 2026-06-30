@@ -8,4 +8,6 @@ public record BoardExportStatusInfo(
     BoardExportStatus Status,
     DateTime UpdatedAtUtc,
     string? ErrorMessage,
-    BoardExportOptions? ExportOptions);
+    BoardExportOptions? ExportOptions,
+    BoardExportStatus ReExportStatus = BoardExportStatus.None,
+    BoardExportOptions? ReExportOptions = null);

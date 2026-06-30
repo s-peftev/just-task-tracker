@@ -57,18 +57,18 @@ public class BoardsController(ISender sender) : ControllerBase
             error => error.CreateErrorResponse());
     }
 
-    [HttpPost("{id:guid}/archive")]
+    [HttpPost("{id:guid}/archive/export")]
     [Authorize(Policy = AuthorizationPolicies.IsAppMember)]
-    public async Task<IActionResult> Archive(Guid id, [FromBody] BoardExportOptions exportOptions, CancellationToken ct)
+    public async Task<IActionResult> ArchiveAndExport(Guid id, [FromBody] BoardExportOptions exportOptions, CancellationToken ct)
     {
-        var result = await sender.Send(new ArchiveBoardCommand(id, exportOptions), ct);
+        var result = await sender.Send(new ArchiveAndExportBoardCommand(id, exportOptions), ct);
 
         return result.Match(
             data => Ok(data),
             error => error.CreateErrorResponse());
     }
 
-    [HttpPost("{id:guid}/archive/export")]
+    [HttpPost("{id:guid}/archive/re-export")]
     [Authorize(Policy = AuthorizationPolicies.IsAppMember)]
     public async Task<IActionResult> ReExportArchived(Guid id, [FromBody] BoardExportOptions reExportOptions, CancellationToken ct)
     {

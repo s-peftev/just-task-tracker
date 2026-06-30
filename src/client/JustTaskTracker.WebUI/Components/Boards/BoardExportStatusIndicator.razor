@@ -1,0 +1,98 @@
+@using JustTaskTracker.WebUI.Domain.Boards
+@using JustTaskTracker.WebUI.Domain.Boards.Enums
+
+@if (EffectiveStatus != BoardExportStatus.Completed)
+{
+    <span class="@RootCssClass"
+          aria-label="@AriaLabel"
+          title="@(ShowTooltip ? null : AriaLabel)">
+        <svg class="board-serialization-status__icon"
+             viewBox="0 0 24 24"
+             aria-hidden="true"
+             focusable="false">
+            <path class="board-serialization-status__segment @GetSegmentClass(1)"
+                  d="@GetSegmentPath(1)" />
+            <path class="board-serialization-status__segment @GetSegmentClass(2)"
+                  d="@GetSegmentPath(2)" />
+            <path class="board-serialization-status__segment @GetSegmentClass(3)"
+                  d="@GetSegmentPath(3)" />
+        </svg>
+
+        @if (ShowTooltip)
+        {
+            <span class="board-serialization-status__tooltip" aria-hidden="true">
+                <BoardDownloadCopyTooltip Status="EffectiveStatus"
+                                          ExportOptions="ExportOptions" />
+            </span>
+        }
+    </span>
+}
+
+@code {
+    private const double Center = 12;
+    private const double Radius = 9;
+    private const double SegmentGap = 18;
+    private const double SegmentSweep = 120 - SegmentGap;
+
+    [Parameter, EditorRequired]
+    public BoardExportStatus Status { get; set; }
+
+    [Parameter]
+    public BoardExportOptions? ExportOptions { get; set; }
+
+    [Parameter]
+    public bool ShowTooltip { get; set; } = true;
+
+    [Parameter]
+    public bool TooltipBelow { get; set; }
+
+    private BoardExportStatus EffectiveStatus =>
+        Status is BoardExportStatus.None ? BoardExportStatus.Pending : Status;
+
+    private string AriaLabel =>
+        BoardExportStatusFormatting.GetAriaLabel(EffectiveStatus, ExportOptions);
+
+    private string RootCssClass =>
+        string.Join(
+            ' ',
+            new[]
+            {
+                "board-serialization-status",
+                ShowTooltip ? "board-serialization-status--tooltip" : null,
+                TooltipBelow ? "board-serialization-status--tooltip-below" : null,
+            }.Where(static cssClass => cssClass is not null));
+
+    private string GetSegmentClass(int segmentIndex) =>
+        (EffectiveStatus, segmentIndex) switch
+        {
+            (BoardExportStatus.Processing, 1 or 2) => "board-serialization-status__segment--accent",
+            (BoardExportStatus.Failed, 1 or 2) => "board-serialization-status__segment--danger",
+            (BoardExportStatus.Pending, 1) => "board-serialization-status__segment--warning",
+            _ => "board-serialization-status__segment--inactive",
+        };
+
+    private static string GetSegmentPath(int segmentIndex)
+    {
+        var startAngle = (segmentIndex - 1) * 120 + SegmentGap / 2;
+        var endAngle = startAngle + SegmentSweep;
+
+        return DescribeArc(Center, Center, Radius, startAngle, endAngle);
+    }
+
+    private static string DescribeArc(double centerX, double centerY, double radius, double startAngleDeg, double endAngleDeg)
+    {
+        var start = Polar(centerX, centerY, radius, startAngleDeg);
+        var end = Polar(centerX, centerY, radius, endAngleDeg);
+        var sweep = endAngleDeg - startAngleDeg;
+        var largeArc = sweep > 180 ? 1 : 0;
+
+        return FormattableString.Invariant(
+            $"M {start.X:F3},{start.Y:F3} A {radius},{radius} 0 {largeArc} 1 {end.X:F3},{end.Y:F3}");
+    }
+
+    private static (double X, double Y) Polar(double centerX, double centerY, double radius, double angleFromTopDeg)
+    {
+        var radians = angleFromTopDeg * Math.PI / 180;
+        return (centerX + radius * Math.Sin(radians), centerY - radius * Math.Cos(radians));
+    }
+}

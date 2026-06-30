@@ -4,15 +4,15 @@ using Newtonsoft.Json;
 namespace JustTaskTracker.Infrastructure.Boards.Serialization;
 
 /// <summary>
-/// Cosmos DB document that tracks the serialization/export status of an archived board.
+/// Cosmos DB document that tracks the export status and options of an archived board.
 /// Partition key: /boardId. One document per board — upsert replaces the previous entry.
 /// </summary>
-internal sealed class BoardSerializationDocument
+internal sealed class BoardExportDocument
 {
     internal const string IdJson = "id";
     internal const string BoardIdJson = "boardId";
-    internal const string StatusJson = "status";
-    internal const string StatusNameJson = "statusName";
+    internal const string ExportStatusJson = "exportStatus";
+    internal const string ExportStatusNameJson = "exportStatusName";
     internal const string UpdatedAtUtcJson = "updatedAtUtc";
     internal const string ErrorMessageJson = "errorMessage";
     internal const string ExportOptionsJson = "exportOptions";
@@ -29,11 +29,11 @@ internal sealed class BoardSerializationDocument
     [JsonProperty(BoardIdJson)]
     public required Guid BoardId { get; init; }
 
-    [JsonProperty(StatusJson)]
-    public required int Status { get; init; }
+    [JsonProperty(ExportStatusJson)]
+    public required int ExportStatus { get; init; }
 
-    [JsonProperty(StatusNameJson)]
-    public required string StatusName { get; init; }
+    [JsonProperty(ExportStatusNameJson)]
+    public required string ExportStatusName { get; init; }
 
     [JsonProperty(UpdatedAtUtcJson)]
     public required DateTime UpdatedAtUtc { get; init; }
@@ -42,7 +42,7 @@ internal sealed class BoardSerializationDocument
     public string? ErrorMessage { get; init; }
 
     [JsonProperty(ExportOptionsJson)]
-    public BoardArchiveExportOptions? ExportOptions { get; init; }
+    public BoardExportOptions? ExportOptions { get; init; }
 
     [JsonProperty(ReExportStatusJson)]
     public int? ReExportStatus { get; init; }
@@ -51,5 +51,5 @@ internal sealed class BoardSerializationDocument
     public string? ReExportStatusName { get; init; }
 
     [JsonProperty(ReExportOptionsJson)]
-    public BoardArchiveExportOptions? ReExportOptions { get; init; }
+    public BoardExportOptions? ReExportOptions { get; init; }
 }

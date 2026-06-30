@@ -65,10 +65,10 @@ internal static class AzureModule
 
             return client.GetContainer(
                 options.DatabaseName,
-                options.Containers!.BoardArchivalStatuses);
+                options.Containers!.BoardExport);
         });
 
-        services.AddSingleton<IBoardSerializationService, CosmosBoardSerializationService>();
+        services.AddSingleton<IBoardExportService, CosmosBoardExportService>();
 
         return services;
     }

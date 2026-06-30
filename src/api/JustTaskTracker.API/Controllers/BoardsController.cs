@@ -59,7 +59,7 @@ public class BoardsController(ISender sender) : ControllerBase
 
     [HttpPost("{id:guid}/archive")]
     [Authorize(Policy = AuthorizationPolicies.IsAppMember)]
-    public async Task<IActionResult> Archive(Guid id, [FromBody] BoardArchiveExportOptions exportOptions, CancellationToken ct)
+    public async Task<IActionResult> Archive(Guid id, [FromBody] BoardExportOptions exportOptions, CancellationToken ct)
     {
         var result = await sender.Send(new ArchiveBoardCommand(id, exportOptions), ct);
 
@@ -70,7 +70,7 @@ public class BoardsController(ISender sender) : ControllerBase
 
     [HttpPost("{id:guid}/archive/export")]
     [Authorize(Policy = AuthorizationPolicies.IsAppMember)]
-    public async Task<IActionResult> ReExportArchived(Guid id, [FromBody] BoardArchiveExportOptions reExportOptions, CancellationToken ct)
+    public async Task<IActionResult> ReExportArchived(Guid id, [FromBody] BoardExportOptions reExportOptions, CancellationToken ct)
     {
         var result = await sender.Send(new ReExportArchivedBoardCommand(id, reExportOptions), ct);
 

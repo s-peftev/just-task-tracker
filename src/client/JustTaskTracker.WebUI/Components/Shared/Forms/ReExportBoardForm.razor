@@ -90,7 +90,7 @@
     public const string FormId = "re-export-board-form";
 
     [Parameter]
-    public BoardArchiveExportOptions? InitialExportOptions { get; set; }
+    public BoardExportOptions? InitialExportOptions { get; set; }
 
     [Parameter, EditorRequired]
     public ResourceFormDialogState SubmitState { get; set; } = default!;
@@ -98,7 +98,7 @@
     [CascadingParameter]
     private IMudDialogInstance MudDialog { get; set; } = default!;
 
-    private BoardArchiveExportOptions? _initialOptions;
+    private BoardExportOptions? _initialOptions;
     private bool _previousIncludeDescriptions;
     private bool _previousIncludeComments;
     private bool _previousIncludeAttachments;
@@ -110,10 +110,10 @@
 
     private bool HasChanges =>
         _initialOptions is null
-        || !BoardArchiveExportOptionsFormatting.AreEqual(BuildCurrentOptions(), _initialOptions);
+        || !BoardExportOptionsFormatting.AreEqual(BuildCurrentOptions(), _initialOptions);
 
     public static RenderFragment Render(
-        BoardArchiveExportOptions? initialExportOptions,
+        BoardExportOptions? initialExportOptions,
         ResourceFormDialogState submitState) => builder =>
     {
         builder.OpenComponent<ReExportBoardForm>(0);
@@ -151,7 +151,7 @@
         MudDialog.Close(DialogResult.Ok(BuildCurrentOptions()));
     }
 
-    private BoardArchiveExportOptions BuildCurrentOptions() =>
+    private BoardExportOptions BuildCurrentOptions() =>
         new(
             _includeDescriptions,
             _includeComments,

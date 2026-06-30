@@ -22,7 +22,7 @@ public record GetBoardsForCurrentUserQuery(
 public class GetBoardsForCurrentUserQueryHandler(
     ICurrentUserAccessor currentUser,
     IBoardRepository boardRepository,
-    IBoardSerializationService boardSerializationService)
+    IBoardExportService boardExportService)
     : IRequestHandler<GetBoardsForCurrentUserQuery, Result<PagedList<BoardLookupDto>>>
 {
     public async Task<Result<PagedList<BoardLookupDto>>> Handle(GetBoardsForCurrentUserQuery request, CancellationToken ct)
@@ -40,18 +40,18 @@ public class GetBoardsForCurrentUserQueryHandler(
             .Select(board => board.Id)
             .ToList();
 
-        var serializationStatuses = await boardSerializationService
-            .GetBoardListSerializationStatusesAsync(archivedBoardIds, ct);
+        var exportStatuses = await boardExportService
+            .GetBoardListExportInfoAsync(archivedBoardIds, ct);
 
         var boardDtos = boards.Items.Select(board =>
         {
-            var serializationStatus = board.IsArchived
-                ? serializationStatuses.TryGetValue(board.Id, out var status)
+            var exportStatus = board.IsArchived
+                ? exportStatuses.TryGetValue(board.Id, out var status)
                     ? status.Status
-                    : BoardSerializationStatus.None
-                : BoardSerializationStatus.None;
+                    : BoardExportStatus.None
+                : BoardExportStatus.None;
 
-            return board.ToDto(serializationStatus);
+            return board.ToDto(exportStatus);
         });
 
         return Result<PagedList<BoardLookupDto>>.Success(new PagedList<BoardLookupDto>(boards.Metadata, boardDtos));

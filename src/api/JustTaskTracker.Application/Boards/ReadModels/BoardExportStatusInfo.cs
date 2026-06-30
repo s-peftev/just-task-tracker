@@ -3,9 +3,9 @@ using JustTaskTracker.Domain.Boards.Enums;
 
 namespace JustTaskTracker.Application.Boards.ReadModels;
 
-public record BoardSerializationStatusInfo(
+public record BoardExportStatusInfo(
     Guid BoardId,
-    BoardSerializationStatus Status,
+    BoardExportStatus Status,
     DateTime UpdatedAtUtc,
     string? ErrorMessage,
-    BoardArchiveExportOptions? ExportOptions);
+    BoardExportOptions? ExportOptions);

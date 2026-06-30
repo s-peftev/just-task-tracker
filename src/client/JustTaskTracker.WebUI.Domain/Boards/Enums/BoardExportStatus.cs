@@ -1,6 +1,6 @@
 namespace JustTaskTracker.WebUI.Domain.Boards.Enums;
 
-public enum BoardSerializationStatus : byte
+public enum BoardExportStatus : byte
 {
     None = 0,
     Pending = 1,

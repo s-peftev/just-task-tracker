@@ -8,14 +8,14 @@ public static class BoardDetailsReadModelMappings
 {
     public static BoardDetailsDto ToDto(
         this BoardDetailsReadModel board,
-        BoardSerializationStatusInfo? serializationInfo)
+        BoardExportStatusInfo? exportInfo)
     {
-        var boardSerializationStatus = board.IsArchived
-            ? serializationInfo?.Status ?? BoardSerializationStatus.None
-            : BoardSerializationStatus.None;
+        var boardExportStatus = board.IsArchived
+            ? exportInfo?.Status ?? BoardExportStatus.None
+            : BoardExportStatus.None;
 
         var exportOptions = board.IsArchived
-            ? serializationInfo?.ExportOptions
+            ? exportInfo?.ExportOptions
             : null;
 
         return new BoardDetailsDto(
@@ -25,7 +25,7 @@ public static class BoardDetailsReadModelMappings
             board.IsArchived,
             board.UserRole,
             board.Columns,
-            boardSerializationStatus,
+            boardExportStatus,
             exportOptions,
             board.ArchivedAtUtc);
     }

@@ -13,7 +13,7 @@ public static class BoardsErrors
     public static readonly Error ReExportNotAllowed = new(
         nameof(ReExportNotAllowed),
         ErrorType.Conflict,
-        ["The board must be archived and serialized before requesting a new export."]);
+        ["The board must be archived and exported before requesting a new export."]);
 
     public static readonly Error ReExportAlreadyRequested = new(
         nameof(ReExportAlreadyRequested),

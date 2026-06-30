@@ -1,6 +1,6 @@
-namespace JustTaskTracker.Domain.Boards.DTOs.Boards;
+namespace JustTaskTracker.WebUI.Domain.Boards;
 
-public record BoardArchiveExportOptions(
+public record BoardExportOptions(
     bool IncludeDescriptions,
     bool IncludeComments,
     bool IncludeAttachments,

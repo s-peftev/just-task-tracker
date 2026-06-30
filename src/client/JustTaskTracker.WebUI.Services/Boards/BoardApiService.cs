@@ -123,7 +123,7 @@ internal class BoardApiService(IBoardApi api) : IBoardApiService
 
     public async Task<BoardArchivedDto> ArchiveBoardAsync(
         Guid boardId,
-        BoardArchiveExportOptions exportOptions,
+        BoardExportOptions exportOptions,
         CancellationToken ct = default)
     {
         var response = await api.ArchiveAsync(boardId, exportOptions, ct);

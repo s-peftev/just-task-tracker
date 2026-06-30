@@ -29,8 +29,8 @@ public interface IBoardDetailsStore
 
     void SetBoardArchived(
         DateTime archivedAtUtc,
-        BoardSerializationStatus boardSerializationStatus,
-        BoardArchiveExportOptions? exportOptions = null);
+        BoardExportStatus boardExportStatus,
+        BoardExportOptions? exportOptions = null);
 
     void UpdateColumnName(Guid columnId, string name);
 

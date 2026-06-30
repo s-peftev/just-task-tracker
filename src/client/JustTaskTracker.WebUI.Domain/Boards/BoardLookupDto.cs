@@ -8,6 +8,6 @@ public record BoardLookupDto(
     bool IsArchived,
     BoardMemberRole UserRole,
     string OwnerEmail,
-    BoardSerializationStatus BoardSerializationStatus,
+    BoardExportStatus BoardExportStatus,
     string? OwnerDisplayName,
     DateTime? ArchivedAtUtc);

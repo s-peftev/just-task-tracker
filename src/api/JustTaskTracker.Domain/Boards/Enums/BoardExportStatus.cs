@@ -1,6 +1,6 @@
-﻿namespace JustTaskTracker.Domain.Boards.Enums;
+namespace JustTaskTracker.Domain.Boards.Enums;
 
-public enum BoardSerializationStatus : byte
+public enum BoardExportStatus : byte
 {
     /// <summary>
     /// The board is active. No data serialization or export has been requested.

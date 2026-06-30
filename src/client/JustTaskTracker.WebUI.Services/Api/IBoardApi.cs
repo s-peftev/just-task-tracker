@@ -61,7 +61,7 @@ internal interface IBoardApi
     [Post("/api/boards/{boardId}/archive")]
     Task<IApiResponse<ApiEnvelope<BoardArchivedDto>>> ArchiveAsync(
         Guid boardId,
-        [Body] BoardArchiveExportOptions exportOptions,
+        [Body] BoardExportOptions exportOptions,
         CancellationToken ct = default);
 
     [Post("/api/boards/{boardId}/columns")]

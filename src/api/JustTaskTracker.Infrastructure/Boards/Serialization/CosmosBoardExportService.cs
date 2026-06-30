@@ -8,22 +8,22 @@ using Microsoft.Azure.Cosmos;
 
 namespace JustTaskTracker.Infrastructure.Boards.Serialization;
 
-internal sealed class CosmosBoardSerializationService(Container container, IDateTimeProvider dateTimeProvider) : IBoardSerializationService
+internal sealed class CosmosBoardExportService(Container container, IDateTimeProvider dateTimeProvider) : IBoardExportService
 {
-    public async Task SetSerializationAsync(
+    public async Task SetExportAsync(
         Guid boardId,
-        BoardSerializationStatus status,
-        BoardArchiveExportOptions exportOptions,
+        BoardExportStatus exportStatus,
+        BoardExportOptions exportOptions,
         CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(exportOptions);
 
-        var document = new BoardSerializationDocument
+        var document = new BoardExportDocument
         {
             Id = boardId.ToString(),
             BoardId = boardId,
-            Status = (int)status,
-            StatusName = status.ToString(),
+            ExportStatus = (int)exportStatus,
+            ExportStatusName = exportStatus.ToString(),
             UpdatedAtUtc = dateTimeProvider.UtcNow,
             ErrorMessage = null,
             ExportOptions = exportOptions,
@@ -37,42 +37,42 @@ internal sealed class CosmosBoardSerializationService(Container container, IDate
 
     public async Task SetReExportAsync(
         Guid boardId,
-        BoardSerializationStatus reExportStatus,
-        BoardArchiveExportOptions reExportOptions,
+        BoardExportStatus reExportStatus,
+        BoardExportOptions reExportOptions,
         CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(reExportOptions);
 
-        await container.PatchItemAsync<BoardSerializationDocument>(
+        await container.PatchItemAsync<BoardExportDocument>(
             boardId.ToString(),
             new PartitionKey(boardId.ToString()),
             [
-                PatchOperation.Set($"/{BoardSerializationDocument.ReExportStatusJson}", (int)reExportStatus),
-                PatchOperation.Set($"/{BoardSerializationDocument.ReExportStatusNameJson}", reExportStatus.ToString()),
-                PatchOperation.Set($"/{BoardSerializationDocument.ReExportOptionsJson}", reExportOptions),
+                PatchOperation.Set($"/{BoardExportDocument.ReExportStatusJson}", (int)reExportStatus),
+                PatchOperation.Set($"/{BoardExportDocument.ReExportStatusNameJson}", reExportStatus.ToString()),
+                PatchOperation.Set($"/{BoardExportDocument.ReExportOptionsJson}", reExportOptions),
             ],
             cancellationToken: ct);
     }
 
-    public async Task UpdateStatusAsync(
+    public async Task UpdateExportStatusAsync(
         Guid boardId,
-        BoardSerializationStatus status,
+        BoardExportStatus status,
         string? errorMessage = null,
         CancellationToken ct = default)
     {
-        await container.PatchItemAsync<BoardSerializationDocument>(
+        await container.PatchItemAsync<BoardExportDocument>(
             boardId.ToString(),
             new PartitionKey(boardId.ToString()),
             [
-                PatchOperation.Set($"/{BoardSerializationDocument.StatusJson}", (int)status),
-                PatchOperation.Set($"/{BoardSerializationDocument.StatusNameJson}", status.ToString()),
-                PatchOperation.Set($"/{BoardSerializationDocument.UpdatedAtUtcJson}", dateTimeProvider.UtcNow),
-                PatchOperation.Set($"/{BoardSerializationDocument.ErrorMessageJson}", errorMessage),
+                PatchOperation.Set($"/{BoardExportDocument.ExportStatusJson}", (int)status),
+                PatchOperation.Set($"/{BoardExportDocument.ExportStatusNameJson}", status.ToString()),
+                PatchOperation.Set($"/{BoardExportDocument.UpdatedAtUtcJson}", dateTimeProvider.UtcNow),
+                PatchOperation.Set($"/{BoardExportDocument.ErrorMessageJson}", errorMessage),
             ],
             cancellationToken: ct);
     }
 
-    public async Task<BoardSerializationStatusInfo?> GetBoardSerializationInfoAsync(
+    public async Task<BoardExportStatusInfo?> GetBoardExportInfoAsync(
         Guid boardId,
         CancellationToken ct = default)
     {
@@ -80,7 +80,7 @@ internal sealed class CosmosBoardSerializationService(Container container, IDate
 
         try
         {
-            var response = await container.ReadItemAsync<BoardSerializationDocument>(
+            var response = await container.ReadItemAsync<BoardExportDocument>(
                 boardId.ToString(),
                 new PartitionKey(boardId.ToString()),
                 cancellationToken: ct);
@@ -93,14 +93,14 @@ internal sealed class CosmosBoardSerializationService(Container container, IDate
         }
     }
 
-    public async Task<IReadOnlyDictionary<Guid, BoardSerializationStatusInfo>> GetBoardListSerializationStatusesAsync(
+    public async Task<IReadOnlyDictionary<Guid, BoardExportStatusInfo>> GetBoardListExportInfoAsync(
         IReadOnlyCollection<Guid> boardIds,
         CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(boardIds);
 
         if (boardIds.Count == 0)
-            return new Dictionary<Guid, BoardSerializationStatusInfo>();
+            return new Dictionary<Guid, BoardExportStatusInfo>();
 
         var itemIds = boardIds
             .Where(id => id != Guid.Empty)
@@ -109,9 +109,9 @@ internal sealed class CosmosBoardSerializationService(Container container, IDate
             .ToList();
 
         if (itemIds.Count == 0)
-            return new Dictionary<Guid, BoardSerializationStatusInfo>();
+            return new Dictionary<Guid, BoardExportStatusInfo>();
 
-        var response = await container.ReadManyItemsAsync<BoardSerializationDocument>(
+        var response = await container.ReadManyItemsAsync<BoardExportDocument>(
             itemIds,
             cancellationToken: ct);
 
@@ -120,10 +120,10 @@ internal sealed class CosmosBoardSerializationService(Container container, IDate
             .ToDictionary(status => status.BoardId);
     }
 
-    private static BoardSerializationStatusInfo ToInfo(BoardSerializationDocument document) =>
+    private static BoardExportStatusInfo ToInfo(BoardExportDocument document) =>
         new(
             document.BoardId,
-            (BoardSerializationStatus)document.Status,
+            (BoardExportStatus)document.ExportStatus,
             document.UpdatedAtUtc,
             document.ErrorMessage,
             document.ExportOptions);

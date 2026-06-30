@@ -36,7 +36,7 @@ public interface IBoardApiService
 
     Task<BoardArchivedDto> ArchiveBoardAsync(
         Guid boardId,
-        BoardArchiveExportOptions exportOptions,
+        BoardExportOptions exportOptions,
         CancellationToken ct = default);
 
     Task DeleteColumnAsync(Guid boardId, Guid columnId, DeleteColumnRequest request, CancellationToken ct = default);

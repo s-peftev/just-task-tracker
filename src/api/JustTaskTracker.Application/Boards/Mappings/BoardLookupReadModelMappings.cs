@@ -8,14 +8,14 @@ public static class BoardLookupReadModelMappings
 {
     public static BoardLookupDto ToDto(
         this BoardLookupReadModel board,
-        BoardSerializationStatus boardSerializationStatus) =>
+        BoardExportStatus boardExportStatus) =>
         new(
             board.Id,
             board.Name,
             board.IsArchived,
             board.UserRole,
             board.OwnerEmail,
-            boardSerializationStatus,
+            boardExportStatus,
             board.OwnerDisplayName,
             board.ArchivedAtUtc);
 }

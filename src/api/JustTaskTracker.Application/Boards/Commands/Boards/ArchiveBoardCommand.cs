@@ -15,13 +15,13 @@ using Microsoft.Extensions.Logging;
 
 namespace JustTaskTracker.Application.Boards.Commands.Boards;
 
-public record ArchiveBoardCommand(Guid BoardId, BoardArchiveExportOptions ExportOptions)
+public record ArchiveBoardCommand(Guid BoardId, BoardExportOptions ExportOptions)
     : IRequest<Result<BoardArchivedDto>>, IRequireActiveBoard;
 
 public class ArchiveBoardCommandHandler(
     ICurrentUserAccessor currentUserAccessor,
     IBoardRepository boardRepository,
-    IBoardSerializationService boardSerializationService,
+    IBoardExportService boardExportService,
     IUnitOfWork unitOfWork,
     IDateTimeProvider dateTimeProvider,
     ILogger<ArchiveBoardCommandHandler> logger)
@@ -42,15 +42,15 @@ public class ArchiveBoardCommandHandler(
 
         try
         {
-            await boardSerializationService.SetSerializationAsync(
+            await boardExportService.SetExportAsync(
                 board.Id,
-                BoardSerializationStatus.Pending,
+                BoardExportStatus.Pending,
                 request.ExportOptions,
                 ct);
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Failed to update serialization status for board {BoardId}.", board.Id);
+            logger.LogError(ex, "Failed to update export status for board {BoardId}.", board.Id);
             return Result<BoardArchivedDto>.Failure(GeneralErrors.ServiceUnavailable);
         }
 
@@ -61,7 +61,7 @@ public class ArchiveBoardCommandHandler(
 
         await unitOfWork.SaveChangesAsync(ct);
 
-        return Result<BoardArchivedDto>.Success(new BoardArchivedDto(archivedAtUtc, BoardSerializationStatus.Pending));
+        return Result<BoardArchivedDto>.Success(new BoardArchivedDto(archivedAtUtc, BoardExportStatus.Pending));
     }
 }
 

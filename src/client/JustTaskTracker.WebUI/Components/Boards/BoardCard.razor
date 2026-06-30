@@ -12,7 +12,7 @@
     <div class="board-card__body">
         @if (Board.IsArchived && CanViewBoardDownloadStatus)
         {
-            @if (Board.BoardSerializationStatus == BoardSerializationStatus.Completed)
+            @if (Board.BoardExportStatus == BoardExportStatus.Completed)
             {
                 <button type="button"
                         class="board-card__corner-action board-card__corner-action--download"
@@ -27,14 +27,14 @@
                               fill="currentColor" />
                     </svg>
                     <span class="board-card__corner-tooltip" aria-hidden="true">
-                        <BoardDownloadCopyTooltip Status="BoardSerializationStatus.Completed" />
+                        <BoardDownloadCopyTooltip Status="BoardExportStatus.Completed" />
                     </span>
                 </button>
             }
             else
             {
                 <div class="board-card__corner-action board-card__corner-action--indicator">
-                    <BoardSerializationStatusIndicator Status="Board.BoardSerializationStatus"
+                    <BoardExportStatusIndicator Status="Board.BoardExportStatus"
                                                        TooltipBelow="true" />
                 </div>
             }
@@ -66,7 +66,7 @@
         BoardRolePermissions.CanArchiveBoard(Board.UserRole);
 
     private static string DownloadAriaLabel =>
-        BoardSerializationStatusFormatting.GetDescription(BoardSerializationStatus.Completed);
+        BoardExportStatusFormatting.GetDescription(BoardExportStatus.Completed);
 
     private Task OnClickHandler() => OnClick.InvokeAsync(Board);
 

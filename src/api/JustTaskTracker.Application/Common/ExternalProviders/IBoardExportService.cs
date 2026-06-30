@@ -4,55 +4,55 @@ using JustTaskTracker.Domain.Boards.Enums;
 
 namespace JustTaskTracker.Application.Common.ExternalProviders;
 
-public interface IBoardSerializationService
+public interface IBoardExportService
 {
     /// <summary>
-    /// Creates or replaces the serialization document for the given board, including export options.
+    /// Creates or replaces the export document for the given board, including export options.
     /// </summary>
     /// <remarks>
     /// Uses upsert semantics: one document per board, keyed by <paramref name="boardId"/>.
     /// </remarks>
-    Task SetSerializationAsync(
+    Task SetExportAsync(
         Guid boardId,
-        BoardSerializationStatus status,
-        BoardArchiveExportOptions exportOptions,
+        BoardExportStatus exportStatus,
+        BoardExportOptions exportOptions,
         CancellationToken ct = default);
 
     /// <summary>
-    /// Updates only serialization status fields on an existing document.
+    /// Updates only export status fields on an existing document.
     /// </summary>
     /// <remarks>
     /// Uses patch semantics and does not modify <c>exportOptions</c>.
     /// </remarks>
-    Task UpdateStatusAsync(
+    Task UpdateExportStatusAsync(
         Guid boardId,
-        BoardSerializationStatus status,
+        BoardExportStatus status,
         string? errorMessage = null,
         CancellationToken ct = default);
 
     /// <summary>
-    /// Updates only re-export fields on an existing serialization document.
+    /// Updates only re-export fields on an existing export document.
     /// </summary>
     Task SetReExportAsync(
         Guid boardId,
-        BoardSerializationStatus reExportStatus,
-        BoardArchiveExportOptions reExportOptions,
+        BoardExportStatus reExportStatus,
+        BoardExportOptions reExportOptions,
         CancellationToken ct = default);
 
     /// <summary>
-    /// Returns the serialization info document for <paramref name="boardId"/>, or <see langword="null"/> when none exists.
+    /// Returns the export info document for <paramref name="boardId"/>, or <see langword="null"/> when none exists.
     /// </summary>
-    Task<BoardSerializationStatusInfo?> GetBoardSerializationInfoAsync(
+    Task<BoardExportStatusInfo?> GetBoardExportInfoAsync(
         Guid boardId,
         CancellationToken ct = default);
 
     /// <summary>
-    /// Returns serialization status documents for the given boards.
+    /// Returns export info documents for the given boards.
     /// </summary>
     /// <remarks>
     /// Boards without a document are omitted from the result.
     /// </remarks>
-    Task<IReadOnlyDictionary<Guid, BoardSerializationStatusInfo>> GetBoardListSerializationStatusesAsync(
+    Task<IReadOnlyDictionary<Guid, BoardExportStatusInfo>> GetBoardListExportInfoAsync(
         IReadOnlyCollection<Guid> boardIds,
         CancellationToken ct = default);
 }

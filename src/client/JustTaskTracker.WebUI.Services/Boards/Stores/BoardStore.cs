@@ -53,7 +53,7 @@ internal sealed class BoardStore(IBoardApiService boardApiService) : IBoardStore
     public BoardMemberRole? GetCachedRole(Guid boardId) =>
         _roleCache.TryGetValue(boardId, out var role) ? role : null;
 
-    public void ApplyBoardArchived(Guid boardId, DateTime archivedAtUtc, BoardSerializationStatus boardSerializationStatus)
+    public void ApplyBoardArchived(Guid boardId, DateTime archivedAtUtc, BoardExportStatus boardExportStatus)
     {
         if (_active.Boards.Any(board => board.Id == boardId))
             _active.Boards = _active.Boards.Where(board => board.Id != boardId).ToList();
@@ -67,7 +67,7 @@ internal sealed class BoardStore(IBoardApiService boardApiService) : IBoardStore
             {
                 IsArchived = true,
                 ArchivedAtUtc = archivedAtUtc,
-                BoardSerializationStatus = boardSerializationStatus,
+                BoardExportStatus = boardExportStatus,
             };
 
             _archived.Boards = archivedBoards;

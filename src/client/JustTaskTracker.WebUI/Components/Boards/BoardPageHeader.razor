@@ -55,7 +55,7 @@
                 </p>
                 @if (CanViewBoardDownloadStatus)
                 {
-                    @if (board.BoardSerializationStatus == BoardSerializationStatus.Completed)
+                    @if (board.BoardExportStatus == BoardExportStatus.Completed)
                     {
                         <div class="board-page__serialization-actions">
                             <div class="board-page__serialization-status">
@@ -70,7 +70,7 @@
                                               fill="currentColor" />
                                     </svg>
                                     <span class="board-page__download-tooltip" aria-hidden="true">
-                                        <BoardDownloadCopyTooltip Status="BoardSerializationStatus.Completed"
+                                        <BoardDownloadCopyTooltip Status="BoardExportStatus.Completed"
                                                                   ExportOptions="board.ExportOptions" />
                                     </span>
                                 </button>
@@ -93,7 +93,7 @@
                     else
                     {
                         <div class="board-page__serialization-status">
-                            <BoardSerializationStatusIndicator Status="board.BoardSerializationStatus"
+                            <BoardExportStatusIndicator Status="board.BoardExportStatus"
                                                                ExportOptions="board.ExportOptions"
                                                                TooltipBelow="true" />
                         </div>
@@ -146,8 +146,8 @@
 
     private string DownloadAriaLabel =>
         BoardDetailsStore.Board is { ExportOptions: var exportOptions }
-            ? BoardSerializationStatusFormatting.GetAriaLabel(BoardSerializationStatus.Completed, exportOptions)
-            : BoardSerializationStatusFormatting.GetDescription(BoardSerializationStatus.Completed);
+            ? BoardExportStatusFormatting.GetAriaLabel(BoardExportStatus.Completed, exportOptions)
+            : BoardExportStatusFormatting.GetDescription(BoardExportStatus.Completed);
 
     private void OnDownloadClick() =>
         Snackbar.Add("Board download is coming soon.", Severity.Info);
@@ -169,7 +169,7 @@
 
         var result = await dialog.Result;
 
-        if (result is not { Canceled: false, Data: BoardArchiveExportOptions exportOptions })
+        if (result is not { Canceled: false, Data: BoardExportOptions exportOptions })
             return;
 
         Snackbar.Add("Board re-export is coming soon.", Severity.Info);
@@ -359,7 +359,7 @@
 
         var result = await dialog.Result;
 
-        if (result is not { Canceled: false, Data: BoardArchiveExportOptions exportOptions })
+        if (result is not { Canceled: false, Data: BoardExportOptions exportOptions })
             return;
 
         try
@@ -367,9 +367,9 @@
             var archived = await BoardApiService.ArchiveBoardAsync(BoardId, exportOptions);
             BoardDetailsStore.SetBoardArchived(
                 archived.ArchivedAtUtc,
-                archived.BoardSerializationStatus,
+                archived.BoardExportStatus,
                 exportOptions);
-            BoardStore.ApplyBoardArchived(BoardId, archived.ArchivedAtUtc, archived.BoardSerializationStatus);
+            BoardStore.ApplyBoardArchived(BoardId, archived.ArchivedAtUtc, archived.BoardExportStatus);
             Snackbar.Add("Board archived.", Severity.Success);
         }
         catch (ApiServiceException ex)

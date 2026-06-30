@@ -14,13 +14,13 @@ using Microsoft.Extensions.Logging;
 
 namespace JustTaskTracker.Application.Boards.Commands.Boards;
 
-public record ReExportArchivedBoardCommand(Guid BoardId, BoardArchiveExportOptions ReExportOptions)
+public record ReExportArchivedBoardCommand(Guid BoardId, BoardExportOptions ReExportOptions)
     : IRequest<Result>;
 
 public class ReExportArchivedBoardCommandHandler(
     ICurrentUserAccessor currentUserAccessor,
     IBoardRepository boardRepository,
-    IBoardSerializationService boardSerializationService,
+    IBoardExportService boardExportService,
     IUnitOfWork unitOfWork,
     ILogger<ReExportArchivedBoardCommandHandler> logger)
     : IRequestHandler<ReExportArchivedBoardCommand, Result>
@@ -38,28 +38,28 @@ public class ReExportArchivedBoardCommandHandler(
         if (board is null)
             return Result.Failure(GeneralErrors.NotFound);
 
-        if (!board.IsArchived || !board.IsSerialized)
+        if (!board.IsArchived || !board.IsExported)
             return Result.Failure(BoardsErrors.ReExportNotAllowed);
 
         if (board.IsReExportRequested)
             return Result.Failure(BoardsErrors.ReExportAlreadyRequested);
 
-        var serializationInfo = await boardSerializationService.GetBoardSerializationInfoAsync(board.Id, ct);
+        var exportInfo = await boardExportService.GetBoardExportInfoAsync(board.Id, ct);
 
-        if (serializationInfo is null)
+        if (exportInfo is null)
             return Result.Failure(BoardsErrors.SerializationInfoNotFound);
 
-        if (serializationInfo.Status != BoardSerializationStatus.Completed)
+        if (exportInfo.Status != BoardExportStatus.Completed)
             return Result.Failure(BoardsErrors.ExportNotCompleted);
 
-        if (serializationInfo.ExportOptions == request.ReExportOptions)
+        if (exportInfo.ExportOptions == request.ReExportOptions)
             return Result.Failure(BoardsErrors.ReExportOptionsUnchanged);
 
         try
         {
-            await boardSerializationService.SetReExportAsync(
+            await boardExportService.SetReExportAsync(
                 board.Id,
-                BoardSerializationStatus.Pending,
+                BoardExportStatus.Pending,
                 request.ReExportOptions,
                 ct);
         }

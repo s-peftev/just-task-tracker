@@ -3,13 +3,13 @@
 
 <div class="board-download-copy-tooltip">
     <p class="board-download-copy-tooltip__message">
-        @BoardSerializationStatusFormatting.GetDescription(Status)
+        @BoardExportStatusFormatting.GetDescription(Status)
     </p>
 
     @if (ExportOptions is { } exportOptions)
     {
         <ul class="board-download-copy-tooltip__options">
-            @foreach (var (label, isIncluded) in BoardArchiveExportOptionsFormatting.GetOptionStates(exportOptions))
+            @foreach (var (label, isIncluded) in BoardExportOptionsFormatting.GetOptionStates(exportOptions))
             {
                 <li class="board-download-copy-tooltip__option">
                     @if (isIncluded)
@@ -41,8 +41,8 @@
 
 @code {
     [Parameter, EditorRequired]
-    public BoardSerializationStatus Status { get; set; }
+    public BoardExportStatus Status { get; set; }
 
     [Parameter]
-    public BoardArchiveExportOptions? ExportOptions { get; set; }
+    public BoardExportOptions? ExportOptions { get; set; }
 }

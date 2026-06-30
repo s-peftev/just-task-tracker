@@ -15,7 +15,7 @@ public record GetBoardByIdQuery(Guid BoardId) : IRequest<Result<BoardDetailsDto>
 public class GetBoardByIdQueryHandler(
     ICurrentUserAccessor currentUserAccessor,
     IBoardRepository boardRepository,
-    IBoardSerializationService boardSerializationService)
+    IBoardExportService boardExportService)
     : IRequestHandler<GetBoardByIdQuery, Result<BoardDetailsDto>>
 {
     public async Task<Result<BoardDetailsDto>> Handle(GetBoardByIdQuery request, CancellationToken ct)
@@ -30,10 +30,10 @@ public class GetBoardByIdQueryHandler(
         if (board is null)
             return Result<BoardDetailsDto>.Failure(GeneralErrors.NotFound);
 
-        var serializationInfo = board.IsArchived
-            ? await boardSerializationService.GetBoardSerializationInfoAsync(board.Id, ct)
+        var exportInfo = board.IsArchived
+            ? await boardExportService.GetBoardExportInfoAsync(board.Id, ct)
             : null;
 
-        return Result<BoardDetailsDto>.Success(board.ToDto(serializationInfo));
+        return Result<BoardDetailsDto>.Success(board.ToDto(exportInfo));
     }
 }

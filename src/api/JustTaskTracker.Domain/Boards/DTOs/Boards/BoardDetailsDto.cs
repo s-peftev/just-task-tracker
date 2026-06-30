@@ -10,6 +10,6 @@ public record BoardDetailsDto(
     bool IsArchived,
     BoardMemberRole UserRole,
     IEnumerable<ColumnDto> Columns,
-    BoardSerializationStatus BoardSerializationStatus,
-    BoardArchiveExportOptions? ExportOptions = null,
+    BoardExportStatus BoardExportStatus,
+    BoardExportOptions? ExportOptions = null,
     DateTime? ArchivedAtUtc = null);

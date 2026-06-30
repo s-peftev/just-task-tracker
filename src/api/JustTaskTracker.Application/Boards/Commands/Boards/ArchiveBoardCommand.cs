@@ -21,7 +21,7 @@ public record ArchiveBoardCommand(Guid BoardId, BoardArchiveExportOptions Export
 public class ArchiveBoardCommandHandler(
     ICurrentUserAccessor currentUserAccessor,
     IBoardRepository boardRepository,
-    IBoardSerializationStatusService boardSerializationStatusService,
+    IBoardSerializationService boardSerializationService,
     IUnitOfWork unitOfWork,
     IDateTimeProvider dateTimeProvider,
     ILogger<ArchiveBoardCommandHandler> logger)
@@ -42,7 +42,7 @@ public class ArchiveBoardCommandHandler(
 
         try
         {
-            await boardSerializationStatusService.SetSerializationAsync(
+            await boardSerializationService.SetSerializationAsync(
                 board.Id,
                 BoardSerializationStatus.Pending,
                 request.ExportOptions,

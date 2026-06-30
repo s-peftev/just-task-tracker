@@ -68,7 +68,7 @@ internal static class AzureModule
                 options.Containers!.BoardArchivalStatuses);
         });
 
-        services.AddSingleton<IBoardSerializationStatusService, CosmosBoardSerializationStatusService>();
+        services.AddSingleton<IBoardSerializationService, CosmosBoardSerializationService>();
 
         return services;
     }

@@ -4,7 +4,7 @@ using JustTaskTracker.Domain.Boards.Enums;
 
 namespace JustTaskTracker.Application.Common.ExternalProviders;
 
-public interface IBoardSerializationStatusService
+public interface IBoardSerializationService
 {
     /// <summary>
     /// Creates or replaces the serialization document for the given board, including export options.
@@ -28,6 +28,15 @@ public interface IBoardSerializationStatusService
         Guid boardId,
         BoardSerializationStatus status,
         string? errorMessage = null,
+        CancellationToken ct = default);
+
+    /// <summary>
+    /// Updates only re-export fields on an existing serialization document.
+    /// </summary>
+    Task SetReExportAsync(
+        Guid boardId,
+        BoardSerializationStatus reExportStatus,
+        BoardArchiveExportOptions reExportOptions,
         CancellationToken ct = default);
 
     /// <summary>

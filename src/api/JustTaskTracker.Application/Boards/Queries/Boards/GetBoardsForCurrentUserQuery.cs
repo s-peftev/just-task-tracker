@@ -22,7 +22,7 @@ public record GetBoardsForCurrentUserQuery(
 public class GetBoardsForCurrentUserQueryHandler(
     ICurrentUserAccessor currentUser,
     IBoardRepository boardRepository,
-    IBoardSerializationStatusService boardSerializationStatusService)
+    IBoardSerializationService boardSerializationService)
     : IRequestHandler<GetBoardsForCurrentUserQuery, Result<PagedList<BoardLookupDto>>>
 {
     public async Task<Result<PagedList<BoardLookupDto>>> Handle(GetBoardsForCurrentUserQuery request, CancellationToken ct)
@@ -40,7 +40,7 @@ public class GetBoardsForCurrentUserQueryHandler(
             .Select(board => board.Id)
             .ToList();
 
-        var serializationStatuses = await boardSerializationStatusService
+        var serializationStatuses = await boardSerializationService
             .GetBoardListSerializationStatusesAsync(archivedBoardIds, ct);
 
         var boardDtos = boards.Items.Select(board =>

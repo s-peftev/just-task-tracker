@@ -7,7 +7,7 @@ namespace JustTaskTracker.Infrastructure.Boards.Serialization;
 /// Cosmos DB document that tracks the serialization/export status of an archived board.
 /// Partition key: /boardId. One document per board — upsert replaces the previous entry.
 /// </summary>
-internal sealed class BoardSerializationStatusDocument
+internal sealed class BoardSerializationDocument
 {
     internal const string IdJson = "id";
     internal const string BoardIdJson = "boardId";
@@ -16,6 +16,9 @@ internal sealed class BoardSerializationStatusDocument
     internal const string UpdatedAtUtcJson = "updatedAtUtc";
     internal const string ErrorMessageJson = "errorMessage";
     internal const string ExportOptionsJson = "exportOptions";
+    internal const string ReExportStatusJson = "reExportStatus";
+    internal const string ReExportStatusNameJson = "reExportStatusName";
+    internal const string ReExportOptionsJson = "reExportOptions";
 
     /// <summary>
     /// Cosmos DB document identifier. Equals <see cref="BoardId"/> to enforce one document per board.
@@ -40,4 +43,13 @@ internal sealed class BoardSerializationStatusDocument
 
     [JsonProperty(ExportOptionsJson)]
     public BoardArchiveExportOptions? ExportOptions { get; init; }
+
+    [JsonProperty(ReExportStatusJson)]
+    public int? ReExportStatus { get; init; }
+
+    [JsonProperty(ReExportStatusNameJson)]
+    public string? ReExportStatusName { get; init; }
+
+    [JsonProperty(ReExportOptionsJson)]
+    public BoardArchiveExportOptions? ReExportOptions { get; init; }
 }

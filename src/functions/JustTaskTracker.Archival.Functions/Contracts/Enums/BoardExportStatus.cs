@@ -3,27 +3,32 @@
 public enum BoardExportStatus : byte
 {
     /// <summary>
-    /// The board is active. No data serialization or export has been requested.
+    /// The board is active. No data export has been requested.
     /// </summary>
     None = 0,
 
     /// <summary>
-    /// The board is archived (read-only) and scheduled for serialization. Waiting for the background worker.
+    /// Export has been requested and is waiting to be scheduled.
     /// </summary>
-    Pending = 1,
+    Requested = 1,
 
     /// <summary>
-    /// The background worker or Azure Function is currently serializing the board data and exporting it.
+    /// The board is archived (read-only) and scheduled for export. Waiting for the background worker.
     /// </summary>
-    Processing = 2,
+    Pending = 2,
 
     /// <summary>
-    /// Serialization is complete. The exported file has been successfully uploaded to storage.
+    /// The background worker or Azure Function is currently exporting the board data.
     /// </summary>
-    Completed = 3,
+    Processing = 3,
 
     /// <summary>
-    /// The serialization or export process failed. Data remains in the primary database for a retry.
+    /// Export is complete. The exported file has been successfully uploaded to storage.
     /// </summary>
-    Failed = 4
+    Completed = 4,
+
+    /// <summary>
+    /// The export process failed. Data remains in the primary database for a retry.
+    /// </summary>
+    Failed = 5
 }

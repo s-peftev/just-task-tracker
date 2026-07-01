@@ -120,7 +120,7 @@ internal sealed class BoardDetailsStore(IBoardApiService boardApiService) : IBoa
 
         Board = Board with
         {
-            ReExportStatus = BoardExportStatus.Pending,
+            ReExportStatus = BoardExportStatus.Requested,
             ReExportOptions = reExportOptions,
         };
 

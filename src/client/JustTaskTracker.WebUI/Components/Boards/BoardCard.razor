@@ -85,10 +85,11 @@
     private static bool ShowPreviousExportDownload(BoardLookupDto board) =>
         board.BoardExportStatus == BoardExportStatus.Completed
         && (board.ReExportStatus == BoardExportStatus.None
+            || board.ReExportStatus == BoardExportStatus.Requested
             || board.ReExportStatus == BoardExportStatus.Pending);
 
     private static bool ShowReExportPendingIndicator(BoardLookupDto board) =>
-        board.ReExportStatus == BoardExportStatus.Pending;
+        board.ReExportStatus is BoardExportStatus.Requested or BoardExportStatus.Pending;
 
     private Task OnClickHandler() => OnClick.InvokeAsync(Board);
 

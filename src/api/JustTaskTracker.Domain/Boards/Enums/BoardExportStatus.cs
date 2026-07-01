@@ -8,22 +8,27 @@ public enum BoardExportStatus : byte
     None = 0,
 
     /// <summary>
+    /// Export has been requested and is waiting to be scheduled.
+    /// </summary>
+    Requested = 1,
+
+    /// <summary>
     /// The board is archived (read-only) and scheduled for export. Waiting for the background worker.
     /// </summary>
-    Pending = 1,
+    Pending = 2,
 
     /// <summary>
     /// The background worker or Azure Function is currently exporting the board data.
     /// </summary>
-    Processing = 2,
+    Processing = 3,
 
     /// <summary>
     /// Export is complete. The exported file has been successfully uploaded to storage.
     /// </summary>
-    Completed = 3,
+    Completed = 4,
 
     /// <summary>
     /// The export process failed. Data remains in the primary database for a retry.
     /// </summary>
-    Failed = 4
+    Failed = 5
 }

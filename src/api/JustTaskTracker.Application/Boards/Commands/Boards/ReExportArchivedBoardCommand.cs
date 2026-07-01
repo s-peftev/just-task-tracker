@@ -47,7 +47,9 @@ public class ReExportArchivedBoardCommandHandler(
         if (exportInfo.ExportStatus != BoardExportStatus.Completed)
             return Result.Failure(BoardsErrors.ReExportNotAllowed);
 
-        if (exportInfo.ReExportStatus is BoardExportStatus.Pending or BoardExportStatus.Processing)
+        if (exportInfo.ReExportStatus is BoardExportStatus.Requested
+            or BoardExportStatus.Pending
+            or BoardExportStatus.Processing)
             return Result.Failure(BoardsErrors.ReExportAlreadyRequested);
 
         if (exportInfo.ExportOptions == request.ReExportOptions)
@@ -57,7 +59,7 @@ public class ReExportArchivedBoardCommandHandler(
         {
             await boardExportService.SetReExportAsync(
                 board.Id,
-                BoardExportStatus.Pending,
+                BoardExportStatus.Requested,
                 request.ReExportOptions,
                 ct);
         }

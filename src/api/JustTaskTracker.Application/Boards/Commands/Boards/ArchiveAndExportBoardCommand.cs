@@ -44,7 +44,7 @@ public class ArchiveAndExportBoardCommandHandler(
         {
             await boardExportService.SetExportAsync(
                 board.Id,
-                BoardExportStatus.Pending,
+                BoardExportStatus.Requested,
                 request.ExportOptions,
                 ct);
         }
@@ -61,7 +61,7 @@ public class ArchiveAndExportBoardCommandHandler(
 
         await unitOfWork.SaveChangesAsync(ct);
 
-        return Result<BoardArchivedDto>.Success(new BoardArchivedDto(archivedAtUtc, BoardExportStatus.Pending));
+        return Result<BoardArchivedDto>.Success(new BoardArchivedDto(archivedAtUtc, BoardExportStatus.Requested));
     }
 }
 

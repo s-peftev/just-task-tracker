@@ -90,7 +90,7 @@ internal sealed class BoardStore(IBoardApiService boardApiService) : IBoardStore
 
         archivedBoards[archivedIndex] = archivedBoards[archivedIndex] with
         {
-            ReExportStatus = BoardExportStatus.Pending,
+            ReExportStatus = BoardExportStatus.Requested,
         };
 
         _archived.Boards = archivedBoards;

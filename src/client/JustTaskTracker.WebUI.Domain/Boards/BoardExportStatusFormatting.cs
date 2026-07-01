@@ -10,6 +10,8 @@ public static class BoardExportStatusFormatting
     public static string GetDescription(BoardExportStatus status) =>
         status switch
         {
+            BoardExportStatus.Requested =>
+                "Export requested — waiting to be scheduled.",
             BoardExportStatus.Pending =>
                 "Queued to create a downloadable copy of this board.",
             BoardExportStatus.Processing =>

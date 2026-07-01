@@ -23,6 +23,10 @@
     stroke: var(--jtt-overlay-white-16);
 }
 
+.board-export-status__segment--muted {
+    stroke: var(--jtt-text-muted);
+}
+
 .board-export-status__segment--warning {
     stroke: var(--jtt-text-warning);
 }

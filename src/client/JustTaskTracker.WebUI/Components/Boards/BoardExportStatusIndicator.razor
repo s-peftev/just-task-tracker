@@ -1,7 +1,7 @@
 @using JustTaskTracker.WebUI.Domain.Boards
 @using JustTaskTracker.WebUI.Domain.Boards.Enums
 
-@if (EffectiveStatus != BoardExportStatus.Completed)
+@if (Status != BoardExportStatus.Completed)
 {
     <span class="@RootCssClass"
           aria-label="@AriaLabel"
@@ -16,12 +16,14 @@
                   d="@GetSegmentPath(2)" />
             <path class="board-export-status__segment @GetSegmentClass(3)"
                   d="@GetSegmentPath(3)" />
+            <path class="board-export-status__segment @GetSegmentClass(4)"
+                  d="@GetSegmentPath(4)" />
         </svg>
 
         @if (ShowTooltip)
         {
             <span class="board-export-status__tooltip" aria-hidden="true">
-                <BoardDownloadCopyTooltip Status="EffectiveStatus"
+                <BoardDownloadCopyTooltip Status="Status"
                                           ExportOptions="ExportOptions" />
             </span>
         }
@@ -31,8 +33,9 @@
 @code {
     private const double Center = 12;
     private const double Radius = 9;
-    private const double SegmentGap = 18;
-    private const double SegmentSweep = 120 - SegmentGap;
+    private const double SegmentDegrees = 90;
+    private const double SegmentGap = 12;
+    private const double SegmentSweep = SegmentDegrees - SegmentGap;
 
     [Parameter, EditorRequired]
     public BoardExportStatus Status { get; set; }
@@ -46,11 +49,8 @@
     [Parameter]
     public bool TooltipBelow { get; set; }
 
-    private BoardExportStatus EffectiveStatus =>
-        Status is BoardExportStatus.None ? BoardExportStatus.Pending : Status;
-
     private string AriaLabel =>
-        BoardExportStatusFormatting.GetAriaLabel(EffectiveStatus, ExportOptions);
+        BoardExportStatusFormatting.GetAriaLabel(Status, ExportOptions);
 
     private string RootCssClass =>
         string.Join(
@@ -63,17 +63,18 @@
             }.Where(static cssClass => cssClass is not null));
 
     private string GetSegmentClass(int segmentIndex) =>
-        (EffectiveStatus, segmentIndex) switch
+        (Status, segmentIndex) switch
         {
-            (BoardExportStatus.Processing, 1 or 2) => "board-export-status__segment--accent",
-            (BoardExportStatus.Failed, 1 or 2) => "board-export-status__segment--danger",
-            (BoardExportStatus.Pending, 1) => "board-export-status__segment--warning",
+            (BoardExportStatus.Requested, 1) => "board-export-status__segment--muted",
+            (BoardExportStatus.Pending, 1 or 2) => "board-export-status__segment--warning",
+            (BoardExportStatus.Processing, 1 or 2 or 3) => "board-export-status__segment--accent",
+            (BoardExportStatus.Failed, 1 or 2 or 3) => "board-export-status__segment--danger",
             _ => "board-export-status__segment--inactive",
         };
 
     private static string GetSegmentPath(int segmentIndex)
     {
-        var startAngle = (segmentIndex - 1) * 120 + SegmentGap / 2;
+        var startAngle = (segmentIndex - 1) * SegmentDegrees + SegmentGap / 2;
         var endAngle = startAngle + SegmentSweep;
 
         return DescribeArc(Center, Center, Radius, startAngle, endAngle);

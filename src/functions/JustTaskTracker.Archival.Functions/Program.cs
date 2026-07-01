@@ -23,6 +23,9 @@ if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("APPLICATIONINSIGHT
 builder.Services
     .AddSingleton<IBoardExportProcessor, BoardExportProcessor>()
     .AddSingleton<ExportContextResolver>()
-    .AddSingleton<IBoardExportDocumentClient, CosmosBoardExportDocumentClient>();
+    .AddSingleton<IBoardExportDocumentClient, CosmosBoardExportDocumentClient>()
+    .AddSingleton<IBoardExportCompletionHandler, InitialExportCompletionHandler>()
+    .AddSingleton<IBoardExportCompletionHandler, ReExportCompletionHandler>()
+    .AddSingleton<BoardExportCompletionHandlerRegistry>();
 
 builder.Build().Run();

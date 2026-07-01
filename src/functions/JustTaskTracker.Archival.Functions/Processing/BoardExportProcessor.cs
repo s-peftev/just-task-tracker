@@ -7,6 +7,7 @@ namespace JustTaskTracker.Archival.Functions.Processing;
 
 public class BoardExportProcessor(
     ExportContextResolver exportContextResolver,
+    BoardExportCompletionHandlerRegistry completionHandlerRegistry,
     IBoardExportDocumentClient boardExportDocumentClient)
     : IBoardExportProcessor
 {
@@ -16,5 +17,6 @@ public class BoardExportProcessor(
             ?? throw new InvalidOperationException($"Export document not found for board {message.BoardId}.");
 
         var exportContext = exportContextResolver.Resolve(message, exportInfo);
+        var completionHandler = completionHandlerRegistry.Get(message.Type);
     }
 }

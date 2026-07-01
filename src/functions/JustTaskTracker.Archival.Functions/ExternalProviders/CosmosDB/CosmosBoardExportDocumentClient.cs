@@ -20,10 +20,7 @@ public class CosmosBoardExportDocumentClient : IBoardExportDocumentClient
     public Task MarkReExportProcessingAsync(Guid boardId, CancellationToken ct = default) =>
         throw new NotImplementedException();
 
-    public Task CompleteReExportAsync(
-        Guid boardId,
-        BoardExportOptions promotedExportOptions,
-        CancellationToken ct = default) =>
+    public Task CompleteReExportAsync(Guid boardId, BoardExportOptions promotedExportOptions, CancellationToken ct = default) =>
         throw new NotImplementedException();
 
     public Task FailReExportAsync(Guid boardId, string errorMessage, CancellationToken ct = default) =>

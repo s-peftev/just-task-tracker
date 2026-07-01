@@ -12,6 +12,7 @@ using JustTaskTracker.Archival.Functions.ExternalProviders.CosmosDB;
 using JustTaskTracker.Archival.Functions.ExternalProviders.Http;
 using JustTaskTracker.Archival.Functions.Processing;
 using JustTaskTracker.Archival.Functions.Processing.Export;
+using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Azure.Functions.Worker.OpenTelemetry;
 using Microsoft.Extensions.Configuration;
@@ -57,12 +58,29 @@ builder.Services
     .AddHttpClient<IExportAttachmentFetcher, HttpExportAttachmentFetcher>()
 
     .Services
+    .Configure<CosmosDbOptions>(
+        builder.Configuration.GetSection(CosmosDbOptions.SectionName))
+    .AddSingleton(_ =>
+    {
+        var connectionString = builder.Configuration.GetConnectionString(ConnectionStringNames.CosmosDB)
+            ?? throw new InvalidOperationException("ConnectionStrings:CosmosDB is not configured.");
+
+        return new CosmosClient(connectionString);
+    })
+    .AddSingleton(sp =>
+    {
+        var options = sp.GetRequiredService<IOptions<CosmosDbOptions>>().Value;
+        options.Validate();
+
+        return sp.GetRequiredService<CosmosClient>()
+            .GetContainer(options.DatabaseName, options.Containers.BoardExport);
+    })
+    .AddSingleton<IBoardExportDocumentClient, CosmosBoardExportDocumentClient>()
     .AddSingleton<IBoardExportSummaryWriter, JsonBoardExportSummaryWriter>()
     .AddSingleton<BoardExportSummaryWriterRegistry>()
     .AddSingleton<IBoardArchiveBuilder, BoardArchiveBuilder>()
     .AddSingleton<IBoardExportProcessor, BoardExportProcessor>()
     .AddSingleton<ExportContextResolver>()
-    .AddSingleton<IBoardExportDocumentClient, CosmosBoardExportDocumentClient>()
     .AddSingleton<IBoardExportCompletionHandler, InitialExportCompletionHandler>()
     .AddSingleton<IBoardExportCompletionHandler, ReExportCompletionHandler>()
     .AddSingleton<BoardExportCompletionHandlerRegistry>();

@@ -1,5 +1,7 @@
-﻿using JustTaskTracker.Archival.Functions.Abstractions;
+﻿using JustTaskTracker.Archival.Functions.Abstractions.Archiving;
 using JustTaskTracker.Archival.Functions.Abstractions.ExternalProviders;
+using JustTaskTracker.Archival.Functions.Abstractions.Processing;
+using JustTaskTracker.Archival.Functions.Archiving.Summary;
 using JustTaskTracker.Archival.Functions.Contracts.Messaging;
 using JustTaskTracker.Archival.Functions.Processing.Export;
 using Microsoft.Extensions.Logging;
@@ -10,6 +12,8 @@ public class BoardExportProcessor(
     ExportContextResolver exportContextResolver,
     BoardExportCompletionHandlerRegistry completionHandlerRegistry,
     IBoardExportDocumentClient boardExportDocumentClient,
+    IBoardExportDataApiClient boardExportDataApiClient,
+    IBoardArchiveBuilder archiveBuilder,
     ILogger<BoardExportProcessor> logger)
     : IBoardExportProcessor
 {
@@ -33,11 +37,28 @@ public class BoardExportProcessor(
             return;
         }
 
+        if (exportContext.Options is not { } exportOptions)
+        {
+            throw new InvalidOperationException(
+                $"Export options are missing for board {exportContext.BoardId}.");
+        }
+
         try
         {
             await completionHandler.MarkProcessingAsync(exportContext, ct);
 
-            
+            var exportData = await boardExportDataApiClient.GetExportDataAsync(
+                exportContext.BoardId,
+                exportOptions,
+                ct);
+
+            // TODO: resolve summary formats from exportOptions when PDF export is supported.
+            IReadOnlyList<BoardExportSummaryFormat> summaryFormats = [BoardExportSummaryFormat.Json];
+
+            await using var archive = await archiveBuilder.BuildAsync(exportData, summaryFormats, ct);
+
+            // TODO: upload archive.Content to blob storage using archive.FileName
+
             await completionHandler.MarkCompletedAsync(exportContext, ct);
         }
         catch (Exception ex)

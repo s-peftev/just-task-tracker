@@ -1,8 +1,12 @@
 using Azure.Monitor.OpenTelemetry.Exporter;
-using JustTaskTracker.Archival.Functions.Abstractions;
+using JustTaskTracker.Archival.Functions.Abstractions.Archiving;
 using JustTaskTracker.Archival.Functions.Abstractions.ExternalProviders;
+using JustTaskTracker.Archival.Functions.Abstractions.Processing;
+using JustTaskTracker.Archival.Functions.Archiving;
+using JustTaskTracker.Archival.Functions.Archiving.Summary;
 using JustTaskTracker.Archival.Functions.ExternalProviders.Api;
 using JustTaskTracker.Archival.Functions.ExternalProviders.CosmosDB;
+using JustTaskTracker.Archival.Functions.ExternalProviders.Http;
 using JustTaskTracker.Archival.Functions.Processing;
 using JustTaskTracker.Archival.Functions.Processing.Export;
 using Microsoft.Azure.Functions.Worker.Builder;
@@ -36,6 +40,11 @@ builder.Services
     })
 
     .Services
+    .AddHttpClient<IExportAttachmentFetcher, HttpExportAttachmentFetcher>()
+    .Services
+    .AddSingleton<IBoardExportSummaryWriter, JsonBoardExportSummaryWriter>()
+    .AddSingleton<BoardExportSummaryWriterRegistry>()
+    .AddSingleton<IBoardArchiveBuilder, BoardArchiveBuilder>()
     .AddSingleton<IBoardExportProcessor, BoardExportProcessor>()
     .AddSingleton<ExportContextResolver>()
     .AddSingleton<IBoardExportDocumentClient, CosmosBoardExportDocumentClient>()

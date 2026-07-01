@@ -1,6 +1,6 @@
 namespace JustTaskTracker.Archival.Functions.Contracts.DTOs.Export;
 
-public sealed record BoardExportBoardDto(
+public record BoardExportBoardDto(
     Guid Id,
     string Name,
     DateTime CreatedAtUtc,

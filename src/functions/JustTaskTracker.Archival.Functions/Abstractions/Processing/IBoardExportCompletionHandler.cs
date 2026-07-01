@@ -1,7 +1,7 @@
 using JustTaskTracker.Archival.Functions.Contracts.Enums;
 using JustTaskTracker.Archival.Functions.Processing.Export;
 
-namespace JustTaskTracker.Archival.Functions.Abstractions;
+namespace JustTaskTracker.Archival.Functions.Abstractions.Processing;
 
 public interface IBoardExportCompletionHandler
 {

@@ -1,6 +1,6 @@
 namespace JustTaskTracker.Archival.Functions.Contracts.DTOs.Export;
 
-public sealed record BoardExportAttachmentDto(
+public record BoardExportAttachmentDto(
     Guid Id,
     string OriginalFileName,
     string ContentType,

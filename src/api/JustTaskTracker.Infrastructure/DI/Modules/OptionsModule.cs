@@ -1,3 +1,4 @@
+using JustTaskTracker.Infrastructure.Archiving;
 using JustTaskTracker.Infrastructure.Common.Constants;
 using JustTaskTracker.Infrastructure.Common.Options;
 using Microsoft.Extensions.Configuration;
@@ -46,6 +47,14 @@ internal static class OptionsModule
 
         cosmosDbOptions.Validate();
         services.AddSingleton(cosmosDbOptions);
+
+        var internalApiOptions = configuration
+            .GetSection(InternalApiOptions.SectionName)
+            .Get<InternalApiOptions>()
+            ?? throw new InvalidOperationException($"{InternalApiOptions.SectionName} section is not configured.");
+
+        internalApiOptions.Validate();
+        services.AddSingleton(internalApiOptions);
 
         return services;
     }

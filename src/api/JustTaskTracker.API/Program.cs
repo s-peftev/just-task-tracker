@@ -36,6 +36,7 @@ var app = builder.Build();
 app.MapDefaultEndpoints();
 
 app.UseMiddleware<CorrelationIdMiddleware>();
+app.UseMiddleware<InternalApiKeyMiddleware>();
 app.UseExceptionHandler();
 app.UseHttpsRedirection();
 app.UseCors(CorsPolicies.DefaultCorsPolicy);

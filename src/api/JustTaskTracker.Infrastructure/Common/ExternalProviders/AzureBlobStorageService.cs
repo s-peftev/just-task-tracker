@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using Azure;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
+using Azure.Storage.Sas;
 using JustTaskTracker.Application.Common.ExternalProviders;
 using JustTaskTracker.Application.Common.Models;
 
@@ -84,6 +85,15 @@ internal sealed class AzureBlobStorageService(BlobServiceClient blobServiceClien
         ArgumentException.ThrowIfNullOrWhiteSpace(blobName);
 
         return GetBlobClient(containerName, blobName).Uri.ToString();
+    }
+
+    public Uri GenerateReadSasUri(string containerName, string blobName, TimeSpan validity)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(containerName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(blobName);
+
+        return GetBlobClient(containerName, blobName)
+            .GenerateSasUri(BlobSasPermissions.Read, DateTimeOffset.UtcNow.Add(validity));
     }
 
     private BlobClient GetBlobClient(string containerName, string blobName) =>

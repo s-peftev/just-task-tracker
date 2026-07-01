@@ -1,5 +1,6 @@
 using JustTaskTracker.Application.Boards.ReadModels;
 using JustTaskTracker.Application.Common.Persistence;
+using JustTaskTracker.Domain.Boards.DTOs.Boards;
 using JustTaskTracker.Domain.Boards.Entities;
 using JustTaskTracker.Domain.Boards.Enums;
 using JustTaskTracker.Domain.Boards.Enums.SearchFields;
@@ -35,6 +36,14 @@ public interface IBoardRepository : IRepository<Board, Guid>
     Task<bool> IsBoardMemberAsync(Guid boardId, Guid userId, CancellationToken ct = default);
 
     Task<bool> IsArchivedAsync(Guid boardId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Loads the raw board data required to build an export archive.
+    /// Returns null when the board does not exist or is not archived.
+    /// Attachments carry <c>BlobName</c> instead of download URLs;
+    /// the Application layer is responsible for SAS URL generation.
+    /// </summary>
+    Task<BoardExportRawData?> GetBoardExportRawDataAsync(Guid boardId, BoardExportOptions options, CancellationToken ct = default);
 
     Task<PagedList<BoardMemberReadModel>> GetMembersInfoPagedAsync(
         Guid boardId,

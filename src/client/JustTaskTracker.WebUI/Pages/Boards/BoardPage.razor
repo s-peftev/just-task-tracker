@@ -77,7 +77,8 @@
             </section>
 
             <BoardPageFooter BoardId="Id"
-                             ScrollBodyRef="_scrollBodyRef" />
+                             TrayOpenChanged="OnTrayOpenChangedAsync"
+                             FooterPanelRefReady="OnFooterPanelRefReadyAsync" />
         }
     }
 
@@ -113,7 +114,9 @@
     private bool _isReorderingColumns;
     private ElementReference _contentRef;
     private ElementReference _scrollBodyRef;
+    private ElementReference _footerPanelRef;
     private readonly List<ColumnDto> _sortableColumns = [];
+    private bool _isFooterTrayOpen;
     private Guid _membersStoreBoardId;
 
     private bool CanManageColumns =>
@@ -153,6 +156,9 @@
     {
         if (_renderBoard && BoardDetailsStore.Board is not null && !BoardPanScroll.IsAttached)
             await EnsurePanScrollAttachedAsync();
+
+        if (_renderBoard && _isFooterTrayOpen)
+            await TryAttachTrayOverlapAsync();
     }
 
     public async ValueTask DisposeAsync()
@@ -227,6 +233,33 @@
 
     private async Task EnsurePanScrollAttachedAsync() =>
         await BoardPanScroll.AttachAsync(_contentRef, _scrollBodyRef);
+
+    private Task OnFooterPanelRefReadyAsync(ElementReference footerPanelRef)
+    {
+        _footerPanelRef = footerPanelRef;
+        return Task.CompletedTask;
+    }
+
+    private async Task OnTrayOpenChangedAsync(bool isOpen)
+    {
+        _isFooterTrayOpen = isOpen;
+
+        if (!isOpen)
+        {
+            await BoardTrayOverlap.DetachAsync();
+            return;
+        }
+
+        await TryAttachTrayOverlapAsync();
+    }
+
+    private async Task TryAttachTrayOverlapAsync()
+    {
+        if (!_isFooterTrayOpen || BoardTrayOverlap.IsAttached)
+            return;
+
+        await BoardTrayOverlap.AttachAsync(_scrollBodyRef, _footerPanelRef);
+    }
 
     private void OnBoardStoreStateChanged()
     {

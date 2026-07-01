@@ -1,6 +1,4 @@
-@using JustTaskTracker.WebUI.Services.Abstractions.Boards
 @implements IDisposable
-@inject IBoardTrayOverlapService BoardTrayOverlap
 @inject IBoardDetailsStore BoardDetailsStore
 @inject IBoardTaskSearchStore BoardTaskSearchStore
 @inject ISnackbar Snackbar
@@ -56,7 +54,10 @@
     public Guid BoardId { get; set; }
 
     [Parameter]
-    public ElementReference ScrollBodyRef { get; set; }
+    public EventCallback<bool> TrayOpenChanged { get; set; }
+
+    [Parameter]
+    public EventCallback<ElementReference> FooterPanelRefReady { get; set; }
 
     private ElementReference _footerPanelRef;
     private bool _isTrayOpen;
@@ -79,8 +80,8 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (_isTrayOpen)
-            await BoardTrayOverlap.AttachAsync(ScrollBodyRef, _footerPanelRef);
+        if (FooterPanelRefReady.HasDelegate)
+            await FooterPanelRefReady.InvokeAsync(_footerPanelRef);
     }
 
     public void Dispose() =>
@@ -115,16 +116,10 @@
 
     private async Task OnTrayToggledAsync()
     {
-        if (_isTrayOpen)
-        {
-            await InvokeAsync(StateHasChanged);
-            await BoardTrayOverlap.AttachAsync(ScrollBodyRef, _footerPanelRef);
-            await Task.Delay(260);
-            await BoardTrayOverlap.RefreshAsync();
-            return;
-        }
+        await InvokeAsync(StateHasChanged);
 
-        await BoardTrayOverlap.DetachAsync();
+        if (TrayOpenChanged.HasDelegate)
+            await TrayOpenChanged.InvokeAsync(_isTrayOpen);
     }
 
     private async Task OnSearchFocusAsync()

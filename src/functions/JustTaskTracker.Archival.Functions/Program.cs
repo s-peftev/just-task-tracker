@@ -1,4 +1,7 @@
 using Azure.Monitor.OpenTelemetry.Exporter;
+using JustTaskTracker.Archival.Functions.Abstractions;
+using JustTaskTracker.Archival.Functions.Abstractions.ExternalProviders;
+using JustTaskTracker.Archival.Functions.ExternalProviders.CosmosDB;
 using JustTaskTracker.Archival.Functions.Processing;
 using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Azure.Functions.Worker.OpenTelemetry;
@@ -16,7 +19,8 @@ if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("APPLICATIONINSIGHT
         .UseAzureMonitorExporter();
 }
 
-builder.Services.
-    AddSingleton<IBoardExportProcessor, BoardExportProcessor>();
+builder.Services
+    .AddSingleton<IBoardExportProcessor, BoardExportProcessor>()
+    .AddSingleton<IBoardExportDocumentClient, CosmosBoardExportDocumentClient>();
 
 builder.Build().Run();

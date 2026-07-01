@@ -6,7 +6,7 @@ using JustTaskTracker.Domain.Boards.DTOs.Boards;
 using JustTaskTracker.Domain.Boards.Enums;
 using Microsoft.Azure.Cosmos;
 
-namespace JustTaskTracker.Infrastructure.Boards.Serialization;
+namespace JustTaskTracker.Infrastructure.Boards.Export;
 
 internal sealed class CosmosBoardExportService(Container container, IDateTimeProvider dateTimeProvider) : IBoardExportService
 {
@@ -123,12 +123,12 @@ internal sealed class CosmosBoardExportService(Container container, IDateTimePro
     private static BoardExportStatusInfo ToInfo(BoardExportDocument document) =>
         new(
             document.BoardId,
-            (BoardExportStatus)document.ExportStatus,
             document.UpdatedAtUtc,
-            document.ErrorMessage,
+            (BoardExportStatus)document.ExportStatus,
             document.ExportOptions,
             document.ReExportStatus is { } reExportStatus
                 ? (BoardExportStatus)reExportStatus
                 : BoardExportStatus.None,
-            document.ReExportOptions);
+            document.ReExportOptions,
+            document.ErrorMessage);
 }

@@ -1,4 +1,5 @@
-﻿using JustTaskTracker.Archival.Functions.Contracts.Messaging;
+﻿using JustTaskTracker.Archival.Functions.Abstractions;
+using JustTaskTracker.Archival.Functions.Contracts.Messaging;
 
 namespace JustTaskTracker.Archival.Functions.Processing;
 

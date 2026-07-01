@@ -1,6 +1,6 @@
+using JustTaskTracker.Archival.Functions.Abstractions;
 using JustTaskTracker.Archival.Functions.Constants;
 using JustTaskTracker.Archival.Functions.Contracts.Messaging;
-using JustTaskTracker.Archival.Functions.Processing;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 

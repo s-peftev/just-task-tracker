@@ -2,4 +2,4 @@
 
 namespace JustTaskTracker.Domain.Boards.Messaging;
 
-public record BoardExportMessage(Guid BoardId, ExportType Type, string CorrelationId);
+public record BoardExportMessage(Guid BoardId, BoardExportType Type, string CorrelationId);

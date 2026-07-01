@@ -49,7 +49,7 @@ public class ReExportArchivedBoardCommandHandler(
         if (exportInfo is null)
             return Result.Failure(BoardsErrors.SerializationInfoNotFound);
 
-        if (exportInfo.Status != BoardExportStatus.Completed)
+        if (exportInfo.ExportStatus != BoardExportStatus.Completed)
             return Result.Failure(BoardsErrors.ExportNotCompleted);
 
         if (exportInfo.ExportOptions == request.ReExportOptions)

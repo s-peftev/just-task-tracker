@@ -1,7 +1,6 @@
-using JustTaskTracker.Domain.Boards.DTOs.Boards;
-using JustTaskTracker.Domain.Boards.Enums;
+﻿using JustTaskTracker.Archival.Functions.Contracts.Enums;
 
-namespace JustTaskTracker.Application.Boards.ReadModels;
+namespace JustTaskTracker.Archival.Functions.Contracts.DTOs;
 
 public record BoardExportStatusInfo(
     Guid BoardId,

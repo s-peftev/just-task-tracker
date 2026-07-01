@@ -1,7 +1,7 @@
 using JustTaskTracker.Domain.Boards.DTOs.Boards;
 using Newtonsoft.Json;
 
-namespace JustTaskTracker.Infrastructure.Boards.Serialization;
+namespace JustTaskTracker.Infrastructure.Boards.Export;
 
 /// <summary>
 /// Cosmos DB document that tracks the export status and options of an archived board.

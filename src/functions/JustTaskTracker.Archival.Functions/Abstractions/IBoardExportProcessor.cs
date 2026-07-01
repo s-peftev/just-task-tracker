@@ -1,6 +1,6 @@
 ﻿using JustTaskTracker.Archival.Functions.Contracts.Messaging;
 
-namespace JustTaskTracker.Archival.Functions.Processing;
+namespace JustTaskTracker.Archival.Functions.Abstractions;
 
 public interface IBoardExportProcessor
 {

@@ -11,7 +11,7 @@ public static class BoardDetailsReadModelMappings
         BoardExportStatusInfo? exportInfo)
     {
         var boardExportStatus = board.IsArchived
-            ? exportInfo?.Status ?? BoardExportStatus.None
+            ? exportInfo?.ExportStatus ?? BoardExportStatus.None
             : BoardExportStatus.None;
 
         var exportOptions = board.IsArchived

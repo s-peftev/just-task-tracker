@@ -1,4 +1,4 @@
-﻿namespace JustTaskTracker.Archival.Functions.Common.Constants;
+﻿namespace JustTaskTracker.Archival.Functions.Constants;
 
 internal static class ServiceBusQueueNames
 {

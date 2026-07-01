@@ -14,6 +14,7 @@ public class BoardExportProcessor(
     IBoardExportDocumentClient boardExportDocumentClient,
     IBoardExportDataApiClient boardExportDataApiClient,
     IBoardArchiveBuilder archiveBuilder,
+    IBoardExportBlobService exportBlobService,
     ILogger<BoardExportProcessor> logger)
     : IBoardExportProcessor
 {
@@ -57,7 +58,7 @@ public class BoardExportProcessor(
 
             await using var archive = await archiveBuilder.BuildAsync(exportData, summaryFormats, ct);
 
-            // TODO: upload archive.Content to blob storage using archive.FileName
+            await exportBlobService.UploadArchiveAsync(exportContext.BoardId, archive, ct);
 
             await completionHandler.MarkCompletedAsync(exportContext, ct);
         }

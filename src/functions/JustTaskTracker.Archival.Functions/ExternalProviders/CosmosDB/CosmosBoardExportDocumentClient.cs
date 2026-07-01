@@ -5,7 +5,7 @@ namespace JustTaskTracker.Archival.Functions.ExternalProviders.CosmosDB;
 
 public class CosmosBoardExportDocumentClient : IBoardExportDocumentClient
 {
-    public Task<BoardExportStatusInfo?> GetAsync(Guid boardId, CancellationToken ct = default)
+    public async Task<BoardExportStatusInfo?> GetBoardExportInfoAsync(Guid boardId, CancellationToken ct = default)
     {
         throw new NotImplementedException();
     }

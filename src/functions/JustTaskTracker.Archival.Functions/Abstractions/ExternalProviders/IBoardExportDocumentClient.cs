@@ -4,5 +4,5 @@ namespace JustTaskTracker.Archival.Functions.Abstractions.ExternalProviders;
 
 public interface IBoardExportDocumentClient
 {
-    Task<BoardExportStatusInfo?> GetAsync(Guid boardId, CancellationToken ct = default);
+    Task<BoardExportStatusInfo?> GetBoardExportInfoAsync(Guid boardId, CancellationToken ct = default);
 }

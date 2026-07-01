@@ -22,4 +22,6 @@ var api = builder.AddProject<Projects.JustTaskTracker_API>("api")
 
 builder.AddProject<Projects.JustTaskTracker_WebUI>("webui");
 
+builder.AddAzureFunctionsProject<Projects.JustTaskTracker_Archival_Functions>("archival-functions");
+
 builder.Build().Run();

@@ -3,6 +3,7 @@ using JustTaskTracker.Application.Auth;
 using JustTaskTracker.Application.Auth.Repositories;
 using JustTaskTracker.Application.Boards.Attachments;
 using JustTaskTracker.Application.Boards.Repositories;
+using JustTaskTracker.Application.Common.Behaviors;
 using JustTaskTracker.Application.Common.Options;
 using JustTaskTracker.Application.Common.Persistence;
 using JustTaskTracker.Application.Users.Mappings;
@@ -21,7 +22,7 @@ using Microsoft.Extensions.Logging;
 
 namespace JustTaskTracker.Application.Boards.Commands.Attachments;
 
-public record UploadBoardTaskAttachmentCommand(Guid BoardTaskId, IFormFile? File) : IRequest<Result<BoardTaskAttachmentDto>>;
+public record UploadBoardTaskAttachmentCommand(Guid BoardId, Guid BoardTaskId, IFormFile? File) : IRequest<Result<BoardTaskAttachmentDto>>, IRequireActiveBoard;
 
 public class UploadBoardTaskAttachmentCommandHandler(
     ICurrentUserAccessor currentUserAccessor,

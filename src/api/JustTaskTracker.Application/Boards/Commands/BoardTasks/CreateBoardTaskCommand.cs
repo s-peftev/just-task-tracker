@@ -2,6 +2,7 @@
 using JustTaskTracker.Application.Auth;
 using JustTaskTracker.Application.Auth.Repositories;
 using JustTaskTracker.Application.Boards.Repositories;
+using JustTaskTracker.Application.Common.Behaviors;
 using JustTaskTracker.Application.Common.Persistence;
 using JustTaskTracker.Domain.Boards.Authorization;
 using JustTaskTracker.Domain.Boards.Constants;
@@ -13,7 +14,8 @@ using MediatR;
 
 namespace JustTaskTracker.Application.Boards.Commands.BoardTasks;
 
-public record CreateBoardTaskCommand(Guid ColumnId, string Title) : IRequest<Result<BoardTaskPreviewDto>>;
+public record CreateBoardTaskCommand(Guid BoardId, Guid ColumnId, string Title)
+    : IRequest<Result<BoardTaskPreviewDto>>, IRequireActiveBoard;
 
 public class CreateBoardTaskCommandHandler(
     ICurrentUserAccessor currentUserAccessor,
@@ -65,6 +67,9 @@ public class CreateBoardTaskCommandValidator : AbstractValidator<CreateBoardTask
 {
     public CreateBoardTaskCommandValidator()
     {
+        RuleFor(x => x.BoardId)
+            .NotEmpty();
+
         RuleFor(x => x.ColumnId)
             .NotEmpty();
 

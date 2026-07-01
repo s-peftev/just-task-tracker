@@ -68,6 +68,7 @@ public class BoardRepository(JustTaskTrackerDbContext context)
                 b.Id,
                 b.Name,
                 b.CreatedAtUtc,
+                b.IsArchived,
                 b.Members
                     .Where(m => m.User!.AzureAdObjectId == azureAdObjectId)
                     .Select(m => m.Role)
@@ -86,7 +87,8 @@ public class BoardRepository(JustTaskTrackerDbContext context)
                                 t.Position,
                                 t.Comments.Count,
                                 t.Attachments.Count,
-                                t.AssigneeId))))))
+                                t.AssigneeId)))),
+                b.ArchivedAtUtc))
             .AsSplitQuery()
             .FirstOrDefaultAsync(ct);
 
@@ -95,12 +97,14 @@ public class BoardRepository(JustTaskTrackerDbContext context)
         int pageNumber,
         int pageSize,
         TextSearchOptions<BoardSearchField>? searchOptions = null,
+        bool? isArchived = null,
         CancellationToken ct = default)
     {
         var fields = SearchFieldsResolver.Resolve(searchOptions?.SearchIn, BoardSearchFields.Map);
 
         return await _dbSet
             .Where(b => b.Members.Any(m => m.User!.AzureAdObjectId == azureAdObjectId))
+            .Where(b => isArchived == null || b.IsArchived == isArchived)
             .ApplyTextSearch(searchOptions?.Search, fields)
             .Select(b => new
             {
@@ -134,6 +138,7 @@ public class BoardRepository(JustTaskTrackerDbContext context)
                 x => new BoardLookupDto(
                     x.Board.Id,
                     x.Board.Name,
+                    x.Board.IsArchived,
                     x.Board.Members
                         .Where(m => m.User!.AzureAdObjectId == azureAdObjectId)
                         .Select(m => m.Role)
@@ -145,7 +150,8 @@ public class BoardRepository(JustTaskTrackerDbContext context)
                     x.Board.Members
                         .Where(m => m.Role == BoardMemberRole.Owner)
                         .Select(m => m.User!.DisplayName)
-                        .FirstOrDefault()),
+                        .FirstOrDefault(),
+                    x.Board.ArchivedAtUtc),
                 pageNumber,
                 pageSize,
                 ct);
@@ -153,6 +159,9 @@ public class BoardRepository(JustTaskTrackerDbContext context)
 
     public async Task<bool> IsBoardMemberAsync(Guid boardId, Guid userId, CancellationToken ct = default) =>
         await _context.BoardMembers.AnyAsync(m => m.BoardId == boardId && m.UserId == userId, ct);
+
+    public async Task<bool> IsArchivedAsync(Guid boardId, CancellationToken ct = default) =>
+        await _dbSet.AnyAsync(b => b.Id == boardId && b.IsArchived, ct);
 
     public async Task<PagedList<BoardMemberReadModel>> GetMembersInfoPagedAsync(
         Guid boardId,

@@ -174,15 +174,20 @@
     private IJSObjectReference? _tasksScrollModule;
     private readonly List<BoardTaskPreviewDto> _sortableTasks = [];
 
-    private bool CanRenameColumn => BoardRolePermissions.CanManageColumns(UserRole);
+    private bool CanRenameColumn =>
+        !BoardDetailsStore.IsReadOnly && BoardRolePermissions.CanManageColumns(UserRole);
 
-    private bool CanDeleteColumn => BoardRolePermissions.CanManageColumns(UserRole);
+    private bool CanDeleteColumn =>
+        !BoardDetailsStore.IsReadOnly && BoardRolePermissions.CanManageColumns(UserRole);
 
-    private bool CanReorderColumn => BoardRolePermissions.CanManageColumns(UserRole);
+    private bool CanReorderColumn =>
+        !BoardDetailsStore.IsReadOnly && BoardRolePermissions.CanManageColumns(UserRole);
 
-    private bool CanManageTasks => BoardRolePermissions.CanManageTasks(UserRole);
+    private bool CanManageTasks =>
+        !BoardDetailsStore.IsReadOnly && BoardRolePermissions.CanManageTasks(UserRole);
 
-    private bool CanMoveTasks => BoardRolePermissions.CanMoveTasks(UserRole);
+    private bool CanMoveTasks =>
+        !BoardDetailsStore.IsReadOnly && BoardRolePermissions.CanMoveTasks(UserRole);
 
     private bool _hasTaskContent => GetVisibleTaskCount() > 0;
 
@@ -455,6 +460,7 @@
         catch (ApiServiceException ex)
         {
             Snackbar.ShowApiError(ex);
+            CancelAddTask();
         }
         finally
         {

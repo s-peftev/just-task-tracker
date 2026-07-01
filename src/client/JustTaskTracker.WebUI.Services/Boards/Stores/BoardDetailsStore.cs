@@ -14,6 +14,7 @@ internal sealed class BoardDetailsStore(IBoardApiService boardApiService) : IBoa
     public string? ErrorMessage { get; private set; }
     public bool IsReorderingTasks { get; private set; }
     public bool ShowOnlyMyTasks { get; private set; }
+    public bool IsReadOnly => Board?.IsArchived == true;
 
     public event Action? StateChanged;
 
@@ -90,6 +91,20 @@ internal sealed class BoardDetailsStore(IBoardApiService boardApiService) : IBoa
             return;
 
         Board = Board with { Name = name };
+        NotifyStateChanged();
+    }
+
+    public void SetBoardArchived(DateTime archivedAtUtc)
+    {
+        if (Board is null)
+            return;
+
+        Board = Board with
+        {
+            IsArchived = true,
+            ArchivedAtUtc = archivedAtUtc,
+        };
+
         NotifyStateChanged();
     }
 

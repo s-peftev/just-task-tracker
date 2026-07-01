@@ -15,6 +15,7 @@ public interface IBoardDetailsStore
     string? ErrorMessage { get; }
     bool IsReorderingTasks { get; }
     bool ShowOnlyMyTasks { get; }
+    bool IsReadOnly { get; }
 
     event Action? StateChanged;
 
@@ -25,6 +26,8 @@ public interface IBoardDetailsStore
     Task<BoardTaskPreviewDto> CreateTaskAsync(Guid columnId, string title, CancellationToken ct = default);
 
     void UpdateBoardName(string name);
+
+    void SetBoardArchived(DateTime archivedAtUtc);
 
     void UpdateColumnName(Guid columnId, string name);
 

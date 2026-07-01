@@ -1,6 +1,7 @@
 using FluentValidation;
 using JustTaskTracker.Application.Auth;
 using JustTaskTracker.Application.Boards.Repositories;
+using JustTaskTracker.Application.Common.Behaviors;
 using JustTaskTracker.Application.Common.Persistence;
 using JustTaskTracker.Domain.Boards.Authorization;
 using JustTaskTracker.Domain.Boards.Constants;
@@ -13,7 +14,8 @@ using MediatR;
 
 namespace JustTaskTracker.Application.Boards.Commands.Columns;
 
-public record CreateColumnCommand(Guid BoardId, string Name) : IRequest<Result<ColumnDto>>;
+public record CreateColumnCommand(Guid BoardId, string Name)
+    : IRequest<Result<ColumnDto>>, IRequireActiveBoard;
 
 public class CreateColumnCommandHandler(
     ICurrentUserAccessor currentUserAccessor,

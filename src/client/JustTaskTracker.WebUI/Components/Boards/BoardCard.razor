@@ -1,8 +1,28 @@
 @using JustTaskTracker.WebUI.Domain.Auth
 @using JustTaskTracker.WebUI.Domain.Boards
 
-<button type="button" class="board-card card-elevated" @onclick="OnClickHandler">
+<button type="button"
+        class="board-card card-elevated @(Board.IsArchived ? "board-card--archived" : null)"
+        @onclick="OnClickHandler">
     <div class="board-card__body">
+        @if (Board.IsArchived && Board.ArchivedAtUtc is { } archivedAtUtc)
+        {
+            <span class="board-card__archived-badge"
+                  aria-label="@GetArchivedAriaLabel(archivedAtUtc)">
+                <svg class="board-card__archived-icon"
+                     viewBox="0 0 24 24"
+                     aria-hidden="true"
+                     focusable="false">
+                    <path d="M20.54 5.23l-1.39-1.68C18.88 3.21 18.47 3 18 3H6c-.47 0-.88.21-1.16.55L3.46 5.23C3.17 5.57 3 6.02 3 6.5V19c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6.5c0-.48-.17-.93-.46-1.27zM12 17.5 6.5 12H10v-2h4v2h3.5L12 17.5zM5.12 5l.81-1h12l.94 1H5.12z"
+                          fill="currentColor" />
+                </svg>
+                <span class="board-card__archived-tooltip" aria-hidden="true">
+                    This board was archived on @FormatArchivedAt(archivedAtUtc)<br />
+                    Available in read-only mode.
+                </span>
+            </span>
+        }
+
         <p class="board-card__meta">
             <span class="board-card__meta-label">Board creator:</span>
             @OwnerDisplayName
@@ -31,4 +51,10 @@
         string.IsNullOrWhiteSpace(Board.OwnerEmail)
             ? "—"
             : UserDisplayFormatting.GetShortName(Board.OwnerDisplayName, Board.OwnerEmail);
+
+    private static string FormatArchivedAt(DateTime archivedAtUtc) =>
+        archivedAtUtc.ToLocalTime().ToString("g");
+
+    private static string GetArchivedAriaLabel(DateTime archivedAtUtc) =>
+        $"This board was archived on {FormatArchivedAt(archivedAtUtc)}. Available in read-only mode.";
 }

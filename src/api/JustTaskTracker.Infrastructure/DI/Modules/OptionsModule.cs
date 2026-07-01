@@ -17,15 +17,35 @@ internal static class OptionsModule
 
         var azureAdOptions = configuration
             .GetSection(ConfigSections.AzureAd)
-            .Get<AzureAdOptions>() ?? new AzureAdOptions();
+            .Get<AzureAdOptions>()
+            ?? throw new InvalidOperationException($"{ConfigSections.AzureAd} section is not configured.");
 
+        azureAdOptions.Validate();
         services.AddSingleton(azureAdOptions);
 
         var paginationDefaultsOptions = configuration
             .GetSection(ConfigSections.PaginationDefaults)
-            .Get<PaginationDefaultsOptions>() ?? new PaginationDefaultsOptions();
+            .Get<PaginationDefaultsOptions>()
+            ?? throw new InvalidOperationException($"{ConfigSections.PaginationDefaults} section is not configured.");
 
+        paginationDefaultsOptions.Validate();
         services.AddSingleton(paginationDefaultsOptions);
+
+        var serviceBusOptions = configuration
+            .GetSection(ConfigSections.ServiceBus)
+            .Get<ServiceBusOptions>()
+            ?? throw new InvalidOperationException($"{ConfigSections.ServiceBus} section is not configured.");
+
+        serviceBusOptions.Validate();
+        services.AddSingleton(serviceBusOptions);
+
+        var cosmosDbOptions = configuration
+            .GetSection(ConfigSections.CosmosDB)
+            .Get<CosmosDbOptions>()
+            ?? throw new InvalidOperationException($"{ConfigSections.CosmosDB} section is not configured.");
+
+        cosmosDbOptions.Validate();
+        services.AddSingleton(cosmosDbOptions);
 
         return services;
     }

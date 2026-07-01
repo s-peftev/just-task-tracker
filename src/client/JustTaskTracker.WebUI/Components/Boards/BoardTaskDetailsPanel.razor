@@ -402,9 +402,12 @@
     }
 </div>
 
-<BoardTaskAssigneePickerOverlay IsSelectingMember="_isSavingAssignee"
-                                OnMemberSelected="AssignMemberAsync"
-                                OnUnassignRequested="UnassignAsync" />
+@if (!BoardDetailsStore.IsReadOnly)
+{
+    <BoardTaskAssigneePickerOverlay IsSelectingMember="_isSavingAssignee"
+                                    OnMemberSelected="AssignMemberAsync"
+                                    OnUnassignRequested="UnassignAsync" />
+}
 
 @code {
     private const int DescriptionCollapsedMaxHeightPx = 400;
@@ -444,8 +447,11 @@
     private bool _isSavingAssignee;
     private IJSObjectReference? _fileDownloadModule;
 
-    protected override void OnInitialized() =>
+    protected override void OnInitialized()
+    {
         BoardTaskStore.StateChanged += OnStoreStateChanged;
+        BoardDetailsStore.StateChanged += OnBoardDetailsStoreStateChanged;
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -498,6 +504,7 @@
     public void Dispose()
     {
         BoardTaskStore.StateChanged -= OnStoreStateChanged;
+        BoardDetailsStore.StateChanged -= OnBoardDetailsStoreStateChanged;
         AssigneePickerStore.Close();
 
         if (_fileDownloadModule is not null)
@@ -510,6 +517,18 @@
         {
             _isDescriptionExpanded = false;
             ScheduleDescriptionOverflowMeasure();
+        }
+
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private void OnBoardDetailsStoreStateChanged()
+    {
+        if (BoardDetailsStore.IsReadOnly)
+        {
+            _isEditingTitle = false;
+            _isEditingDescription = false;
+            AssigneePickerStore.Close();
         }
 
         _ = InvokeAsync(StateHasChanged);
@@ -530,17 +549,17 @@
     private static string FormatAttachmentSizeMb(long bytes) =>
         $"{bytes / (1024d * 1024d):0.00} MB";
 
-    private static bool CanManageAssignee(BoardTaskDetailsDto task) =>
-        BoardRolePermissions.CanManageTasks(task.UserRole);
+    private bool CanManageAssignee(BoardTaskDetailsDto task) =>
+        !BoardDetailsStore.IsReadOnly && BoardRolePermissions.CanManageTasks(task.UserRole);
 
-    private static bool CanManageTaskTitle(BoardTaskDetailsDto task) =>
-        BoardRolePermissions.CanManageTasks(task.UserRole);
+    private bool CanManageTaskTitle(BoardTaskDetailsDto task) =>
+        !BoardDetailsStore.IsReadOnly && BoardRolePermissions.CanManageTasks(task.UserRole);
 
-    private static bool CanManageTaskDescription(BoardTaskDetailsDto task) =>
-        BoardRolePermissions.CanManageTasks(task.UserRole);
+    private bool CanManageTaskDescription(BoardTaskDetailsDto task) =>
+        !BoardDetailsStore.IsReadOnly && BoardRolePermissions.CanManageTasks(task.UserRole);
 
-    private static bool CanManageTasks(BoardTaskDetailsDto task) =>
-        BoardRolePermissions.CanManageTasks(task.UserRole);
+    private bool CanManageTasks(BoardTaskDetailsDto task) =>
+        !BoardDetailsStore.IsReadOnly && BoardRolePermissions.CanManageTasks(task.UserRole);
 
     private static bool CanDownloadAttachments(BoardTaskDetailsDto task) =>
         BoardRolePermissions.CanDownloadAttachments(task.UserRole);

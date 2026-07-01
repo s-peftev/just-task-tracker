@@ -2,6 +2,7 @@ using FluentValidation;
 using JustTaskTracker.Application.Auth;
 using JustTaskTracker.Application.Auth.Repositories;
 using JustTaskTracker.Application.Boards.Repositories;
+using JustTaskTracker.Application.Common.Behaviors;
 using JustTaskTracker.Application.Common.Persistence;
 using JustTaskTracker.Domain.Boards.Authorization;
 using JustTaskTracker.Domain.Boards.Entities;
@@ -13,7 +14,8 @@ using MediatR;
 
 namespace JustTaskTracker.Application.Boards.Commands.Boards;
 
-public record AddBoardMemberCommand(Guid BoardId, Guid UserId, BoardMemberRole Role) : IRequest<Result>;
+public record AddBoardMemberCommand(Guid BoardId, Guid UserId, BoardMemberRole Role)
+    : IRequest<Result>, IRequireActiveBoard;
 
 public class AddBoardMemberCommandHandler(
     ICurrentUserAccessor currentUserAccessor,

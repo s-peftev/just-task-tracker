@@ -53,7 +53,7 @@
             }
         </div>
 
-        @if (IsCurrentUserAuthor)
+        @if (IsCurrentUserAuthor && !BoardDetailsStore.IsReadOnly)
         {
             <footer class="board-task-comment__footer">
                 @if (_isEditing)

@@ -90,3 +90,13 @@
     align-items: center;
     gap: 0.75rem;
 }
+
+.board-page__archived-notice {
+    margin: 0;
+    max-width: 28rem;
+    color: var(--jtt-text-warning);
+    font-size: 0.8125rem;
+    font-weight: var(--jtt-font-weight-body);
+    line-height: 1.35;
+    text-align: right;
+}

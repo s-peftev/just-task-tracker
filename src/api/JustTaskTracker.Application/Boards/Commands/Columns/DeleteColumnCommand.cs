@@ -3,6 +3,7 @@ using JustTaskTracker.Application.Auth;
 using JustTaskTracker.Application.Boards.Attachments;
 using JustTaskTracker.Application.Boards.Positioning;
 using JustTaskTracker.Application.Boards.Repositories;
+using JustTaskTracker.Application.Common.Behaviors;
 using JustTaskTracker.Application.Common.Persistence;
 using JustTaskTracker.Domain.Boards.Authorization;
 using JustTaskTracker.Domain.Boards.Entities;
@@ -20,7 +21,7 @@ public record DeleteColumnCommand(
     DeleteColumnTasksDisposition TasksDisposition,
     Guid? TargetColumnId = null,
     ColumnTaskMovePlacement? MovePlacement = null)
-    : IRequest<Result>;
+    : IRequest<Result>, IRequireActiveBoard;
 
 public class DeleteColumnCommandHandler(
     ICurrentUserAccessor currentUserAccessor,

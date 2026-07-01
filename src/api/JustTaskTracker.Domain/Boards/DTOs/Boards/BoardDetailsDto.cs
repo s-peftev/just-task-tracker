@@ -7,5 +7,7 @@ public record BoardDetailsDto(
     Guid Id,
     string Name,
     DateTime CreatedAtUtc,
+    bool IsArchived,
     BoardMemberRole UserRole,
-    IEnumerable<ColumnDto> Columns);
+    IEnumerable<ColumnDto> Columns,
+    DateTime? ArchivedAtUtc);

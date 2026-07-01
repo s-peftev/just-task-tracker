@@ -5,6 +5,8 @@ namespace JustTaskTracker.WebUI.Domain.Boards;
 public record BoardLookupDto(
     Guid Id,
     string Name,
+    bool IsArchived,
     BoardMemberRole UserRole,
     string OwnerEmail,
-    string? OwnerDisplayName);
+    string? OwnerDisplayName,
+    DateTime? ArchivedAtUtc);

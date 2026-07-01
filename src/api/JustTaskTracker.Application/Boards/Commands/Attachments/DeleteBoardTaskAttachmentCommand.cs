@@ -3,6 +3,7 @@ using JustTaskTracker.Application.Auth;
 using JustTaskTracker.Application.Boards.Attachments;
 using JustTaskTracker.Application.Boards.Positioning;
 using JustTaskTracker.Application.Boards.Repositories;
+using JustTaskTracker.Application.Common.Behaviors;
 using JustTaskTracker.Application.Common.Persistence;
 using JustTaskTracker.Domain.Boards.Authorization;
 using JustTaskTracker.Domain.Common.Results;
@@ -12,7 +13,7 @@ using Microsoft.Extensions.Logging;
 
 namespace JustTaskTracker.Application.Boards.Commands.Attachments;
 
-public record DeleteBoardTaskAttachmentCommand(Guid BoardTaskId, Guid AttachmentId) : IRequest<Result>;
+public record DeleteBoardTaskAttachmentCommand(Guid BoardId, Guid BoardTaskId, Guid AttachmentId) : IRequest<Result>, IRequireActiveBoard;
 
 public class DeleteBoardTaskAttachmentCommandHandler(
     ICurrentUserAccessor currentUserAccessor,

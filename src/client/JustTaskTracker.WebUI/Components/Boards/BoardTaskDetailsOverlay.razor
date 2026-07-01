@@ -178,10 +178,14 @@
     private IJSObjectReference? _commentResizeModule;
 
     private bool CanDeleteTask =>
-        EffectiveUserRole is { } role && BoardRolePermissions.CanManageTasks(role);
+        !BoardDetailsStore.IsReadOnly
+        && EffectiveUserRole is { } deleteRole
+        && BoardRolePermissions.CanManageTasks(deleteRole);
 
     private bool CanCommentOnTasks =>
-        EffectiveUserRole is { } role && BoardRolePermissions.CanCommentOnTasks(role);
+        !BoardDetailsStore.IsReadOnly
+        && EffectiveUserRole is { } commentRole
+        && BoardRolePermissions.CanCommentOnTasks(commentRole);
 
     private BoardMemberRole? EffectiveUserRole =>
         BoardTaskStore.Task?.UserRole ?? BoardDetailsStore.Board?.UserRole;
@@ -222,7 +226,13 @@
         ?? BoardDetailsStore.Board?.Columns.FirstOrDefault(column => column.Id == ColumnId)?.Name
         ?? "Column";
 
-    private void OnBoardStoreStateChanged() => InvokeAsync(StateHasChanged);
+    private void OnBoardStoreStateChanged()
+    {
+        if (BoardDetailsStore.IsReadOnly && _isComposingComment)
+            CancelCommentCompose();
+
+        InvokeAsync(StateHasChanged);
+    }
 
     private void OnTaskStoreStateChanged() => InvokeAsync(StateHasChanged);
 

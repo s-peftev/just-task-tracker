@@ -3,6 +3,7 @@ using JustTaskTracker.Application.Auth;
 using JustTaskTracker.Application.Boards.Attachments;
 using JustTaskTracker.Application.Boards.Positioning;
 using JustTaskTracker.Application.Boards.Repositories;
+using JustTaskTracker.Application.Common.Behaviors;
 using JustTaskTracker.Application.Common.Persistence;
 using JustTaskTracker.Domain.Boards.Authorization;
 using JustTaskTracker.Domain.Common.Results;
@@ -12,7 +13,8 @@ using Microsoft.Extensions.Logging;
 
 namespace JustTaskTracker.Application.Boards.Commands.BoardTasks;
 
-public record DeleteBoardTaskCommand(Guid ColumnId, Guid BoardTaskId) : IRequest<Result>;
+public record DeleteBoardTaskCommand(Guid BoardId, Guid ColumnId, Guid BoardTaskId)
+    : IRequest<Result>, IRequireActiveBoard;
 
 public class DeleteBoardTaskCommandHandler(
     ICurrentUserAccessor currentUserAccessor,
@@ -102,6 +104,9 @@ public class DeleteBoardTaskCommandValidator : AbstractValidator<DeleteBoardTask
 {
     public DeleteBoardTaskCommandValidator()
     {
+        RuleFor(x => x.BoardId)
+            .NotEmpty();
+
         RuleFor(x => x.ColumnId)
             .NotEmpty();
 

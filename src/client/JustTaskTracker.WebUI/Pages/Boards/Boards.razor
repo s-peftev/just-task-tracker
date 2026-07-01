@@ -2,6 +2,7 @@
 @attribute [Authorize]
 @implements IDisposable
 @using JustTaskTracker.WebUI.Infrastructure
+@using JustTaskTracker.WebUI.Services.Abstractions.Boards
 @using JustTaskTracker.WebUI.Services.Exceptions
 @inject IBoardStore BoardStore
 @inject IBoardApiService BoardApiService
@@ -12,67 +13,130 @@
 <PageTitle>Boards — JustTaskTracker</PageTitle>
 
 <div class="boards">
-    <header class="boards__header">
-        <h2 class="text-section-title">Boards</h2>
-        <input class="boards__search-input"
-               type="search"
-               maxlength="40"
-               placeholder="Search boards by name"
-               value="@BoardStore.SearchText"
-               @oninput="OnSearchInputAsync" />
-        <div class="boards__pager">
-            <button type="button"
-                    class="btn-noir"
-                    disabled="@(BoardStore.CurrentPage <= 1 || BoardStore.IsLoading)"
-                    @onclick="() => ChangePageAsync(BoardStore.CurrentPage - 1)">
-                <span>Prev</span>
-            </button>
-            <span class="text-meta-subtle">
-                Page @BoardStore.CurrentPage of @(Math.Max(BoardStore.Pagination.TotalPages, 1))
-            </span>
-            <button type="button"
-                    class="btn-noir"
-                    disabled="@(BoardStore.CurrentPage >= Math.Max(BoardStore.Pagination.TotalPages, 1) || BoardStore.IsLoading)"
-                    @onclick="() => ChangePageAsync(BoardStore.CurrentPage + 1)">
-                <span>Next</span>
-            </button>
+    <section class="boards__section">
+        <header class="boards__header">
+            <h2 class="text-section-title">Active boards</h2>
+            <input class="boards__search-input"
+                   type="search"
+                   maxlength="40"
+                   placeholder="Search boards by name"
+                   value="@BoardStore.Active.SearchText"
+                   @oninput="OnActiveSearchInputAsync" />
+            <div class="boards__pager">
+                <button type="button"
+                        class="btn-noir"
+                        disabled="@(BoardStore.Active.CurrentPage <= 1 || BoardStore.Active.IsLoading)"
+                        @onclick="() => ChangeActivePageAsync(BoardStore.Active.CurrentPage - 1)">
+                    <span>Prev</span>
+                </button>
+                <span class="text-meta-subtle">
+                    Page @BoardStore.Active.CurrentPage of @(Math.Max(BoardStore.Active.Pagination.TotalPages, 1))
+                </span>
+                <button type="button"
+                        class="btn-noir"
+                        disabled="@(BoardStore.Active.CurrentPage >= Math.Max(BoardStore.Active.Pagination.TotalPages, 1) || BoardStore.Active.IsLoading)"
+                        @onclick="() => ChangeActivePageAsync(BoardStore.Active.CurrentPage + 1)">
+                    <span>Next</span>
+                </button>
+            </div>
+        </header>
+
+        <div class="boards__boards">
+            @if (BoardStore.Active.IsLoading && BoardStore.Active.Boards.Count == 0)
+            {
+                <div class="page-state">
+                    <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+                </div>
+            }
+            else if (BoardStore.Active.ErrorMessage is { } activeError)
+            {
+                <div class="page-state">
+                    <MudAlert Severity="Severity.Error">@activeError</MudAlert>
+                </div>
+            }
+            else if (BoardStore.Active.Boards.Count == 0 && !CanCreateBoard)
+            {
+                <div class="page-state">
+                    <p class="text-empty">You don't have any boards yet.</p>
+                </div>
+            }
+            else
+            {
+                <div class="boards__grid">
+                    @if (CanCreateBoard)
+                    {
+                        <CreateBoardCard OnClick="CreateBoardAsync" />
+                    }
+
+                    @foreach (var board in BoardStore.Active.Boards)
+                    {
+                        <BoardCard Board="board" OnClick="OpenBoard" />
+                    }
+                </div>
+            }
         </div>
-    </header>
+    </section>
 
-    <div class="boards__boards">
-        @if (BoardStore.IsLoading && BoardStore.Boards.Count == 0)
-        {
-            <div class="page-state">
-                <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
-            </div>
-        }
-        else if (BoardStore.ErrorMessage is { } error)
-        {
-            <div class="page-state">
-                <MudAlert Severity="Severity.Error">@error</MudAlert>
-            </div>
-        }
-        else if (BoardStore.Boards.Count == 0 && !CanCreateBoard)
-        {
-            <div class="page-state">
-                <p class="text-empty">You don't have any boards yet.</p>
-            </div>
-        }
-        else
-        {
-            <div class="boards__grid">
-                @if (CanCreateBoard)
-                {
-                    <CreateBoardCard OnClick="CreateBoardAsync" />
-                }
+    <hr class="boards__divider" />
 
-                @foreach (var board in BoardStore.Boards)
-                {
-                    <BoardCard Board="board" OnClick="OpenBoard" />
-                }
+    <section class="boards__section">
+        <header class="boards__header">
+            <h2 class="text-section-title">Archived boards</h2>
+            <input class="boards__search-input"
+                   type="search"
+                   maxlength="40"
+                   placeholder="Search boards by name"
+                   value="@BoardStore.Archived.SearchText"
+                   @oninput="OnArchivedSearchInputAsync" />
+            <div class="boards__pager">
+                <button type="button"
+                        class="btn-noir"
+                        disabled="@(BoardStore.Archived.CurrentPage <= 1 || BoardStore.Archived.IsLoading)"
+                        @onclick="() => ChangeArchivedPageAsync(BoardStore.Archived.CurrentPage - 1)">
+                    <span>Prev</span>
+                </button>
+                <span class="text-meta-subtle">
+                    Page @BoardStore.Archived.CurrentPage of @(Math.Max(BoardStore.Archived.Pagination.TotalPages, 1))
+                </span>
+                <button type="button"
+                        class="btn-noir"
+                        disabled="@(BoardStore.Archived.CurrentPage >= Math.Max(BoardStore.Archived.Pagination.TotalPages, 1) || BoardStore.Archived.IsLoading)"
+                        @onclick="() => ChangeArchivedPageAsync(BoardStore.Archived.CurrentPage + 1)">
+                    <span>Next</span>
+                </button>
             </div>
-        }
-    </div>
+        </header>
+
+        <div class="boards__boards">
+            @if (BoardStore.Archived.IsLoading && BoardStore.Archived.Boards.Count == 0)
+            {
+                <div class="page-state">
+                    <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+                </div>
+            }
+            else if (BoardStore.Archived.ErrorMessage is { } archivedError)
+            {
+                <div class="page-state">
+                    <MudAlert Severity="Severity.Error">@archivedError</MudAlert>
+                </div>
+            }
+            else if (BoardStore.Archived.Boards.Count == 0)
+            {
+                <div class="page-state">
+                    <p class="text-empty">You don't have any archived boards.</p>
+                </div>
+            }
+            else
+            {
+                <div class="boards__grid">
+                    @foreach (var board in BoardStore.Archived.Boards)
+                    {
+                        <BoardCard Board="board" OnClick="OpenBoard" />
+                    }
+                </div>
+            }
+        </div>
+    </section>
 </div>
 
 @code {
@@ -98,7 +162,7 @@
         if (!ProfileStore.IsLoaded || ProfileStore.RequiresLogin)
             return;
 
-        if (BoardStore.IsLoading)
+        if (BoardStore.Active.IsLoading || BoardStore.Archived.IsLoading)
             return;
 
         await BoardStore.RefreshAsync();
@@ -107,11 +171,17 @@
     private void OpenBoard(BoardLookupDto board) =>
         Navigation.NavigateTo($"/boards/{board.Id}");
 
-    private async Task ChangePageAsync(int pageNumber) =>
-        await BoardStore.LoadAsync(pageNumber);
+    private Task ChangeActivePageAsync(int pageNumber) =>
+        BoardStore.LoadActiveAsync(pageNumber);
 
-    private Task OnSearchInputAsync(ChangeEventArgs e) =>
-        BoardStore.SetSearchAsync(e.Value?.ToString() ?? string.Empty);
+    private Task ChangeArchivedPageAsync(int pageNumber) =>
+        BoardStore.LoadArchivedAsync(pageNumber);
+
+    private Task OnActiveSearchInputAsync(ChangeEventArgs e) =>
+        BoardStore.SetActiveSearchAsync(e.Value?.ToString() ?? string.Empty);
+
+    private Task OnArchivedSearchInputAsync(ChangeEventArgs e) =>
+        BoardStore.SetArchivedSearchAsync(e.Value?.ToString() ?? string.Empty);
 
     private async Task CreateBoardAsync()
     {

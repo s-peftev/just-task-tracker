@@ -2,6 +2,7 @@ using FluentValidation;
 using JustTaskTracker.Application.Auth;
 using JustTaskTracker.Application.Boards.Positioning;
 using JustTaskTracker.Application.Boards.Repositories;
+using JustTaskTracker.Application.Common.Behaviors;
 using JustTaskTracker.Application.Common.Persistence;
 using JustTaskTracker.Domain.Boards.Authorization;
 using JustTaskTracker.Domain.Boards.Entities;
@@ -12,7 +13,8 @@ using MediatR;
 
 namespace JustTaskTracker.Application.Boards.Commands.BoardTasks;
 
-public record ReorderBoardTaskCommand(Guid TargetColumnId, Guid BoardTaskId, int Position) : IRequest<Result>;
+public record ReorderBoardTaskCommand(Guid BoardId, Guid TargetColumnId, Guid BoardTaskId, int Position)
+    : IRequest<Result>, IRequireActiveBoard;
 
 public class ReorderBoardTaskCommandHandler(
     ICurrentUserAccessor currentUserAccessor,
@@ -92,6 +94,9 @@ public class ReorderBoardTaskCommandValidator : AbstractValidator<ReorderBoardTa
 {
     public ReorderBoardTaskCommandValidator()
     {
+        RuleFor(x => x.BoardId)
+            .NotEmpty();
+
         RuleFor(x => x.TargetColumnId)
             .NotEmpty();
 

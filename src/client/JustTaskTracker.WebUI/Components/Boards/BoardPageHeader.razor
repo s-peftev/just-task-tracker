@@ -42,9 +42,18 @@
         </div>
 
         <div class="board-page__controls">
+            @if (board.IsArchived && board.ArchivedAtUtc is { } archivedAtUtc)
+            {
+                <p class="board-page__archived-notice">
+                    This board was archived on @FormatArchivedAt(archivedAtUtc)<br />
+                    Available in read-only mode.
+                </p>
+            }
+
             <BoardPageMenu UserRole="board.UserRole"
                            OnMembersClick="OpenMembersOverlayAsync"
                            OnLeaveBoardClick="LeaveBoardAsync"
+                           OnArchiveBoardClick="ArchiveBoardAsync"
                            OnDeleteBoardClick="DeleteBoardAsync" />
 
             <button type="button"
@@ -73,7 +82,12 @@
     private ElementReference _titleInputRef;
 
     private bool CanRenameBoard =>
-        BoardDetailsStore.Board is { UserRole: var role } && BoardRolePermissions.CanRenameBoard(role);
+        !BoardDetailsStore.IsReadOnly
+        && BoardDetailsStore.Board is { UserRole: var role }
+        && BoardRolePermissions.CanRenameBoard(role);
+
+    private static string FormatArchivedAt(DateTime archivedAtUtc) =>
+        archivedAtUtc.ToLocalTime().ToString("g");
 
     protected override void OnInitialized() =>
         BoardDetailsStore.StateChanged += OnBoardDetailsStoreStateChanged;
@@ -238,6 +252,34 @@
             await BoardApiService.DeleteBoardAsync(BoardId);
             Snackbar.Add("Board deleted.", Severity.Success);
             Navigation.NavigateTo("/boards");
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+    }
+
+    private async Task ArchiveBoardAsync()
+    {
+        var message =
+            $"Archive board \"{BoardDetailsStore.Board?.Name}\"?{Environment.NewLine}This action cannot be undone.";
+
+        var dialog = await DialogService.ShowConfirmResourceAsync(
+            "Archive board",
+            message,
+            confirmLabel: "Archive",
+            submitButtonClass: "btn-dialog-warning btn-dialog-action");
+
+        var result = await dialog.Result;
+
+        if (result is not { Canceled: false, Data: true })
+            return;
+
+        try
+        {
+            var archived = await BoardApiService.ArchiveBoardAsync(BoardId);
+            BoardDetailsStore.SetBoardArchived(archived.ArchivedAtUtc);
+            Snackbar.Add("Board archived.", Severity.Success);
         }
         catch (ApiServiceException ex)
         {

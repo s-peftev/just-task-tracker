@@ -2,6 +2,7 @@ using FluentValidation;
 using JustTaskTracker.Application.Auth;
 using JustTaskTracker.Application.Auth.Repositories;
 using JustTaskTracker.Application.Boards.Repositories;
+using JustTaskTracker.Application.Common.Behaviors;
 using JustTaskTracker.Application.Common.Persistence;
 using JustTaskTracker.Domain.Boards.Authorization;
 using JustTaskTracker.Domain.Common.Results;
@@ -10,7 +11,8 @@ using MediatR;
 
 namespace JustTaskTracker.Application.Boards.Commands.Comments;
 
-public record DeleteBoardTaskCommentCommand(Guid CommentId) : IRequest<Result>;
+public record DeleteBoardTaskCommentCommand(Guid BoardId, Guid CommentId)
+    : IRequest<Result>, IRequireActiveBoard;
 
 public class DeleteBoardTaskCommentCommandHandler(
     ICurrentUserAccessor currentUserAccessor,
@@ -49,6 +51,9 @@ public class DeleteBoardTaskCommentCommandValidator : AbstractValidator<DeleteBo
 {
     public DeleteBoardTaskCommentCommandValidator()
     {
+        RuleFor(x => x.BoardId)
+            .NotEmpty();
+
         RuleFor(x => x.CommentId)
             .NotEmpty();
     }

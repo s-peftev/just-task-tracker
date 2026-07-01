@@ -44,6 +44,10 @@
     background-color: var(--jtt-overlay-accent-10);
 }
 
+.board-page--archived .board-page__content {
+    background-color: var(--jtt-overlay-warning-10);
+}
+
 .board-page__content--panning {
     user-select: none;
 }

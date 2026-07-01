@@ -6,21 +6,21 @@
     <span class="@RootCssClass"
           aria-label="@AriaLabel"
           title="@(ShowTooltip ? null : AriaLabel)">
-        <svg class="board-serialization-status__icon"
+        <svg class="board-export-status__icon"
              viewBox="0 0 24 24"
              aria-hidden="true"
              focusable="false">
-            <path class="board-serialization-status__segment @GetSegmentClass(1)"
+            <path class="board-export-status__segment @GetSegmentClass(1)"
                   d="@GetSegmentPath(1)" />
-            <path class="board-serialization-status__segment @GetSegmentClass(2)"
+            <path class="board-export-status__segment @GetSegmentClass(2)"
                   d="@GetSegmentPath(2)" />
-            <path class="board-serialization-status__segment @GetSegmentClass(3)"
+            <path class="board-export-status__segment @GetSegmentClass(3)"
                   d="@GetSegmentPath(3)" />
         </svg>
 
         @if (ShowTooltip)
         {
-            <span class="board-serialization-status__tooltip" aria-hidden="true">
+            <span class="board-export-status__tooltip" aria-hidden="true">
                 <BoardDownloadCopyTooltip Status="EffectiveStatus"
                                           ExportOptions="ExportOptions" />
             </span>
@@ -57,18 +57,18 @@
             ' ',
             new[]
             {
-                "board-serialization-status",
-                ShowTooltip ? "board-serialization-status--tooltip" : null,
-                TooltipBelow ? "board-serialization-status--tooltip-below" : null,
+                "board-export-status",
+                ShowTooltip ? "board-export-status--tooltip" : null,
+                TooltipBelow ? "board-export-status--tooltip-below" : null,
             }.Where(static cssClass => cssClass is not null));
 
     private string GetSegmentClass(int segmentIndex) =>
         (EffectiveStatus, segmentIndex) switch
         {
-            (BoardExportStatus.Processing, 1 or 2) => "board-serialization-status__segment--accent",
-            (BoardExportStatus.Failed, 1 or 2) => "board-serialization-status__segment--danger",
-            (BoardExportStatus.Pending, 1) => "board-serialization-status__segment--warning",
-            _ => "board-serialization-status__segment--inactive",
+            (BoardExportStatus.Processing, 1 or 2) => "board-export-status__segment--accent",
+            (BoardExportStatus.Failed, 1 or 2) => "board-export-status__segment--danger",
+            (BoardExportStatus.Pending, 1) => "board-export-status__segment--warning",
+            _ => "board-export-status__segment--inactive",
         };
 
     private static string GetSegmentPath(int segmentIndex)

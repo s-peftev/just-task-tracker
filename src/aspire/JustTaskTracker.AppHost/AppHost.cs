@@ -4,7 +4,7 @@ var sql = builder.AddSqlServer("sql")
     .WithDataVolume("jtt-sql-data")
     .WithLifetime(ContainerLifetime.Persistent);
 
-var database = sql.AddDatabase("JustTaskTracker");
+var database = sql.AddDatabase("MSQLDb");
 
 var migrations = builder.AddProject<Projects.JustTaskTracker_Database>("migrations")
     .WithReference(database)

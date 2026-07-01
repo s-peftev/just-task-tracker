@@ -55,10 +55,10 @@
                 </p>
                 @if (CanViewBoardDownloadStatus)
                 {
-                    <div class="board-page__serialization-actions">
+                    <div class="board-page__export-actions">
                         @if (ShowPreviousExportDownload(board))
                         {
-                            <div class="board-page__serialization-status">
+                            <div class="board-page__export-status">
                                 <button type="button"
                                         class="board-page__download-btn btn-icon"
                                         aria-label="@DownloadAriaLabel"
@@ -79,7 +79,7 @@
 
                         @if (ShowReExportButton(board))
                         {
-                            <div class="board-page__serialization-status">
+                            <div class="board-page__export-status">
                                 <button type="button"
                                         class="board-page__re-export-btn btn-icon"
                                         aria-label="Create a new downloadable copy with different options"
@@ -96,7 +96,7 @@
 
                         @if (board.ReExportStatus != BoardExportStatus.None)
                         {
-                            <div class="board-page__serialization-status">
+                            <div class="board-page__export-status">
                                 <BoardExportStatusIndicator Status="board.ReExportStatus"
                                                             ExportOptions="board.ReExportOptions"
                                                             TooltipBelow="true" />
@@ -104,7 +104,7 @@
                         }
                         else if (board.BoardExportStatus != BoardExportStatus.Completed)
                         {
-                            <div class="board-page__serialization-status">
+                            <div class="board-page__export-status">
                                 <BoardExportStatusIndicator Status="board.BoardExportStatus"
                                                             ExportOptions="board.ExportOptions"
                                                             TooltipBelow="true" />

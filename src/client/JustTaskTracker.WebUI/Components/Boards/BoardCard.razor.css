@@ -76,7 +76,7 @@
     line-height: 0;
 }
 
-.board-card__corner-actions .board-card__corner-action--indicator ::deep .board-serialization-status__tooltip {
+.board-card__corner-actions .board-card__corner-action--indicator ::deep .board-export-status__tooltip {
     z-index: 4;
 }
 

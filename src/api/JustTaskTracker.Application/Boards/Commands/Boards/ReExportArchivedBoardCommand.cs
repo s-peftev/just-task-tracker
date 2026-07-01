@@ -2,7 +2,6 @@ using FluentValidation;
 using JustTaskTracker.Application.Auth;
 using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.ExternalProviders;
-using JustTaskTracker.Application.Common.Persistence;
 using JustTaskTracker.Domain.Boards.Authorization;
 using JustTaskTracker.Domain.Boards.DTOs.Boards;
 using JustTaskTracker.Domain.Boards.Enums;
@@ -21,7 +20,6 @@ public class ReExportArchivedBoardCommandHandler(
     ICurrentUserAccessor currentUserAccessor,
     IBoardRepository boardRepository,
     IBoardExportService boardExportService,
-    IUnitOfWork unitOfWork,
     ILogger<ReExportArchivedBoardCommandHandler> logger)
     : IRequestHandler<ReExportArchivedBoardCommand, Result>
 {
@@ -38,19 +36,19 @@ public class ReExportArchivedBoardCommandHandler(
         if (board is null)
             return Result.Failure(GeneralErrors.NotFound);
 
-        if (!board.IsArchived || !board.IsExported)
+        if (!board.IsArchived)
             return Result.Failure(BoardsErrors.ReExportNotAllowed);
-
-        if (board.IsReExportRequested)
-            return Result.Failure(BoardsErrors.ReExportAlreadyRequested);
 
         var exportInfo = await boardExportService.GetBoardExportInfoAsync(board.Id, ct);
 
         if (exportInfo is null)
-            return Result.Failure(BoardsErrors.SerializationInfoNotFound);
+            return Result.Failure(BoardsErrors.ExportInfoNotFound);
 
         if (exportInfo.ExportStatus != BoardExportStatus.Completed)
-            return Result.Failure(BoardsErrors.ExportNotCompleted);
+            return Result.Failure(BoardsErrors.ReExportNotAllowed);
+
+        if (exportInfo.ReExportStatus is BoardExportStatus.Pending or BoardExportStatus.Processing)
+            return Result.Failure(BoardsErrors.ReExportAlreadyRequested);
 
         if (exportInfo.ExportOptions == request.ReExportOptions)
             return Result.Failure(BoardsErrors.ReExportOptionsUnchanged);
@@ -68,10 +66,6 @@ public class ReExportArchivedBoardCommandHandler(
             logger.LogError(ex, "Failed to schedule re-export for board {BoardId}.", board.Id);
             return Result.Failure(GeneralErrors.ServiceUnavailable);
         }
-
-        board.IsReExportRequested = true;
-
-        await unitOfWork.SaveChangesAsync(ct);
 
         return Result.Success();
     }

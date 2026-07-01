@@ -20,15 +20,10 @@ public static class BoardsErrors
         ErrorType.Conflict,
         ["A re-export has already been requested for this board."]);
 
-    public static readonly Error ExportNotCompleted = new(
-        nameof(ExportNotCompleted),
+    public static readonly Error ExportInfoNotFound = new(
+        nameof(ExportInfoNotFound),
         ErrorType.Conflict,
-        ["A new export can only be requested after the current export has completed."]);
-
-    public static readonly Error SerializationInfoNotFound = new(
-        nameof(SerializationInfoNotFound),
-        ErrorType.Conflict,
-        ["Serialization metadata is not available for this board."]);
+        ["Export metadata is not available for this board."]);
 
     public static readonly Error ReExportOptionsUnchanged = new(
         nameof(ReExportOptionsUnchanged),

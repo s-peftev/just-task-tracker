@@ -55,13 +55,12 @@ public sealed class BoardExportDataApiClient(
             response.EnsureSuccessStatusCode();
         }
 
-        var data = await response.Content.ReadFromJsonAsync<BoardExportDataDto>(JsonOptions, ct)
-            ?? throw new InvalidOperationException($"Export data response for board {boardId} was empty.");
+        var data = await ApiEnvelopeReader.ReadSuccessDataAsync<BoardExportDataDto>(response, ct);
 
-        if (data.Board.Id != boardId)
+        if (data.Board is not { } board || board.Id != boardId)
         {
             throw new InvalidOperationException(
-                $"Export data board id mismatch. Expected {boardId}, got {data.Board.Id}.");
+                $"Export data board id mismatch. Expected {boardId}, got {data.Board?.Id}.");
         }
 
         return data;

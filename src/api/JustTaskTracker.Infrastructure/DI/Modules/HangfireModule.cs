@@ -1,5 +1,7 @@
 using Hangfire;
 using Hangfire.SqlServer;
+using JustTaskTracker.Application.Boards.Jobs;
+using JustTaskTracker.Infrastructure.Boards.Jobs;
 using JustTaskTracker.Infrastructure.Common.Constants;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -27,6 +29,8 @@ internal static class HangfireModule
             }));
 
         services.AddHangfireServer();
+
+        services.AddScoped<IBoardExportSchedulerJob, BoardExportSchedulerJob>();
 
         return services;
     }

@@ -43,10 +43,12 @@ internal static class AzureModule
         services.AddSingleton(sp =>
         {
             var client = sp.GetRequiredService<ServiceBusClient>();
-            var options = sp.GetRequiredService<ServiceBusOptions>();
+            var sbOptions = sp.GetRequiredService<ServiceBusOptions>();
 
-            return client.CreateSender(options.QueueNames!.BoardArchivingQueueName);
+            return client.CreateSender(sbOptions.QueueNames!.BoardArchivingQueueName);
         });
+
+        services.AddSingleton<IBoardExportQueueSender, AzureBoardExportQueueSender>();
 
         return services;
     }

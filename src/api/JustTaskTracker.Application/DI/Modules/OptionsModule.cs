@@ -33,6 +33,14 @@ internal static class OptionsModule
         profilePhotoProcessingSettings.Validate();
         services.AddSingleton(profilePhotoProcessingSettings);
 
+        var boardExportSchedulerOptions = configuration
+            .GetSection(ConfigSections.BoardExportScheduler)
+            .Get<BoardExportSchedulerOptions>()
+            ?? throw new InvalidOperationException($"{ConfigSections.BoardExportScheduler} section is not configured.");
+
+        boardExportSchedulerOptions.Validate();
+        services.AddSingleton(boardExportSchedulerOptions);
+
         return services;
     }
 }

@@ -2,6 +2,10 @@
 @using JustTaskTracker.WebUI.Domain.Boards
 @using JustTaskTracker.WebUI.Domain.Boards.Authorization
 @using JustTaskTracker.WebUI.Domain.Boards.Enums
+@using JustTaskTracker.WebUI.Infrastructure
+@using JustTaskTracker.WebUI.Services.Abstractions.Boards
+@using JustTaskTracker.WebUI.Services.Exceptions
+@inject IBoardArchiveDownloadService BoardArchiveDownloadService
 @inject ISnackbar Snackbar
 
 <div class="board-card card-elevated @(Board.IsArchived ? "board-card--archived" : null)"
@@ -20,7 +24,8 @@
                         <button type="button"
                                 class="board-card__corner-action board-card__corner-action--download"
                                 aria-label="@DownloadAriaLabel"
-                                @onclick="OnDownloadClick"
+                                disabled="@_isDownloadingArchive"
+                                @onclick="DownloadArchiveAsync"
                                 @onclick:stopPropagation="true">
                             <svg class="board-card__corner-icon"
                                  viewBox="0 0 24 24"
@@ -76,6 +81,8 @@
     [Parameter]
     public EventCallback<BoardLookupDto> OnClick { get; set; }
 
+    private bool _isDownloadingArchive;
+
     private bool CanViewBoardDownloadStatus =>
         BoardRolePermissions.CanArchiveBoard(Board.UserRole);
 
@@ -99,8 +106,26 @@
             await OnClickHandler();
     }
 
-    private void OnDownloadClick() =>
-        Snackbar.Add("Board download is coming soon.", Severity.Info);
+    private async Task DownloadArchiveAsync()
+    {
+        if (_isDownloadingArchive)
+            return;
+
+        _isDownloadingArchive = true;
+
+        try
+        {
+            await BoardArchiveDownloadService.DownloadAsync(Board.Id);
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+        finally
+        {
+            _isDownloadingArchive = false;
+        }
+    }
 
     private string OwnerDisplayName =>
         string.IsNullOrWhiteSpace(Board.OwnerEmail)

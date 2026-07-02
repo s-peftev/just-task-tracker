@@ -64,6 +64,11 @@ internal interface IBoardApi
         [Body] BoardExportOptions exportOptions,
         CancellationToken ct = default);
 
+    [Get("/api/boards/{boardId}/archive/export")]
+    Task<IApiResponse<ApiEnvelope<BoardArchiveDownloadDto>>> GetArchiveExportAsync(
+        Guid boardId,
+        CancellationToken ct = default);
+
     [Post("/api/boards/{boardId}/archive/re-export")]
     Task<IApiResponse<ApiEnvelope<object>>> ReExportArchivedAsync(
         Guid boardId,

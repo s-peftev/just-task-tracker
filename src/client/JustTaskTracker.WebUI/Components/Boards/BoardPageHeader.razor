@@ -8,6 +8,7 @@
 @using JustTaskTracker.WebUI.Services.Exceptions
 @implements IDisposable
 @inject IBoardApiService BoardApiService
+@inject IBoardArchiveDownloadService BoardArchiveDownloadService
 @inject IBoardDetailsStore BoardDetailsStore
 @inject IBoardStore BoardStore
 @inject IBoardMembersStore BoardMembersStore
@@ -62,7 +63,8 @@
                                 <button type="button"
                                         class="board-page__download-btn btn-icon"
                                         aria-label="@DownloadAriaLabel"
-                                        @onclick="OnDownloadClick">
+                                        disabled="@_isDownloadingArchive"
+                                        @onclick="DownloadArchiveAsync">
                                     <svg viewBox="0 0 24 24"
                                          aria-hidden="true"
                                          focusable="false">
@@ -141,6 +143,7 @@
 
     private bool _isEditingName;
     private bool _isSavingName;
+    private bool _isDownloadingArchive;
     private bool _focusTitleInput;
     private string _editName = string.Empty;
     private ElementReference _titleInputRef;
@@ -172,8 +175,26 @@
         board.BoardExportStatus == BoardExportStatus.Completed
         && board.ReExportStatus == BoardExportStatus.None;
 
-    private void OnDownloadClick() =>
-        Snackbar.Add("Board download is coming soon.", Severity.Info);
+    private async Task DownloadArchiveAsync()
+    {
+        if (_isDownloadingArchive)
+            return;
+
+        _isDownloadingArchive = true;
+
+        try
+        {
+            await BoardArchiveDownloadService.DownloadAsync(BoardId);
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+        finally
+        {
+            _isDownloadingArchive = false;
+        }
+    }
 
     private async Task ReExportBoardAsync()
     {

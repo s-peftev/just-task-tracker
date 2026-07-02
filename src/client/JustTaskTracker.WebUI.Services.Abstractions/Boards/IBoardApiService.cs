@@ -39,6 +39,10 @@ public interface IBoardApiService
         BoardExportOptions exportOptions,
         CancellationToken ct = default);
 
+    Task<BoardArchiveDownloadDto> GetBoardArchiveDownloadAsync(
+        Guid boardId,
+        CancellationToken ct = default);
+
     Task ReExportArchivedBoardAsync(
         Guid boardId,
         BoardExportOptions reExportOptions,

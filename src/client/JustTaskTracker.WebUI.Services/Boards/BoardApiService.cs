@@ -131,6 +131,15 @@ internal class BoardApiService(IBoardApi api) : IBoardApiService
         return ApiResponseGuard.Unwrap(response);
     }
 
+    public async Task<BoardArchiveDownloadDto> GetBoardArchiveDownloadAsync(
+        Guid boardId,
+        CancellationToken ct = default)
+    {
+        var response = await api.GetArchiveExportAsync(boardId, ct);
+
+        return ApiResponseGuard.Unwrap(response);
+    }
+
     public async Task ReExportArchivedBoardAsync(
         Guid boardId,
         BoardExportOptions reExportOptions,

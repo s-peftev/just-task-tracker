@@ -96,6 +96,14 @@ internal sealed class AzureBlobStorageService(BlobServiceClient blobServiceClien
             .GenerateSasUri(BlobSasPermissions.Read, DateTimeOffset.UtcNow.Add(validity));
     }
 
+    public async Task<bool> ExistsAsync(string containerName, string blobName, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(containerName);
+        ArgumentException.ThrowIfNullOrWhiteSpace(blobName);
+
+        return await GetBlobClient(containerName, blobName).ExistsAsync(ct);
+    }
+
     private BlobClient GetBlobClient(string containerName, string blobName) =>
         GetContainerClient(containerName).GetBlobClient(blobName);
 

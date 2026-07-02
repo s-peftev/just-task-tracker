@@ -8,6 +8,8 @@ public class BlobStorageSettings
 
     public ProfilePhotosStorageOptions? ProfilePhotos { get; set; }
 
+    public BoardArchivesStorageOptions? BoardArchives { get; set; }
+
     public void Validate()
     {
         var section = ConfigSections.BlobStorage;
@@ -18,8 +20,12 @@ public class BlobStorageSettings
         if (ProfilePhotos is null)
             throw new InvalidOperationException($"{section}:ProfilePhotos is not configured.");
 
+        if (BoardArchives is null)
+            throw new InvalidOperationException($"{section}:BoardArchives is not configured.");
+
         TaskAttachments.Validate($"{section}:TaskAttachments");
         ProfilePhotos.Validate($"{section}:ProfilePhotos");
+        BoardArchives.Validate($"{section}:BoardArchives");
     }
 }
 
@@ -88,4 +94,18 @@ public class ProfilePhotosStorageOptions
 
     private static string Normalize(string folder) =>
         folder.Trim().Trim('/');
+}
+
+public class BoardArchivesStorageOptions
+{
+    public required string ContainerName { get; set; }
+
+    public string BuildArchiveBlobName(Guid boardId) =>
+        $"{boardId:D}/{boardId:D}.zip";
+
+    internal void Validate(string sectionPath)
+    {
+        if (string.IsNullOrWhiteSpace(ContainerName))
+            throw new InvalidOperationException($"{sectionPath}:ContainerName is not configured.");
+    }
 }

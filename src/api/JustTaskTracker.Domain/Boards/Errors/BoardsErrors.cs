@@ -25,6 +25,16 @@ public static class BoardsErrors
         ErrorType.Conflict,
         ["Export metadata is not available for this board."]);
 
+    public static readonly Error ExportNotCompleted = new(
+        nameof(ExportNotCompleted),
+        ErrorType.Conflict,
+        ["The board export is not ready for download yet."]);
+
+    public static readonly Error ArchiveFileNotFound = new(
+        nameof(ArchiveFileNotFound),
+        ErrorType.NotFound,
+        ["The board archive file is not available."]);
+
     public static readonly Error ReExportOptionsUnchanged = new(
         nameof(ReExportOptionsUnchanged),
         ErrorType.Validation,

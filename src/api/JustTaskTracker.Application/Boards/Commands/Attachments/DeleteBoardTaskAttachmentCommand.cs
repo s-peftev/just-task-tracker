@@ -56,9 +56,8 @@ public class DeleteBoardTaskAttachmentCommandHandler(
 
             if (remainingAttachments.Count > 0)
                 await boardPositioningService.ApplyCurrentOrderAndSaveAsync(remainingAttachments, ct);
-            else
-                await unitOfWork.SaveChangesAsync(ct);
-
+            
+            await unitOfWork.SaveChangesAsync(ct);
             await unitOfWork.CommitTransactionAsync(ct);
         }
         catch (Exception ex)

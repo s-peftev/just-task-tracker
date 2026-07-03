@@ -27,12 +27,12 @@ public class ExportContextResolver
 
     private static BoardExportContext ResolveInitialExport(BoardExportMessage message, BoardExportStatusInfo info)
     {
-        if (info.ExportStatus != BoardExportStatus.Pending)
+        if (!IsProcessable(info.ExportStatus))
         {
             return Skip(
                 message.BoardId,
                 message.Type,
-                $"Export is not pending (current status: {info.ExportStatus}).");
+                $"Export is not pending or requested (current status: {info.ExportStatus}).");
         }
 
         if (info.ExportOptions is null)
@@ -46,12 +46,12 @@ public class ExportContextResolver
 
     private static BoardExportContext ResolveReExport(BoardExportMessage message, BoardExportStatusInfo info)
     {
-        if (info.ReExportStatus != BoardExportStatus.Pending)
+        if (!IsProcessable(info.ReExportStatus))
         {
             return Skip(
                 message.BoardId,
                 message.Type,
-                $"Re-export is not pending (current status: {info.ReExportStatus}).");
+                $"Re-export is not pending or requested (current status: {info.ReExportStatus}).");
         }
 
         if (info.ReExportOptions is null)
@@ -62,6 +62,9 @@ public class ExportContextResolver
 
         return new BoardExportContext(message.BoardId, message.Type, info.ReExportOptions);
     }
+
+    private static bool IsProcessable(BoardExportStatus status) =>
+        status is BoardExportStatus.Pending or BoardExportStatus.Requested;
 
     private static BoardExportContext Skip(Guid boardId, BoardExportType type, string reason) =>
         new(boardId, type, Options: null, ShouldSkip: true, SkipReason: reason);

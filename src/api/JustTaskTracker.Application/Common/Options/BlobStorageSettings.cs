@@ -105,7 +105,7 @@ public class BoardArchivesStorageOptions
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(boardName);
 
-        var archiveFileName = BoardArchiveNameSanitizer.BuildArchiveFileName(boardName);
+        var archiveFileName = BoardArchivePathBuilder.BuildArchiveFileName(boardName);
         return $"{boardId:D}/{archiveFileName}";
     }
 

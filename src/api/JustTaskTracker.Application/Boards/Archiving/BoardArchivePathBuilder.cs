@@ -1,11 +1,15 @@
 using System.Text;
 
-namespace JustTaskTracker.Archival.Functions.Archiving;
+namespace JustTaskTracker.Application.Boards.Archiving;
 
 /// <summary>
-/// Normalizes board and archive entry names for zip/blob paths.
+/// Builds sanitized paths for board export archives.
 /// </summary>
-internal static class BoardArchiveNameSanitizer
+/// <remarks>
+/// Sanitization rules must stay in sync with
+/// <c>JustTaskTracker.Archival.Functions.Archiving.BoardArchivePathBuilder</c>.
+/// </remarks>
+internal static class BoardArchivePathBuilder
 {
     public static string BuildArchiveFileName(string boardName) =>
         $"{SanitizeFileName(boardName)}.zip";

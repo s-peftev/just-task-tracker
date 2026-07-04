@@ -24,8 +24,9 @@ public sealed class BoardArchiveBuilder(
             throw new ArgumentException("At least one summary format is required.", nameof(summaryFormats));
         }
 
+        var pathBuilder = new BoardArchivePathBuilder();
         var boardId = data.Board.Id;
-        var fileName = BoardArchiveNameSanitizer.BuildArchiveFileName(data.Board.Name);
+        var fileName = pathBuilder.BuildArchiveFileName(data.Board.Name);
 
         var resultStream = new MemoryStream();
 
@@ -39,7 +40,7 @@ public sealed class BoardArchiveBuilder(
 
             if (data.AppliedOptions.IncludeAttachments)
             {
-                await WriteAttachmentsAsync(archive, data, ct);
+                await WriteAttachmentsAsync(archive, data, pathBuilder, ct);
             }
         }
 
@@ -54,7 +55,11 @@ public sealed class BoardArchiveBuilder(
         return new BoardExportArchive(resultStream, fileName);
     }
 
-    private async Task WriteAttachmentsAsync(ZipArchive archive, BoardExportDataDto data, CancellationToken ct)
+    private async Task WriteAttachmentsAsync(
+        ZipArchive archive,
+        BoardExportDataDto data,
+        BoardArchivePathBuilder pathBuilder,
+        CancellationToken ct)
     {
         foreach (var column in data.Columns)
         {
@@ -67,7 +72,11 @@ public sealed class BoardArchiveBuilder(
                 {
                     ct.ThrowIfCancellationRequested();
 
-                    var entryPath = BuildAttachmentEntryPath(task.Id, attachment);
+                    var entryPath = pathBuilder.BuildAttachmentEntryPath(
+                        task.Id,
+                        task.Title,
+                        attachment.Position,
+                        attachment.OriginalFileName);
                     var entry = archive.CreateEntry(entryPath, CompressionLevel.Optimal);
 
                     try
@@ -91,11 +100,5 @@ public sealed class BoardArchiveBuilder(
                 }
             }
         }
-    }
-
-    private static string BuildAttachmentEntryPath(Guid taskId, BoardExportAttachmentDto attachment)
-    {
-        var safeName = BoardArchiveNameSanitizer.SanitizeFileName(attachment.OriginalFileName);
-        return $"{BoardArchiveEntryNames.AttachmentsFolder}/{taskId:D}/{attachment.Position:000}_{safeName}";
     }
 }

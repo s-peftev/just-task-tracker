@@ -16,47 +16,43 @@
     <div class="board-card__body">
         @if (Board.IsArchived && CanViewBoardDownloadStatus)
         {
-            @if (ShowPreviousExportDownload(Board) || ShowReExportPendingIndicator(Board))
-            {
-                <div class="board-card__corner-actions">
-                    @if (ShowPreviousExportDownload(Board))
-                    {
-                        <button type="button"
-                                class="board-card__corner-action board-card__corner-action--download"
-                                aria-label="@DownloadAriaLabel"
-                                disabled="@_isDownloadingArchive"
-                                @onclick="DownloadArchiveAsync"
-                                @onclick:stopPropagation="true">
-                            <svg class="board-card__corner-icon"
-                                 viewBox="0 0 24 24"
-                                 aria-hidden="true"
-                                 focusable="false">
-                                <path d="M20.54 5.23l-1.39-1.68C18.88 3.21 18.47 3 18 3H6c-.47 0-.88.21-1.16.55L3.46 5.23C3.17 5.57 3 6.02 3 6.5V19c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6.5c0-.48-.17-.93-.46-1.27zM12 17.5 6.5 12H10v-2h4v2h3.5L12 17.5zM5.12 5l.81-1h12l.94 1H5.12z"
-                                      fill="currentColor" />
-                            </svg>
-                            <span class="board-card__corner-tooltip" aria-hidden="true">
-                                <BoardDownloadCopyTooltip Status="BoardExportStatus.Completed" />
-                            </span>
-                        </button>
-                    }
+            <div class="board-card__corner-actions">
+                @if (ShowPreviousExportDownload(Board))
+                {
+                    <button type="button"
+                            class="board-card__corner-action board-card__corner-action--download"
+                            aria-label="@DownloadAriaLabel"
+                            disabled="@_isDownloadingArchive"
+                            @onclick="DownloadArchiveAsync"
+                            @onclick:stopPropagation="true">
+                        <svg class="board-card__corner-icon"
+                             viewBox="0 0 24 24"
+                             aria-hidden="true"
+                             focusable="false">
+                            <path d="M20.54 5.23l-1.39-1.68C18.88 3.21 18.47 3 18 3H6c-.47 0-.88.21-1.16.55L3.46 5.23C3.17 5.57 3 6.02 3 6.5V19c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6.5c0-.48-.17-.93-.46-1.27zM12 17.5 6.5 12H10v-2h4v2h3.5L12 17.5zM5.12 5l.81-1h12l.94 1H5.12z"
+                                  fill="currentColor" />
+                        </svg>
+                        <span class="board-card__corner-tooltip" aria-hidden="true">
+                            <BoardDownloadCopyTooltip Status="BoardExportStatus.Completed" />
+                        </span>
+                    </button>
+                }
 
-                    @if (ShowReExportPendingIndicator(Board))
-                    {
-                        <div class="board-card__corner-action board-card__corner-action--indicator">
-                            <BoardExportStatusIndicator Status="Board.ReExportStatus"
-                                                        TooltipBelow="true" />
-                        </div>
-                    }
-                </div>
-            }
-            else if (Board.BoardExportStatus != BoardExportStatus.Completed
-                     && Board.ReExportStatus == BoardExportStatus.None)
-            {
-                <div class="board-card__corner-action board-card__corner-action--indicator">
-                    <BoardExportStatusIndicator Status="Board.BoardExportStatus"
-                                                TooltipBelow="true" />
-                </div>
-            }
+                @if (Board.ReExportStatus != BoardExportStatus.None)
+                {
+                    <div class="board-card__corner-action board-card__corner-action--indicator">
+                        <BoardExportStatusIndicator Status="Board.ReExportStatus"
+                                                    TooltipBelow="true" />
+                    </div>
+                }
+                else if (Board.BoardExportStatus != BoardExportStatus.Completed)
+                {
+                    <div class="board-card__corner-action board-card__corner-action--indicator">
+                        <BoardExportStatusIndicator Status="Board.BoardExportStatus"
+                                                    TooltipBelow="true" />
+                    </div>
+                }
+            </div>
         }
 
         <p class="board-card__meta">
@@ -94,9 +90,6 @@
         && (board.ReExportStatus == BoardExportStatus.None
             || board.ReExportStatus == BoardExportStatus.Requested
             || board.ReExportStatus == BoardExportStatus.Pending);
-
-    private static bool ShowReExportPendingIndicator(BoardLookupDto board) =>
-        board.ReExportStatus is BoardExportStatus.Requested or BoardExportStatus.Pending;
 
     private Task OnClickHandler() => OnClick.InvokeAsync(Board);
 

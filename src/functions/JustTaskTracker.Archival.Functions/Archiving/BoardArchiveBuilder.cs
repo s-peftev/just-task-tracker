@@ -1,5 +1,4 @@
 using System.IO.Compression;
-using System.Text;
 using JustTaskTracker.Archival.Functions.Abstractions.Archiving;
 using JustTaskTracker.Archival.Functions.Archiving.Summary;
 using JustTaskTracker.Archival.Functions.Contracts.DTOs.Export;
@@ -26,7 +25,7 @@ public sealed class BoardArchiveBuilder(
         }
 
         var boardId = data.Board.Id;
-        var fileName = $"{boardId:D}.zip";
+        var fileName = BoardArchiveNameSanitizer.BuildArchiveFileName(data.Board.Name);
 
         var resultStream = new MemoryStream();
 
@@ -96,19 +95,7 @@ public sealed class BoardArchiveBuilder(
 
     private static string BuildAttachmentEntryPath(Guid taskId, BoardExportAttachmentDto attachment)
     {
-        var safeName = SanitizeFileName(attachment.OriginalFileName);
+        var safeName = BoardArchiveNameSanitizer.SanitizeFileName(attachment.OriginalFileName);
         return $"{BoardArchiveEntryNames.AttachmentsFolder}/{taskId:D}/{attachment.Position:000}_{safeName}";
-    }
-
-    private static string SanitizeFileName(string fileName)
-    {
-        var name = Path.GetFileName(fileName);
-        var invalidChars = Path.GetInvalidFileNameChars();
-        var sb = new StringBuilder(name.Length);
-
-        foreach (var ch in name)
-            sb.Append(invalidChars.Contains(ch) ? '_' : ch);
-
-        return sb.Length > 0 ? sb.ToString() : "attachment";
     }
 }

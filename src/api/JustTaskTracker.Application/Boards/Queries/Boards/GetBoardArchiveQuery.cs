@@ -27,10 +27,16 @@ public class GetBoardArchiveQueryHandler(
 
     public async Task<Result<BoardArchiveDownloadDto>> Handle(GetBoardArchiveQuery request, CancellationToken ct)
     {
-        var userRole = await boardRepository.GetUserRoleAsync(request.BoardId, currentUserAccessor.AzureAdObjectId, ct);
+        var (board, userRole) = await boardRepository.GetBoardWithUserRoleAsync(
+            request.BoardId,
+            currentUserAccessor.AzureAdObjectId,
+            ct);
 
         if (userRole is not { } authorizedRole || !BoardRolePermissions.CanArchiveBoard(authorizedRole))
             return Result<BoardArchiveDownloadDto>.Failure(GeneralErrors.Forbidden);
+
+        if (board is null)
+            return Result<BoardArchiveDownloadDto>.Failure(GeneralErrors.NotFound);
 
         var exportInfo = await boardExportService.GetBoardExportInfoAsync(request.BoardId, ct);
 
@@ -41,8 +47,8 @@ public class GetBoardArchiveQueryHandler(
             return Result<BoardArchiveDownloadDto>.Failure(BoardsErrors.ExportNotCompleted);
 
         var archives = blobStorageSettings.BoardArchives!;
-        var blobName = archives.BuildArchiveBlobName(request.BoardId);
-        var fileName = $"{request.BoardId:D}.zip";
+        var blobName = archives.BuildArchiveBlobName(request.BoardId, board.Name);
+        var fileName = Path.GetFileName(blobName);
 
         if (!await blobStorageService.ExistsAsync(archives.ContainerName, blobName, ct))
             return Result<BoardArchiveDownloadDto>.Failure(BoardsErrors.ArchiveFileNotFound);

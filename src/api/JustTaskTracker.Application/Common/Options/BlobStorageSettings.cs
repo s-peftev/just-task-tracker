@@ -1,4 +1,5 @@
-﻿using JustTaskTracker.Application.Common.Constants;
+﻿using JustTaskTracker.Application.Boards.Archiving;
+using JustTaskTracker.Application.Common.Constants;
 
 namespace JustTaskTracker.Application.Common.Options;
 
@@ -100,8 +101,13 @@ public class BoardArchivesStorageOptions
 {
     public required string ContainerName { get; set; }
 
-    public string BuildArchiveBlobName(Guid boardId) =>
-        $"{boardId:D}/{boardId:D}.zip";
+    public string BuildArchiveBlobName(Guid boardId, string boardName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(boardName);
+
+        var archiveFileName = BoardArchiveNameSanitizer.BuildArchiveFileName(boardName);
+        return $"{boardId:D}/{archiveFileName}";
+    }
 
     internal void Validate(string sectionPath)
     {

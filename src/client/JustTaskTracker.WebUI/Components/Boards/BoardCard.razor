@@ -1,26 +1,62 @@
 @using JustTaskTracker.WebUI.Domain.Auth
 @using JustTaskTracker.WebUI.Domain.Boards
+@using JustTaskTracker.WebUI.Domain.Boards.Authorization
+@using JustTaskTracker.WebUI.Domain.Boards.Enums
+@using JustTaskTracker.WebUI.Infrastructure
+@using JustTaskTracker.WebUI.Services.Abstractions.Boards
+@using JustTaskTracker.WebUI.Services.Exceptions
+@inject IBoardArchiveDownloadService BoardArchiveDownloadService
+@inject ISnackbar Snackbar
 
-<button type="button"
-        class="board-card card-elevated @(Board.IsArchived ? "board-card--archived" : null)"
-        @onclick="OnClickHandler">
+<div class="board-card card-elevated @(Board.IsArchived ? "board-card--archived" : null)"
+     role="button"
+     tabindex="0"
+     @onclick="OnClickHandler"
+     @onkeydown="OnCardKeyDownAsync">
     <div class="board-card__body">
-        @if (Board.IsArchived && Board.ArchivedAtUtc is { } archivedAtUtc)
+        @if (Board.IsArchived && CanViewBoardDownloadStatus)
         {
-            <span class="board-card__archived-badge"
-                  aria-label="@GetArchivedAriaLabel(archivedAtUtc)">
-                <svg class="board-card__archived-icon"
-                     viewBox="0 0 24 24"
-                     aria-hidden="true"
-                     focusable="false">
-                    <path d="M20.54 5.23l-1.39-1.68C18.88 3.21 18.47 3 18 3H6c-.47 0-.88.21-1.16.55L3.46 5.23C3.17 5.57 3 6.02 3 6.5V19c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6.5c0-.48-.17-.93-.46-1.27zM12 17.5 6.5 12H10v-2h4v2h3.5L12 17.5zM5.12 5l.81-1h12l.94 1H5.12z"
-                          fill="currentColor" />
-                </svg>
-                <span class="board-card__archived-tooltip" aria-hidden="true">
-                    This board was archived on @FormatArchivedAt(archivedAtUtc)<br />
-                    Available in read-only mode.
-                </span>
-            </span>
+            @if (ShowPreviousExportDownload(Board) || ShowReExportPendingIndicator(Board))
+            {
+                <div class="board-card__corner-actions">
+                    @if (ShowPreviousExportDownload(Board))
+                    {
+                        <button type="button"
+                                class="board-card__corner-action board-card__corner-action--download"
+                                aria-label="@DownloadAriaLabel"
+                                disabled="@_isDownloadingArchive"
+                                @onclick="DownloadArchiveAsync"
+                                @onclick:stopPropagation="true">
+                            <svg class="board-card__corner-icon"
+                                 viewBox="0 0 24 24"
+                                 aria-hidden="true"
+                                 focusable="false">
+                                <path d="M20.54 5.23l-1.39-1.68C18.88 3.21 18.47 3 18 3H6c-.47 0-.88.21-1.16.55L3.46 5.23C3.17 5.57 3 6.02 3 6.5V19c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6.5c0-.48-.17-.93-.46-1.27zM12 17.5 6.5 12H10v-2h4v2h3.5L12 17.5zM5.12 5l.81-1h12l.94 1H5.12z"
+                                      fill="currentColor" />
+                            </svg>
+                            <span class="board-card__corner-tooltip" aria-hidden="true">
+                                <BoardDownloadCopyTooltip Status="BoardExportStatus.Completed" />
+                            </span>
+                        </button>
+                    }
+
+                    @if (ShowReExportPendingIndicator(Board))
+                    {
+                        <div class="board-card__corner-action board-card__corner-action--indicator">
+                            <BoardExportStatusIndicator Status="Board.ReExportStatus"
+                                                        TooltipBelow="true" />
+                        </div>
+                    }
+                </div>
+            }
+            else if (Board.BoardExportStatus != BoardExportStatus.Completed
+                     && Board.ReExportStatus == BoardExportStatus.None)
+            {
+                <div class="board-card__corner-action board-card__corner-action--indicator">
+                    <BoardExportStatusIndicator Status="Board.BoardExportStatus"
+                                                TooltipBelow="true" />
+                </div>
+            }
         }
 
         <p class="board-card__meta">
@@ -36,7 +72,7 @@
     <div class="board-card__footer">
         <span class="board-card__name" title="@Board.Name">@Board.Name</span>
     </div>
-</button>
+</div>
 
 @code {
     [Parameter, EditorRequired]
@@ -45,16 +81,54 @@
     [Parameter]
     public EventCallback<BoardLookupDto> OnClick { get; set; }
 
+    private bool _isDownloadingArchive;
+
+    private bool CanViewBoardDownloadStatus =>
+        BoardRolePermissions.CanArchiveBoard(Board.UserRole);
+
+    private static string DownloadAriaLabel =>
+        BoardExportStatusFormatting.GetDescription(BoardExportStatus.Completed);
+
+    private static bool ShowPreviousExportDownload(BoardLookupDto board) =>
+        board.BoardExportStatus == BoardExportStatus.Completed
+        && (board.ReExportStatus == BoardExportStatus.None
+            || board.ReExportStatus == BoardExportStatus.Requested
+            || board.ReExportStatus == BoardExportStatus.Pending);
+
+    private static bool ShowReExportPendingIndicator(BoardLookupDto board) =>
+        board.ReExportStatus is BoardExportStatus.Requested or BoardExportStatus.Pending;
+
     private Task OnClickHandler() => OnClick.InvokeAsync(Board);
+
+    private async Task OnCardKeyDownAsync(KeyboardEventArgs e)
+    {
+        if (e.Key is "Enter" or " ")
+            await OnClickHandler();
+    }
+
+    private async Task DownloadArchiveAsync()
+    {
+        if (_isDownloadingArchive)
+            return;
+
+        _isDownloadingArchive = true;
+
+        try
+        {
+            await BoardArchiveDownloadService.DownloadAsync(Board.Id);
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+        finally
+        {
+            _isDownloadingArchive = false;
+        }
+    }
 
     private string OwnerDisplayName =>
         string.IsNullOrWhiteSpace(Board.OwnerEmail)
             ? "—"
             : UserDisplayFormatting.GetShortName(Board.OwnerDisplayName, Board.OwnerEmail);
-
-    private static string FormatArchivedAt(DateTime archivedAtUtc) =>
-        archivedAtUtc.ToLocalTime().ToString("g");
-
-    private static string GetArchivedAriaLabel(DateTime archivedAtUtc) =>
-        $"This board was archived on {FormatArchivedAt(archivedAtUtc)}. Available in read-only mode.";
 }

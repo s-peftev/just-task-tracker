@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using JustTaskTracker.Application.Boards.Commands.Boards;
 using JustTaskTracker.Application.Boards.Queries.Boards;
+using JustTaskTracker.Domain.Boards.DTOs.Boards;
 
 namespace JustTaskTracker.API.Controllers;
 
@@ -56,14 +57,36 @@ public class BoardsController(ISender sender) : ControllerBase
             error => error.CreateErrorResponse());
     }
 
-    [HttpPost("{id:guid}/archive")]
+    [HttpPost("{id:guid}/archive/export")]
     [Authorize(Policy = AuthorizationPolicies.IsAppMember)]
-    public async Task<IActionResult> Archive(Guid id, CancellationToken ct)
+    public async Task<IActionResult> ArchiveAndExport(Guid id, [FromBody] BoardExportOptions exportOptions, CancellationToken ct)
     {
-        var result = await sender.Send(new ArchiveBoardCommand(id), ct);
+        var result = await sender.Send(new ArchiveAndExportBoardCommand(id, exportOptions), ct);
 
         return result.Match(
             data => Ok(data),
+            error => error.CreateErrorResponse());
+    }
+
+    [HttpGet("{id:guid}/archive/export")]
+    [Authorize(Policy = AuthorizationPolicies.IsAppMember)]
+    public async Task<IActionResult> GetArchiveExport(Guid id, CancellationToken ct)
+    {
+        var result = await sender.Send(new GetBoardArchiveQuery(id), ct);
+
+        return result.Match(
+            data => Ok(data),
+            error => error.CreateErrorResponse());
+    }
+
+    [HttpPost("{id:guid}/archive/re-export")]
+    [Authorize(Policy = AuthorizationPolicies.IsAppMember)]
+    public async Task<IActionResult> ReExportArchived(Guid id, [FromBody] BoardExportOptions reExportOptions, CancellationToken ct)
+    {
+        var result = await sender.Send(new ReExportArchivedBoardCommand(id, reExportOptions), ct);
+
+        return result.Match(
+            () => NoContent(),
             error => error.CreateErrorResponse());
     }
 

@@ -1,12 +1,13 @@
 ﻿using Azure.Messaging.ServiceBus;
 using Azure.Storage.Blobs;
-using Microsoft.Azure.Cosmos;
 using JustTaskTracker.Application.Common.ExternalProviders;
 using JustTaskTracker.Infrastructure.Common.Constants;
 using JustTaskTracker.Infrastructure.Common.ExternalProviders;
 using JustTaskTracker.Infrastructure.Common.Options;
+using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using JustTaskTracker.Infrastructure.Boards.Export;
 
 namespace JustTaskTracker.Infrastructure.DI.Modules;
 
@@ -42,10 +43,12 @@ internal static class AzureModule
         services.AddSingleton(sp =>
         {
             var client = sp.GetRequiredService<ServiceBusClient>();
-            var options = sp.GetRequiredService<ServiceBusOptions>();
+            var sbOptions = sp.GetRequiredService<ServiceBusOptions>();
 
-            return client.CreateSender(options.QueueNames!.BoardArchivingQueueName);
+            return client.CreateSender(sbOptions.QueueNames!.BoardArchivingQueueName);
         });
+
+        services.AddSingleton<IBoardExportQueueSender, AzureBoardExportQueueSender>();
 
         return services;
     }
@@ -64,8 +67,10 @@ internal static class AzureModule
 
             return client.GetContainer(
                 options.DatabaseName,
-                options.Containers!.BoardArchivalStatuses);
+                options.Containers!.BoardExport);
         });
+
+        services.AddSingleton<IBoardExportService, CosmosBoardExportService>();
 
         return services;
     }

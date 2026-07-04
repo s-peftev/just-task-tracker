@@ -94,7 +94,10 @@ internal sealed class BoardDetailsStore(IBoardApiService boardApiService) : IBoa
         NotifyStateChanged();
     }
 
-    public void SetBoardArchived(DateTime archivedAtUtc)
+    public void SetBoardArchived(
+        DateTime archivedAtUtc,
+        BoardExportStatus boardExportStatus,
+        BoardExportOptions? exportOptions = null)
     {
         if (Board is null)
             return;
@@ -103,6 +106,22 @@ internal sealed class BoardDetailsStore(IBoardApiService boardApiService) : IBoa
         {
             IsArchived = true,
             ArchivedAtUtc = archivedAtUtc,
+            BoardExportStatus = boardExportStatus,
+            ExportOptions = exportOptions,
+        };
+
+        NotifyStateChanged();
+    }
+
+    public void SetBoardReExportPending(BoardExportOptions reExportOptions)
+    {
+        if (Board is null)
+            return;
+
+        Board = Board with
+        {
+            ReExportStatus = BoardExportStatus.Requested,
+            ReExportOptions = reExportOptions,
         };
 
         NotifyStateChanged();

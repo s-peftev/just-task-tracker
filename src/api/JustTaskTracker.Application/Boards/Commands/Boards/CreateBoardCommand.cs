@@ -48,7 +48,7 @@ public class CreateBoardCommandHandler(
             board.IsArchived,
             BoardMemberRole.Owner,
             [],
-            board.ArchivedAtUtc));
+            BoardExportStatus.None));
     }
 }
 

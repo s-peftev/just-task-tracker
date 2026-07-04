@@ -23,9 +23,9 @@ public interface IBoardRepository : IRepository<Board, Guid>
 
     Task<(Board? Board, BoardMemberRole? UserRole)> GetBoardWithUserRoleAsync(Guid boardId, Guid azureAdObjectId, CancellationToken ct = default);
 
-    Task<BoardDetailsDto?> GetBoardDetailsByIdAsync(Guid boardId, Guid azureAdObjectId, CancellationToken ct = default);
+    Task<BoardDetailsReadModel?> GetBoardDetailsByIdAsync(Guid boardId, Guid azureAdObjectId, CancellationToken ct = default);
 
-    Task<PagedList<BoardLookupDto>> GetBoardsByUserAzureAOIAsync(
+    Task<PagedList<BoardLookupReadModel>> GetBoardsByUserAzureAOIAsync(
         Guid azureAdObjectId,
         int pageNumber,
         int pageSize,
@@ -36,6 +36,14 @@ public interface IBoardRepository : IRepository<Board, Guid>
     Task<bool> IsBoardMemberAsync(Guid boardId, Guid userId, CancellationToken ct = default);
 
     Task<bool> IsArchivedAsync(Guid boardId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Loads the raw board data required to build an export archive.
+    /// Returns null when the board does not exist or is not archived.
+    /// Attachments carry <c>BlobName</c> instead of download URLs;
+    /// the Application layer is responsible for SAS URL generation.
+    /// </summary>
+    Task<BoardExportRawData?> GetBoardExportRawDataAsync(Guid boardId, BoardExportOptions options, CancellationToken ct = default);
 
     Task<PagedList<BoardMemberReadModel>> GetMembersInfoPagedAsync(
         Guid boardId,

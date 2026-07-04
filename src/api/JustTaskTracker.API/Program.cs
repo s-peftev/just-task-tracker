@@ -5,6 +5,7 @@ using JustTaskTracker.API.Middleware;
 using JustTaskTracker.Application.DI;
 using JustTaskTracker.Infrastructure.Common.Constants;
 using JustTaskTracker.Infrastructure.DI;
+using JustTaskTracker.Infrastructure.DI.Modules;
 using JustTaskTracker.Persistence.DI;
 using Serilog;
 
@@ -35,12 +36,15 @@ var app = builder.Build();
 app.MapDefaultEndpoints();
 
 app.UseMiddleware<CorrelationIdMiddleware>();
+app.UseMiddleware<InternalApiKeyMiddleware>();
 app.UseExceptionHandler();
 app.UseHttpsRedirection();
 app.UseCors(CorsPolicies.DefaultCorsPolicy);
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.UseHangfireDashboardModule();
 
 app.MapControllers();
 

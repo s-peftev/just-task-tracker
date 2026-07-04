@@ -57,6 +57,7 @@ public static class ServiceCollectionExtensions
 
         services.AddScoped<IUsersApiService, UsersApiService>();
         services.AddScoped<IBoardApiService, BoardApiService>();
+        services.AddScoped<IBoardArchiveDownloadService, BoardArchiveDownloadService>();
         services.AddScoped<IBoardStore, BoardStore>();
         services.AddScoped<IBoardDetailsStore, BoardDetailsStore>();
         services.AddScoped<IBoardTaskStore, BoardTaskStore>();

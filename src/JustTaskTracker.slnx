@@ -11,4 +11,5 @@
   <Project Path="client/JustTaskTracker.WebUI.Services.Abstractions/JustTaskTracker.WebUI.Services.Abstractions.csproj" Id="dfce9bdf-9713-4f5a-95c6-926e73636083" />
   <Project Path="client/JustTaskTracker.WebUI.Services/JustTaskTracker.WebUI.Services.csproj" Id="89074b67-cd70-4016-81b4-b0d8cb87dae6" />
   <Project Path="client/JustTaskTracker.WebUI/JustTaskTracker.WebUI.csproj" Id="b4773794-77cd-4525-a79b-5ad1bbc134ce" />
+  <Project Path="functions/JustTaskTracker.Archival.Functions/JustTaskTracker.Archival.Functions.csproj" Id="fabb171e-21c5-49a3-b13f-2e179c5975d4" />
 </Solution>

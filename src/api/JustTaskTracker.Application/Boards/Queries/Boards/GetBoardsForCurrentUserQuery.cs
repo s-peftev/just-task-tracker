@@ -1,9 +1,12 @@
 using FluentValidation;
 using JustTaskTracker.Application.Auth;
+using JustTaskTracker.Application.Boards.Mappings;
 using JustTaskTracker.Application.Boards.Repositories;
+using JustTaskTracker.Application.Common.ExternalProviders;
 using JustTaskTracker.Application.Common.Options;
 using JustTaskTracker.Application.Common.Validators;
 using JustTaskTracker.Domain.Boards.DTOs.Boards;
+using JustTaskTracker.Domain.Boards.Enums;
 using JustTaskTracker.Domain.Boards.Enums.SearchFields;
 using JustTaskTracker.Domain.Common.Pagination;
 using JustTaskTracker.Domain.Common.Results;
@@ -16,7 +19,10 @@ public record GetBoardsForCurrentUserQuery(
     TextSearchOptions<BoardSearchField>? SearchOptions,
     bool? IsArchived = null) : PaginatedRequest, IRequest<Result<PagedList<BoardLookupDto>>>;
 
-public class GetBoardsForCurrentUserQueryHandler(ICurrentUserAccessor currentUser, IBoardRepository boardRepository) 
+public class GetBoardsForCurrentUserQueryHandler(
+    ICurrentUserAccessor currentUser,
+    IBoardRepository boardRepository,
+    IBoardExportService boardExportService)
     : IRequestHandler<GetBoardsForCurrentUserQuery, Result<PagedList<BoardLookupDto>>>
 {
     public async Task<Result<PagedList<BoardLookupDto>>> Handle(GetBoardsForCurrentUserQuery request, CancellationToken ct)
@@ -29,7 +35,24 @@ public class GetBoardsForCurrentUserQueryHandler(ICurrentUserAccessor currentUse
             request.IsArchived,
             ct);
 
-        return Result<PagedList<BoardLookupDto>>.Success(boards);
+        var archivedBoardIds = boards.Items
+            .Where(board => board.IsArchived)
+            .Select(board => board.Id)
+            .ToList();
+
+        var exportStatuses = await boardExportService
+            .GetBoardListExportInfoAsync(archivedBoardIds, ct);
+
+        var boardDtos = boards.Items.Select(board =>
+        {
+            var exportInfo = board.IsArchived && exportStatuses.TryGetValue(board.Id, out var status)
+                ? status
+                : null;
+
+            return board.ToDto(exportInfo);
+        });
+
+        return Result<PagedList<BoardLookupDto>>.Success(new PagedList<BoardLookupDto>(boards.Metadata, boardDtos));
     }
 }
 

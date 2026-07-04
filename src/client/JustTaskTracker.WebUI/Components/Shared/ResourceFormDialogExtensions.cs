@@ -12,7 +12,8 @@ public static class ResourceFormDialogExtensions
         string formId,
         RenderFragment formContent,
         string cancelLabel = "Cancel",
-        string submitButtonClass = "btn-glass btn-dialog-action")
+        string submitButtonClass = "btn-glass btn-dialog-action",
+        ResourceFormDialogState? submitState = null)
     {
         var parameters = new DialogParameters<ResourceFormDialog>
         {
@@ -20,7 +21,8 @@ public static class ResourceFormDialogExtensions
             { x => x.SubmitLabel, submitLabel },
             { x => x.CancelLabel, cancelLabel },
             { x => x.SubmitButtonClass, submitButtonClass },
-            { x => x.ChildContent, formContent }
+            { x => x.ChildContent, formContent },
+            { x => x.SubmitState, submitState },
         };
 
         return dialogService.ShowAsync<ResourceFormDialog>(

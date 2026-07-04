@@ -1,0 +1,74 @@
+.board-export-status {
+    --jtt-export-accent: #61b3d8;
+
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 0;
+}
+
+.board-export-status__icon {
+    width: 1.125rem;
+    height: 1.125rem;
+}
+
+.board-export-status__segment {
+    fill: none;
+    stroke-width: 2.75;
+    stroke-linecap: butt;
+}
+
+.board-export-status__segment--inactive {
+    stroke: var(--jtt-overlay-white-16);
+}
+
+.board-export-status__segment--muted {
+    stroke: var(--jtt-text-muted);
+}
+
+.board-export-status__segment--warning {
+    stroke: var(--jtt-text-warning);
+}
+
+.board-export-status__segment--accent {
+    stroke: var(--jtt-export-accent);
+}
+
+.board-export-status__segment--danger {
+    stroke: var(--jtt-text-danger);
+}
+
+.board-export-status__tooltip {
+    position: absolute;
+    bottom: calc(100% + 0.375rem);
+    left: 0;
+    z-index: 2;
+    width: max-content;
+    max-width: 18rem;
+    padding: 0.5rem 0.625rem;
+    background-color: var(--jtt-surface-app);
+    border: 1px solid var(--jtt-stroke-default);
+    border-radius: var(--jtt-radius-sm);
+    color: var(--jtt-text-body);
+    font-size: 0.8125rem;
+    font-weight: var(--jtt-font-weight-body);
+    line-height: 1.35;
+    text-align: left;
+    white-space: normal;
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease, visibility 0.15s ease;
+}
+
+.board-export-status--tooltip:hover .board-export-status__tooltip,
+.board-export-status--tooltip:focus-visible .board-export-status__tooltip {
+    visibility: visible;
+    opacity: 1;
+}
+
+.board-export-status--tooltip-below .board-export-status__tooltip {
+    top: calc(100% + 0.375rem);
+    bottom: auto;
+}

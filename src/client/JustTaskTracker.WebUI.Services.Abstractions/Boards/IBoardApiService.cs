@@ -34,7 +34,19 @@ public interface IBoardApiService
 
     Task LeaveBoardAsync(Guid boardId, CancellationToken ct = default);
 
-    Task<BoardArchivedDto> ArchiveBoardAsync(Guid boardId, CancellationToken ct = default);
+    Task<BoardArchivedDto> ArchiveAndExportBoardAsync(
+        Guid boardId,
+        BoardExportOptions exportOptions,
+        CancellationToken ct = default);
+
+    Task<BoardArchiveDownloadDto> GetBoardArchiveDownloadAsync(
+        Guid boardId,
+        CancellationToken ct = default);
+
+    Task ReExportArchivedBoardAsync(
+        Guid boardId,
+        BoardExportOptions reExportOptions,
+        CancellationToken ct = default);
 
     Task DeleteColumnAsync(Guid boardId, Guid columnId, DeleteColumnRequest request, CancellationToken ct = default);
     Task<ColumnDto> CreateColumnAsync(Guid boardId, string name, CancellationToken ct = default);

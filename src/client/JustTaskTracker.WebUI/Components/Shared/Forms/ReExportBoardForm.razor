@@ -1,0 +1,162 @@
+@using JustTaskTracker.WebUI.Components.Shared
+@using JustTaskTracker.WebUI.Domain.Boards
+
+<form id="@FormId" @onsubmit="SubmitAsync" @onsubmit:preventDefault="true">
+    <p class="re-export-board-form__message">
+        Create a new downloadable copy with different options?
+    </p>
+
+    <p class="re-export-board-form__message re-export-board-form__message--muted">
+        The current copy will be replaced when the new one is ready.
+    </p>
+
+    <fieldset class="archive-board-form__fieldset">
+        <legend class="archive-board-form__legend">Include in downloadable copy</legend>
+
+        <div class="re-export-board-form__option-row">
+            <MudCheckBox T="bool"
+                         Value="_previousIncludeDescriptions"
+                         ValueChanged="IgnorePreviousValueChanged"
+                         Disabled="true"
+                         ReadOnly="true"
+                         Dense="true"
+                         Color="Color.Warning"
+                         Class="re-export-board-form__previous-checkbox" />
+            <span class="re-export-board-form__arrow" aria-hidden="true">→</span>
+            <MudCheckBox @bind-Value="_includeDescriptions"
+                         @bind-Value:after="UpdateSubmitState"
+                         Label="Task descriptions"
+                         Color="Color.Warning" />
+        </div>
+
+        <div class="re-export-board-form__option-row">
+            <MudCheckBox T="bool"
+                         Value="_previousIncludeComments"
+                         ValueChanged="IgnorePreviousValueChanged"
+                         Disabled="true"
+                         ReadOnly="true"
+                         Dense="true"
+                         Color="Color.Warning"
+                         Class="re-export-board-form__previous-checkbox" />
+            <span class="re-export-board-form__arrow" aria-hidden="true">→</span>
+            <MudCheckBox @bind-Value="_includeComments"
+                         @bind-Value:after="UpdateSubmitState"
+                         Label="Comments"
+                         Color="Color.Warning" />
+        </div>
+
+        <div class="re-export-board-form__option-row">
+            <MudCheckBox T="bool"
+                         Value="_previousIncludeAttachments"
+                         ValueChanged="IgnorePreviousValueChanged"
+                         Disabled="true"
+                         ReadOnly="true"
+                         Dense="true"
+                         Color="Color.Warning"
+                         Class="re-export-board-form__previous-checkbox" />
+            <span class="re-export-board-form__arrow" aria-hidden="true">→</span>
+            <MudCheckBox @bind-Value="_includeAttachments"
+                         @bind-Value:after="UpdateSubmitState"
+                         Label="Task attachments"
+                         Color="Color.Warning" />
+        </div>
+
+        <div class="re-export-board-form__option-row">
+            <MudCheckBox T="bool"
+                         Value="_previousIncludeMembers"
+                         ValueChanged="IgnorePreviousValueChanged"
+                         Disabled="true"
+                         ReadOnly="true"
+                         Dense="true"
+                         Color="Color.Warning"
+                         Class="re-export-board-form__previous-checkbox" />
+            <span class="re-export-board-form__arrow" aria-hidden="true">→</span>
+            <MudCheckBox @bind-Value="_includeMembers"
+                         @bind-Value:after="UpdateSubmitState"
+                         Label="Board members"
+                         Color="Color.Warning" />
+        </div>
+    </fieldset>
+
+    @if (_initialOptions is not null && !HasChanges)
+    {
+        <p class="re-export-board-form__unchanged-notice">
+            Change at least one option to create a new copy.
+        </p>
+    }
+</form>
+
+@code {
+    public const string FormId = "re-export-board-form";
+
+    [Parameter]
+    public BoardExportOptions? InitialExportOptions { get; set; }
+
+    [Parameter, EditorRequired]
+    public ResourceFormDialogState SubmitState { get; set; } = default!;
+
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private BoardExportOptions? _initialOptions;
+    private bool _previousIncludeDescriptions;
+    private bool _previousIncludeComments;
+    private bool _previousIncludeAttachments;
+    private bool _previousIncludeMembers;
+    private bool _includeDescriptions = true;
+    private bool _includeComments = true;
+    private bool _includeAttachments;
+    private bool _includeMembers = true;
+
+    private bool HasChanges =>
+        _initialOptions is null
+        || !BoardExportOptionsFormatting.AreEqual(BuildCurrentOptions(), _initialOptions);
+
+    public static RenderFragment Render(
+        BoardExportOptions? initialExportOptions,
+        ResourceFormDialogState submitState) => builder =>
+    {
+        builder.OpenComponent<ReExportBoardForm>(0);
+        builder.AddAttribute(1, nameof(InitialExportOptions), initialExportOptions);
+        builder.AddAttribute(2, nameof(SubmitState), submitState);
+        builder.CloseComponent();
+    };
+
+    protected override void OnInitialized()
+    {
+        _initialOptions = InitialExportOptions;
+        _previousIncludeDescriptions = InitialExportOptions?.IncludeDescriptions ?? true;
+        _previousIncludeComments = InitialExportOptions?.IncludeComments ?? true;
+        _previousIncludeAttachments = InitialExportOptions?.IncludeAttachments ?? false;
+        _previousIncludeMembers = InitialExportOptions?.IncludeMembers ?? true;
+        _includeDescriptions = _previousIncludeDescriptions;
+        _includeComments = _previousIncludeComments;
+        _includeAttachments = _previousIncludeAttachments;
+        _includeMembers = _previousIncludeMembers;
+
+        UpdateSubmitState();
+    }
+
+    private void UpdateSubmitState()
+    {
+        SubmitState.SetDisableSubmit(_initialOptions is not null && !HasChanges);
+        StateHasChanged();
+    }
+
+    private void SubmitAsync()
+    {
+        if (!HasChanges && _initialOptions is not null)
+            return;
+
+        MudDialog.Close(DialogResult.Ok(BuildCurrentOptions()));
+    }
+
+    private BoardExportOptions BuildCurrentOptions() =>
+        new(
+            _includeDescriptions,
+            _includeComments,
+            _includeAttachments,
+            _includeMembers);
+
+    private static Task IgnorePreviousValueChanged(bool _) => Task.CompletedTask;
+}

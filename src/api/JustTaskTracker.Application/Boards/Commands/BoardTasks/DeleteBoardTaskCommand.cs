@@ -69,9 +69,8 @@ public class DeleteBoardTaskCommandHandler(
 
             if (remainingTasks.Count > 0)
                 await boardPositioningService.ApplyCurrentOrderAndSaveAsync(remainingTasks, ct);
-            else
-                await unitOfWork.SaveChangesAsync(ct);
-
+            
+            await unitOfWork.SaveChangesAsync(ct);
             await unitOfWork.CommitTransactionAsync(ct);
         }
         catch

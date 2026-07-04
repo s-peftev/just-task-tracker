@@ -24,11 +24,11 @@ public class CosmosDbOptions
 
 public class CosmosDbContainerNamesOptions
 {
-    public string BoardArchivalStatuses { get; set; } = string.Empty;
+    public string BoardExport { get; set; } = string.Empty;
 
     internal void Validate(string sectionPath)
     {
-        if (string.IsNullOrWhiteSpace(BoardArchivalStatuses))
-            throw new InvalidOperationException($"{sectionPath}:BoardArchivalStatuses is not configured.");
+        if (string.IsNullOrWhiteSpace(BoardExport))
+            throw new InvalidOperationException($"{sectionPath}:BoardExport is not configured.");
     }
 }

@@ -1,10 +1,16 @@
+@using JustTaskTracker.WebUI.Components.Shared
+@using JustTaskTracker.WebUI.Components.Shared.Forms
+@using JustTaskTracker.WebUI.Domain.Boards
 @using JustTaskTracker.WebUI.Domain.Boards.Authorization
+@using JustTaskTracker.WebUI.Domain.Boards.Enums
 @using JustTaskTracker.WebUI.Infrastructure
 @using JustTaskTracker.WebUI.Services.Abstractions.Boards
 @using JustTaskTracker.WebUI.Services.Exceptions
 @implements IDisposable
 @inject IBoardApiService BoardApiService
+@inject IBoardArchiveDownloadService BoardArchiveDownloadService
 @inject IBoardDetailsStore BoardDetailsStore
+@inject IBoardStore BoardStore
 @inject IBoardMembersStore BoardMembersStore
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
@@ -48,6 +54,66 @@
                     This board was archived on @FormatArchivedAt(archivedAtUtc)<br />
                     Available in read-only mode.
                 </p>
+                @if (CanViewBoardDownloadStatus)
+                {
+                    <div class="board-page__export-actions">
+                        @if (ShowPreviousExportDownload(board))
+                        {
+                            <div class="board-page__export-status">
+                                <button type="button"
+                                        class="board-page__download-btn btn-icon"
+                                        aria-label="@DownloadAriaLabel"
+                                        disabled="@_isDownloadingArchive"
+                                        @onclick="DownloadArchiveAsync">
+                                    <svg viewBox="0 0 24 24"
+                                         aria-hidden="true"
+                                         focusable="false">
+                                        <path d="M20.54 5.23l-1.39-1.68C18.88 3.21 18.47 3 18 3H6c-.47 0-.88.21-1.16.55L3.46 5.23C3.17 5.57 3 6.02 3 6.5V19c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6.5c0-.48-.17-.93-.46-1.27zM12 17.5 6.5 12H10v-2h4v2h3.5L12 17.5zM5.12 5l.81-1h12l.94 1H5.12z"
+                                              fill="currentColor" />
+                                    </svg>
+                                    <span class="board-page__download-tooltip" aria-hidden="true">
+                                        <BoardDownloadCopyTooltip Status="BoardExportStatus.Completed"
+                                                                  ExportOptions="board.ExportOptions" />
+                                    </span>
+                                </button>
+                            </div>
+                        }
+
+                        @if (ShowReExportButton(board))
+                        {
+                            <div class="board-page__export-status">
+                                <button type="button"
+                                        class="board-page__re-export-btn btn-icon"
+                                        aria-label="Create a new downloadable copy with different options"
+                                        @onclick="ReExportBoardAsync">
+                                    <svg viewBox="0 0 24 24"
+                                         aria-hidden="true"
+                                         focusable="false">
+                                        <path d="M17.65 6.35A7.96 7.96 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A4.997 4.997 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"
+                                              fill="currentColor" />
+                                    </svg>
+                                </button>
+                            </div>
+                        }
+
+                        @if (board.ReExportStatus != BoardExportStatus.None)
+                        {
+                            <div class="board-page__export-status">
+                                <BoardExportStatusIndicator Status="board.ReExportStatus"
+                                                            ExportOptions="board.ReExportOptions"
+                                                            TooltipBelow="true" />
+                            </div>
+                        }
+                        else if (board.BoardExportStatus != BoardExportStatus.Completed)
+                        {
+                            <div class="board-page__export-status">
+                                <BoardExportStatusIndicator Status="board.BoardExportStatus"
+                                                            ExportOptions="board.ExportOptions"
+                                                            TooltipBelow="true" />
+                            </div>
+                        }
+                    </div>
+                }
             }
 
             <BoardPageMenu UserRole="board.UserRole"
@@ -77,6 +143,7 @@
 
     private bool _isEditingName;
     private bool _isSavingName;
+    private bool _isDownloadingArchive;
     private bool _focusTitleInput;
     private string _editName = string.Empty;
     private ElementReference _titleInputRef;
@@ -86,8 +153,81 @@
         && BoardDetailsStore.Board is { UserRole: var role }
         && BoardRolePermissions.CanRenameBoard(role);
 
+    private bool CanViewBoardDownloadStatus =>
+        BoardDetailsStore.Board is { UserRole: var role }
+        && BoardRolePermissions.CanArchiveBoard(role);
+
     private static string FormatArchivedAt(DateTime archivedAtUtc) =>
         archivedAtUtc.ToLocalTime().ToString("g");
+
+    private string DownloadAriaLabel =>
+        BoardDetailsStore.Board is { ExportOptions: var exportOptions }
+            ? BoardExportStatusFormatting.GetAriaLabel(BoardExportStatus.Completed, exportOptions)
+            : BoardExportStatusFormatting.GetDescription(BoardExportStatus.Completed);
+
+    private static bool ShowPreviousExportDownload(BoardDetailsDto board) =>
+        board.BoardExportStatus == BoardExportStatus.Completed
+        && (board.ReExportStatus == BoardExportStatus.None
+            || board.ReExportStatus == BoardExportStatus.Requested
+            || board.ReExportStatus == BoardExportStatus.Pending);
+
+    private static bool ShowReExportButton(BoardDetailsDto board) =>
+        board.BoardExportStatus == BoardExportStatus.Completed
+        && board.ReExportStatus == BoardExportStatus.None;
+
+    private async Task DownloadArchiveAsync()
+    {
+        if (_isDownloadingArchive)
+            return;
+
+        _isDownloadingArchive = true;
+
+        try
+        {
+            await BoardArchiveDownloadService.DownloadAsync(BoardId);
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+        finally
+        {
+            _isDownloadingArchive = false;
+        }
+    }
+
+    private async Task ReExportBoardAsync()
+    {
+        if (BoardDetailsStore.Board is not { } board)
+            return;
+
+        var submitState = new ResourceFormDialogState();
+
+        var dialog = await DialogService.ShowResourceFormAsync(
+            "Create new copy",
+            "Create copy",
+            ReExportBoardForm.FormId,
+            ReExportBoardForm.Render(board.ExportOptions, submitState),
+            submitButtonClass: "btn-dialog-warning btn-dialog-action",
+            submitState: submitState);
+
+        var result = await dialog.Result;
+
+        if (result is not { Canceled: false, Data: BoardExportOptions exportOptions })
+            return;
+
+        try
+        {
+            await BoardApiService.ReExportArchivedBoardAsync(BoardId, exportOptions);
+            BoardDetailsStore.SetBoardReExportPending(exportOptions);
+            BoardStore.ApplyBoardReExportPending(BoardId);
+            Snackbar.Add("New copy creation started.", Severity.Success);
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+    }
 
     protected override void OnInitialized() =>
         BoardDetailsStore.StateChanged += OnBoardDetailsStoreStateChanged;
@@ -261,24 +401,29 @@
 
     private async Task ArchiveBoardAsync()
     {
-        var message =
-            $"Archive board \"{BoardDetailsStore.Board?.Name}\"?{Environment.NewLine}This action cannot be undone.";
+        if (BoardDetailsStore.Board is not { Name: var boardName })
+            return;
 
-        var dialog = await DialogService.ShowConfirmResourceAsync(
+        var dialog = await DialogService.ShowResourceFormAsync(
             "Archive board",
-            message,
-            confirmLabel: "Archive",
+            "Archive",
+            ArchiveBoardForm.FormId,
+            ArchiveBoardForm.Render(boardName),
             submitButtonClass: "btn-dialog-warning btn-dialog-action");
 
         var result = await dialog.Result;
 
-        if (result is not { Canceled: false, Data: true })
+        if (result is not { Canceled: false, Data: BoardExportOptions exportOptions })
             return;
 
         try
         {
-            var archived = await BoardApiService.ArchiveBoardAsync(BoardId);
-            BoardDetailsStore.SetBoardArchived(archived.ArchivedAtUtc);
+            var archived = await BoardApiService.ArchiveAndExportBoardAsync(BoardId, exportOptions);
+            BoardDetailsStore.SetBoardArchived(
+                archived.ArchivedAtUtc,
+                archived.BoardExportStatus,
+                exportOptions);
+            BoardStore.ApplyBoardArchived(BoardId, archived.ArchivedAtUtc, archived.BoardExportStatus);
             Snackbar.Add("Board archived.", Severity.Success);
         }
         catch (ApiServiceException ex)

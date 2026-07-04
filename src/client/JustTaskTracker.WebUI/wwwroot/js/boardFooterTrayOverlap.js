@@ -17,15 +17,43 @@ export function attach(scrollBody, footerPanel, dotNetRef) {
     resizeObserver.observe(footerPanel);
     resizeObserver.observe(scrollBody);
 
+    let animationFrameId = null;
+
+    const stopAnimationTracking = () => {
+        if (animationFrameId !== null) {
+            cancelAnimationFrame(animationFrameId);
+            animationFrameId = null;
+        }
+    };
+
+    const trackDuringAnimation = (durationMs = 300) => {
+        stopAnimationTracking();
+        const start = performance.now();
+        const tick = (now) => {
+            notify();
+            if (now - start < durationMs) {
+                animationFrameId = requestAnimationFrame(tick);
+            } else {
+                animationFrameId = null;
+            }
+        };
+        animationFrameId = requestAnimationFrame(tick);
+    };
+
     notify();
+    trackDuringAnimation();
 
     return {
         dispose: () => {
             scrollBody.removeEventListener('scroll', onScroll);
             window.removeEventListener('resize', onScroll);
             resizeObserver.disconnect();
+            stopAnimationTracking();
         },
-        refresh: notify,
+        refresh: () => {
+            notify();
+            trackDuringAnimation();
+        },
     };
 }
 

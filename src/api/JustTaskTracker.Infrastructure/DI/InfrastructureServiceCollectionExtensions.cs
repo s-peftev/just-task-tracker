@@ -1,4 +1,4 @@
-﻿using JustTaskTracker.Infrastructure.DI.Modules;
+using JustTaskTracker.Infrastructure.DI.Modules;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -14,7 +14,8 @@ public static class InfrastructureServiceCollectionExtensions
             .AddAuthenticationModule(configuration)
             .AddUtilsModule()
             .AddServicesModule()
-            .AddAzureModule(configuration);
+            .AddAzureModule(configuration)
+            .AddHangfireModule(configuration);
 
         return services;
     }

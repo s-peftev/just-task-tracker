@@ -2,9 +2,9 @@ using JustTaskTracker.Application.Boards.ReadModels;
 using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Helpers;
 using JustTaskTracker.Application.Users.ReadModels;
-using JustTaskTracker.Domain.Auth.DTOs;
-using JustTaskTracker.Domain.Boards.DTOs.Boards;
+using JustTaskTracker.Domain.Boards.DTOs.Archiving;
 using JustTaskTracker.Domain.Boards.DTOs.BoardTasks;
+using JustTaskTracker.Domain.Boards.DTOs.Boards;
 using JustTaskTracker.Domain.Boards.DTOs.Columns;
 using JustTaskTracker.Domain.Boards.Entities;
 using JustTaskTracker.Domain.Boards.Enums;
@@ -61,10 +61,10 @@ public class BoardRepository(JustTaskTrackerDbContext context)
         return (result?.Board, result?.UserRole);
     }
 
-    public async Task<BoardDetailsDto?> GetBoardDetailsByIdAsync(Guid boardId, Guid azureAdObjectId, CancellationToken ct = default) =>
+    public async Task<BoardDetailsReadModel?> GetBoardDetailsByIdAsync(Guid boardId, Guid azureAdObjectId, CancellationToken ct = default) =>
         await _dbSet
             .Where(b => b.Id == boardId)
-            .Select(b => new BoardDetailsDto(
+            .Select(b => new BoardDetailsReadModel(
                 b.Id,
                 b.Name,
                 b.CreatedAtUtc,
@@ -92,7 +92,7 @@ public class BoardRepository(JustTaskTrackerDbContext context)
             .AsSplitQuery()
             .FirstOrDefaultAsync(ct);
 
-    public async Task<PagedList<BoardLookupDto>> GetBoardsByUserAzureAOIAsync(
+    public async Task<PagedList<BoardLookupReadModel>> GetBoardsByUserAzureAOIAsync(
         Guid azureAdObjectId,
         int pageNumber,
         int pageSize,
@@ -135,7 +135,7 @@ public class BoardRepository(JustTaskTrackerDbContext context)
             })
             .OrderByDescending(x => x.LastActivity)
             .ToPagedAsync(
-                x => new BoardLookupDto(
+                x => new BoardLookupReadModel(
                     x.Board.Id,
                     x.Board.Name,
                     x.Board.IsArchived,
@@ -190,5 +190,144 @@ public class BoardRepository(JustTaskTrackerDbContext context)
                 pageNumber,
                 pageSize,
                 ct);
+    }
+
+    public async Task<BoardExportRawData?> GetBoardExportRawDataAsync(Guid boardId, BoardExportOptions options, CancellationToken ct = default)
+    {
+        var board = await _dbSet
+            .Where(b => b.Id == boardId && b.IsArchived)
+            .Select(b => new BoardExportBoardDto(
+                b.Id,
+                b.Name,
+                b.CreatedAtUtc,
+                b.IsArchived,
+                b.ArchivedAtUtc,
+                b.Columns.Count,
+                b.Columns.SelectMany(c => c.Tasks).Count()))
+            .FirstOrDefaultAsync(ct);
+
+        if (board is null)
+            return null;
+
+        var columnData = await _context.Columns
+            .Where(c => c.BoardId == boardId)
+            .OrderBy(c => c.Position)
+            .Select(c => new
+            {
+                c.Id,
+                c.Name,
+                c.Position,
+                Tasks = c.Tasks
+                    .OrderBy(t => t.Position)
+                    .Select(t => new
+                    {
+                        t.Id,
+                        t.Title,
+                        t.Position,
+                        t.CreatedAtUtc,
+                        t.LastModifiedAtUtc,
+                        t.Description,
+                        Reporter = new BoardExportUserDto(
+                            t.Reporter!.Id,
+                            t.Reporter.Email,
+                            t.Reporter.DisplayName),
+                        Assignee = t.Assignee == null
+                            ? null
+                            : new BoardExportUserDto(
+                                t.Assignee.Id,
+                                t.Assignee.Email,
+                                t.Assignee.DisplayName)
+                    })
+                    .ToList()
+            })
+            .ToListAsync(ct);
+
+        Dictionary<Guid, List<BoardExportCommentDto>> commentsByTask = [];
+
+        if (options.IncludeComments)
+        {
+            var comments = await _context.BoardTaskComments
+                .Where(c => c.BoardTask!.Column!.BoardId == boardId)
+                .OrderBy(c => c.CreatedAtUtc)
+                .Select(c => new
+                {
+                    c.BoardTaskId,
+                    Comment = new BoardExportCommentDto(
+                        c.Id,
+                        c.Body,
+                        c.CreatedAtUtc,
+                        c.LastModifiedAtUtc,
+                        new BoardExportUserDto(c.Author!.Id, c.Author.Email, c.Author.DisplayName))
+                })
+                .ToListAsync(ct);
+
+            commentsByTask = comments
+                .GroupBy(x => x.BoardTaskId)
+                .ToDictionary(g => g.Key, g => g.Select(x => x.Comment).ToList());
+        }
+
+        Dictionary<Guid, List<BoardExportRawAttachmentData>> attachmentsByTask = [];
+
+        if (options.IncludeAttachments)
+        {
+            var attachments = await _context.BoardTaskAttachments
+                .Where(a => a.BoardTask!.Column!.BoardId == boardId)
+                .OrderBy(a => a.Position)
+                .Select(a => new
+                {
+                    a.BoardTaskId,
+                    Attachment = new BoardExportRawAttachmentData(
+                        a.Id,
+                        a.OriginalFileName,
+                        a.ContentType,
+                        a.FileSizeBytes,
+                        a.Position,
+                        a.CreatedAtUtc,
+                        new BoardExportUserDto(a.UploadedBy!.Id, a.UploadedBy.Email, a.UploadedBy.DisplayName),
+                        a.BlobName)
+                })
+                .ToListAsync(ct);
+
+            attachmentsByTask = attachments
+                .GroupBy(x => x.BoardTaskId)
+                .ToDictionary(g => g.Key, g => g.Select(x => x.Attachment).ToList());
+        }
+
+        List<BoardExportMemberDto>? members = null;
+
+        if (options.IncludeMembers)
+        {
+            members = await _context.BoardMembers
+                .Where(m => m.BoardId == boardId)
+                .OrderBy(m => m.Role)
+                .ThenBy(m => m.JoinedAtUtc)
+                .Select(m => new BoardExportMemberDto(
+                    new BoardExportUserDto(m.User!.Id, m.User.Email, m.User.DisplayName),
+                    m.Role.ToString(),
+                    m.JoinedAtUtc))
+                .ToListAsync(ct);
+        }
+
+        var rawColumns = columnData
+            .Select(c => new BoardExportRawColumnData(
+                c.Id,
+                c.Name,
+                c.Position,
+                c.Tasks
+                    .Select(t => new BoardExportRawTaskData(
+                        t.Id,
+                        t.Title,
+                        t.Position,
+                        t.CreatedAtUtc,
+                        t.LastModifiedAtUtc,
+                        t.Reporter,
+                        t.Assignee,
+                        options.IncludeDescriptions ? t.Description : null,
+                        commentsByTask.TryGetValue(t.Id, out var tc) ? tc : options.IncludeComments ? [] : null,
+                        attachmentsByTask.TryGetValue(t.Id, out var ta) ? ta : options.IncludeAttachments ? [] : null))
+                    .ToList()))
+            .ToList();
+
+        return new BoardExportRawData(board, rawColumns, members);
     }
 }

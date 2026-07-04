@@ -1,3 +1,5 @@
+@implements IDisposable
+
 <MudDialog Class="resource-form-dialog" ActionsClass="resource-form-dialog__actions">
     <DialogContent>
         @ChildContent
@@ -13,7 +15,7 @@
             <MudButton Class="@SubmitButtonClass"
                        ButtonType="ButtonType.Submit"
                        form="@FormId"
-                       Disabled="@DisableSubmit">
+                       Disabled="@IsSubmitDisabled">
                 @SubmitLabel
             </MudButton>
         }
@@ -21,7 +23,7 @@
         {
             <MudButton Class="@SubmitButtonClass"
                        ButtonType="ButtonType.Button"
-                       Disabled="@DisableSubmit"
+                       Disabled="@IsSubmitDisabled"
                        OnClick="ConfirmWithoutForm">
                 @SubmitLabel
             </MudButton>
@@ -58,7 +60,26 @@
     [Parameter]
     public bool DisableSubmit { get; set; }
 
+    [Parameter]
+    public ResourceFormDialogState? SubmitState { get; set; }
+
     private bool UseFormSubmit => !string.IsNullOrEmpty(FormId);
+
+    private bool IsSubmitDisabled => SubmitState?.DisableSubmit ?? DisableSubmit;
+
+    protected override void OnInitialized()
+    {
+        if (SubmitState is not null)
+            SubmitState.Changed += OnSubmitStateChanged;
+    }
+
+    public void Dispose()
+    {
+        if (SubmitState is not null)
+            SubmitState.Changed -= OnSubmitStateChanged;
+    }
+
+    private void OnSubmitStateChanged() => InvokeAsync(StateHasChanged);
 
     private void Cancel() => MudDialog.Cancel();
 

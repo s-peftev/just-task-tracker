@@ -4,7 +4,7 @@ var sql = builder.AddSqlServer("sql")
     .WithDataVolume("jtt-sql-data")
     .WithLifetime(ContainerLifetime.Persistent);
 
-var database = sql.AddDatabase("JustTaskTracker");
+var database = sql.AddDatabase("MSQLDb");
 
 var migrations = builder.AddProject<Projects.JustTaskTracker_Database>("migrations")
     .WithReference(database)
@@ -13,8 +13,15 @@ var migrations = builder.AddProject<Projects.JustTaskTracker_Database>("migratio
 var api = builder.AddProject<Projects.JustTaskTracker_API>("api")
     .WithReference(database)
     .WaitFor(database)
-    .WaitForCompletion(migrations);
+    .WaitForCompletion(migrations)
+    .WithUrlForEndpoint("https", _ => new()
+    {
+        Url = "/hangfire",
+        DisplayText = "Hangfire",
+    });
 
 builder.AddProject<Projects.JustTaskTracker_WebUI>("webui");
+
+builder.AddAzureFunctionsProject<Projects.JustTaskTracker_Archival_Functions>("archival-functions");
 
 builder.Build().Run();

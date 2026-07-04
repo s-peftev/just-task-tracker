@@ -121,11 +121,33 @@ internal class BoardApiService(IBoardApi api) : IBoardApiService
         ApiResponseGuard.EnsureSuccess(response);
     }
 
-    public async Task<BoardArchivedDto> ArchiveBoardAsync(Guid boardId, CancellationToken ct = default)
+    public async Task<BoardArchivedDto> ArchiveAndExportBoardAsync(
+        Guid boardId,
+        BoardExportOptions exportOptions,
+        CancellationToken ct = default)
     {
-        var response = await api.ArchiveAsync(boardId, ct);
+        var response = await api.ArchiveAndExportAsync(boardId, exportOptions, ct);
 
         return ApiResponseGuard.Unwrap(response);
+    }
+
+    public async Task<BoardArchiveDownloadDto> GetBoardArchiveDownloadAsync(
+        Guid boardId,
+        CancellationToken ct = default)
+    {
+        var response = await api.GetArchiveExportAsync(boardId, ct);
+
+        return ApiResponseGuard.Unwrap(response);
+    }
+
+    public async Task ReExportArchivedBoardAsync(
+        Guid boardId,
+        BoardExportOptions reExportOptions,
+        CancellationToken ct = default)
+    {
+        var response = await api.ReExportArchivedAsync(boardId, reExportOptions, ct);
+
+        ApiResponseGuard.EnsureSuccess(response);
     }
 
     public async Task<ColumnDto> CreateColumnAsync(Guid boardId, string name, CancellationToken ct = default)

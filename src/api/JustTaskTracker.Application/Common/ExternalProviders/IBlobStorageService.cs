@@ -49,4 +49,14 @@ public interface IBlobStorageService
     /// The host and account are derived from the configured blob storage connection string.
     /// </remarks>
     string GetBlobUri(string containerName, string blobName);
+
+    /// <summary>
+    /// Generates a time-limited read-only SAS URI for the specified blob.
+    /// </summary>
+    Uri GenerateReadSasUri(string containerName, string blobName, TimeSpan validity);
+
+    /// <summary>
+    /// Returns whether the blob identified by <paramref name="blobName"/> exists in the container.
+    /// </summary>
+    Task<bool> ExistsAsync(string containerName, string blobName, CancellationToken ct = default);
 }

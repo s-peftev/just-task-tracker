@@ -11,6 +11,7 @@
 
 	<ItemGroup>
 		<PackageReference Include="Aspire.Hosting.AppHost" Version="*" />
+		<PackageReference Include="Aspire.Hosting.Azure.Functions" Version="13.4.6" />
 		<PackageReference Include="Aspire.Hosting.SqlServer" Version="*" />
 		<PackageReference Include="MessagePack" Version="2.5.302" />
 	</ItemGroup>
@@ -18,6 +19,7 @@
 		<ProjectReference Include="..\..\api\JustTaskTracker.API\JustTaskTracker.API.csproj" />
 		<ProjectReference Include="..\..\api\JustTaskTracker.Database\JustTaskTracker.Database.csproj" />
 		<ProjectReference Include="..\..\client\JustTaskTracker.WebUI\JustTaskTracker.WebUI.csproj" />
+		<ProjectReference Include="..\..\functions\JustTaskTracker.Archival.Functions\JustTaskTracker.Archival.Functions.csproj" />
 	</ItemGroup>
 
 </Project>

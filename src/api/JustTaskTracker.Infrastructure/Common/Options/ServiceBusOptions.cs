@@ -1,4 +1,4 @@
-﻿using JustTaskTracker.Infrastructure.Common.Constants;
+using JustTaskTracker.Infrastructure.Common.Constants;
 
 namespace JustTaskTracker.Infrastructure.Common.Options;
 

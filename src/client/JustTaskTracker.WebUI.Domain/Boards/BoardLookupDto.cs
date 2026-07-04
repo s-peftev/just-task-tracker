@@ -8,5 +8,7 @@ public record BoardLookupDto(
     bool IsArchived,
     BoardMemberRole UserRole,
     string OwnerEmail,
-    string? OwnerDisplayName,
-    DateTime? ArchivedAtUtc);
+    BoardExportStatus BoardExportStatus,
+    BoardExportStatus ReExportStatus = BoardExportStatus.None,
+    string? OwnerDisplayName = null,
+    DateTime? ArchivedAtUtc = null);

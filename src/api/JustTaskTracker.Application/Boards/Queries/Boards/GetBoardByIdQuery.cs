@@ -1,5 +1,7 @@
 using JustTaskTracker.Application.Auth;
+using JustTaskTracker.Application.Boards.Mappings;
 using JustTaskTracker.Application.Boards.Repositories;
+using JustTaskTracker.Application.Common.ExternalProviders;
 using JustTaskTracker.Domain.Boards.Authorization;
 using JustTaskTracker.Domain.Boards.DTOs.Boards;
 using JustTaskTracker.Domain.Common.Results;
@@ -10,7 +12,10 @@ namespace JustTaskTracker.Application.Boards.Queries.Boards;
 
 public record GetBoardByIdQuery(Guid BoardId) : IRequest<Result<BoardDetailsDto>>;
 
-public class GetBoardByIdQueryHandler(ICurrentUserAccessor currentUserAccessor, IBoardRepository boardRepository)
+public class GetBoardByIdQueryHandler(
+    ICurrentUserAccessor currentUserAccessor,
+    IBoardRepository boardRepository,
+    IBoardExportService boardExportService)
     : IRequestHandler<GetBoardByIdQuery, Result<BoardDetailsDto>>
 {
     public async Task<Result<BoardDetailsDto>> Handle(GetBoardByIdQuery request, CancellationToken ct)
@@ -25,6 +30,10 @@ public class GetBoardByIdQueryHandler(ICurrentUserAccessor currentUserAccessor, 
         if (board is null)
             return Result<BoardDetailsDto>.Failure(GeneralErrors.NotFound);
 
-        return Result<BoardDetailsDto>.Success(board);
+        var exportInfo = board.IsArchived
+            ? await boardExportService.GetBoardExportInfoAsync(board.Id, ct)
+            : null;
+
+        return Result<BoardDetailsDto>.Success(board.ToDto(exportInfo));
     }
 }

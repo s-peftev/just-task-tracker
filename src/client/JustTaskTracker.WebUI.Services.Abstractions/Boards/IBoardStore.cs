@@ -26,5 +26,9 @@ public interface IBoardStore
 
     BoardMemberRole? GetCachedRole(Guid boardId);
 
+    void ApplyBoardArchived(Guid boardId, DateTime archivedAtUtc, BoardExportStatus boardExportStatus);
+
+    void ApplyBoardReExportPending(Guid boardId);
+
     void Reset();
 }

@@ -7,14 +7,39 @@ namespace JustTaskTracker.Application.Common.ExternalProviders;
 public interface IBoardExportService
 {
     /// <summary>
-    /// Streams Cosmos DB documents whose export or re-export status is
-    /// <see cref="BoardExportStatus.Requested"/> or <see cref="BoardExportStatus.Failed"/>
-    /// (failed only when <paramref name="failedCooldownThreshold"/> has elapsed).
+    /// Streams Cosmos DB documents whose export or re-export status is <see cref="BoardExportStatus.Requested"/>.
     /// </summary>
     /// <remarks>
     /// At most <paramref name="maxDocuments"/> documents are yielded per call.
     /// </remarks>
-    IAsyncEnumerable<BoardExportStatusInfo> ScanActionableAsync(int maxDocuments, DateTime failedCooldownThreshold, CancellationToken ct = default);
+    IAsyncEnumerable<BoardExportStatusInfo> ScanForRequestedExportStatusesAsync(
+        int maxDocuments,
+        CancellationToken ct = default);
+
+    /// <summary>
+    /// Streams Cosmos DB documents whose export or re-export status is <see cref="BoardExportStatus.Failed"/>
+    /// and whose <c>updatedAtUtc</c> is at or before <paramref name="failedCooldownThreshold"/>.
+    /// </summary>
+    /// <remarks>
+    /// At most <paramref name="maxDocuments"/> documents are yielded per call.
+    /// </remarks>
+    IAsyncEnumerable<BoardExportStatusInfo> ScanForFailedExportStatusesAsync(
+        int maxDocuments,
+        DateTime failedCooldownThreshold,
+        CancellationToken ct = default);
+
+    /// <summary>
+    /// Streams Cosmos DB documents whose export or re-export status is
+    /// <see cref="BoardExportStatus.Pending"/> or <see cref="BoardExportStatus.Processing"/>
+    /// and whose <c>updatedAtUtc</c> is at or before <paramref name="staleCooldownThreshold"/>.
+    /// </summary>
+    /// <remarks>
+    /// At most <paramref name="maxDocuments"/> documents are yielded per call.
+    /// </remarks>
+    IAsyncEnumerable<BoardExportStatusInfo> ScanForStaleExportStatusesAsync(
+        int maxDocuments,
+        DateTime staleCooldownThreshold,
+        CancellationToken ct = default);
 
     /// <summary>
     /// Updates only re-export status fields on an existing export document.

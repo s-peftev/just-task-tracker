@@ -6,4 +6,5 @@ public static class ConfigSections
     public const string BlobStorage = nameof(BlobStorage);
     public const string ProfilePhotoProcessing = nameof(ProfilePhotoProcessing);
     public const string BoardExportScheduler = nameof(BoardExportScheduler);
+    public const string BoardExportRecoveryScheduler = nameof(BoardExportRecoveryScheduler);
 }

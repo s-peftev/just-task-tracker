@@ -3,6 +3,7 @@ using JustTaskTracker.Application.Common.Constants;
 using JustTaskTracker.Domain.Auth.Constants;
 using JustTaskTracker.Infrastructure.Auth;
 using JustTaskTracker.Infrastructure.Auth.Constants;
+using JustTaskTracker.Infrastructure.Common.Constants;
 using JustTaskTracker.Infrastructure.Common.Options;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Configuration;
@@ -38,6 +39,8 @@ internal static class AuthenticationModule
 
                 options.TokenValidationParameters.RoleClaimType = EntraClaimTypes.Roles;
                 options.TokenValidationParameters.NameClaimType = EntraClaimTypes.ObjectId;
+
+                ConfigureSignalRJwtBearerEvents(options);
             });
 
         services.AddAuthorizationBuilder()
@@ -46,5 +49,25 @@ internal static class AuthenticationModule
             .AddPolicy(AuthorizationPolicies.IsAppMember, policy => policy.RequireRole(Roles.Admin.ToString(), Roles.User.ToString(), Roles.Guest.ToString()));
 
         return services;
+    }
+
+    private static void ConfigureSignalRJwtBearerEvents(JwtBearerOptions options)
+    {
+        var previousOnMessageReceived = options.Events.OnMessageReceived;
+
+        options.Events.OnMessageReceived = async context =>
+        {
+            if (string.IsNullOrEmpty(context.Token)
+                && context.HttpContext.Request.Path.StartsWithSegments(SignalRHubPaths.Root))
+            {
+                var accessToken = context.Request.Query["access_token"];
+
+                if (!string.IsNullOrEmpty(accessToken))
+                    context.Token = accessToken;
+            }
+
+            if (previousOnMessageReceived is not null)
+                await previousOnMessageReceived(context);
+        };
     }
 }

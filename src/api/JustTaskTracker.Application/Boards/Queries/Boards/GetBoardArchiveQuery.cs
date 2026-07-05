@@ -32,7 +32,7 @@ public class GetBoardArchiveQueryHandler(
             currentUserAccessor.AzureAdObjectId,
             ct);
 
-        if (userRole is not { } authorizedRole || !BoardRolePermissions.CanArchiveBoard(authorizedRole))
+        if (userRole is not { } authorizedRole || !BoardRolePermissions.CanExportBoard(authorizedRole))
             return Result<BoardArchiveDownloadDto>.Failure(GeneralErrors.Forbidden);
 
         if (board is null)

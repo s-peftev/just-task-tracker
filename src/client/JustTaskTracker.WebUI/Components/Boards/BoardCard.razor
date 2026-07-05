@@ -14,7 +14,7 @@
      @onclick="OnClickHandler"
      @onkeydown="OnCardKeyDownAsync">
     <div class="board-card__body">
-        @if (Board.IsArchived && CanViewBoardDownloadStatus)
+        @if (Board.IsArchived && CanExportBoard)
         {
             <div class="board-card__corner-actions">
                 @if (ShowPreviousExportDownload(Board))
@@ -79,8 +79,8 @@
 
     private bool _isDownloadingArchive;
 
-    private bool CanViewBoardDownloadStatus =>
-        BoardRolePermissions.CanArchiveBoard(Board.UserRole);
+    private bool CanExportBoard =>
+        BoardRolePermissions.CanExportBoard(Board.UserRole);
 
     private static string DownloadAriaLabel =>
         BoardExportStatusFormatting.GetDescription(BoardExportStatus.Completed);

@@ -39,4 +39,9 @@ public static class BoardsErrors
         nameof(ReExportOptionsUnchanged),
         ErrorType.Validation,
         ["Export options must differ from the current export."]);
+
+    public static readonly Error ExportStatusSubscribeNotAllowed = new(
+        nameof(ExportStatusSubscribeNotAllowed),
+        ErrorType.Forbidden,
+        ["One or more boards are not eligible for export status updates."]);
 }

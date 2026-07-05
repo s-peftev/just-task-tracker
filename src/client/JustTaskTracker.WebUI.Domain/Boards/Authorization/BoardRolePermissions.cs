@@ -19,6 +19,9 @@ public static class BoardRolePermissions
     public static bool CanArchiveBoard(BoardMemberRole role) =>
         role is BoardMemberRole.Owner;
 
+    public static bool CanExportBoard(BoardMemberRole role) =>
+        role is BoardMemberRole.Owner;
+
     public static bool CanManageMembers(BoardMemberRole role) =>
         role is BoardMemberRole.Owner or BoardMemberRole.Admin;
 

@@ -163,6 +163,19 @@ public class BoardRepository(JustTaskTrackerDbContext context)
     public async Task<bool> IsArchivedAsync(Guid boardId, CancellationToken ct = default) =>
         await _dbSet.AnyAsync(b => b.Id == boardId && b.IsArchived, ct);
 
+    public async Task<IReadOnlyDictionary<Guid, BoardMemberRole>> GetUserRolesForArchivedBoardsAsync(IReadOnlyList<Guid> boardIds, Guid azureAdObjectId, CancellationToken ct = default)
+    {
+        if (boardIds.Count is 0)
+            return new Dictionary<Guid, BoardMemberRole>();
+
+        return await _context.BoardMembers
+            .Where(m => boardIds.Contains(m.BoardId)
+                && m.User!.AzureAdObjectId == azureAdObjectId
+                && m.Board!.IsArchived)
+            .Select(m => new { m.BoardId, m.Role })
+            .ToDictionaryAsync(x => x.BoardId, x => x.Role, ct);
+    }
+
     public async Task<PagedList<BoardMemberReadModel>> GetMembersInfoPagedAsync(
         Guid boardId,
         int pageNumber,

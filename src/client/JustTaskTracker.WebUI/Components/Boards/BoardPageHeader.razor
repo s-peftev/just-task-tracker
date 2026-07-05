@@ -54,7 +54,7 @@
                     This board was archived on @FormatArchivedAt(archivedAtUtc)<br />
                     Available in read-only mode.
                 </p>
-                @if (CanViewBoardDownloadStatus)
+                @if (CanExportBoard)
                 {
                     <div class="board-page__export-actions">
                         @if (ShowPreviousExportDownload(board))
@@ -153,9 +153,9 @@
         && BoardDetailsStore.Board is { UserRole: var role }
         && BoardRolePermissions.CanRenameBoard(role);
 
-    private bool CanViewBoardDownloadStatus =>
+    private bool CanExportBoard =>
         BoardDetailsStore.Board is { UserRole: var role }
-        && BoardRolePermissions.CanArchiveBoard(role);
+        && BoardRolePermissions.CanExportBoard(role);
 
     private static string FormatArchivedAt(DateTime archivedAtUtc) =>
         archivedAtUtc.ToLocalTime().ToString("g");

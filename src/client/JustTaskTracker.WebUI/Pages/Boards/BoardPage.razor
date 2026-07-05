@@ -7,12 +7,14 @@
 @using JustTaskTracker.WebUI.Services.Abstractions.Boards
 @using JustTaskTracker.WebUI.Services.Exceptions
 @using BlazorSortable
+@using JustTaskTracker.WebUI.Services.Abstractions.Hubs
 @inject IBoardPanScrollService BoardPanScroll
 @inject IBoardTrayOverlapService BoardTrayOverlap
 @inject IBoardDetailsStore BoardDetailsStore
 @inject IBoardTaskStore BoardTaskStore
 @inject IBoardTaskSearchStore BoardTaskSearchStore
 @inject IBoardMembersStore BoardMembersStore
+@inject IBoardExportStatusHubService HubService
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
@@ -118,6 +120,7 @@
     private readonly List<ColumnDto> _sortableColumns = [];
     private bool _isFooterTrayOpen;
     private Guid _membersStoreBoardId;
+    private Guid _hubSubscribedBoardId;
 
     private bool CanManageColumns =>
         !BoardDetailsStore.IsReadOnly
@@ -171,6 +174,9 @@
         BoardMembersStore.Reset();
         await BoardTrayOverlap.ReleaseResourcesAsync();
         await BoardPanScroll.DetachAsync();
+
+        if (_hubSubscribedBoardId != Guid.Empty)
+            await HubService.UnsubscribeAsync([_hubSubscribedBoardId]);
     }
 
     private void OnTrayOverlapChanged() =>
@@ -264,7 +270,32 @@
     private void OnBoardStoreStateChanged()
     {
         SyncSortableColumnsFromStore();
-        InvokeAsync(StateHasChanged);
+        InvokeAsync(async () =>
+        {
+            await SyncHubSubscriptionAsync();
+            StateHasChanged();
+        });
+    }
+
+    private async Task SyncHubSubscriptionAsync()
+    {
+        var board = BoardDetailsStore.Board;
+
+        var targetBoardId = board is { IsArchived: true }
+                            && BoardRolePermissions.CanExportBoard(board.UserRole)
+            ? board.Id
+            : Guid.Empty;
+
+        if (targetBoardId == _hubSubscribedBoardId)
+            return;
+
+        if (_hubSubscribedBoardId != Guid.Empty)
+            await HubService.UnsubscribeAsync([_hubSubscribedBoardId]);
+
+        _hubSubscribedBoardId = targetBoardId;
+
+        if (targetBoardId != Guid.Empty)
+            await HubService.SubscribeAsync([targetBoardId]);
     }
 
     private void OnTaskStoreStateChanged() =>

@@ -30,5 +30,9 @@ public interface IBoardStore
 
     void ApplyBoardReExportPending(Guid boardId);
 
+    void ApplyExportStatusChanged(Guid boardId, BoardExportStatus status);
+
+    void ApplyReExportStatusChanged(Guid boardId, BoardExportStatus status);
+
     void Reset();
 }

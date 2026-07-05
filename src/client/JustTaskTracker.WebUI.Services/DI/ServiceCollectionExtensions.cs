@@ -1,5 +1,6 @@
 using JustTaskTracker.WebUI.Services.Abstractions.Auth;
 using JustTaskTracker.WebUI.Services.Abstractions.Boards;
+using JustTaskTracker.WebUI.Services.Abstractions.Hubs;
 using JustTaskTracker.WebUI.Services.Abstractions.Users;
 using JustTaskTracker.WebUI.Services.Api;
 using JustTaskTracker.WebUI.Services.Auth;
@@ -7,6 +8,7 @@ using JustTaskTracker.WebUI.Services.Auth.Stores;
 using JustTaskTracker.WebUI.Services.Configuration;
 using JustTaskTracker.WebUI.Services.Boards;
 using JustTaskTracker.WebUI.Services.Boards.Stores;
+using JustTaskTracker.WebUI.Services.Hubs;
 using JustTaskTracker.WebUI.Services.Users;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -67,6 +69,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IBoardTaskAssigneePickerStore, BoardTaskAssigneePickerStore>();
         services.AddScoped<IBoardPanScrollService, BoardPanScrollService>();
         services.AddScoped<IBoardTrayOverlapService, BoardTrayOverlapService>();
+        services.AddScoped<IBoardExportStatusHubService, BoardExportStatusHubService>();
 
         return services;
     }

@@ -1,5 +1,6 @@
 using FluentValidation;
 using JustTaskTracker.Application.Auth;
+using JustTaskTracker.Application.Boards.Notifiers;
 using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Behaviors;
 using JustTaskTracker.Application.Common.ExternalProviders;
@@ -8,6 +9,7 @@ using JustTaskTracker.Application.Common.Utils;
 using JustTaskTracker.Domain.Boards.Authorization;
 using JustTaskTracker.Domain.Boards.DTOs.Boards;
 using JustTaskTracker.Domain.Boards.Enums;
+using JustTaskTracker.Domain.Boards.Messaging;
 using JustTaskTracker.Domain.Common.Results;
 using JustTaskTracker.Domain.Common.Results.Errors;
 using MediatR;
@@ -22,6 +24,7 @@ public class ArchiveAndExportBoardCommandHandler(
     ICurrentUserAccessor currentUserAccessor,
     IBoardRepository boardRepository,
     IBoardExportService boardExportService,
+    IBoardExportStatusNotifier exportStatusNotifier,
     IUnitOfWork unitOfWork,
     IDateTimeProvider dateTimeProvider,
     ILogger<ArchiveAndExportBoardCommandHandler> logger)
@@ -46,6 +49,10 @@ public class ArchiveAndExportBoardCommandHandler(
                 board.Id,
                 BoardExportStatus.Requested,
                 request.ExportOptions,
+                ct);
+
+            await exportStatusNotifier.NotifyExportStatusChangedAsync(
+                new BoardExportStatusChangedNotification(board.Id, BoardExportStatus.Requested),
                 ct);
         }
         catch (Exception ex)

@@ -1,5 +1,6 @@
 using Hangfire;
 using JustTaskTracker.Application.Boards.Jobs;
+using JustTaskTracker.Application.Boards.Notifiers;
 using JustTaskTracker.Application.Common.ExternalProviders;
 using JustTaskTracker.Application.Common.Options;
 using JustTaskTracker.Domain.Boards.Enums;
@@ -16,6 +17,7 @@ namespace JustTaskTracker.Infrastructure.Boards.Jobs;
 internal sealed class BoardExportSchedulerJob(
     IBoardExportService boardExportService,
     IBoardExportQueueSender queueSender,
+    IBoardExportStatusNotifier exportStatusNotifier,
     BoardExportSchedulerOptions options,
     ILogger<BoardExportSchedulerJob> logger) : IBoardExportSchedulerJob
 {
@@ -32,24 +34,24 @@ internal sealed class BoardExportSchedulerJob(
             if (info.ExportStatus == BoardExportStatus.Requested)
             {
                 await BoardExportJobOperations.EnqueueAndMarkPendingAsync(
-                    boardExportService,
                     queueSender,
                     logger,
-                    info.BoardId,
+                    info,
                     BoardExportType.InitialExport,
                     (boardId, token) => boardExportService.UpdateExportStatusAsync(boardId, BoardExportStatus.Pending, null, token),
+                    exportStatusNotifier.NotifyExportStatusChangedAsync,
                     ct);
             }
 
             if (info.ReExportStatus == BoardExportStatus.Requested)
             {
                 await BoardExportJobOperations.EnqueueAndMarkPendingAsync(
-                    boardExportService,
                     queueSender,
                     logger,
-                    info.BoardId,
+                    info,
                     BoardExportType.ReExport,
                     (boardId, token) => boardExportService.UpdateReExportStatusAsync(boardId, BoardExportStatus.Pending, null, token),
+                    exportStatusNotifier.NotifyReExportStatusChangedAsync,
                     ct);
             }
 

@@ -11,7 +11,9 @@ namespace JustTaskTracker.Infrastructure.Boards.Hubs;
 
 public static class BoardExportHubEvents
 {
-    public const string StatusChanged = "BoardExportStatusChanged";
+    public const string ExportStatusChanged = "BoardExportStatusChanged";
+
+    public const string ReExportStatusChanged = "BoardReExportStatusChanged";
 }
 
 [Authorize(Policy = AuthorizationPolicies.IsAppMember)]

@@ -9,10 +9,14 @@ namespace JustTaskTracker.Infrastructure.Boards.Notifiers;
 internal class BoardExportStatusNotifier(
     IHubContext<BoardExportStatusHub> hubContext) : IBoardExportStatusNotifier
 {
-    public Task NotifyStatusChangedAsync(
-        BoardExportStatusChangedNotification notification,
-        CancellationToken ct = default) =>
+    public Task NotifyExportStatusChangedAsync(BoardExportStatusChangedNotification notification, CancellationToken ct = default) =>
+        SendAsync(BoardExportHubEvents.ExportStatusChanged, notification, ct);
+
+    public Task NotifyReExportStatusChangedAsync(BoardExportStatusChangedNotification notification, CancellationToken ct = default) =>
+        SendAsync(BoardExportHubEvents.ReExportStatusChanged, notification, ct);
+
+    private Task SendAsync(string eventName, BoardExportStatusChangedNotification notification, CancellationToken ct) =>
         hubContext.Clients
             .Group(HubGroupNames.BoardExportStatus.Get(notification.BoardId))
-            .SendAsync(BoardExportHubEvents.StatusChanged, notification, ct);
+            .SendAsync(eventName, notification, ct);
 }

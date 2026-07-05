@@ -4,5 +4,4 @@ namespace JustTaskTracker.Domain.Boards.Messaging;
 
 public record BoardExportStatusChangedNotification(
     Guid BoardId,
-    BoardExportStatus BoardExportStatus,
-    BoardExportStatus ReExportStatus);
+    BoardExportStatus Status);

@@ -4,7 +4,7 @@ namespace JustTaskTracker.Application.Boards.Notifiers;
 
 public interface IBoardExportStatusNotifier
 {
-    Task NotifyStatusChangedAsync(
-        BoardExportStatusChangedNotification notification,
-        CancellationToken ct = default);
+    Task NotifyExportStatusChangedAsync(BoardExportStatusChangedNotification notification, CancellationToken ct = default);
+
+    Task NotifyReExportStatusChangedAsync(BoardExportStatusChangedNotification notification, CancellationToken ct = default);
 }

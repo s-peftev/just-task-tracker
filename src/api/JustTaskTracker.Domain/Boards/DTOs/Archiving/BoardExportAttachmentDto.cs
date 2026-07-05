@@ -8,5 +8,4 @@ public record BoardExportAttachmentDto(
     int Position,
     DateTime CreatedAtUtc,
     BoardExportUserDto UploadedBy,
-    Uri DownloadUrl,
-    DateTime DownloadUrlExpiresAtUtc);
+    string BlobName);

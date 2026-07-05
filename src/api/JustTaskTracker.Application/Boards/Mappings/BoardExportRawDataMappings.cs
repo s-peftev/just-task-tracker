@@ -1,5 +1,4 @@
 using JustTaskTracker.Application.Boards.ReadModels;
-using JustTaskTracker.Application.Common.ExternalProviders;
 using JustTaskTracker.Domain.Boards.DTOs.Archiving;
 using JustTaskTracker.Domain.Boards.DTOs.Boards;
 
@@ -7,39 +6,22 @@ namespace JustTaskTracker.Application.Boards.Mappings;
 
 public static class BoardExportRawDataMappings
 {
-    public static BoardExportDataDto ToDto(
-        this BoardExportRawData raw,
-        BoardExportOptions options,
-        IBlobStorageService blobStorageService,
-        string attachmentsContainerName,
-        TimeSpan attachmentSasValidity) =>
+    public static BoardExportDataDto ToDto(this BoardExportRawData raw, BoardExportOptions options) =>
         new(
             raw.Board,
             options,
             DateTime.UtcNow,
-            raw.Columns
-                .Select(c => c.ToDto(blobStorageService, attachmentsContainerName, attachmentSasValidity))
-                .ToList(),
+            raw.Columns.Select(c => c.ToDto()).ToList(),
             raw.Members);
 
-    public static BoardExportColumnDto ToDto(
-        this BoardExportRawColumnData column,
-        IBlobStorageService blobStorageService,
-        string attachmentsContainerName,
-        TimeSpan attachmentSasValidity) =>
+    public static BoardExportColumnDto ToDto(this BoardExportRawColumnData column) =>
         new(
             column.Id,
             column.Name,
             column.Position,
-            column.Tasks
-                .Select(t => t.ToDto(blobStorageService, attachmentsContainerName, attachmentSasValidity))
-                .ToList());
+            column.Tasks.Select(t => t.ToDto()).ToList());
 
-    public static BoardExportTaskDto ToDto(
-        this BoardExportRawTaskData task,
-        IBlobStorageService blobStorageService,
-        string attachmentsContainerName,
-        TimeSpan attachmentSasValidity) =>
+    public static BoardExportTaskDto ToDto(this BoardExportRawTaskData task) =>
         new(
             task.Id,
             task.Title,
@@ -50,24 +32,10 @@ public static class BoardExportRawDataMappings
             task.Assignee,
             task.Description,
             task.Comments,
-            task.Attachments?
-                .Select(a => a.ToDto(blobStorageService, attachmentsContainerName, attachmentSasValidity))
-                .ToList());
+            task.Attachments?.Select(a => a.ToDto()).ToList());
 
-    public static BoardExportAttachmentDto ToDto(
-        this BoardExportRawAttachmentData attachment,
-        IBlobStorageService blobStorageService,
-        string attachmentsContainerName,
-        TimeSpan attachmentSasValidity)
-    {
-        var expiresAt = DateTime.UtcNow.Add(attachmentSasValidity);
-
-        var sasUri = blobStorageService.GenerateReadSasUri(
-            attachmentsContainerName,
-            attachment.BlobName,
-            attachmentSasValidity);
-
-        return new BoardExportAttachmentDto(
+    public static BoardExportAttachmentDto ToDto(this BoardExportRawAttachmentData attachment) =>
+        new(
             attachment.Id,
             attachment.OriginalFileName,
             attachment.ContentType,
@@ -75,7 +43,5 @@ public static class BoardExportRawDataMappings
             attachment.Position,
             attachment.CreatedAtUtc,
             attachment.UploadedBy,
-            sasUri,
-            expiresAt);
-    }
+            attachment.BlobName);
 }

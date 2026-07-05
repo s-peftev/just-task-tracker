@@ -14,6 +14,25 @@ public sealed class BoardExportBlobService(
 {
     private const string ZipContentType = "application/zip";
 
+    public async Task<Stream> DownloadAttachmentAsync(string blobName, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(blobName);
+
+        var blobOptions = options.Value;
+        blobOptions.Validate();
+
+        var response = await blobServiceClient
+            .GetBlobContainerClient(blobOptions.TaskAttachmentsContainerName)
+            .GetBlobClient(blobName)
+            .DownloadStreamingAsync(cancellationToken: ct);
+
+        var buffer = new MemoryStream();
+        await response.Value.Content.CopyToAsync(buffer, ct);
+        buffer.Position = 0;
+
+        return buffer;
+    }
+
     public async Task UploadArchiveAsync(Guid boardId, BoardExportArchive archive, CancellationToken ct = default)
     {
         ArgumentOutOfRangeException.ThrowIfEqual(boardId, Guid.Empty);

@@ -1,10 +1,11 @@
 using JustTaskTracker.API.Configurators;
 using JustTaskTracker.API.Filters;
 using JustTaskTracker.API.Handlers;
-using JustTaskTracker.API.Hubs;
 using JustTaskTracker.API.Middleware;
+using JustTaskTracker.Infrastructure.Boards.Hubs;
 using JustTaskTracker.Application.DI;
 using JustTaskTracker.Infrastructure.Common.Constants;
+using JustTaskTracker.Infrastructure.Common.Constants.Hubs;
 using JustTaskTracker.Infrastructure.DI;
 using JustTaskTracker.Infrastructure.DI.Modules;
 using JustTaskTracker.Persistence.DI;
@@ -49,6 +50,6 @@ app.UseHangfireDashboardModule();
 
 app.MapControllers();
 
-app.MapHub<BoardExportStatusHub>(SignalRHubPaths.BoardExportStatus);
+app.MapHub<BoardExportStatusHub>(HubPaths.BoardExportStatus);
 
 app.Run();

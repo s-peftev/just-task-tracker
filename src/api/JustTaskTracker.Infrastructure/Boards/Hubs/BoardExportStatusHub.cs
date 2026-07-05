@@ -1,15 +1,21 @@
-using JustTaskTracker.Application.Boards.Commands.Hubs.BoardExportStatus;
+﻿using JustTaskTracker.Application.Boards.Commands.Hubs.BoardExportStatus;
 using JustTaskTracker.Application.Common.Constants;
 using JustTaskTracker.Domain.Common.Results;
-using JustTaskTracker.Infrastructure.Boards.Hubs;
+using JustTaskTracker.Infrastructure.Common.Constants.Hubs;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Logging;
 
-namespace JustTaskTracker.API.Hubs;
+namespace JustTaskTracker.Infrastructure.Boards.Hubs;
+
+public static class BoardExportHubEvents
+{
+    public const string StatusChanged = "BoardExportStatusChanged";
+}
 
 [Authorize(Policy = AuthorizationPolicies.IsAppMember)]
-public sealed class BoardExportStatusHub(
+public class BoardExportStatusHub(
     ISender sender,
     ILogger<BoardExportStatusHub> logger) : Hub
 {
@@ -25,7 +31,7 @@ public sealed class BoardExportStatusHub(
         var subscribableBoardIds = result.Value;
 
         await Task.WhenAll(subscribableBoardIds.Select(boardId =>
-            Groups.AddToGroupAsync(Context.ConnectionId, BoardExportGroupNames.ForBoard(boardId), ct)));
+            Groups.AddToGroupAsync(Context.ConnectionId, HubGroupNames.BoardExportStatus.Get(boardId), ct)));
 
         logger.LogDebug(
             "Subscribed connection {ConnectionId} to {BoardCount} board export groups.",
@@ -46,7 +52,7 @@ public sealed class BoardExportStatusHub(
             return;
 
         await Task.WhenAll(distinctBoardIds.Select(boardId =>
-            Groups.RemoveFromGroupAsync(Context.ConnectionId, BoardExportGroupNames.ForBoard(boardId), ct)));
+            Groups.RemoveFromGroupAsync(Context.ConnectionId, HubGroupNames.BoardExportStatus.Get(boardId), ct)));
 
         logger.LogDebug(
             "Unsubscribed connection {ConnectionId} from {BoardCount} board export groups.",

@@ -1,6 +1,6 @@
-namespace JustTaskTracker.Infrastructure.Common.Constants;
+namespace JustTaskTracker.Infrastructure.Common.Constants.Hubs;
 
-public static class SignalRHubPaths
+public static class HubPaths
 {
     public const string Root = "/hubs";
 

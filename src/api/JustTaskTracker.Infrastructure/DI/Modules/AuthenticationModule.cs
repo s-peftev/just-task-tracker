@@ -3,7 +3,7 @@ using JustTaskTracker.Application.Common.Constants;
 using JustTaskTracker.Domain.Auth.Constants;
 using JustTaskTracker.Infrastructure.Auth;
 using JustTaskTracker.Infrastructure.Auth.Constants;
-using JustTaskTracker.Infrastructure.Common.Constants;
+using JustTaskTracker.Infrastructure.Common.Constants.Hubs;
 using JustTaskTracker.Infrastructure.Common.Options;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Configuration;
@@ -58,7 +58,7 @@ internal static class AuthenticationModule
         options.Events.OnMessageReceived = async context =>
         {
             if (string.IsNullOrEmpty(context.Token)
-                && context.HttpContext.Request.Path.StartsWithSegments(SignalRHubPaths.Root))
+                && context.HttpContext.Request.Path.StartsWithSegments(HubPaths.Root))
             {
                 var accessToken = context.Request.Query["access_token"];
 

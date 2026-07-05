@@ -5,10 +5,14 @@ using System.Security.Claims;
 
 namespace JustTaskTracker.Infrastructure.Auth;
 
-public class CurrentUserAccessor(IHttpContextAccessor httpContextAccessor) : ICurrentUserAccessor
+public class CurrentUserAccessor(
+    IHttpContextAccessor httpContextAccessor,
+    ICurrentUserContext currentUserContext) : ICurrentUserAccessor
 {
-    private ClaimsPrincipal User => httpContextAccessor.HttpContext?.User
-        ?? throw new InvalidOperationException("No HttpContext.");
+    private ClaimsPrincipal User =>
+        httpContextAccessor.HttpContext?.User
+        ?? currentUserContext.User
+        ?? throw new InvalidOperationException("No authenticated user in the current scope.");
 
     public Guid AzureAdObjectId =>
         Guid.Parse(

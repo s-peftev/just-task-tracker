@@ -1,4 +1,5 @@
-﻿using JustTaskTracker.Application.Boards.Commands.Hubs.BoardExportStatus;
+﻿using JustTaskTracker.Application.Auth;
+using JustTaskTracker.Application.Boards.Commands.Hubs.BoardExportStatus;
 using JustTaskTracker.Application.Common.Constants;
 using JustTaskTracker.Domain.Common.Results;
 using JustTaskTracker.Infrastructure.Common.Constants.Hubs;
@@ -19,11 +20,14 @@ public static class BoardExportHubEvents
 [Authorize(Policy = AuthorizationPolicies.IsAppMember)]
 public class BoardExportStatusHub(
     ISender sender,
+    ICurrentUserContext currentUserContext,
     ILogger<BoardExportStatusHub> logger) : Hub
 {
     public async Task SubscribeAsync(IReadOnlyList<Guid> boardIds)
     {
         var ct = Context.ConnectionAborted;
+
+        currentUserContext.User = Context.User;
 
         var result = await sender.Send(new SubscribeBoardExportStatusCommand(boardIds), ct);
 

@@ -19,6 +19,7 @@ internal static class AuthenticationModule
     {
         services.AddHttpContextAccessor();
 
+        services.AddScoped<ICurrentUserContext, CurrentUserContext>();
         services.AddScoped<ICurrentUserAccessor, CurrentUserAccessor>();
 
         JwtSecurityTokenHandler.DefaultMapInboundClaims = false;

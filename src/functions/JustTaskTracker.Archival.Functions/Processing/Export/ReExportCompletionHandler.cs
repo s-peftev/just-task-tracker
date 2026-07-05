@@ -21,7 +21,7 @@ public sealed class ReExportCompletionHandler(
         await statusNotifyApiClient.NotifyReExportStatusChangedAsync(
             context.BoardId,
             BoardExportStatus.Processing,
-            ct);
+            ct: ct);
     }
 
     public async Task MarkCompletedAsync(BoardExportContext context, CancellationToken ct = default)
@@ -36,6 +36,7 @@ public sealed class ReExportCompletionHandler(
         await statusNotifyApiClient.NotifyReExportStatusChangedAsync(
             context.BoardId,
             BoardExportStatus.None,
+            promotedExportOptions,
             ct);
     }
 
@@ -45,6 +46,6 @@ public sealed class ReExportCompletionHandler(
         await statusNotifyApiClient.NotifyReExportStatusChangedAsync(
             context.BoardId,
             BoardExportStatus.Failed,
-            ct);
+            ct: ct);
     }
 }

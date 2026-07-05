@@ -1,6 +1,7 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using JustTaskTracker.Archival.Functions.Abstractions.ExternalProviders;
+using JustTaskTracker.Archival.Functions.Contracts.DTOs;
 using JustTaskTracker.Archival.Functions.Contracts.Enums;
 using JustTaskTracker.Archival.Functions.Contracts.Messaging;
 using Microsoft.Extensions.Logging;
@@ -19,24 +20,26 @@ public sealed class BoardExportStatusNotifyApiClient(
         Guid boardId,
         BoardExportStatus status,
         CancellationToken ct = default) =>
-        NotifyAsync(boardId, "export-status-notify", status, ct);
+        NotifyAsync(boardId, "export-status-notify", status, exportOptions: null, ct);
 
     public Task NotifyReExportStatusChangedAsync(
         Guid boardId,
         BoardExportStatus status,
+        BoardExportOptions? exportOptions = null,
         CancellationToken ct = default) =>
-        NotifyAsync(boardId, "re-export-status-notify", status, ct);
+        NotifyAsync(boardId, "re-export-status-notify", status, exportOptions, ct);
 
     private async Task NotifyAsync(
         Guid boardId,
         string routeSuffix,
         BoardExportStatus status,
+        BoardExportOptions? exportOptions,
         CancellationToken ct)
     {
         ArgumentOutOfRangeException.ThrowIfEqual(boardId, Guid.Empty);
 
         var clientOptions = options.Value;
-        var notification = new BoardExportStatusChangedNotification(boardId, status);
+        var notification = new BoardExportStatusChangedNotification(boardId, status, exportOptions);
 
         try
         {

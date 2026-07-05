@@ -174,7 +174,10 @@ internal sealed class BoardExportStatusHubService(
     private void OnReExportStatusChanged(BoardExportStatusChangedNotification notification)
     {
         boardStore.ApplyReExportStatusChanged(notification.BoardId, notification.Status);
-        boardDetailsStore.ApplyReExportStatusChanged(notification.BoardId, notification.Status);
+        boardDetailsStore.ApplyReExportStatusChanged(
+            notification.BoardId,
+            notification.Status,
+            notification.ExportOptions);
     }
 
     private async Task OnReconnectedAsync(string? connectionId)

@@ -36,7 +36,10 @@ public interface IBoardDetailsStore
 
     void ApplyExportStatusChanged(Guid boardId, BoardExportStatus status);
 
-    void ApplyReExportStatusChanged(Guid boardId, BoardExportStatus status);
+    void ApplyReExportStatusChanged(
+        Guid boardId,
+        BoardExportStatus status,
+        BoardExportOptions? exportOptions = null);
 
     void UpdateColumnName(Guid columnId, string name);
 

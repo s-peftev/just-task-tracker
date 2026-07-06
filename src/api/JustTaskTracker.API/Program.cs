@@ -51,5 +51,6 @@ app.UseHangfireDashboardModule();
 app.MapControllers();
 
 app.MapHub<BoardExportStatusHub>(HubPaths.BoardExportStatus);
+app.MapHub<BoardActionsHub>(HubPaths.BoardActions);
 
 app.Run();

@@ -41,6 +41,8 @@ public class BoardValidationSettings
 {
     public int MaxBoardNameSearchLength { get; set; }
 
+    public int MaxExportStatusSubscribeBoardCount { get; set; }
+
     internal void Validate(string sectionPath)
     {
         if (MaxBoardNameSearchLength == 0)
@@ -52,6 +54,12 @@ public class BoardValidationSettings
         if (MaxBoardNameSearchLength > BoardFieldLengths.MaxNameLength)
             throw new InvalidOperationException(
                 $"{sectionPath}:MaxBoardNameSearchLength must not exceed {BoardFieldLengths.MaxNameLength}.");
+
+        if (MaxExportStatusSubscribeBoardCount == 0)
+            throw new InvalidOperationException($"{sectionPath}:MaxExportStatusSubscribeBoardCount is not configured.");
+
+        if (MaxExportStatusSubscribeBoardCount < 1)
+            throw new InvalidOperationException($"{sectionPath}:MaxExportStatusSubscribeBoardCount must be greater than 0.");
     }
 }
 

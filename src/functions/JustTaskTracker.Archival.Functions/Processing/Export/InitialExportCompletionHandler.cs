@@ -9,17 +9,37 @@ namespace JustTaskTracker.Archival.Functions.Processing.Export;
 /// (<see cref="BoardExportType.InitialExport"/>). Export options are already stored in the document
 /// when the API schedules export; completion only updates status fields.
 /// </summary>
-public sealed class InitialExportCompletionHandler(IBoardExportDocumentClient cosmos)
+public sealed class InitialExportCompletionHandler(
+    IBoardExportDocumentClient cosmos,
+    IBoardExportStatusNotifyApiClient statusNotifyApiClient)
     : IBoardExportCompletionHandler
 {
     public BoardExportType Type => BoardExportType.InitialExport;
 
-    public Task MarkProcessingAsync(BoardExportContext context, CancellationToken ct = default) =>
-        cosmos.MarkExportProcessingAsync(context.BoardId, ct);
+    public async Task MarkProcessingAsync(BoardExportContext context, CancellationToken ct = default)
+    {
+        await cosmos.MarkExportProcessingAsync(context.BoardId, ct);
+        await statusNotifyApiClient.NotifyExportStatusChangedAsync(
+            context.BoardId,
+            BoardExportStatus.Processing,
+            ct);
+    }
 
-    public Task MarkCompletedAsync(BoardExportContext context, CancellationToken ct = default) =>
-        cosmos.CompleteInitialExportAsync(context.BoardId, ct);
+    public async Task MarkCompletedAsync(BoardExportContext context, CancellationToken ct = default)
+    {
+        await cosmos.CompleteInitialExportAsync(context.BoardId, ct);
+        await statusNotifyApiClient.NotifyExportStatusChangedAsync(
+            context.BoardId,
+            BoardExportStatus.Completed,
+            ct);
+    }
 
-    public Task MarkFailedAsync(BoardExportContext context, string errorMessage, CancellationToken ct = default) =>
-        cosmos.FailInitialExportAsync(context.BoardId, errorMessage, ct);
+    public async Task MarkFailedAsync(BoardExportContext context, string errorMessage, CancellationToken ct = default)
+    {
+        await cosmos.FailInitialExportAsync(context.BoardId, errorMessage, ct);
+        await statusNotifyApiClient.NotifyExportStatusChangedAsync(
+            context.BoardId,
+            BoardExportStatus.Failed,
+            ct);
+    }
 }

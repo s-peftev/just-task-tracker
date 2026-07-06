@@ -44,6 +44,16 @@ builder.Services
     })
 
     .Services
+    .AddHttpClient<IBoardExportStatusNotifyApiClient, BoardExportStatusNotifyApiClient>((sp, client) =>
+    {
+        var options = sp.GetRequiredService<IOptions<BoardExportApiClientOptions>>().Value;
+        options.Validate();
+
+        client.BaseAddress = new Uri(options.BaseAddress.TrimEnd('/') + '/', UriKind.Absolute);
+        client.Timeout = TimeSpan.FromMinutes(options.RequestTimeoutMinutes);
+    })
+
+    .Services
     .Configure<BlobStorageOptions>(
         builder.Configuration.GetSection(BlobStorageOptions.SectionName))
     .AddSingleton(_ =>

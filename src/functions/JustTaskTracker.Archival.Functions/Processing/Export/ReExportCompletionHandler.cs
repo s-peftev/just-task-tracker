@@ -8,15 +8,23 @@ namespace JustTaskTracker.Archival.Functions.Processing.Export;
 /// Applies Cosmos status transitions for the re-export flow (<see cref="BoardExportType.ReExport"/>).
 /// On success, promotes <c>reExportOptions</c> to <c>exportOptions</c> and clears re-export fields.
 /// </summary>
-public sealed class ReExportCompletionHandler(IBoardExportDocumentClient cosmos)
+public sealed class ReExportCompletionHandler(
+    IBoardExportDocumentClient cosmos,
+    IBoardExportStatusNotifyApiClient statusNotifyApiClient)
     : IBoardExportCompletionHandler
 {
     public BoardExportType Type => BoardExportType.ReExport;
 
-    public Task MarkProcessingAsync(BoardExportContext context, CancellationToken ct = default) =>
-        cosmos.MarkReExportProcessingAsync(context.BoardId, ct);
+    public async Task MarkProcessingAsync(BoardExportContext context, CancellationToken ct = default)
+    {
+        await cosmos.MarkReExportProcessingAsync(context.BoardId, ct);
+        await statusNotifyApiClient.NotifyReExportStatusChangedAsync(
+            context.BoardId,
+            BoardExportStatus.Processing,
+            ct: ct);
+    }
 
-    public Task MarkCompletedAsync(BoardExportContext context, CancellationToken ct = default)
+    public async Task MarkCompletedAsync(BoardExportContext context, CancellationToken ct = default)
     {
         if (context.Options is not { } promotedExportOptions)
         {
@@ -24,9 +32,20 @@ public sealed class ReExportCompletionHandler(IBoardExportDocumentClient cosmos)
                 $"Re-export options are missing for board {context.BoardId}.");
         }
 
-        return cosmos.CompleteReExportAsync(context.BoardId, promotedExportOptions, ct);
+        await cosmos.CompleteReExportAsync(context.BoardId, promotedExportOptions, ct);
+        await statusNotifyApiClient.NotifyReExportStatusChangedAsync(
+            context.BoardId,
+            BoardExportStatus.None,
+            promotedExportOptions,
+            ct);
     }
 
-    public Task MarkFailedAsync(BoardExportContext context, string errorMessage, CancellationToken ct = default) =>
-        cosmos.FailReExportAsync(context.BoardId, errorMessage, ct);
+    public async Task MarkFailedAsync(BoardExportContext context, string errorMessage, CancellationToken ct = default)
+    {
+        await cosmos.FailReExportAsync(context.BoardId, errorMessage, ct);
+        await statusNotifyApiClient.NotifyReExportStatusChangedAsync(
+            context.BoardId,
+            BoardExportStatus.Failed,
+            ct: ct);
+    }
 }

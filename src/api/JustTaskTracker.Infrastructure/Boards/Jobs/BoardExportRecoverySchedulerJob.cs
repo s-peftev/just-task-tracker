@@ -1,5 +1,6 @@
 using Hangfire;
 using JustTaskTracker.Application.Boards.Jobs;
+using JustTaskTracker.Application.Boards.Notifiers;
 using JustTaskTracker.Application.Boards.ReadModels;
 using JustTaskTracker.Application.Common.ExternalProviders;
 using JustTaskTracker.Application.Common.Options;
@@ -18,6 +19,7 @@ namespace JustTaskTracker.Infrastructure.Boards.Jobs;
 internal sealed class BoardExportRecoverySchedulerJob(
     IBoardExportService boardExportService,
     IBoardExportQueueSender queueSender,
+    IBoardExportStatusNotifier exportStatusNotifier,
     BoardExportRecoverySchedulerOptions options,
     IDateTimeProvider dateTimeProvider,
     ILogger<BoardExportRecoverySchedulerJob> logger) : IBoardExportRecoverySchedulerJob
@@ -61,24 +63,24 @@ internal sealed class BoardExportRecoverySchedulerJob(
         if (ShouldRecover(info.ExportStatus))
         {
             await BoardExportJobOperations.EnqueueAndMarkPendingAsync(
-                boardExportService,
                 queueSender,
                 logger,
-                info.BoardId,
+                info,
                 BoardExportType.InitialExport,
                 (boardId, token) => boardExportService.UpdateExportStatusAsync(boardId, BoardExportStatus.Pending, null, token),
+                exportStatusNotifier.NotifyExportStatusChangedAsync,
                 ct);
         }
 
         if (ShouldRecover(info.ReExportStatus))
         {
             await BoardExportJobOperations.EnqueueAndMarkPendingAsync(
-                boardExportService,
                 queueSender,
                 logger,
-                info.BoardId,
+                info,
                 BoardExportType.ReExport,
                 (boardId, token) => boardExportService.UpdateReExportStatusAsync(boardId, BoardExportStatus.Pending, null, token),
+                exportStatusNotifier.NotifyReExportStatusChangedAsync,
                 ct);
         }
     }

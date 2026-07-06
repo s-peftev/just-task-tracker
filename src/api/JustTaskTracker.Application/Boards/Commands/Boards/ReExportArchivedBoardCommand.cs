@@ -1,11 +1,13 @@
 using FluentValidation;
 using JustTaskTracker.Application.Auth;
+using JustTaskTracker.Application.Boards.Notifiers;
 using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.ExternalProviders;
 using JustTaskTracker.Domain.Boards.Authorization;
 using JustTaskTracker.Domain.Boards.DTOs.Boards;
 using JustTaskTracker.Domain.Boards.Enums;
 using JustTaskTracker.Domain.Boards.Errors;
+using JustTaskTracker.Domain.Boards.Messaging;
 using JustTaskTracker.Domain.Common.Results;
 using JustTaskTracker.Domain.Common.Results.Errors;
 using MediatR;
@@ -20,6 +22,7 @@ public class ReExportArchivedBoardCommandHandler(
     ICurrentUserAccessor currentUserAccessor,
     IBoardRepository boardRepository,
     IBoardExportService boardExportService,
+    IBoardExportStatusNotifier exportStatusNotifier,
     ILogger<ReExportArchivedBoardCommandHandler> logger)
     : IRequestHandler<ReExportArchivedBoardCommand, Result>
 {
@@ -30,7 +33,7 @@ public class ReExportArchivedBoardCommandHandler(
             currentUserAccessor.AzureAdObjectId,
             ct);
 
-        if (userRole is not { } authorizedRole || !BoardRolePermissions.CanArchiveBoard(authorizedRole))
+        if (userRole is not { } authorizedRole || !BoardRolePermissions.CanExportBoard(authorizedRole))
             return Result.Failure(GeneralErrors.Forbidden);
 
         if (board is null)
@@ -61,6 +64,10 @@ public class ReExportArchivedBoardCommandHandler(
                 board.Id,
                 BoardExportStatus.Requested,
                 request.ReExportOptions,
+                ct);
+
+            await exportStatusNotifier.NotifyReExportStatusChangedAsync(
+                new BoardExportStatusChangedNotification(board.Id, BoardExportStatus.Requested),
                 ct);
         }
         catch (Exception ex)

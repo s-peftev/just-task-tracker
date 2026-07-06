@@ -15,9 +15,11 @@ internal static class AzureModule
 {
     internal static IServiceCollection AddAzureModule(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddAzureBlobStorage(configuration);
-        services.AddAzureServiceBus(configuration);
-        services.AddAzureCosmosDb(configuration);
+        services
+            .AddAzureBlobStorage(configuration)
+            .AddAzureServiceBus(configuration)
+            .AddAzureCosmosDb(configuration)
+            .AddAzureSignalR(configuration);
 
         return services;
     }
@@ -71,6 +73,19 @@ internal static class AzureModule
         });
 
         services.AddSingleton<IBoardExportService, CosmosBoardExportService>();
+
+        return services;
+    }
+
+    private static IServiceCollection AddAzureSignalR(this IServiceCollection services, IConfiguration configuration)
+    {
+        var connectionString = configuration.GetConnectionString(ConnectionStringNames.SignalR)
+            ?? throw new InvalidOperationException("SignalR connection string is not configured.");
+
+        services.AddSignalR().AddAzureSignalR(options =>
+        {
+            options.ConnectionString = connectionString;
+        });
 
         return services;
     }

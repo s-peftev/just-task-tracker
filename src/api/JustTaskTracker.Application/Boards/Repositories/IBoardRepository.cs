@@ -37,6 +37,8 @@ public interface IBoardRepository : IRepository<Board, Guid>
 
     Task<bool> IsArchivedAsync(Guid boardId, CancellationToken ct = default);
 
+    Task<IReadOnlyDictionary<Guid, BoardMemberRole>> GetUserRolesForArchivedBoardsAsync(IReadOnlyList<Guid> boardIds, Guid azureAdObjectId, CancellationToken ct = default);
+
     /// <summary>
     /// Loads the raw board data required to build an export archive.
     /// Returns null when the board does not exist or is not archived.

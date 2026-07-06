@@ -1,11 +1,14 @@
 @page "/boards"
 @attribute [Authorize]
-@implements IDisposable
+@implements IAsyncDisposable
 @using JustTaskTracker.WebUI.Infrastructure
+@using JustTaskTracker.WebUI.Domain.Boards.Authorization
 @using JustTaskTracker.WebUI.Services.Abstractions.Boards
+@using JustTaskTracker.WebUI.Services.Abstractions.Hubs
 @using JustTaskTracker.WebUI.Services.Exceptions
 @inject IBoardStore BoardStore
 @inject IBoardApiService BoardApiService
+@inject IBoardExportStatusHubService HubService
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
@@ -140,6 +143,8 @@
 </div>
 
 @code {
+    private IReadOnlyList<Guid> _subscribedArchivedBoardIds = [];
+
     private bool CanCreateBoard =>
         ProfileStore.Profile?.Roles.Any(r =>
             r.Equals("Admin", StringComparison.OrdinalIgnoreCase) ||
@@ -208,13 +213,19 @@
         }
     }
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
         BoardStore.StateChanged -= OnStoreStateChanged;
         ProfileStore.StateChanged -= OnProfileStoreStateChanged;
+        await SyncArchivedHubSubscriptionsAsync(Array.Empty<Guid>());
     }
 
-    private void OnStoreStateChanged() => InvokeAsync(StateHasChanged);
+    private void OnStoreStateChanged() =>
+        InvokeAsync(async () =>
+        {
+            await SyncArchivedHubSubscriptionsAsync();
+            StateHasChanged();
+        });
 
     private void OnProfileStoreStateChanged() =>
         InvokeAsync(async () =>
@@ -222,4 +233,30 @@
             await TryRefreshBoardsAsync();
             StateHasChanged();
         });
+
+    private async Task SyncArchivedHubSubscriptionsAsync(
+        IReadOnlyList<Guid>? overrideNewIds = null)
+    {
+        var newIds = overrideNewIds
+            ?? (BoardStore.Archived.IsLoaded && !BoardStore.Archived.IsLoading
+                ? BoardStore.Archived.Boards
+                    .Where(b => BoardRolePermissions.CanExportBoard(b.UserRole))
+                    .Select(b => b.Id)
+                    .ToList()
+                : null);
+
+        if (newIds is null)
+            return;
+
+        var toUnsubscribe = _subscribedArchivedBoardIds.Except(newIds).ToList();
+        var toSubscribe = newIds.Except(_subscribedArchivedBoardIds).ToList();
+
+        if (toUnsubscribe.Count > 0)
+            await HubService.UnsubscribeAsync(toUnsubscribe);
+
+        if (toSubscribe.Count > 0)
+            await HubService.SubscribeAsync(toSubscribe);
+
+        _subscribedArchivedBoardIds = newIds;
+    }
 }

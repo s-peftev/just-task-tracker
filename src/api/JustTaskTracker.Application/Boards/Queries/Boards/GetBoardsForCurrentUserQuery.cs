@@ -6,7 +6,6 @@ using JustTaskTracker.Application.Common.ExternalProviders;
 using JustTaskTracker.Application.Common.Options;
 using JustTaskTracker.Application.Common.Validators;
 using JustTaskTracker.Domain.Boards.DTOs.Boards;
-using JustTaskTracker.Domain.Boards.Enums;
 using JustTaskTracker.Domain.Boards.Enums.SearchFields;
 using JustTaskTracker.Domain.Common.Pagination;
 using JustTaskTracker.Domain.Common.Results;

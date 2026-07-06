@@ -127,6 +127,35 @@ internal sealed class BoardDetailsStore(IBoardApiService boardApiService) : IBoa
         NotifyStateChanged();
     }
 
+    public void ApplyExportStatusChanged(Guid boardId, BoardExportStatus status)
+    {
+        if (Board is null || Board.Id != boardId)
+            return;
+
+        Board = Board with { BoardExportStatus = status };
+        NotifyStateChanged();
+    }
+
+    public void ApplyReExportStatusChanged(
+        Guid boardId,
+        BoardExportStatus status,
+        BoardExportOptions? exportOptions = null)
+    {
+        if (Board is null || Board.Id != boardId)
+            return;
+
+        Board = exportOptions is null
+            ? Board with { ReExportStatus = status }
+            : Board with
+            {
+                ReExportStatus = status,
+                ExportOptions = exportOptions,
+                ReExportOptions = null,
+            };
+
+        NotifyStateChanged();
+    }
+
     public void UpdateColumnName(Guid columnId, string name)
     {
         if (Board is null)

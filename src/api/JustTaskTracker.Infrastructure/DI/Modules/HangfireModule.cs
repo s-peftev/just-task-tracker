@@ -31,6 +31,7 @@ internal static class HangfireModule
         services.AddHangfireServer();
 
         services.AddScoped<IBoardExportSchedulerJob, BoardExportSchedulerJob>();
+        services.AddScoped<IBoardExportRecoverySchedulerJob, BoardExportRecoverySchedulerJob>();
 
         return services;
     }

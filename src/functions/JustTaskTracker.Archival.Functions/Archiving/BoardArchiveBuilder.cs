@@ -1,5 +1,4 @@
 using System.IO.Compression;
-using System.Text;
 using JustTaskTracker.Archival.Functions.Abstractions.Archiving;
 using JustTaskTracker.Archival.Functions.Archiving.Summary;
 using JustTaskTracker.Archival.Functions.Contracts.DTOs.Export;
@@ -9,7 +8,7 @@ namespace JustTaskTracker.Archival.Functions.Archiving;
 
 public sealed class BoardArchiveBuilder(
     BoardExportSummaryWriterRegistry summaryWriterRegistry,
-    IExportAttachmentFetcher attachmentFetcher,
+    IBoardExportBlobService exportBlobService,
     ILogger<BoardArchiveBuilder> logger) : IBoardArchiveBuilder
 {
     public async Task<BoardExportArchive> BuildAsync(
@@ -25,8 +24,12 @@ public sealed class BoardArchiveBuilder(
             throw new ArgumentException("At least one summary format is required.", nameof(summaryFormats));
         }
 
+        var pathBuilder = new BoardArchivePathBuilder();
         var boardId = data.Board.Id;
-        var fileName = $"{boardId:D}.zip";
+        var fileName = pathBuilder.BuildArchiveFileName(data.Board.Name);
+        var summaryData = data.AppliedOptions.IncludeAttachments
+            ? EnrichWithArchiveRelativePaths(data, pathBuilder)
+            : data;
 
         var resultStream = new MemoryStream();
 
@@ -35,12 +38,12 @@ public sealed class BoardArchiveBuilder(
             foreach (var format in summaryFormats)
             {
                 var summaryWriter = summaryWriterRegistry.Get(format);
-                await summaryWriter.WriteAsync(archive, data, ct);
+                await summaryWriter.WriteAsync(archive, summaryData, ct);
             }
 
             if (data.AppliedOptions.IncludeAttachments)
             {
-                await WriteAttachmentsAsync(archive, data, ct);
+                await WriteAttachmentsAsync(archive, summaryData, ct);
             }
         }
 
@@ -55,7 +58,38 @@ public sealed class BoardArchiveBuilder(
         return new BoardExportArchive(resultStream, fileName);
     }
 
-    private async Task WriteAttachmentsAsync(ZipArchive archive, BoardExportDataDto data, CancellationToken ct)
+    private static BoardExportDataDto EnrichWithArchiveRelativePaths(
+        BoardExportDataDto data,
+        BoardArchivePathBuilder pathBuilder)
+    {
+        var columns = data.Columns
+            .Select(column => column with
+            {
+                Tasks = column.Tasks
+                    .Select(task => task with
+                    {
+                        Attachments = task.Attachments?
+                            .Select(attachment => attachment with
+                            {
+                                ArchiveRelativePath = pathBuilder.BuildAttachmentEntryPath(
+                                    task.Id,
+                                    task.Title,
+                                    attachment.Position,
+                                    attachment.OriginalFileName),
+                            })
+                            .ToList(),
+                    })
+                    .ToList(),
+            })
+            .ToList();
+
+        return data with { Columns = columns };
+    }
+
+    private async Task WriteAttachmentsAsync(
+        ZipArchive archive,
+        BoardExportDataDto data,
+        CancellationToken ct)
     {
         foreach (var column in data.Columns)
         {
@@ -68,12 +102,19 @@ public sealed class BoardArchiveBuilder(
                 {
                     ct.ThrowIfCancellationRequested();
 
-                    var entryPath = BuildAttachmentEntryPath(task.Id, attachment);
+                    if (attachment.ArchiveRelativePath is not { Length: > 0 } entryPath)
+                    {
+                        throw new InvalidOperationException(
+                            $"Archive relative path is missing for attachment {attachment.Id}.");
+                    }
+
                     var entry = archive.CreateEntry(entryPath, CompressionLevel.Optimal);
 
                     try
                     {
-                        await using var attachmentStream = await attachmentFetcher.DownloadAsync(attachment, ct);
+                        await using var attachmentStream = await exportBlobService.DownloadAttachmentAsync(
+                            attachment.BlobName,
+                            ct);
                         await using var entryStream = entry.Open();
                         await attachmentStream.CopyToAsync(entryStream, ct);
                     }
@@ -92,23 +133,5 @@ public sealed class BoardArchiveBuilder(
                 }
             }
         }
-    }
-
-    private static string BuildAttachmentEntryPath(Guid taskId, BoardExportAttachmentDto attachment)
-    {
-        var safeName = SanitizeFileName(attachment.OriginalFileName);
-        return $"{BoardArchiveEntryNames.AttachmentsFolder}/{taskId:D}/{attachment.Position:000}_{safeName}";
-    }
-
-    private static string SanitizeFileName(string fileName)
-    {
-        var name = Path.GetFileName(fileName);
-        var invalidChars = Path.GetInvalidFileNameChars();
-        var sb = new StringBuilder(name.Length);
-
-        foreach (var ch in name)
-            sb.Append(invalidChars.Contains(ch) ? '_' : ch);
-
-        return sb.Length > 0 ? sb.ToString() : "attachment";
     }
 }

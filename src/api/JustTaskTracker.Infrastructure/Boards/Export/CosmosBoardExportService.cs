@@ -105,18 +105,55 @@ internal sealed class CosmosBoardExportService(Container container, IDateTimePro
             .ToDictionary(status => status.BoardId);
     }
 
-    public async IAsyncEnumerable<BoardExportStatusInfo> ScanActionableAsync(int maxDocuments, DateTime failedCooldownThreshold, [EnumeratorCancellation] CancellationToken ct = default)
+    public async IAsyncEnumerable<BoardExportStatusInfo> ScanForRequestedExportStatusesAsync(
+        int maxDocuments,
+        [EnumeratorCancellation] CancellationToken ct = default)
+    {
+        var query = new QueryDefinition(
+            "SELECT * FROM c WHERE c.exportStatus = @requested OR c.reExportStatus = @requested")
+            .WithParameter("@requested", (int)BoardExportStatus.Requested);
+
+        await foreach (var info in ScanAsync(query, maxDocuments, ct))
+            yield return info;
+    }
+
+    public async IAsyncEnumerable<BoardExportStatusInfo> ScanForFailedExportStatusesAsync(
+        int maxDocuments,
+        DateTime failedCooldownThreshold,
+        [EnumeratorCancellation] CancellationToken ct = default)
     {
         var query = new QueryDefinition(
             "SELECT * FROM c WHERE " +
-            "c.exportStatus = @requested " +
-            "OR (c.exportStatus = @failed AND c.updatedAtUtc <= @cooldown) " +
-            "OR c.reExportStatus = @requested " +
+            "(c.exportStatus = @failed AND c.updatedAtUtc <= @cooldown) " +
             "OR (c.reExportStatus = @failed AND c.updatedAtUtc <= @cooldown)")
-            .WithParameter("@requested", (int)BoardExportStatus.Requested)
             .WithParameter("@failed", (int)BoardExportStatus.Failed)
             .WithParameter("@cooldown", failedCooldownThreshold);
 
+        await foreach (var info in ScanAsync(query, maxDocuments, ct))
+            yield return info;
+    }
+
+    public async IAsyncEnumerable<BoardExportStatusInfo> ScanForStaleExportStatusesAsync(
+        int maxDocuments,
+        DateTime staleCooldownThreshold,
+        [EnumeratorCancellation] CancellationToken ct = default)
+    {
+        var query = new QueryDefinition(
+            "SELECT * FROM c WHERE " +
+            "(c.exportStatus = @pending AND c.updatedAtUtc <= @staleThreshold) " +
+            "OR (c.exportStatus = @processing AND c.updatedAtUtc <= @staleThreshold) " +
+            "OR (c.reExportStatus = @pending AND c.updatedAtUtc <= @staleThreshold) " +
+            "OR (c.reExportStatus = @processing AND c.updatedAtUtc <= @staleThreshold)")
+            .WithParameter("@pending", (int)BoardExportStatus.Pending)
+            .WithParameter("@processing", (int)BoardExportStatus.Processing)
+            .WithParameter("@staleThreshold", staleCooldownThreshold);
+
+        await foreach (var info in ScanAsync(query, maxDocuments, ct))
+            yield return info;
+    }
+
+    private async IAsyncEnumerable<BoardExportStatusInfo> ScanAsync(QueryDefinition query, int maxDocuments, [EnumeratorCancellation] CancellationToken ct)
+    {
         using var iterator = container.GetItemQueryIterator<BoardExportDocument>(
             query,
             requestOptions: new QueryRequestOptions { MaxItemCount = maxDocuments });

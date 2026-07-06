@@ -25,5 +25,12 @@ public static class HangfireApplicationBuilderExtensions
             recurringJobId: "board-export-scheduler",
             methodCall: job => job.RunAsync(CancellationToken.None),
             cronExpression: schedulerOptions.CronExpression);
+
+        var recoverySchedulerOptions = app.Services.GetRequiredService<BoardExportRecoverySchedulerOptions>();
+
+        RecurringJob.AddOrUpdate<IBoardExportRecoverySchedulerJob>(
+            recurringJobId: "board-export-recovery-scheduler",
+            methodCall: job => job.RunAsync(CancellationToken.None),
+            cronExpression: recoverySchedulerOptions.CronExpression);
     }
 }

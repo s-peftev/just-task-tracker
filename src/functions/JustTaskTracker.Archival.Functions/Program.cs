@@ -9,7 +9,6 @@ using JustTaskTracker.Archival.Functions.Constants;
 using JustTaskTracker.Archival.Functions.ExternalProviders.Api;
 using JustTaskTracker.Archival.Functions.ExternalProviders.Blob;
 using JustTaskTracker.Archival.Functions.ExternalProviders.CosmosDB;
-using JustTaskTracker.Archival.Functions.ExternalProviders.Http;
 using JustTaskTracker.Archival.Functions.Processing;
 using JustTaskTracker.Archival.Functions.Processing.Export;
 using Microsoft.Azure.Cosmos;
@@ -55,9 +54,6 @@ builder.Services
         return new BlobServiceClient(connectionString);
     })
     .AddSingleton<IBoardExportBlobService, BoardExportBlobService>()
-    .AddHttpClient<IExportAttachmentFetcher, HttpExportAttachmentFetcher>()
-
-    .Services
     .Configure<CosmosDbOptions>(
         builder.Configuration.GetSection(CosmosDbOptions.SectionName))
     .AddSingleton(_ =>

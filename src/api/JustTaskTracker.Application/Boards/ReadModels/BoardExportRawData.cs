@@ -4,8 +4,7 @@ namespace JustTaskTracker.Application.Boards.ReadModels;
 
 /// <summary>
 /// Intermediate read model produced by the persistence layer for board export.
-/// Attachments carry <see cref="BoardExportRawAttachmentData.BlobName"/> instead of SAS URLs;
-/// the Application layer enriches them with time-limited download links before returning to the Function.
+/// Attachments carry <see cref="BoardExportRawAttachmentData.BlobName"/> for direct blob download in the Archival Function.
 /// </summary>
 public record BoardExportRawData(
     BoardExportBoardDto Board,

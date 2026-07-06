@@ -41,6 +41,14 @@ internal static class OptionsModule
         boardExportSchedulerOptions.Validate();
         services.AddSingleton(boardExportSchedulerOptions);
 
+        var boardExportRecoverySchedulerOptions = configuration
+            .GetSection(ConfigSections.BoardExportRecoveryScheduler)
+            .Get<BoardExportRecoverySchedulerOptions>()
+            ?? throw new InvalidOperationException($"{ConfigSections.BoardExportRecoveryScheduler} section is not configured.");
+
+        boardExportRecoverySchedulerOptions.Validate();
+        services.AddSingleton(boardExportRecoverySchedulerOptions);
+
         return services;
     }
 }

@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace JustTaskTracker.Archival.Functions.Contracts.DTOs.Export;
 
 public record BoardExportAttachmentDto(
@@ -8,5 +10,5 @@ public record BoardExportAttachmentDto(
     int Position,
     DateTime CreatedAtUtc,
     BoardExportUserDto UploadedBy,
-    Uri DownloadUrl,
-    DateTime DownloadUrlExpiresAtUtc);
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWriting)] string BlobName,
+    string? ArchiveRelativePath = null);

@@ -12,6 +12,7 @@ internal static class ServicesModule
     {
         services.AddSingleton<IImageProcessor, ImageProcessor>();
         services.AddScoped<IBoardExportStatusNotifier, BoardExportStatusNotifier>();
+        services.AddScoped<IBoardActionNotifier, BoardActionNotifier>();
 
         return services;
     }

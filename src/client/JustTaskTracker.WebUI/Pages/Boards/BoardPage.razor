@@ -15,6 +15,7 @@
 @inject IBoardTaskSearchStore BoardTaskSearchStore
 @inject IBoardMembersStore BoardMembersStore
 @inject IBoardExportStatusHubService HubService
+@inject IBoardActionsHubService ActionsHubService
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
@@ -121,6 +122,7 @@
     private bool _isFooterTrayOpen;
     private Guid _membersStoreBoardId;
     private Guid _hubSubscribedBoardId;
+    private Guid _actionsHubBoardId;
 
     private bool CanManageColumns =>
         !BoardDetailsStore.IsReadOnly
@@ -177,6 +179,9 @@
 
         if (_hubSubscribedBoardId != Guid.Empty)
             await HubService.UnsubscribeAsync([_hubSubscribedBoardId]);
+
+        if (_actionsHubBoardId != Guid.Empty)
+            await ActionsHubService.LeaveBoardAsync(_actionsHubBoardId);
     }
 
     private void OnTrayOverlapChanged() =>
@@ -273,8 +278,29 @@
         InvokeAsync(async () =>
         {
             await SyncHubSubscriptionAsync();
+            await SyncBoardActionsHubAsync();
             StateHasChanged();
         });
+    }
+
+    private async Task SyncBoardActionsHubAsync()
+    {
+        var board = BoardDetailsStore.Board;
+
+        var targetBoardId = board is { IsArchived: false }
+            ? board.Id
+            : Guid.Empty;
+
+        if (targetBoardId == _actionsHubBoardId)
+            return;
+
+        if (_actionsHubBoardId != Guid.Empty)
+            await ActionsHubService.LeaveBoardAsync(_actionsHubBoardId);
+
+        _actionsHubBoardId = targetBoardId;
+
+        if (targetBoardId != Guid.Empty)
+            await ActionsHubService.JoinBoardAsync(targetBoardId);
     }
 
     private async Task SyncHubSubscriptionAsync()

@@ -6,6 +6,7 @@
 @inject IProfileStore ProfileStore
 @inject IBoardStore BoardStore
 @inject IBoardExportStatusHubService HubService
+@inject IBoardActionsHubService BoardActionsHubService
 @inject IJSRuntime Js
 
 @if (ProfileStore.Profile is { } profile)
@@ -73,6 +74,7 @@
         ProfileStore.Reset();
         BoardStore.Reset();
         await HubService.DisconnectAsync();
+        await BoardActionsHubService.DisconnectAsync();
         await MicrosoftAuthNavigation.SwitchMicrosoftAccountAsync(Js, Navigation, AuthState);
     }
 
@@ -81,6 +83,7 @@
         ProfileStore.Reset();
         BoardStore.Reset();
         await HubService.DisconnectAsync();
+        await BoardActionsHubService.DisconnectAsync();
         await MicrosoftAuthNavigation.LocalSignOutAsync(Js, Navigation);
     }
 }

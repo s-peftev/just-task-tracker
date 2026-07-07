@@ -40,6 +40,26 @@
     background-color: var(--jtt-overlay-white-20);
 }
 
+.board-page__title--remote-updated {
+    transition: none;
+    border-radius: var(--jtt-radius-sm);
+    animation: board-page-title-remote-highlight 1s ease-out forwards;
+}
+
+.board-page__title--remote-updated:not(.board-page__title--editable) {
+    padding: var(--board-page-title-padding-block) var(--board-page-title-padding-inline);
+}
+
+@keyframes board-page-title-remote-highlight {
+    from {
+        background-color: rgba(255, 214, 0, 0.4);
+    }
+
+    to {
+        background-color: transparent;
+    }
+}
+
 .board-page__title-field {
     display: inline-block;
     position: relative;

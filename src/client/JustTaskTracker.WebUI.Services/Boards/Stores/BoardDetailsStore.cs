@@ -1,12 +1,18 @@
 using JustTaskTracker.WebUI.Domain.Boards;
 using JustTaskTracker.WebUI.Domain.Boards.Enums;
+using JustTaskTracker.WebUI.Domain.Boards.Notifications.BoardActions;
+using JustTaskTracker.WebUI.Domain.Boards.Notifications.BoardActions.Payloads;
 using JustTaskTracker.WebUI.Domain.Boards.Requests;
 using JustTaskTracker.WebUI.Services.Abstractions.Boards;
 using JustTaskTracker.WebUI.Services.Exceptions;
+using Microsoft.Extensions.Logging;
 
 namespace JustTaskTracker.WebUI.Services.Boards.Stores;
 
-internal sealed class BoardDetailsStore(IBoardApiService boardApiService) : IBoardDetailsStore
+internal sealed class BoardDetailsStore(
+    IBoardApiService boardApiService,
+    IBoardActionSyncGuard syncGuard,
+    ILogger<BoardDetailsStore> logger) : IBoardDetailsStore
 {
     public Guid? BoardId { get; private set; }
     public BoardDetailsDto? Board { get; private set; }
@@ -18,14 +24,14 @@ internal sealed class BoardDetailsStore(IBoardApiService boardApiService) : IBoa
 
     public event Action? StateChanged;
 
+    public event Action? RemoteBoardNameApplied;
+
     public async Task LoadAsync(Guid boardId, CancellationToken ct = default)
     {
-        if (BoardId == boardId && Board is not null && !IsLoading)
-            return;
-
         BoardId = boardId;
         IsLoading = true;
         ErrorMessage = null;
+        syncGuard.Reset();
         NotifyStateChanged();
 
         try
@@ -305,6 +311,24 @@ internal sealed class BoardDetailsStore(IBoardApiService boardApiService) : IBoa
         }
     }
 
+    public void ApplyBoardActionNotification(BoardActionNotification notification, Guid currentUserId)
+    {
+        if (!syncGuard.TryAccept(notification, BoardId, currentUserId))
+            return;
+
+        var applied = notification.Type switch
+        {
+            BoardActionNotificationType.BoardRenamed => ApplyBoardRenamed((BoardRenamedPayload)notification.Payload),
+            _ => LogUnhandledBoardAction(notification.Type),
+        };
+
+        if (!applied)
+            return;
+
+        syncGuard.MarkApplied(notification);
+        NotifyStateChanged();
+    }
+
     public void Reset()
     {
         BoardId = null;
@@ -312,7 +336,30 @@ internal sealed class BoardDetailsStore(IBoardApiService boardApiService) : IBoa
         IsLoading = false;
         ErrorMessage = null;
         ShowOnlyMyTasks = false;
+        syncGuard.Reset();
         NotifyStateChanged();
+    }
+
+    private bool ApplyBoardRenamed(BoardRenamedPayload payload)
+    {
+        if (Board is null)
+            return false;
+
+        if (string.IsNullOrWhiteSpace(payload.Name))
+        {
+            logger.LogWarning("Ignored board rename notification with an empty name.");
+            return false;
+        }
+
+        Board = Board with { Name = payload.Name };
+        RemoteBoardNameApplied?.Invoke();
+        return true;
+    }
+
+    private bool LogUnhandledBoardAction(BoardActionNotificationType type)
+    {
+        logger.LogDebug("Unhandled board action notification type {Type}.", type);
+        return false;
     }
 
     private void ApplyColumnDeletion(ColumnDto deletedColumn, DeleteColumnRequest request)

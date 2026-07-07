@@ -24,8 +24,8 @@ internal static class BoardActionSyncKey
             BoardActionNotificationType.TaskCreated =>
                 $"task:{((TaskCreatedPayload)notification.Payload).BoardTaskId}",
 
-            BoardActionNotificationType.TaskRenamed =>
-                $"task:{((TaskRenamedPayload)notification.Payload).BoardTaskId}",
+            BoardActionNotificationType.TaskUpdated =>
+                $"task:{((TaskUpdatedPayload)notification.Payload).BoardTaskId}",
 
             BoardActionNotificationType.TaskDeleted =>
                 $"task:{((TaskDeletedPayload)notification.Payload).BoardTaskId}",
@@ -33,17 +33,11 @@ internal static class BoardActionSyncKey
             BoardActionNotificationType.TasksReordered =>
                 $"task:{((TasksReorderedPayload)notification.Payload).BoardTaskId}:position",
 
-            BoardActionNotificationType.CommentCreated =>
-                $"comment:{((CommentCreatedPayload)notification.Payload).Comment.Id}",
+            BoardActionNotificationType.TaskCommentsCountChanged =>
+                $"task:{((TaskCommentsCountChangedPayload)notification.Payload).BoardTaskId}:comments-count",
 
-            BoardActionNotificationType.CommentDeleted =>
-                $"comment:{((CommentDeletedPayload)notification.Payload).CommentId}",
-
-            BoardActionNotificationType.AttachmentUploaded =>
-                $"attachment:{((AttachmentUploadedPayload)notification.Payload).Attachment.Id}",
-
-            BoardActionNotificationType.AttachmentDeleted =>
-                $"attachment:{((AttachmentDeletedPayload)notification.Payload).AttachmentId}",
+            BoardActionNotificationType.TaskAttachmentsCountChanged =>
+                $"task:{((TaskAttachmentsCountChangedPayload)notification.Payload).BoardTaskId}:attachments-count",
 
             _ => $"type:{(byte)notification.Type}",
         };

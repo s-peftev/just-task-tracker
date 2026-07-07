@@ -2,6 +2,6 @@ using JustTaskTracker.WebUI.Domain.Boards.Notifications.BoardActions;
 
 namespace JustTaskTracker.WebUI.Domain.Boards.Notifications.BoardActions.Payloads;
 
-public record CommentDeletedPayload(
+public record TaskCommentsCountChangedPayload(
     Guid BoardTaskId,
-    Guid CommentId) : BoardActionPayload;
+    int CommentsCount) : BoardActionPayload;

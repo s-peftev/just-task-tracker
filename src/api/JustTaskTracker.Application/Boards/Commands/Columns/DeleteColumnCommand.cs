@@ -1,13 +1,20 @@
 using FluentValidation;
 using JustTaskTracker.Application.Auth;
+using JustTaskTracker.Application.Auth.Repositories;
 using JustTaskTracker.Application.Boards.Attachments;
+using JustTaskTracker.Application.Boards.Mappings;
+using JustTaskTracker.Application.Boards.Notifiers;
 using JustTaskTracker.Application.Boards.Positioning;
 using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Behaviors;
 using JustTaskTracker.Application.Common.Persistence;
+using JustTaskTracker.Application.Common.Utils;
 using JustTaskTracker.Domain.Boards.Authorization;
 using JustTaskTracker.Domain.Boards.Entities;
 using JustTaskTracker.Domain.Boards.Enums;
+using JustTaskTracker.Domain.Boards.Notifications.BoardActions;
+using JustTaskTracker.Domain.Boards.Notifications.BoardActions.Payloads;
+using JustTaskTracker.Domain.Boards.Notifications.BoardActions.Payloads.Positions;
 using JustTaskTracker.Domain.Common.Results;
 using JustTaskTracker.Domain.Common.Results.Errors;
 using MediatR;
@@ -25,6 +32,7 @@ public record DeleteColumnCommand(
 
 public class DeleteColumnCommandHandler(
     ICurrentUserAccessor currentUserAccessor,
+    IUserRepository userRepository,
     IColumnRepository columnRepository,
     IBoardTaskRepository boardTaskRepository,
     IBoardTaskCommentRepository boardTaskCommentRepository,
@@ -32,11 +40,18 @@ public class DeleteColumnCommandHandler(
     IBoardPositioningService boardPositioningService,
     IBoardTaskAttachmentService attachmentService,
     IUnitOfWork unitOfWork,
+    IBoardActionNotifier boardActionNotifier,
+    IDateTimeProvider dateTimeProvider,
     ILogger<DeleteColumnCommandHandler> logger)
     : IRequestHandler<DeleteColumnCommand, Result>
 {
     public async Task<Result> Handle(DeleteColumnCommand request, CancellationToken ct)
     {
+        var currentUserInfo = await userRepository.GetUserInfoByAzureAOIAsync(currentUserAccessor.AzureAdObjectId, ct);
+
+        if (currentUserInfo is null)
+            return Result.Failure(GeneralErrors.Unauthorized);
+
         var userRole = await columnRepository.GetUserRoleAsync(request.ColumnId, currentUserAccessor.AzureAdObjectId, ct);
 
         if (userRole is not { } authorizedRole || !BoardRolePermissions.CanManageColumns(authorizedRole))
@@ -51,6 +66,7 @@ public class DeleteColumnCommandHandler(
             return Result.Failure(GeneralErrors.NotFound);
 
         var columnBoardTasks = await boardTaskRepository.GetListByColumnIdAsync(request.ColumnId, ct);
+        var movedTaskIds = columnBoardTasks.Select(task => task.Id).ToHashSet();
 
         IReadOnlyList<BoardTask> targetBoardTasks = [];
 
@@ -131,6 +147,31 @@ public class DeleteColumnCommandHandler(
                     oldName);
             }
         }
+
+        var updatedRemainingColumns = await columnRepository.GetListByBoardIdAsync(request.BoardId, ct);
+
+        IReadOnlyList<BoardActionTaskPosition>? movedTasks = null;
+
+        if (request.TasksDisposition == DeleteColumnTasksDisposition.MoveToColumn)
+        {
+            var targetColumnTasks = await boardTaskRepository.GetListByColumnIdAsync(request.TargetColumnId!.Value, ct);
+
+            movedTasks = BoardActionPositionMappings.ToTaskPositions(
+                targetColumnTasks.Where(task => movedTaskIds.Contains(task.Id)));
+        }
+
+        await boardActionNotifier.NotifyAsync(new BoardActionNotification(
+            request.BoardId,
+            BoardActionNotificationType.ColumnDeleted,
+            currentUserInfo.Id,
+            dateTimeProvider.UtcNow,
+            new ColumnDeletedPayload(
+                request.ColumnId,
+                request.TasksDisposition,
+                request.TargetColumnId,
+                request.MovePlacement,
+                BoardActionPositionMappings.ToColumnPositions(updatedRemainingColumns),
+                movedTasks)), ct);
 
         return Result.Success();
     }

@@ -1,12 +1,17 @@
 using FluentValidation;
 using JustTaskTracker.Application.Auth;
+using JustTaskTracker.Application.Auth.Repositories;
+using JustTaskTracker.Application.Boards.Notifiers;
 using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Behaviors;
 using JustTaskTracker.Application.Common.Models;
 using JustTaskTracker.Application.Common.Persistence;
+using JustTaskTracker.Application.Common.Utils;
 using JustTaskTracker.Domain.Boards.Authorization;
 using JustTaskTracker.Domain.Boards.Constants;
 using JustTaskTracker.Domain.Boards.Errors;
+using JustTaskTracker.Domain.Boards.Notifications.BoardActions;
+using JustTaskTracker.Domain.Boards.Notifications.BoardActions.Payloads;
 using JustTaskTracker.Domain.Common.Results;
 using JustTaskTracker.Domain.Common.Results.Errors;
 using MediatR;
@@ -23,13 +28,21 @@ public record UpdateBoardTaskCommand(
 
 public class UpdateBoardTaskCommandHandler(
     ICurrentUserAccessor currentUserAccessor,
+    IUserRepository userRepository,
     IBoardRepository boardRepository,
     IBoardTaskRepository boardTaskRepository,
-    IUnitOfWork unitOfWork)
+    IUnitOfWork unitOfWork,
+    IBoardActionNotifier boardActionNotifier,
+    IDateTimeProvider dateTimeProvider)
     : IRequestHandler<UpdateBoardTaskCommand, Result>
 {
     public async Task<Result> Handle(UpdateBoardTaskCommand request, CancellationToken ct)
     {
+        var currentUserInfo = await userRepository.GetUserInfoByAzureAOIAsync(currentUserAccessor.AzureAdObjectId, ct);
+
+        if (currentUserInfo is null)
+            return Result.Failure(GeneralErrors.Unauthorized);
+
         var (boardTask, userRole) = await boardTaskRepository.GetBoardTaskWithUserRoleAsync(request.BoardTaskId, currentUserAccessor.AzureAdObjectId, ct);
 
         if (userRole is not { } authorizedRole || !BoardRolePermissions.CanManageTasks(authorizedRole))
@@ -85,6 +98,17 @@ public class UpdateBoardTaskCommandHandler(
             return Result.Success();
 
         await unitOfWork.SaveChangesAsync(ct);
+
+        await boardActionNotifier.NotifyAsync(new BoardActionNotification(
+            request.BoardId,
+            BoardActionNotificationType.TaskUpdated,
+            currentUserInfo.Id,
+            dateTimeProvider.UtcNow,
+            new TaskUpdatedPayload(
+                boardTask.ColumnId,
+                boardTask.Id,
+                boardTask.Title,
+                boardTask.AssigneeId)), ct);
 
         return Result.Success();
     }

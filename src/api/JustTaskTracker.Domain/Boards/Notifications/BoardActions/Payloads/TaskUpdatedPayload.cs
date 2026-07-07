@@ -1,8 +1,7 @@
 namespace JustTaskTracker.Domain.Boards.Notifications.BoardActions.Payloads;
 
-public record TaskRenamedPayload(
+public record TaskUpdatedPayload(
     Guid ColumnId,
     Guid BoardTaskId,
     string Title,
-    string? Description,
     Guid? AssigneeId) : BoardActionPayload;

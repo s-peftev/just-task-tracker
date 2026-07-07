@@ -1,5 +1,5 @@
 namespace JustTaskTracker.Domain.Boards.Notifications.BoardActions.Payloads;
 
-public record AttachmentDeletedPayload(
+public record TaskAttachmentsCountChangedPayload(
     Guid BoardTaskId,
-    Guid AttachmentId) : BoardActionPayload;
+    int AttachmentsCount) : BoardActionPayload;

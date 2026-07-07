@@ -38,8 +38,8 @@ internal static class BoardActionPayloadParser
                 payload.Deserialize<TaskCreatedPayload>(Options)
                 ?? throw CreateParseException(type),
 
-            BoardActionNotificationType.TaskRenamed =>
-                payload.Deserialize<TaskRenamedPayload>(Options)
+            BoardActionNotificationType.TaskUpdated =>
+                payload.Deserialize<TaskUpdatedPayload>(Options)
                 ?? throw CreateParseException(type),
 
             BoardActionNotificationType.TaskDeleted =>
@@ -50,20 +50,12 @@ internal static class BoardActionPayloadParser
                 payload.Deserialize<TasksReorderedPayload>(Options)
                 ?? throw CreateParseException(type),
 
-            BoardActionNotificationType.CommentCreated =>
-                payload.Deserialize<CommentCreatedPayload>(Options)
+            BoardActionNotificationType.TaskCommentsCountChanged =>
+                payload.Deserialize<TaskCommentsCountChangedPayload>(Options)
                 ?? throw CreateParseException(type),
 
-            BoardActionNotificationType.CommentDeleted =>
-                payload.Deserialize<CommentDeletedPayload>(Options)
-                ?? throw CreateParseException(type),
-
-            BoardActionNotificationType.AttachmentUploaded =>
-                payload.Deserialize<AttachmentUploadedPayload>(Options)
-                ?? throw CreateParseException(type),
-
-            BoardActionNotificationType.AttachmentDeleted =>
-                payload.Deserialize<AttachmentDeletedPayload>(Options)
+            BoardActionNotificationType.TaskAttachmentsCountChanged =>
+                payload.Deserialize<TaskAttachmentsCountChangedPayload>(Options)
                 ?? throw CreateParseException(type),
 
             _ => throw new NotSupportedException($"Board action notification type '{type}' is not supported."),

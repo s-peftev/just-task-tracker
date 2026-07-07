@@ -1,9 +1,11 @@
 using FluentValidation;
 using JustTaskTracker.Application.Auth;
 using JustTaskTracker.Application.Auth.Repositories;
+using JustTaskTracker.Application.Boards.Notifiers;
 using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Behaviors;
 using JustTaskTracker.Application.Common.Persistence;
+using JustTaskTracker.Application.Common.Utils;
 using JustTaskTracker.Application.Users.Mappings;
 using JustTaskTracker.Application.Users.ProfilePhotos;
 using JustTaskTracker.Application.Users.ReadModels;
@@ -11,6 +13,8 @@ using JustTaskTracker.Domain.Boards.Authorization;
 using JustTaskTracker.Domain.Boards.Constants;
 using JustTaskTracker.Domain.Boards.DTOs.Comments;
 using JustTaskTracker.Domain.Boards.Entities;
+using JustTaskTracker.Domain.Boards.Notifications.BoardActions;
+using JustTaskTracker.Domain.Boards.Notifications.BoardActions.Payloads;
 using JustTaskTracker.Domain.Common.Results;
 using JustTaskTracker.Domain.Common.Results.Errors;
 using MediatR;
@@ -26,6 +30,8 @@ public class CreateBoardTaskCommentCommandHandler(
     IBoardTaskRepository boardTaskRepository,
     IBoardTaskCommentRepository boardTaskCommentRepository,
     IUnitOfWork unitOfWork,
+    IBoardActionNotifier boardActionNotifier,
+    IDateTimeProvider dateTimeProvider,
     IProfilePhotoService profilePhotoService)
     : IRequestHandler<CreateBoardTaskCommentCommand, Result<BoardTaskCommentDto>>
 {
@@ -57,11 +63,22 @@ public class CreateBoardTaskCommentCommandHandler(
         Func<UserReadModel, string?> profilePhotoUrlResolver = user =>
             user.ProfilePhotoVersion is null ? null : profilePhotoService.BuildThumbnailUrl(user.Id, user.ProfilePhotoVersion);
 
-        return Result<BoardTaskCommentDto>.Success(new BoardTaskCommentDto(
+        var commentDto = new BoardTaskCommentDto(
             comment.Id,
             comment.Body,
             comment.CreatedAtUtc,
-            currentUserInfo.ToDto(profilePhotoUrlResolver)));
+            currentUserInfo.ToDto(profilePhotoUrlResolver));
+
+        var commentsCount = (await boardTaskCommentRepository.GetListByBoardTaskIdAsync(request.BoardTaskId, ct)).Count;
+
+        await boardActionNotifier.NotifyAsync(new BoardActionNotification(
+            request.BoardId,
+            BoardActionNotificationType.TaskCommentsCountChanged,
+            currentUserInfo.Id,
+            dateTimeProvider.UtcNow,
+            new TaskCommentsCountChangedPayload(request.BoardTaskId, commentsCount)), ct);
+
+        return Result<BoardTaskCommentDto>.Success(commentDto);
     }
 }
 

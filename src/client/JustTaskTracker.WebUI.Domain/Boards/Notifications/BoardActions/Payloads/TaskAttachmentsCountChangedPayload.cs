@@ -2,9 +2,6 @@ using JustTaskTracker.WebUI.Domain.Boards.Notifications.BoardActions;
 
 namespace JustTaskTracker.WebUI.Domain.Boards.Notifications.BoardActions.Payloads;
 
-public record TaskRenamedPayload(
-    Guid ColumnId,
+public record TaskAttachmentsCountChangedPayload(
     Guid BoardTaskId,
-    string Title,
-    string? Description,
-    Guid? AssigneeId) : BoardActionPayload;
+    int AttachmentsCount) : BoardActionPayload;

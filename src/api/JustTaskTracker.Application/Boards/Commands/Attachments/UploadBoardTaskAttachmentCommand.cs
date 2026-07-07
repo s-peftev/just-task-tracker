@@ -2,10 +2,12 @@ using FluentValidation;
 using JustTaskTracker.Application.Auth;
 using JustTaskTracker.Application.Auth.Repositories;
 using JustTaskTracker.Application.Boards.Attachments;
+using JustTaskTracker.Application.Boards.Notifiers;
 using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Behaviors;
 using JustTaskTracker.Application.Common.Options;
 using JustTaskTracker.Application.Common.Persistence;
+using JustTaskTracker.Application.Common.Utils;
 using JustTaskTracker.Application.Users.Mappings;
 using JustTaskTracker.Application.Users.ProfilePhotos;
 using JustTaskTracker.Application.Users.ReadModels;
@@ -14,6 +16,8 @@ using JustTaskTracker.Domain.Boards.Constants;
 using JustTaskTracker.Domain.Boards.DTOs.Attachments;
 using JustTaskTracker.Domain.Boards.Entities;
 using JustTaskTracker.Domain.Boards.Errors;
+using JustTaskTracker.Domain.Boards.Notifications.BoardActions;
+using JustTaskTracker.Domain.Boards.Notifications.BoardActions.Payloads;
 using JustTaskTracker.Domain.Common.Results;
 using JustTaskTracker.Domain.Common.Results.Errors;
 using MediatR;
@@ -32,6 +36,8 @@ public class UploadBoardTaskAttachmentCommandHandler(
     IBoardTaskAttachmentService attachmentService,
     ValidationSettings validationSettings,
     IUnitOfWork unitOfWork,
+    IBoardActionNotifier boardActionNotifier,
+    IDateTimeProvider dateTimeProvider,
     ILogger<UploadBoardTaskAttachmentCommandHandler> logger,
     IProfilePhotoService profilePhotoService)
     : IRequestHandler<UploadBoardTaskAttachmentCommand, Result<BoardTaskAttachmentDto>>
@@ -112,14 +118,25 @@ public class UploadBoardTaskAttachmentCommandHandler(
         Func<UserReadModel, string?> profilePhotoUrlResolver = user =>
             user.ProfilePhotoVersion is null ? null : profilePhotoService.BuildThumbnailUrl(user.Id, user.ProfilePhotoVersion);
 
-        return Result<BoardTaskAttachmentDto>.Success(new BoardTaskAttachmentDto(
+        var attachmentDto = new BoardTaskAttachmentDto(
             attachment.Id,
             attachment.OriginalFileName,
             attachment.ContentType,
             attachment.FileSizeBytes,
             attachment.Position,
             attachment.CreatedAtUtc,
-            currentUserInfo.ToDto(profilePhotoUrlResolver)));
+            currentUserInfo.ToDto(profilePhotoUrlResolver));
+
+        var attachmentsCount = await attachmentRepository.GetCountByBoardTaskIdAsync(request.BoardTaskId, ct);
+
+        await boardActionNotifier.NotifyAsync(new BoardActionNotification(
+            request.BoardId,
+            BoardActionNotificationType.TaskAttachmentsCountChanged,
+            currentUserInfo.Id,
+            dateTimeProvider.UtcNow,
+            new TaskAttachmentsCountChangedPayload(request.BoardTaskId, attachmentsCount)), ct);
+
+        return Result<BoardTaskAttachmentDto>.Success(attachmentDto);
     }
 }
 

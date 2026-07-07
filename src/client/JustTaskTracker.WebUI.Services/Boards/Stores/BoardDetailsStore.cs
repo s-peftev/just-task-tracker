@@ -2,6 +2,7 @@ using JustTaskTracker.WebUI.Domain.Boards;
 using JustTaskTracker.WebUI.Domain.Boards.Enums;
 using JustTaskTracker.WebUI.Domain.Boards.Notifications.BoardActions;
 using JustTaskTracker.WebUI.Domain.Boards.Notifications.BoardActions.Payloads;
+using JustTaskTracker.WebUI.Domain.Boards.Notifications.BoardActions.Payloads.Positions;
 using JustTaskTracker.WebUI.Domain.Boards.Requests;
 using JustTaskTracker.WebUI.Services.Abstractions.Boards;
 using JustTaskTracker.WebUI.Services.Exceptions;
@@ -319,6 +320,18 @@ internal sealed class BoardDetailsStore(
         var applied = notification.Type switch
         {
             BoardActionNotificationType.BoardRenamed => ApplyBoardRenamed((BoardRenamedPayload)notification.Payload),
+            BoardActionNotificationType.ColumnCreated => ApplyColumnCreated((ColumnCreatedPayload)notification.Payload),
+            BoardActionNotificationType.ColumnRenamed => ApplyColumnRenamed((ColumnRenamedPayload)notification.Payload),
+            BoardActionNotificationType.ColumnDeleted => ApplyColumnDeleted((ColumnDeletedPayload)notification.Payload),
+            BoardActionNotificationType.ColumnsReordered => ApplyColumnsReordered((ColumnsReorderedPayload)notification.Payload),
+            BoardActionNotificationType.TaskCreated => ApplyTaskCreated((TaskCreatedPayload)notification.Payload),
+            BoardActionNotificationType.TaskUpdated => ApplyTaskUpdated((TaskUpdatedPayload)notification.Payload),
+            BoardActionNotificationType.TaskDeleted => ApplyTaskDeleted((TaskDeletedPayload)notification.Payload),
+            BoardActionNotificationType.TasksReordered => ApplyTasksReordered((TasksReorderedPayload)notification.Payload),
+            BoardActionNotificationType.TaskCommentsCountChanged =>
+                ApplyTaskCommentsCountChanged((TaskCommentsCountChangedPayload)notification.Payload),
+            BoardActionNotificationType.TaskAttachmentsCountChanged =>
+                ApplyTaskAttachmentsCountChanged((TaskAttachmentsCountChangedPayload)notification.Payload),
             _ => LogUnhandledBoardAction(notification.Type),
         };
 
@@ -354,6 +367,430 @@ internal sealed class BoardDetailsStore(
         Board = Board with { Name = payload.Name };
         RemoteBoardNameApplied?.Invoke();
         return true;
+    }
+
+    private bool ApplyColumnCreated(ColumnCreatedPayload payload)
+    {
+        if (Board is null)
+            return false;
+
+        if (string.IsNullOrWhiteSpace(payload.Name))
+        {
+            logger.LogWarning("Ignored column created notification with an empty name.");
+            return false;
+        }
+
+        if (Board.Columns.Any(column => column.Id == payload.ColumnId))
+            return true;
+
+        var column = new ColumnDto(payload.ColumnId, payload.Name, payload.Position, []);
+
+        Board = Board with
+        {
+            Columns = Board.Columns
+                .Append(column)
+                .OrderBy(column => column.Position)
+                .ToList(),
+        };
+
+        return true;
+    }
+
+    private bool ApplyColumnRenamed(ColumnRenamedPayload payload)
+    {
+        if (Board is null)
+            return false;
+
+        if (string.IsNullOrWhiteSpace(payload.Name))
+        {
+            logger.LogWarning("Ignored column renamed notification with an empty name.");
+            return false;
+        }
+
+        if (Board.Columns.All(column => column.Id != payload.ColumnId))
+            return false;
+
+        Board = Board with
+        {
+            Columns = Board.Columns
+                .Select(column => column.Id == payload.ColumnId ? column with { Name = payload.Name } : column)
+                .ToList(),
+        };
+
+        return true;
+    }
+
+    private bool ApplyColumnDeleted(ColumnDeletedPayload payload)
+    {
+        if (Board is null)
+            return false;
+
+        var deletedColumn = Board.Columns.FirstOrDefault(column => column.Id == payload.ColumnId);
+
+        if (deletedColumn is not null)
+        {
+            if (payload.TasksDisposition == DeleteColumnTasksDisposition.MoveToColumn
+                && payload.TargetColumnId is { } targetColumnId
+                && payload.MovePlacement is { } movePlacement)
+            {
+                var columns = MoveTasksLocally(
+                    Board.Columns.ToList(),
+                    deletedColumn.BoardTasks,
+                    targetColumnId,
+                    movePlacement);
+
+                columns = columns
+                    .Where(column => column.Id != payload.ColumnId)
+                    .ToList();
+
+                Board = Board with { Columns = columns };
+            }
+            else
+            {
+                Board = Board with
+                {
+                    Columns = Board.Columns
+                        .Where(column => column.Id != payload.ColumnId)
+                        .ToList(),
+                };
+            }
+        }
+
+        ApplyColumnPositions(payload.RemainingColumns);
+
+        if (payload.MovedTasks is { Count: > 0 } && payload.TargetColumnId is { } movedTargetColumnId)
+            ApplyColumnTaskPositions(movedTargetColumnId, payload.MovedTasks);
+
+        return true;
+    }
+
+    private bool ApplyColumnsReordered(ColumnsReorderedPayload payload)
+    {
+        if (Board is null)
+            return false;
+
+        ApplyColumnPositions(payload.Columns);
+        return true;
+    }
+
+    private bool ApplyTaskCreated(TaskCreatedPayload payload)
+    {
+        if (Board is null)
+            return false;
+
+        if (string.IsNullOrWhiteSpace(payload.Title))
+        {
+            logger.LogWarning("Ignored task created notification with an empty title.");
+            return false;
+        }
+
+        if (Board.Columns.All(column => column.Id != payload.ColumnId))
+            return false;
+
+        if (Board.Columns.Any(column => column.BoardTasks.Any(task => task.Id == payload.BoardTaskId)))
+            return true;
+
+        var task = new BoardTaskPreviewDto(
+            payload.BoardTaskId,
+            payload.Title,
+            payload.Position,
+            0,
+            0,
+            payload.AssigneeId);
+
+        Board = Board with
+        {
+            Columns = Board.Columns
+                .Select(column =>
+                {
+                    if (column.Id != payload.ColumnId)
+                        return column;
+
+                    var tasks = column.BoardTasks
+                        .OrderBy(boardTask => boardTask.Position)
+                        .ToList();
+
+                    var insertIndex = Math.Clamp(payload.Position, 0, tasks.Count);
+                    tasks.Insert(insertIndex, task);
+
+                    return column with
+                    {
+                        BoardTasks = tasks
+                            .Select((boardTask, index) => boardTask with { Position = index })
+                            .ToList(),
+                    };
+                })
+                .ToList(),
+        };
+
+        return true;
+    }
+
+    private bool ApplyTaskUpdated(TaskUpdatedPayload payload)
+    {
+        if (Board is null)
+            return false;
+
+        if (string.IsNullOrWhiteSpace(payload.Title))
+        {
+            logger.LogWarning("Ignored task updated notification with an empty title.");
+            return false;
+        }
+
+        if (!TryGetTask(payload.BoardTaskId, out _))
+            return false;
+
+        UpdateTaskPreviewSilent(
+            payload.BoardTaskId,
+            task => task with
+            {
+                Title = payload.Title,
+                AssigneeId = payload.AssigneeId,
+            });
+
+        return true;
+    }
+
+    private bool ApplyTaskDeleted(TaskDeletedPayload payload)
+    {
+        if (Board is null)
+            return false;
+
+        if (Board.Columns.All(column => column.Id != payload.ColumnId))
+            return false;
+
+        Board = Board with
+        {
+            Columns = Board.Columns
+                .Select(column =>
+                {
+                    if (column.Id != payload.ColumnId)
+                        return column;
+
+                    return column with
+                    {
+                        BoardTasks = column.BoardTasks
+                            .Where(task => task.Id != payload.BoardTaskId)
+                            .ToList(),
+                    };
+                })
+                .ToList(),
+        };
+
+        ApplyColumnTaskPositions(payload.ColumnId, payload.RemainingTasks);
+        return true;
+    }
+
+    private bool ApplyTasksReordered(TasksReorderedPayload payload)
+    {
+        if (Board is null)
+            return false;
+
+        if (!TryGetTask(payload.BoardTaskId, out _))
+            return false;
+
+        var tasksById = Board.Columns
+            .SelectMany(column => column.BoardTasks)
+            .ToDictionary(task => task.Id);
+
+        Board = Board with
+        {
+            Columns = Board.Columns
+                .Select(column =>
+                {
+                    if (column.Id == payload.SourceColumnId)
+                    {
+                        return column with
+                        {
+                            BoardTasks = BuildColumnTasksFromPositions(
+                                payload.SourceColumnTasks,
+                                tasksById),
+                        };
+                    }
+
+                    if (column.Id == payload.TargetColumnId)
+                    {
+                        return column with
+                        {
+                            BoardTasks = BuildColumnTasksFromPositions(
+                                payload.TargetColumnTasks,
+                                tasksById),
+                        };
+                    }
+
+                    return column;
+                })
+                .ToList(),
+        };
+
+        return true;
+    }
+
+    private bool ApplyTaskCommentsCountChanged(TaskCommentsCountChangedPayload payload)
+    {
+        if (Board is null)
+            return false;
+
+        SetTaskCommentsCount(payload.BoardTaskId, payload.CommentsCount);
+        return true;
+    }
+
+    private bool ApplyTaskAttachmentsCountChanged(TaskAttachmentsCountChangedPayload payload)
+    {
+        if (Board is null)
+            return false;
+
+        SetTaskAttachmentsCount(payload.BoardTaskId, payload.AttachmentsCount);
+        return true;
+    }
+
+    private void SetTaskCommentsCount(Guid taskId, int commentsCount)
+    {
+        if (Board is null)
+            return;
+
+        UpdateTaskPreviewSilent(taskId, task => task with
+        {
+            CommentsCount = Math.Max(0, commentsCount),
+        });
+    }
+
+    private void SetTaskAttachmentsCount(Guid taskId, int attachmentsCount)
+    {
+        if (Board is null)
+            return;
+
+        UpdateTaskPreviewSilent(taskId, task => task with
+        {
+            AttachmentsCount = Math.Max(0, attachmentsCount),
+        });
+    }
+
+    private void ApplyColumnPositions(IReadOnlyList<BoardActionColumnPosition> columnPositions)
+    {
+        if (Board is null || columnPositions.Count == 0)
+            return;
+
+        var columnsById = Board.Columns.ToDictionary(column => column.Id);
+        var orderedColumnIds = columnPositions
+            .OrderBy(position => position.Position)
+            .Select(position => position.ColumnId)
+            .Where(columnsById.ContainsKey)
+            .ToList();
+
+        if (orderedColumnIds.Count == 0)
+            return;
+
+        var reorderedColumns = orderedColumnIds
+            .Select((id, index) => columnsById[id] with { Position = index })
+            .ToList();
+
+        var missingColumns = Board.Columns
+            .Where(column => !orderedColumnIds.Contains(column.Id))
+            .OrderBy(column => column.Position);
+
+        Board = Board with
+        {
+            Columns = reorderedColumns
+                .Concat(missingColumns)
+                .ToList(),
+        };
+    }
+
+    private void ApplyColumnTaskPositions(Guid columnId, IReadOnlyList<BoardActionTaskPosition> taskPositions)
+    {
+        if (Board is null || taskPositions.Count == 0)
+            return;
+
+        var column = Board.Columns.FirstOrDefault(boardColumn => boardColumn.Id == columnId);
+
+        if (column is null)
+            return;
+
+        var tasksById = Board.Columns
+            .SelectMany(boardColumn => boardColumn.BoardTasks)
+            .ToDictionary(task => task.Id);
+
+        var orderedTasks = taskPositions
+            .OrderBy(position => position.Position)
+            .Where(position => tasksById.ContainsKey(position.BoardTaskId))
+            .Select(position => tasksById[position.BoardTaskId] with { Position = position.Position })
+            .ToList();
+
+        if (orderedTasks.Count == 0)
+            return;
+
+        var orderedTaskIds = orderedTasks
+            .Select(task => task.Id)
+            .ToHashSet();
+
+        var remainingTasks = column.BoardTasks
+            .Where(task => !orderedTaskIds.Contains(task.Id))
+            .OrderBy(task => task.Position)
+            .ToList();
+
+        var mergedTasks = orderedTasks
+            .Concat(remainingTasks)
+            .Select((task, index) => task with { Position = index })
+            .ToList();
+
+        Board = Board with
+        {
+            Columns = Board.Columns
+                .Select(boardColumn => boardColumn.Id == columnId
+                    ? boardColumn with { BoardTasks = mergedTasks }
+                    : boardColumn)
+                .ToList(),
+        };
+    }
+
+    private static List<BoardTaskPreviewDto> BuildColumnTasksFromPositions(
+        IReadOnlyList<BoardActionTaskPosition> taskPositions,
+        IReadOnlyDictionary<Guid, BoardTaskPreviewDto> tasksById)
+    {
+        return taskPositions
+            .OrderBy(position => position.Position)
+            .Where(position => tasksById.ContainsKey(position.BoardTaskId))
+            .Select(position => tasksById[position.BoardTaskId] with { Position = position.Position })
+            .ToList();
+    }
+
+    private bool TryGetTask(Guid taskId, out BoardTaskPreviewDto task)
+    {
+        task = default!;
+
+        if (Board is null)
+            return false;
+
+        foreach (var column in Board.Columns)
+        {
+            var foundTask = column.BoardTasks.FirstOrDefault(boardTask => boardTask.Id == taskId);
+
+            if (foundTask is not null)
+            {
+                task = foundTask;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private void UpdateTaskPreviewSilent(Guid taskId, Func<BoardTaskPreviewDto, BoardTaskPreviewDto> update)
+    {
+        if (Board is null)
+            return;
+
+        var columns = Board.Columns
+            .Select(column => column with
+            {
+                BoardTasks = column.BoardTasks
+                    .Select(task => task.Id == taskId ? update(task) : task)
+                    .ToList(),
+            })
+            .ToList();
+
+        Board = Board with { Columns = columns };
     }
 
     private bool LogUnhandledBoardAction(BoardActionNotificationType type)

@@ -1,13 +1,18 @@
 using FluentValidation;
 using JustTaskTracker.Application.Auth;
+using JustTaskTracker.Application.Auth.Repositories;
+using JustTaskTracker.Application.Boards.Notifiers;
 using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Behaviors;
 using JustTaskTracker.Application.Common.Persistence;
+using JustTaskTracker.Application.Common.Utils;
 using JustTaskTracker.Domain.Boards.Authorization;
 using JustTaskTracker.Domain.Boards.Constants;
 using JustTaskTracker.Domain.Boards.DTOs.Columns;
 using JustTaskTracker.Domain.Boards.Entities;
 using JustTaskTracker.Domain.Boards.Errors;
+using JustTaskTracker.Domain.Boards.Notifications.BoardActions;
+using JustTaskTracker.Domain.Boards.Notifications.BoardActions.Payloads;
 using JustTaskTracker.Domain.Common.Results;
 using JustTaskTracker.Domain.Common.Results.Errors;
 using MediatR;
@@ -19,13 +24,21 @@ public record CreateColumnCommand(Guid BoardId, string Name)
 
 public class CreateColumnCommandHandler(
     ICurrentUserAccessor currentUserAccessor,
+    IUserRepository userRepository,
     IBoardRepository boardRepository,
     IColumnRepository columnRepository,
-    IUnitOfWork unitOfWork)
+    IUnitOfWork unitOfWork,
+    IBoardActionNotifier boardActionNotifier,
+    IDateTimeProvider dateTimeProvider)
     : IRequestHandler<CreateColumnCommand, Result<ColumnDto>>
 {
     public async Task<Result<ColumnDto>> Handle(CreateColumnCommand request, CancellationToken ct)
     {
+        var currentUserInfo = await userRepository.GetUserInfoByAzureAOIAsync(currentUserAccessor.AzureAdObjectId, ct);
+
+        if (currentUserInfo is null)
+            return Result<ColumnDto>.Failure(GeneralErrors.Unauthorized);
+
         var userRole = await boardRepository.GetUserRoleAsync(request.BoardId, currentUserAccessor.AzureAdObjectId, ct);
 
         if (userRole is not { } authorizedRole || !BoardRolePermissions.CanManageColumns(authorizedRole))
@@ -50,6 +63,13 @@ public class CreateColumnCommandHandler(
         columnRepository.Add(column);
 
         await unitOfWork.SaveChangesAsync(ct);
+
+        await boardActionNotifier.NotifyAsync(new BoardActionNotification(
+            request.BoardId,
+            BoardActionNotificationType.ColumnCreated,
+            currentUserInfo.Id,
+            dateTimeProvider.UtcNow,
+            new ColumnCreatedPayload(column.Id, column.Name, column.Position)), ct);
 
         return Result<ColumnDto>.Success(new ColumnDto(
             column.Id,

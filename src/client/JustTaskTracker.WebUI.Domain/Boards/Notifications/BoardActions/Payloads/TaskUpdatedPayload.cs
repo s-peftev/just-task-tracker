@@ -2,6 +2,8 @@ using JustTaskTracker.WebUI.Domain.Boards.Notifications.BoardActions;
 
 namespace JustTaskTracker.WebUI.Domain.Boards.Notifications.BoardActions.Payloads;
 
-public record AttachmentDeletedPayload(
+public record TaskUpdatedPayload(
+    Guid ColumnId,
     Guid BoardTaskId,
-    Guid AttachmentId) : BoardActionPayload;
+    string Title,
+    Guid? AssigneeId) : BoardActionPayload;

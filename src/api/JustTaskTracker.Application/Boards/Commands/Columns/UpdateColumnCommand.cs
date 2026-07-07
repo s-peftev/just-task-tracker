@@ -1,11 +1,16 @@
 using FluentValidation;
 using JustTaskTracker.Application.Auth;
+using JustTaskTracker.Application.Auth.Repositories;
+using JustTaskTracker.Application.Boards.Notifiers;
 using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Behaviors;
 using JustTaskTracker.Application.Common.Persistence;
+using JustTaskTracker.Application.Common.Utils;
 using JustTaskTracker.Domain.Boards.Authorization;
 using JustTaskTracker.Domain.Boards.Constants;
 using JustTaskTracker.Domain.Boards.Errors;
+using JustTaskTracker.Domain.Boards.Notifications.BoardActions;
+using JustTaskTracker.Domain.Boards.Notifications.BoardActions.Payloads;
 using JustTaskTracker.Domain.Common.Results;
 using JustTaskTracker.Domain.Common.Results.Errors;
 using MediatR;
@@ -17,12 +22,20 @@ public record UpdateColumnCommand(Guid BoardId, Guid ColumnId, string Name)
 
 public class UpdateColumnCommandHandler(
     ICurrentUserAccessor currentUserAccessor,
+    IUserRepository userRepository,
     IColumnRepository columnRepository,
-    IUnitOfWork unitOfWork)
+    IUnitOfWork unitOfWork,
+    IBoardActionNotifier boardActionNotifier,
+    IDateTimeProvider dateTimeProvider)
     : IRequestHandler<UpdateColumnCommand, Result>
 {
     public async Task<Result> Handle(UpdateColumnCommand request, CancellationToken ct)
     {
+        var currentUserInfo = await userRepository.GetUserInfoByAzureAOIAsync(currentUserAccessor.AzureAdObjectId, ct);
+
+        if (currentUserInfo is null)
+            return Result.Failure(GeneralErrors.Unauthorized);
+
         var (column, userRole) = await columnRepository.GetColumnWithUserRoleAsync(request.ColumnId, currentUserAccessor.AzureAdObjectId, ct);
 
         if (userRole is not { } authorizedRole || !BoardRolePermissions.CanManageColumns(authorizedRole))
@@ -42,6 +55,13 @@ public class UpdateColumnCommandHandler(
         column.Name = name;
 
         await unitOfWork.SaveChangesAsync(ct);
+
+        await boardActionNotifier.NotifyAsync(new BoardActionNotification(
+            request.BoardId,
+            BoardActionNotificationType.ColumnRenamed,
+            currentUserInfo.Id,
+            dateTimeProvider.UtcNow,
+            new ColumnRenamedPayload(column.Id, name)), ct);
 
         return Result.Success();
     }

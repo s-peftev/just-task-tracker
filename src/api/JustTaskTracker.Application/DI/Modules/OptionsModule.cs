@@ -49,6 +49,14 @@ internal static class OptionsModule
         boardExportRecoverySchedulerOptions.Validate();
         services.AddSingleton(boardExportRecoverySchedulerOptions);
 
+        var billingOptions = configuration
+            .GetSection(ConfigSections.Billing)
+            .Get<BillingOptions>()
+            ?? throw new InvalidOperationException($"{ConfigSections.Billing} section is not configured.");
+
+        billingOptions.Validate();
+        services.AddSingleton(billingOptions);
+
         return services;
     }
 }

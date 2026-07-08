@@ -7,4 +7,5 @@ public static class ConfigSections
     public const string ProfilePhotoProcessing = nameof(ProfilePhotoProcessing);
     public const string BoardExportScheduler = nameof(BoardExportScheduler);
     public const string BoardExportRecoveryScheduler = nameof(BoardExportRecoveryScheduler);
+    public const string Billing = nameof(Billing);
 }

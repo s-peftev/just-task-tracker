@@ -1,5 +1,6 @@
 using JustTaskTracker.WebUI.Domain.Boards;
 using JustTaskTracker.WebUI.Domain.Boards.Enums;
+using JustTaskTracker.WebUI.Domain.Boards.Notifications.BoardActions;
 using JustTaskTracker.WebUI.Domain.Boards.Requests;
 
 namespace JustTaskTracker.WebUI.Services.Abstractions.Boards;
@@ -18,6 +19,8 @@ public interface IBoardDetailsStore
     bool IsReadOnly { get; }
 
     event Action? StateChanged;
+
+    event Action? RemoteBoardNameApplied;
 
     Task LoadAsync(Guid boardId, CancellationToken ct = default);
 
@@ -60,6 +63,8 @@ public interface IBoardDetailsStore
     Task ReorderTaskAsync(Guid taskId, Guid targetColumnId, int position, CancellationToken ct = default);
 
     Task DeleteTaskAsync(Guid boardId, Guid columnId, Guid taskId, CancellationToken ct = default);
+
+    void ApplyBoardActionNotification(BoardActionNotification notification, Guid currentUserId);
 
     void Reset();
 }

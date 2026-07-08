@@ -1,10 +1,14 @@
 using FluentValidation;
 using JustTaskTracker.Application.Auth;
 using JustTaskTracker.Application.Auth.Repositories;
+using JustTaskTracker.Application.Boards.Notifiers;
 using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Behaviors;
 using JustTaskTracker.Application.Common.Persistence;
+using JustTaskTracker.Application.Common.Utils;
 using JustTaskTracker.Domain.Boards.Authorization;
+using JustTaskTracker.Domain.Boards.Notifications.BoardActions;
+using JustTaskTracker.Domain.Boards.Notifications.BoardActions.Payloads;
 using JustTaskTracker.Domain.Common.Results;
 using JustTaskTracker.Domain.Common.Results.Errors;
 using MediatR;
@@ -18,7 +22,9 @@ public class DeleteBoardTaskCommentCommandHandler(
     ICurrentUserAccessor currentUserAccessor,
     IUserRepository userRepository,
     IBoardTaskCommentRepository boardTaskCommentRepository,
-    IUnitOfWork unitOfWork)
+    IUnitOfWork unitOfWork,
+    IBoardActionNotifier boardActionNotifier,
+    IDateTimeProvider dateTimeProvider)
     : IRequestHandler<DeleteBoardTaskCommentCommand, Result>
 {
     public async Task<Result> Handle(DeleteBoardTaskCommentCommand request, CancellationToken ct)
@@ -39,9 +45,20 @@ public class DeleteBoardTaskCommentCommandHandler(
         if (comment.AuthorId != currentUserInfo.Id)
             return Result.Failure(GeneralErrors.Forbidden);
 
+        var boardTaskId = comment.BoardTaskId;
+
         boardTaskCommentRepository.Remove(comment);
 
         await unitOfWork.SaveChangesAsync(ct);
+
+        var commentsCount = (await boardTaskCommentRepository.GetListByBoardTaskIdAsync(boardTaskId, ct)).Count;
+
+        await boardActionNotifier.NotifyAsync(new BoardActionNotification(
+            request.BoardId,
+            BoardActionNotificationType.TaskCommentsCountChanged,
+            currentUserInfo.Id,
+            dateTimeProvider.UtcNow,
+            new TaskCommentsCountChangedPayload(boardTaskId, commentsCount)), ct);
 
         return Result.Success();
     }

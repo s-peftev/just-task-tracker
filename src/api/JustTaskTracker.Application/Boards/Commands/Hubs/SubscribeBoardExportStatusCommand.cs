@@ -8,7 +8,7 @@ using JustTaskTracker.Domain.Common.Results;
 using JustTaskTracker.Domain.Common.Results.Errors;
 using MediatR;
 
-namespace JustTaskTracker.Application.Boards.Commands.Hubs.BoardExportStatus;
+namespace JustTaskTracker.Application.Boards.Commands.Hubs;
 
 public record SubscribeBoardExportStatusCommand(IReadOnlyList<Guid> BoardIds)
     : IRequest<Result<IReadOnlyList<Guid>>>;

@@ -1,13 +1,17 @@
 ﻿using FluentValidation;
 using JustTaskTracker.Application.Auth;
 using JustTaskTracker.Application.Auth.Repositories;
+using JustTaskTracker.Application.Boards.Notifiers;
 using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Behaviors;
 using JustTaskTracker.Application.Common.Persistence;
+using JustTaskTracker.Application.Common.Utils;
 using JustTaskTracker.Domain.Boards.Authorization;
 using JustTaskTracker.Domain.Boards.Constants;
 using JustTaskTracker.Domain.Boards.DTOs.BoardTasks;
 using JustTaskTracker.Domain.Boards.Entities;
+using JustTaskTracker.Domain.Boards.Notifications.BoardActions;
+using JustTaskTracker.Domain.Boards.Notifications.BoardActions.Payloads;
 using JustTaskTracker.Domain.Common.Results;
 using JustTaskTracker.Domain.Common.Results.Errors;
 using MediatR;
@@ -22,7 +26,9 @@ public class CreateBoardTaskCommandHandler(
     IUserRepository userRepository,
     IColumnRepository columnRepository,
     IBoardTaskRepository boardTaskRepository,
-    IUnitOfWork unitOfWork)
+    IUnitOfWork unitOfWork,
+    IBoardActionNotifier boardActionNotifier,
+    IDateTimeProvider dateTimeProvider)
     : IRequestHandler<CreateBoardTaskCommand, Result<BoardTaskPreviewDto>>
 {
     public async Task<Result<BoardTaskPreviewDto>> Handle(CreateBoardTaskCommand request, CancellationToken ct)
@@ -52,6 +58,18 @@ public class CreateBoardTaskCommandHandler(
         boardTaskRepository.Add(task);
 
         await unitOfWork.SaveChangesAsync(ct);
+
+        await boardActionNotifier.NotifyAsync(new BoardActionNotification(
+            request.BoardId,
+            BoardActionNotificationType.TaskCreated,
+            currentUserInfo.Id,
+            dateTimeProvider.UtcNow,
+            new TaskCreatedPayload(
+                request.ColumnId,
+                task.Id,
+                task.Title,
+                task.Position,
+                task.AssigneeId)), ct);
 
         return Result<BoardTaskPreviewDto>.Success(new BoardTaskPreviewDto(
             task.Id,

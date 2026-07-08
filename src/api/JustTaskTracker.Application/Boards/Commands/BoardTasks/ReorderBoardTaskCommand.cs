@@ -1,12 +1,18 @@
 using FluentValidation;
 using JustTaskTracker.Application.Auth;
+using JustTaskTracker.Application.Auth.Repositories;
+using JustTaskTracker.Application.Boards.Mappings;
+using JustTaskTracker.Application.Boards.Notifiers;
 using JustTaskTracker.Application.Boards.Positioning;
 using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Behaviors;
 using JustTaskTracker.Application.Common.Persistence;
+using JustTaskTracker.Application.Common.Utils;
 using JustTaskTracker.Domain.Boards.Authorization;
 using JustTaskTracker.Domain.Boards.Entities;
 using JustTaskTracker.Domain.Boards.Errors;
+using JustTaskTracker.Domain.Boards.Notifications.BoardActions;
+using JustTaskTracker.Domain.Boards.Notifications.BoardActions.Payloads;
 using JustTaskTracker.Domain.Common.Results;
 using JustTaskTracker.Domain.Common.Results.Errors;
 using MediatR;
@@ -18,13 +24,21 @@ public record ReorderBoardTaskCommand(Guid BoardId, Guid TargetColumnId, Guid Bo
 
 public class ReorderBoardTaskCommandHandler(
     ICurrentUserAccessor currentUserAccessor,
+    IUserRepository userRepository,
     IBoardTaskRepository boardTaskRepository,
     IBoardPositioningService boardPositioningService,
-    IUnitOfWork unitOfWork)
+    IUnitOfWork unitOfWork,
+    IBoardActionNotifier boardActionNotifier,
+    IDateTimeProvider dateTimeProvider)
     : IRequestHandler<ReorderBoardTaskCommand, Result>
 {
     public async Task<Result> Handle(ReorderBoardTaskCommand request, CancellationToken ct)
     {
+        var currentUserInfo = await userRepository.GetUserInfoByAzureAOIAsync(currentUserAccessor.AzureAdObjectId, ct);
+
+        if (currentUserInfo is null)
+            return Result.Failure(GeneralErrors.Unauthorized);
+
         var (boardTask, userRole) = await boardTaskRepository.GetBoardTaskWithUserRoleAsync(request.BoardTaskId, currentUserAccessor.AzureAdObjectId, ct);
 
         if (userRole is not { } authorizedRole || !BoardRolePermissions.CanMoveTasks(authorizedRole))
@@ -33,6 +47,7 @@ public class ReorderBoardTaskCommandHandler(
         if (boardTask is null)
             return Result.Failure(GeneralErrors.NotFound);
 
+        var sourceColumnId = boardTask.ColumnId;
         var isSameColumnMove = boardTask.ColumnId == request.TargetColumnId;
 
         IReadOnlyList<BoardTask> columnTasks = [];
@@ -85,6 +100,24 @@ public class ReorderBoardTaskCommandHandler(
             await unitOfWork.RollbackTransactionAsync(ct);
             throw;
         }
+
+        var updatedSourceColumnTasks = await boardTaskRepository.GetListByColumnIdAsync(sourceColumnId, ct);
+        var updatedTargetColumnTasks = isSameColumnMove
+            ? updatedSourceColumnTasks
+            : await boardTaskRepository.GetListByColumnIdAsync(request.TargetColumnId, ct);
+
+        await boardActionNotifier.NotifyAsync(new BoardActionNotification(
+            request.BoardId,
+            BoardActionNotificationType.TasksReordered,
+            currentUserInfo.Id,
+            dateTimeProvider.UtcNow,
+            new TasksReorderedPayload(
+                request.BoardTaskId,
+                sourceColumnId,
+                request.TargetColumnId,
+                request.Position,
+                BoardActionPositionMappings.ToTaskPositions(updatedSourceColumnTasks),
+                BoardActionPositionMappings.ToTaskPositions(updatedTargetColumnTasks))), ct);
 
         return Result.Success();
     }

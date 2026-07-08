@@ -36,14 +36,16 @@
             }
             else if (CanRenameBoard)
             {
-                <h1 class="text-section-title board-page__title board-page__title--editable"
+                <h1 @key="_nameHighlightVersion"
+                    class="@GetTitleClass(editable: true)"
                     @onclick="StartNameEdit">
                     @board.Name
                 </h1>
             }
             else
             {
-                <h1 class="text-section-title board-page__title">@board.Name</h1>
+                <h1 @key="_nameHighlightVersion"
+                    class="@GetTitleClass(editable: false)">@board.Name</h1>
             }
         </div>
 
@@ -145,6 +147,7 @@
     private bool _isSavingName;
     private bool _isDownloadingArchive;
     private bool _focusTitleInput;
+    private int _nameHighlightVersion;
     private string _editName = string.Empty;
     private ElementReference _titleInputRef;
 
@@ -229,8 +232,11 @@
         }
     }
 
-    protected override void OnInitialized() =>
+    protected override void OnInitialized()
+    {
         BoardDetailsStore.StateChanged += OnBoardDetailsStoreStateChanged;
+        BoardDetailsStore.RemoteBoardNameApplied += OnRemoteBoardNameApplied;
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -241,8 +247,32 @@
         }
     }
 
-    public void Dispose() =>
+    public void Dispose()
+    {
         BoardDetailsStore.StateChanged -= OnBoardDetailsStoreStateChanged;
+        BoardDetailsStore.RemoteBoardNameApplied -= OnRemoteBoardNameApplied;
+    }
+
+    private string GetTitleClass(bool editable)
+    {
+        var classes = editable
+            ? "text-section-title board-page__title board-page__title--editable"
+            : "text-section-title board-page__title";
+
+        if (_nameHighlightVersion > 0)
+            classes += " board-page__title--remote-updated";
+
+        return classes;
+    }
+
+    private void OnRemoteBoardNameApplied()
+    {
+        if (_isEditingName)
+            return;
+
+        _nameHighlightVersion++;
+        InvokeAsync(StateHasChanged);
+    }
 
     private void OnBoardDetailsStoreStateChanged() =>
         InvokeAsync(StateHasChanged);

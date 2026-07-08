@@ -1,5 +1,5 @@
 ﻿using JustTaskTracker.Application.Auth;
-using JustTaskTracker.Application.Boards.Commands.Hubs.BoardExportStatus;
+using JustTaskTracker.Application.Boards.Commands.Hubs;
 using JustTaskTracker.Application.Common.Constants;
 using JustTaskTracker.Domain.Common.Results;
 using JustTaskTracker.Infrastructure.Common.Constants.Hubs;
@@ -32,7 +32,12 @@ public class BoardExportStatusHub(
         var result = await sender.Send(new SubscribeBoardExportStatusCommand(boardIds), ct);
 
         if (!result.IsSuccess)
-            throw ToHubException(result);
+        {
+            var message = result.Error.Details?.FirstOrDefault()
+            ?? result.Error.Code;
+
+            throw new HubException(message);
+        }
 
         var subscribableBoardIds = result.Value;
 
@@ -64,13 +69,5 @@ public class BoardExportStatusHub(
             "Unsubscribed connection {ConnectionId} from {BoardCount} board export groups.",
             Context.ConnectionId,
             distinctBoardIds.Count);
-    }
-
-    private static HubException ToHubException(Result result)
-    {
-        var message = result.Error.Details?.FirstOrDefault()
-            ?? result.Error.Code;
-
-        return new HubException(message);
     }
 }

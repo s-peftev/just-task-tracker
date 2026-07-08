@@ -6,8 +6,7 @@ using Microsoft.AspNetCore.SignalR;
 
 namespace JustTaskTracker.Infrastructure.Boards.Notifiers;
 
-internal class BoardExportStatusNotifier(
-    IHubContext<BoardExportStatusHub> hubContext) : IBoardExportStatusNotifier
+internal class BoardExportStatusNotifier(IHubContext<BoardExportStatusHub> hubContext) : IBoardExportStatusNotifier
 {
     public Task NotifyExportStatusChangedAsync(BoardExportStatusChangedNotification notification, CancellationToken ct = default) =>
         SendAsync(BoardExportHubEvents.ExportStatusChanged, notification, ct);

@@ -7,6 +7,7 @@ using JustTaskTracker.WebUI.Services.Auth;
 using JustTaskTracker.WebUI.Services.Auth.Stores;
 using JustTaskTracker.WebUI.Services.Configuration;
 using JustTaskTracker.WebUI.Services.Boards;
+using JustTaskTracker.WebUI.Services.Boards.Actions;
 using JustTaskTracker.WebUI.Services.Boards.Stores;
 using JustTaskTracker.WebUI.Services.Hubs;
 using JustTaskTracker.WebUI.Services.Users;
@@ -62,6 +63,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IBoardArchiveDownloadService, BoardArchiveDownloadService>();
         services.AddScoped<IBoardStore, BoardStore>();
         services.AddScoped<IBoardDetailsStore, BoardDetailsStore>();
+        services.AddScoped<IBoardActionSyncGuard, BoardActionSyncGuard>();
         services.AddScoped<IBoardTaskStore, BoardTaskStore>();
         services.AddScoped<IBoardTaskSearchStore, BoardTaskSearchStore>();
         services.AddScoped<IBoardMembersStore, BoardMembersStore>();
@@ -70,6 +72,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IBoardPanScrollService, BoardPanScrollService>();
         services.AddScoped<IBoardTrayOverlapService, BoardTrayOverlapService>();
         services.AddScoped<IBoardExportStatusHubService, BoardExportStatusHubService>();
+        services.AddScoped<IBoardActionsHubService, BoardActionsHubService>();
 
         return services;
     }

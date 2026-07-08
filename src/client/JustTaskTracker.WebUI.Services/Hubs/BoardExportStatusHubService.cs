@@ -25,83 +25,200 @@ internal sealed class BoardExportStatusHubService(
         TimeSpan.FromSeconds(30),
     ];
 
-    private readonly HashSet<Guid> _subscribedBoardIds = [];
-    private readonly SemaphoreSlim _connectGate = new(1, 1);
+    private readonly Dictionary<Guid, int> _subscriptionRefCounts = [];
+    private readonly SemaphoreSlim _hubGate = new(1, 1);
     private HubConnection? _connection;
 
     public async Task SubscribeAsync(IReadOnlyList<Guid> boardIds, CancellationToken ct = default)
     {
-        var newIds = boardIds
-            .Where(id => id != Guid.Empty && !_subscribedBoardIds.Contains(id))
-            .Distinct()
-            .ToList();
+        var ids = NormalizeBoardIds(boardIds);
+        if (ids.Count == 0)
+            return;
 
-        if (newIds.Count == 0)
+        List<Guid> serverSubscribeIds;
+
+        await _hubGate.WaitAsync(ct);
+        try
+        {
+            serverSubscribeIds = AcquireSubscriptionRefs(ids);
+        }
+        finally
+        {
+            _hubGate.Release();
+        }
+
+        if (serverSubscribeIds.Count == 0)
             return;
 
         await EnsureConnectedAsync(ct);
 
         try
         {
-            await _connection!.InvokeAsync("SubscribeAsync", (object)newIds, ct);
-
-            foreach (var id in newIds)
-                _subscribedBoardIds.Add(id);
+            await _connection!.InvokeAsync("SubscribeAsync", (object)serverSubscribeIds, ct);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            logger.LogWarning(ex, "Board export hub subscribe failed for {Count} board(s).", newIds.Count);
+            await RollbackSubscriptionRefsAsync(ids, ct);
+
+            logger.LogWarning(
+                ex,
+                "Board export hub subscribe failed for {Count} board(s).",
+                serverSubscribeIds.Count);
         }
     }
 
     public async Task UnsubscribeAsync(IReadOnlyList<Guid> boardIds, CancellationToken ct = default)
     {
-        var toRemove = boardIds
-            .Where(id => id != Guid.Empty && _subscribedBoardIds.Contains(id))
-            .Distinct()
-            .ToList();
+        var ids = NormalizeBoardIds(boardIds);
+        if (ids.Count == 0)
+            return;
 
-        if (toRemove.Count == 0 || _connection is null)
+        List<Guid> serverUnsubscribeIds;
+
+        await _hubGate.WaitAsync(ct);
+        try
+        {
+            serverUnsubscribeIds = ReleaseSubscriptionRefs(ids);
+        }
+        finally
+        {
+            _hubGate.Release();
+        }
+
+        if (serverUnsubscribeIds.Count == 0 || _connection is null)
             return;
 
         try
         {
-            await _connection.InvokeAsync("UnsubscribeAsync", (object)toRemove, ct);
-
-            foreach (var id in toRemove)
-                _subscribedBoardIds.Remove(id);
+            await _connection.InvokeAsync("UnsubscribeAsync", (object)serverUnsubscribeIds, ct);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            logger.LogWarning(ex, "Board export hub unsubscribe failed for {Count} board(s).", toRemove.Count);
+            logger.LogWarning(
+                ex,
+                "Board export hub unsubscribe failed for {Count} board(s).",
+                serverUnsubscribeIds.Count);
         }
     }
 
     public async Task DisconnectAsync(CancellationToken ct = default)
     {
-        _subscribedBoardIds.Clear();
-
-        if (_connection is { } connection)
+        await _hubGate.WaitAsync(ct);
+        try
         {
-            _connection = null;
-            await connection.DisposeAsync();
+            _subscriptionRefCounts.Clear();
+
+            if (_connection is { } connection)
+            {
+                _connection = null;
+                await connection.DisposeAsync();
+            }
+        }
+        finally
+        {
+            _hubGate.Release();
         }
     }
 
     public async ValueTask DisposeAsync()
     {
-        _connectGate.Dispose();
+        _hubGate.Dispose();
 
         if (_connection is { } connection)
             await connection.DisposeAsync();
     }
+
+    private List<Guid> AcquireSubscriptionRefs(IReadOnlyList<Guid> ids)
+    {
+        var serverSubscribeIds = new List<Guid>(ids.Count);
+
+        foreach (var id in ids)
+        {
+            _subscriptionRefCounts.TryGetValue(id, out var refCount);
+
+            if (refCount == 0)
+                serverSubscribeIds.Add(id);
+
+            _subscriptionRefCounts[id] = refCount + 1;
+        }
+
+        return serverSubscribeIds;
+    }
+
+    private List<Guid> ReleaseSubscriptionRefs(IReadOnlyList<Guid> ids)
+    {
+        var serverUnsubscribeIds = new List<Guid>(ids.Count);
+
+        foreach (var id in ids)
+        {
+            if (!_subscriptionRefCounts.TryGetValue(id, out var refCount))
+            {
+                logger.LogDebug(
+                    "Board export hub unsubscribe ignored for board {BoardId} because it is not held.",
+                    id);
+
+                continue;
+            }
+
+            if (refCount <= 0)
+            {
+                _subscriptionRefCounts.Remove(id);
+
+                logger.LogDebug(
+                    "Board export hub unsubscribe ignored for board {BoardId} because ref count was non-positive.",
+                    id);
+
+                continue;
+            }
+
+            if (refCount == 1)
+            {
+                _subscriptionRefCounts.Remove(id);
+                serverUnsubscribeIds.Add(id);
+            }
+            else
+            {
+                _subscriptionRefCounts[id] = refCount - 1;
+            }
+        }
+
+        return serverUnsubscribeIds;
+    }
+
+    private async Task RollbackSubscriptionRefsAsync(IReadOnlyList<Guid> ids, CancellationToken ct)
+    {
+        await _hubGate.WaitAsync(ct);
+        try
+        {
+            foreach (var id in ids)
+            {
+                if (!_subscriptionRefCounts.TryGetValue(id, out var refCount))
+                    continue;
+
+                if (refCount <= 1)
+                    _subscriptionRefCounts.Remove(id);
+                else
+                    _subscriptionRefCounts[id] = refCount - 1;
+            }
+        }
+        finally
+        {
+            _hubGate.Release();
+        }
+    }
+
+    private static List<Guid> NormalizeBoardIds(IReadOnlyList<Guid> boardIds) =>
+        boardIds
+            .Where(id => id != Guid.Empty)
+            .Distinct()
+            .ToList();
 
     private async Task EnsureConnectedAsync(CancellationToken ct)
     {
         if (_connection?.State == HubConnectionState.Connected)
             return;
 
-        await _connectGate.WaitAsync(ct);
+        await _hubGate.WaitAsync(ct);
         try
         {
             if (_connection?.State == HubConnectionState.Connected)
@@ -118,7 +235,7 @@ internal sealed class BoardExportStatusHubService(
         }
         finally
         {
-            _connectGate.Release();
+            _hubGate.Release();
         }
     }
 
@@ -186,14 +303,24 @@ internal sealed class BoardExportStatusHubService(
             "Board export hub reconnected. ConnectionId={ConnectionId}",
             connectionId);
 
-        var currentIds = _subscribedBoardIds.ToList();
+        List<Guid> activeBoardIds;
 
-        if (currentIds.Count == 0)
+        await _hubGate.WaitAsync();
+        try
+        {
+            activeBoardIds = _subscriptionRefCounts.Keys.ToList();
+        }
+        finally
+        {
+            _hubGate.Release();
+        }
+
+        if (activeBoardIds.Count == 0)
             return;
 
         try
         {
-            await _connection!.InvokeAsync("SubscribeAsync", (object)currentIds);
+            await _connection!.InvokeAsync("SubscribeAsync", (object)activeBoardIds);
         }
         catch (Exception ex)
         {

@@ -1,0 +1,25 @@
+using JustTaskTracker.Domain.Billing.DTOs;
+
+namespace JustTaskTracker.Application.Billing.Abstractions;
+
+/// <summary>
+/// Resolves effective billing entitlements for a user based on global app roles,
+/// the plan catalog, and persisted subscription state.
+/// </summary>
+public interface IEntitlementService
+{
+    /// <summary>
+    /// Determines whether the user is entitled to use <paramref name="feature"/>.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="Domain.Auth.Constants.Roles.Admin"/> receives all registered features.
+    /// <see cref="Domain.Auth.Constants.Roles.Guest"/> receives no billing features.
+    /// <see cref="Domain.Auth.Constants.Roles.User"/> receives features from the effective plan.
+    /// </remarks>
+    Task<bool> CanUseAsync(Guid userId, IReadOnlyList<string> globalRoles, string feature, CancellationToken ct = default);
+
+    /// <summary>
+    /// Returns the user's effective plan and feature set for API/UI consumption.
+    /// </summary>
+    Task<PlanDto> GetEntitlementsAsync(Guid userId, IReadOnlyList<string> globalRoles, CancellationToken ct = default);
+}

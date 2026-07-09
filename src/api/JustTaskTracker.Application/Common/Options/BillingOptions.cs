@@ -6,7 +6,6 @@ namespace JustTaskTracker.Application.Common.Options;
 public class BillingOptions
 {
     public Dictionary<string, PlanDefinitionOptions>? Plans { get; set; }
-
     public required string DefaultPlanId { get; set; }
 
     public void Validate()
@@ -23,21 +22,31 @@ public class BillingOptions
             throw new InvalidOperationException(
                 $"{section}:{nameof(DefaultPlanId)} '{DefaultPlanId}' was not found in Plans.");
 
-        foreach (var (planId, plan) in Plans)
-            plan.Validate($"{section}:Plans:{planId}");
+        foreach (var (planKey, plan) in Plans)
+        {
+            plan.Validate($"{section}:Plans:{planKey}");
+
+            if (planKey != plan.Id)
+            {
+                throw new InvalidOperationException(
+                    $"{section}:Plans:{planKey} key mismatch. The inner Id property must be '{planKey}', but found '{plan.Id}'.");
+            }
+        }
     }
 }
 
 public class PlanDefinitionOptions
 {
+    public required string Id { get; set; }
     public required string DisplayName { get; set; }
-
     public string? StripePriceId { get; set; }
-
     public string[] Features { get; set; } = [];
 
     internal void Validate(string sectionPath)
     {
+        if (string.IsNullOrWhiteSpace(Id))
+            throw new InvalidOperationException($"{sectionPath}:{nameof(Id)} is not configured.");
+
         if (string.IsNullOrWhiteSpace(DisplayName))
             throw new InvalidOperationException($"{sectionPath}:{nameof(DisplayName)} is not configured.");
 

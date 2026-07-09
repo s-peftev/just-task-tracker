@@ -7,8 +7,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Folder Include="Billing\Entities\" />
     <Folder Include="Boards\Entities\" />
-    <Folder Include="Billing\" />
   </ItemGroup>
 
 </Project>

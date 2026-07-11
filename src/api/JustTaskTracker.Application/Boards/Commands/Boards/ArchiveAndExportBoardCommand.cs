@@ -17,8 +17,8 @@ using Microsoft.Extensions.Logging;
 
 namespace JustTaskTracker.Application.Boards.Commands.Boards;
 
-public record ArchiveAndExportBoardCommand(Guid BoardId, BoardExportOptions ExportOptions)
-    : IRequest<Result<BoardArchivedDto>>, IRequireActiveBoard;
+public record ArchiveAndExportBoardCommand(Guid BoardId, BoardExportOptions ExportOptions, string Feature)
+    : IRequest<Result<BoardArchivedDto>>, IRequireActiveBoard, IRequireFeature;
 
 public class ArchiveAndExportBoardCommandHandler(
     ICurrentUserAccessor currentUserAccessor,

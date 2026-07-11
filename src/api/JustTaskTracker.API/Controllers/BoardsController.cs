@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using JustTaskTracker.Application.Boards.Commands.Boards;
 using JustTaskTracker.Application.Boards.Queries.Boards;
 using JustTaskTracker.Domain.Boards.DTOs.Boards;
+using JustTaskTracker.Domain.Billing.Constants;
 
 namespace JustTaskTracker.API.Controllers;
 
@@ -61,7 +62,7 @@ public class BoardsController(ISender sender) : ControllerBase
     [Authorize(Policy = AuthorizationPolicies.IsAppMember)]
     public async Task<IActionResult> ArchiveAndExport(Guid id, [FromBody] BoardExportOptions exportOptions, CancellationToken ct)
     {
-        var result = await sender.Send(new ArchiveAndExportBoardCommand(id, exportOptions), ct);
+        var result = await sender.Send(new ArchiveAndExportBoardCommand(id, exportOptions, Features.BoardExport), ct);
 
         return result.Match(
             data => Ok(data),
@@ -72,7 +73,7 @@ public class BoardsController(ISender sender) : ControllerBase
     [Authorize(Policy = AuthorizationPolicies.IsAppMember)]
     public async Task<IActionResult> GetArchiveExport(Guid id, CancellationToken ct)
     {
-        var result = await sender.Send(new GetBoardArchiveQuery(id), ct);
+        var result = await sender.Send(new GetBoardArchiveQuery(id, Features.BoardArchiveDownload), ct);
 
         return result.Match(
             data => Ok(data),
@@ -83,7 +84,7 @@ public class BoardsController(ISender sender) : ControllerBase
     [Authorize(Policy = AuthorizationPolicies.IsAppMember)]
     public async Task<IActionResult> ReExportArchived(Guid id, [FromBody] BoardExportOptions reExportOptions, CancellationToken ct)
     {
-        var result = await sender.Send(new ReExportArchivedBoardCommand(id, reExportOptions), ct);
+        var result = await sender.Send(new ReExportArchivedBoardCommand(id, reExportOptions, Features.BoardReExport), ct);
 
         return result.Match(
             () => NoContent(),

@@ -15,6 +15,7 @@ internal static class MediatRModule
             cfg.RegisterServicesFromAssembly(assembly);
             cfg.AddOpenBehavior(typeof(LoggingBehavior<,>));
             cfg.AddOpenBehavior(typeof(ArchivedBoardGuardBehavior<,>));
+            cfg.AddOpenBehavior(typeof(FeatureGuardBehavior<,>));
             cfg.AddOpenBehavior(typeof(ValidationBehavior<,>));
         });
 

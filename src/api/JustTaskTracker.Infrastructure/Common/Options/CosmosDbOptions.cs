@@ -5,7 +5,6 @@ namespace JustTaskTracker.Infrastructure.Common.Options;
 public class CosmosDbOptions
 {
     public string DatabaseName { get; set; } = string.Empty;
-
     public CosmosDbContainerNamesOptions? Containers { get; set; }
 
     public void Validate()

@@ -56,6 +56,14 @@ internal static class OptionsModule
         internalApiOptions.Validate();
         services.AddSingleton(internalApiOptions);
 
+        var stripeOptions = configuration
+            .GetSection(ConfigSections.Stripe)
+            .Get<StripeOptions>()
+            ?? throw new InvalidOperationException($"{ConfigSections.Stripe} section is not configured.");
+
+        stripeOptions.Validate();
+        services.AddSingleton(stripeOptions);
+
         return services;
     }
 }

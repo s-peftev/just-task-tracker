@@ -1,10 +1,12 @@
 using JustTaskTracker.Application.Auth.Repositories;
+using JustTaskTracker.Application.Billing.Repositories;
 using JustTaskTracker.Application.Boards.Repositories;
-using JustTaskTracker.Persistence.Auth.Repositories;
-using JustTaskTracker.Persistence.Common;
-using JustTaskTracker.Persistence.Boards.Repositories;
-using Microsoft.Extensions.DependencyInjection;
 using JustTaskTracker.Application.Common.Persistence;
+using JustTaskTracker.Persistence.Auth.Repositories;
+using JustTaskTracker.Persistence.Billing.Repositories;
+using JustTaskTracker.Persistence.Boards.Repositories;
+using JustTaskTracker.Persistence.Common;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace JustTaskTracker.Persistence.DI.Modules;
 
@@ -19,6 +21,7 @@ internal static class RepositoriesModule
         services.AddScoped<IBoardTaskRepository, BoardTaskRepository>();
         services.AddScoped<IBoardTaskCommentRepository, BoardTaskCommentRepository>();
         services.AddScoped<IAttachmentRepository, AttachmentRepository>();
+        services.AddScoped<ISubscriptionRepository, SubscriptionRepository>();
 
         return services;
     }

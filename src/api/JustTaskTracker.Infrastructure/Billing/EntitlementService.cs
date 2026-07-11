@@ -45,14 +45,14 @@ internal class EntitlementService(
 
     public async Task<PlanDto> ResolveEffectivePlanAsync(Guid userId, CancellationToken ct = default)
     {
-        var subscription = await subscriptionRepository.GetBillableByUserIdAsync(userId, ct);
+        var planId = await subscriptionRepository.GetUserPlanIdAsync(userId, ct);
 
-        if (subscription is null)
+        if (planId is null)
             return planCatalog.GetPlan(planCatalog.DefaultPlanId);
 
         try
         {
-            return planCatalog.GetPlan(subscription.PlanId);
+            return planCatalog.GetPlan(planId);
         }
         catch (InvalidOperationException)
         {

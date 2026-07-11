@@ -10,6 +10,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Billing\Repositories\" />
     <Folder Include="Boards\Configurations\" />
     <Folder Include="Boards\Repositories\" />
   </ItemGroup>

@@ -1,3 +1,5 @@
+using FluentValidation;
+using JustTaskTracker.Application.Billing.Abstractions;
 using JustTaskTracker.Application.Billing.Repositories;
 using JustTaskTracker.Application.Billing.Webhooks;
 using JustTaskTracker.Application.Common.Persistence;
@@ -13,9 +15,10 @@ using Microsoft.Extensions.Logging;
 
 namespace JustTaskTracker.Application.Billing.Commands;
 
-public record HandleBillingWebhookCommand(BillingWebhookEvent Event) : IRequest<Result>;
+public record HandleBillingWebhookCommand(string Payload, string StripeSignature) : IRequest<Result>;
 
 public class HandleBillingWebhookCommandHandler(
+    IBillingService billingService,
     IEnumerable<IBillingWebhookEventHandler> eventHandlers,
     IStripeWebhookEventRepository webhookEventRepository,
     IUnitOfWork unitOfWork,
@@ -25,7 +28,20 @@ public class HandleBillingWebhookCommandHandler(
 {
     public async Task<Result> Handle(HandleBillingWebhookCommand request, CancellationToken ct)
     {
-        var billingEvent = request.Event;
+        BillingWebhookEvent billingEvent;
+
+        try
+        {
+            billingEvent = await billingService.ParseWebhookEventAsync(
+                request.Payload,
+                request.StripeSignature,
+                ct);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Rejected Stripe webhook due to invalid signature or payload.");
+            return Result.Failure(GeneralErrors.InvalidRequest);
+        }
 
         var webhookEvent = await webhookEventRepository.GetByEventIdAsync(billingEvent.EventId, ct);
 
@@ -132,4 +148,18 @@ public class HandleBillingWebhookCommandHandler(
         message.Length <= StripeWebhookEventFieldLengths.MaxLastErrorLength
             ? message
             : message[..StripeWebhookEventFieldLengths.MaxLastErrorLength];
+}
+
+public class HandleBillingWebhookCommandValidator : AbstractValidator<HandleBillingWebhookCommand>
+{
+    public HandleBillingWebhookCommandValidator()
+    {
+        RuleFor(x => x.Payload)
+            .Must(payload => !string.IsNullOrWhiteSpace(payload))
+            .WithMessage("'Payload' must not be empty.");
+
+        RuleFor(x => x.StripeSignature)
+            .Must(signature => !string.IsNullOrWhiteSpace(signature))
+            .WithMessage("'StripeSignature' must not be empty.");
+    }
 }

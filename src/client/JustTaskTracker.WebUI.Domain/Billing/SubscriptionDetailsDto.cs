@@ -4,6 +4,6 @@ public record SubscriptionDetailsDto(
     string PlanId,
     string Status,
     bool CancelAtPeriodEnd,
-    bool CanManageInPortal,
+    bool HasBillableSubscription,
     DateTime? CurrentPeriodStartUtc,
     DateTime? CurrentPeriodEndUtc);

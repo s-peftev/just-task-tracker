@@ -26,7 +26,7 @@ public interface IEntitlementService
     /// <summary>
     /// Returns subscription details for the billing UI. When the user has no
     /// persisted subscription, returns the catalog default plan with
-    /// <see cref="SubscriptionDetailsDto.CanManageInPortal"/> set to
+    /// <see cref="SubscriptionDetailsDto.HasBillableSubscription"/> set to
     /// <see langword="false"/>.
     /// </summary>
     Task<SubscriptionDetailsDto> GetUserSubscriptionAsync(Guid userId, CancellationToken ct = default);

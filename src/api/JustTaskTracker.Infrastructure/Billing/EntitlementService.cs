@@ -56,7 +56,7 @@ internal class EntitlementService(
                 defaultPlan.PlanId,
                 Status: SubscriptionStatus.Active,
                 CancelAtPeriodEnd: false,
-                CanManageInPortal: false,
+                HasBillableSubscription: false,
                 CurrentPeriodStartUtc: null,
                 CurrentPeriodEndUtc: null);
         }
@@ -65,7 +65,7 @@ internal class EntitlementService(
             subscription.PlanId,
             subscription.Status,
             subscription.CancelAtPeriodEnd,
-            CanManageInPortal: true,
+            HasBillableSubscription: true,
             subscription.CurrentPeriodStartUtc,
             subscription.CurrentPeriodEndUtc);
     }

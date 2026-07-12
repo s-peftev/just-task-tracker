@@ -32,4 +32,15 @@ public class BillingController(ISender sender) : ControllerBase
             data => Ok(data),
             error => error.CreateErrorResponse());
     }
+
+    [HttpGet("plans")]
+    [Authorize(Policy = AuthorizationPolicies.IsAppUser)]
+    public async Task<IActionResult> GetPlans(CancellationToken ct)
+    {
+        var result = await sender.Send(new GetPlansQuery(), ct);
+
+        return result.Match(
+            data => Ok(data),
+            error => error.CreateErrorResponse());
+    }
 }

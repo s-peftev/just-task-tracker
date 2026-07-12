@@ -24,6 +24,13 @@ public interface IPlanCatalog
     IReadOnlyList<PlanDto> GetAllPlans();
 
     /// <summary>
+    /// Returns the Stripe price id for <paramref name="planId"/>, or
+    /// <see langword="null"/> when the plan has no price configured.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">When the plan is not defined in configuration.</exception>
+    string? TryGetPriceId(string planId);
+
+    /// <summary>
     /// Returns price id configured for <paramref name="planId"/>.
     /// </summary>
     /// <exception cref="InvalidOperationException">

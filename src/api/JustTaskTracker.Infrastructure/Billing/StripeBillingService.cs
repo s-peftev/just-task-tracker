@@ -92,6 +92,25 @@ internal class StripeBillingService(
         return session.Url;
     }
 
+    public async Task<PlanPriceDto> GetPriceAsync(string stripePriceId, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(stripePriceId);
+
+        var priceService = new PriceService(stripeClient);
+        var price = await priceService.GetAsync(stripePriceId, cancellationToken: ct);
+
+        if (price.UnitAmount is null)
+            throw new InvalidOperationException($"Stripe price '{stripePriceId}' has no unit amount.");
+
+        if (price.Recurring is null || string.IsNullOrWhiteSpace(price.Recurring.Interval))
+            throw new InvalidOperationException($"Stripe price '{stripePriceId}' is not a recurring price.");
+
+        return new PlanPriceDto(
+            price.Currency,
+            price.UnitAmount.Value,
+            price.Recurring.Interval);
+    }
+
     public Task<BillingWebhookEvent> ParseWebhookEventAsync(
         string payload,
         string stripeSignatureHeader,

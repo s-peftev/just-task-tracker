@@ -11,6 +11,7 @@
     box-sizing: border-box;
     container-type: inline-size;
     container-name: boards;
+    background-color: var(--jtt-surface-raised);
 }
 
 .boards__section {

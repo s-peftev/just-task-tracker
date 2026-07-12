@@ -50,6 +50,10 @@
     --jtt-text-warning: #ffcc66;
     --jtt-text-on-app: rgba(255, 255, 255, 0.87);
 
+    /* Plan marketing accents (same soft spectrum as warning/danger text) */
+    --jtt-plan-accent-free: var(--jtt-text-warning);
+    --jtt-plan-accent-pro: #c97878;
+
     /* Typography */
     --jtt-font-family-sans: 'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif;
     --jtt-font-size-body: 16px;

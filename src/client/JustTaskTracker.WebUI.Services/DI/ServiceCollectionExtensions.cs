@@ -67,6 +67,7 @@ public static class ServiceCollectionExtensions
 
         services.AddScoped<IBillingApiService, BillingApiService>();
         services.AddScoped<IEntitlementsStore, EntitlementsStore>();
+        services.AddScoped<IBillingStore, BillingStore>();
 
         services.AddScoped<IUsersApiService, UsersApiService>();
         services.AddScoped<IBoardApiService, BoardApiService>();

@@ -8,4 +8,7 @@ internal interface IBillingApi
 {
     [Get("/api/billing/entitlements")]
     Task<IApiResponse<ApiEnvelope<PlanDto>>> GetEntitlementsAsync(CancellationToken ct = default);
+
+    [Get("/api/billing/plans")]
+    Task<IApiResponse<ApiEnvelope<IReadOnlyList<PlanCardDto>>>> GetPlansAsync(CancellationToken ct = default);
 }

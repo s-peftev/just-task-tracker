@@ -1,7 +1,9 @@
 @page "/subscriptions"
 @attribute [Authorize]
-@implements IDisposable
+@inherits OwningComponentBase<IBillingStore>
 @using JustTaskTracker.WebUI.Domain.Auth
+@using JustTaskTracker.WebUI.Domain.Billing
+@using JustTaskTracker.WebUI.Services.Abstractions.Billing
 @inject IProfileStore ProfileStore
 @inject NavigationManager Navigation
 
@@ -10,26 +12,126 @@
     <PageTitle>Subscriptions — JustTaskTracker</PageTitle>
 
     <div class="subscriptions">
+        @if (BillingStore.IsLoading && !BillingStore.IsLoaded)
+        {
+            <div class="page-state">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+            </div>
+        }
+        else if (BillingStore.ErrorMessage is { } error)
+        {
+            <div class="page-state">
+                <MudAlert Severity="Severity.Error">@error</MudAlert>
+            </div>
+        }
+        else if (BillingStore.IsLoaded)
+        {
+            <header class="subscriptions__header">
+                <p class="subscriptions__eyebrow">Available Plans</p>
+                <h1 class="subscriptions__title">Choose the Perfect Plan for Your Needs</h1>
+            </header>
+
+            <div class="subscriptions__plans">
+                @foreach (var plan in BillingStore.Plans)
+                {
+                    var copy = PlanCopyCatalog.GetOrEmpty(plan.PlanId);
+
+                    <PlanCard @key="plan.PlanId" AccentClass="@copy.AccentClass">
+                        <h2 class="plan-card__title">@plan.PlanDisplayName</h2>
+
+                        <p class="plan-card__price">
+                            @if (plan.Price is { } price)
+                            {
+                                <span class="plan-card__price-amount">@PlanPriceFormatting.FormatAmount(price.UnitAmount, price.Currency)</span>
+                                <span class="plan-card__price-interval">@PlanPriceFormatting.FormatInterval(price.Interval)</span>
+                            }
+                            else
+                            {
+                                <span class="plan-card__price-amount">@PlanPriceFormatting.FormatFreeAmount()</span>
+                                <span class="plan-card__price-interval">@PlanPriceFormatting.FormatFreeInterval()</span>
+                            }
+                        </p>
+
+                        @if (!string.IsNullOrWhiteSpace(copy.Audience))
+                        {
+                            <p class="plan-card__audience">@copy.Audience</p>
+                        }
+
+                        <div class="plan-card__separator" role="separator"></div>
+
+                        @if (copy.Highlights.Count > 0)
+                        {
+                            <ul class="plan-card__highlights">
+                                @foreach (var highlight in copy.Highlights)
+                                {
+                                    <li class="plan-card__highlight @(highlight.IsInherited ? "plan-card__highlight--inherited" : null)">
+                                        <PlanHighlightIcon Kind="highlight.Icon" />
+                                        <span class="plan-card__highlight-text">@highlight.Text</span>
+                                    </li>
+                                }
+                            </ul>
+                        }
+                    </PlanCard>
+                }
+            </div>
+        }
     </div>
 }
 
 @code {
     private bool _isAllowed;
+    private bool _plansLoadStarted;
+
+    private IBillingStore BillingStore => Service;
 
     protected override void OnInitialized()
     {
         ProfileStore.StateChanged += OnProfileStoreStateChanged;
+        BillingStore.StateChanged += OnBillingStoreStateChanged;
         EvaluateAccess();
     }
 
-    public void Dispose() =>
-        ProfileStore.StateChanged -= OnProfileStoreStateChanged;
+    protected override async Task OnInitializedAsync()
+    {
+        if (!_isAllowed)
+            return;
+
+        await LoadPlansAsync();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!_isAllowed || _plansLoadStarted)
+            return;
+
+        await LoadPlansAsync();
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            ProfileStore.StateChanged -= OnProfileStoreStateChanged;
+            BillingStore.StateChanged -= OnBillingStoreStateChanged;
+        }
+
+        base.Dispose(disposing);
+    }
 
     private void OnProfileStoreStateChanged()
     {
         EvaluateAccess();
-        InvokeAsync(StateHasChanged);
+        InvokeAsync(async () =>
+        {
+            if (_isAllowed && !_plansLoadStarted)
+                await LoadPlansAsync();
+
+            StateHasChanged();
+        });
     }
+
+    private void OnBillingStoreStateChanged() =>
+        InvokeAsync(StateHasChanged);
 
     private void EvaluateAccess()
     {
@@ -44,6 +146,15 @@
         }
 
         _isAllowed = true;
+    }
+
+    private async Task LoadPlansAsync()
+    {
+        if (_plansLoadStarted || !_isAllowed)
+            return;
+
+        _plansLoadStarted = true;
+        await BillingStore.EnsurePlansLoadedAsync();
     }
 
     private static bool HasUserRole(UserWithRolesDto profile) =>

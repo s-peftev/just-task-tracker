@@ -12,4 +12,11 @@ internal sealed class BillingApiService(IBillingApi api) : IBillingApiService
 
         return ApiResponseGuard.Unwrap(response);
     }
+
+    public async Task<IReadOnlyList<PlanCardDto>> GetPlansAsync(CancellationToken ct = default)
+    {
+        var response = await api.GetPlansAsync(ct);
+
+        return ApiResponseGuard.Unwrap(response);
+    }
 }

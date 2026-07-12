@@ -16,6 +16,7 @@ internal static class ServicesModule
         services.AddScoped<IProfilePhotoService, ProfilePhotoService>();
 
         services.AddScoped<IBillingWebhookEventHandler, CustomerSubscriptionCreatedWebhookHandler>();
+        services.AddScoped<IBillingWebhookEventHandler, CustomerSubscriptionDeletedWebhookHandler>();
 
         return services;
     }

@@ -33,6 +33,13 @@ public class SubscriptionRepository(JustTaskTrackerDbContext context) : ISubscri
         CancellationToken ct = default) =>
         context.Subscriptions.AnyAsync(s => s.StripeSubscriptionId == stripeSubscriptionId, ct);
 
+    public Task<Subscription?> GetByStripeSubscriptionIdAsync(
+        string stripeSubscriptionId,
+        CancellationToken ct = default) =>
+        context.Subscriptions.FirstOrDefaultAsync(
+            s => s.StripeSubscriptionId == stripeSubscriptionId,
+            ct);
+
     public void Add(Subscription subscription) =>
         context.Subscriptions.Add(subscription);
 }

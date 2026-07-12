@@ -21,5 +21,7 @@ public interface ISubscriptionRepository
 
     Task<bool> ExistsByStripeSubscriptionIdAsync(string stripeSubscriptionId, CancellationToken ct = default);
 
+    Task<Subscription?> GetByStripeSubscriptionIdAsync(string stripeSubscriptionId, CancellationToken ct = default);
+
     void Add(Subscription subscription);
 }

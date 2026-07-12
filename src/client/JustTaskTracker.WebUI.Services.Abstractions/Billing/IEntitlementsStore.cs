@@ -9,6 +9,16 @@ public interface IEntitlementsStore
     bool IsLoaded { get; }
     string? ErrorMessage { get; }
 
+    /// <summary>
+    /// Plan id expected after Stripe Checkout redirect (<c>?planId=</c>).
+    /// </summary>
+    string? ExpectedPurchasedPlanId { get; }
+
+    /// <summary>
+    /// Outcome of <see cref="ConfirmPurchasedPlanAsync"/>.
+    /// </summary>
+    PaymentConfirmationStatus PaymentConfirmationStatus { get; }
+
     event Action? StateChanged;
 
     /// <summary>
@@ -21,6 +31,13 @@ public interface IEntitlementsStore
     /// Forces a fresh entitlements load regardless of current state.
     /// </summary>
     Task RefreshAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// After Stripe Checkout success redirect: polls entitlements until the
+    /// effective plan matches <paramref name="planId"/> (or retries are exhausted).
+    /// Updates cached entitlements on each attempt.
+    /// </summary>
+    Task ConfirmPurchasedPlanAsync(string planId, CancellationToken ct = default);
 
     /// <summary>
     /// Clears cached entitlements. Call on logout before MSAL redirect.

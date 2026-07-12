@@ -31,7 +31,7 @@ internal class StripeBillingService(
         var options = new SessionCreateOptions
         {
             Mode = "subscription",
-            SuccessUrl = stripeOptions.SuccessUrl,
+            SuccessUrl = $"{stripeOptions.SuccessUrl}?planId={planId}",
             CancelUrl = stripeOptions.CancelUrl,
             ClientReferenceId = userIdValue,
             LineItems =

@@ -1,0 +1,131 @@
+@page "/subscriptions/payment/success"
+@attribute [Authorize]
+@using JustTaskTracker.WebUI.Domain.Auth
+@using JustTaskTracker.WebUI.Domain.Billing
+@using JustTaskTracker.WebUI.Services.Abstractions.Billing
+@inject IEntitlementsStore EntitlementsStore
+@inject IProfileStore ProfileStore
+@inject NavigationManager Navigation
+@implements IDisposable
+
+<PageTitle>Payment — JustTaskTracker</PageTitle>
+
+@if (_isAllowed)
+{
+    <section class="page-centered" aria-label="Payment confirmation">
+        @if (_missingPlanId)
+        {
+            <MessageCard Title="Something went wrong"
+                         Message="We could not determine which plan you purchased. Please return to Subscriptions or contact support." />
+        }
+        else if (EntitlementsStore.PaymentConfirmationStatus is PaymentConfirmationStatus.Confirming
+                 or PaymentConfirmationStatus.Idle)
+        {
+            <div class="page-state">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+            </div>
+        }
+        else if (EntitlementsStore.PaymentConfirmationStatus is PaymentConfirmationStatus.Confirmed)
+        {
+            <MessageCard Title="Thank you!"
+                         Message="Your payment was successful and your subscription is now active." />
+        }
+        else if (EntitlementsStore.PaymentConfirmationStatus is PaymentConfirmationStatus.AwaitingActivation)
+        {
+            <MessageCard Title="Payment received"
+                         Message="We're still waiting for payment confirmation. Your subscription should update automatically within a few hours. If it takes longer, please contact support." />
+        }
+    </section>
+}
+
+@code {
+    private bool _isAllowed;
+    private bool _flowStarted;
+    private bool _missingPlanId;
+    private CancellationTokenSource? _flowCts;
+
+    [SupplyParameterFromQuery(Name = "planId")]
+    public string? PlanId { get; set; }
+
+    protected override void OnInitialized()
+    {
+        ProfileStore.StateChanged += OnProfileStoreStateChanged;
+        EntitlementsStore.StateChanged += OnEntitlementsStoreStateChanged;
+        EvaluateAccess();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!_isAllowed)
+            return;
+
+        await StartConfirmationFlowAsync();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!_isAllowed || _flowStarted)
+            return;
+
+        await StartConfirmationFlowAsync();
+    }
+
+    public void Dispose()
+    {
+        ProfileStore.StateChanged -= OnProfileStoreStateChanged;
+        EntitlementsStore.StateChanged -= OnEntitlementsStoreStateChanged;
+        _flowCts?.Cancel();
+        _flowCts?.Dispose();
+        _flowCts = null;
+    }
+
+    private void OnProfileStoreStateChanged()
+    {
+        EvaluateAccess();
+        InvokeAsync(async () =>
+        {
+            if (_isAllowed && !_flowStarted)
+                await StartConfirmationFlowAsync();
+
+            StateHasChanged();
+        });
+    }
+
+    private void OnEntitlementsStoreStateChanged() =>
+        InvokeAsync(StateHasChanged);
+
+    private void EvaluateAccess()
+    {
+        if (!ProfileStore.IsLoaded || ProfileStore.Profile is null)
+            return;
+
+        if (!HasUserRole(ProfileStore.Profile))
+        {
+            _isAllowed = false;
+            Navigation.NavigateTo("/not-found", replace: true);
+            return;
+        }
+
+        _isAllowed = true;
+    }
+
+    private async Task StartConfirmationFlowAsync()
+    {
+        if (_flowStarted || !_isAllowed)
+            return;
+
+        _flowStarted = true;
+
+        if (string.IsNullOrWhiteSpace(PlanId))
+        {
+            _missingPlanId = true;
+            return;
+        }
+
+        _flowCts = new CancellationTokenSource();
+        await EntitlementsStore.ConfirmPurchasedPlanAsync(PlanId, _flowCts.Token);
+    }
+
+    private static bool HasUserRole(UserWithRolesDto profile) =>
+        profile.Roles.Any(r => r.Equals("User", StringComparison.OrdinalIgnoreCase));
+}

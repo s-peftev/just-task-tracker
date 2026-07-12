@@ -1,4 +1,6 @@
-﻿using JustTaskTracker.Infrastructure.Common.Options;
+﻿using JustTaskTracker.Application.Billing.Abstractions;
+using JustTaskTracker.Infrastructure.Billing;
+using JustTaskTracker.Infrastructure.Common.Options;
 using Microsoft.Extensions.DependencyInjection;
 using Stripe;
 
@@ -14,6 +16,8 @@ internal static class BillingModule
 
             return new StripeClient(stripeOptions.SecretKey);
         });
+
+        services.AddScoped<IBillingService, StripeBillingService>();
 
         return services;
     }

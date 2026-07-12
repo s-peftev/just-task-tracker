@@ -22,4 +22,12 @@ public interface IPlanCatalog
     /// Returns all plans from the catalog.
     /// </summary>
     IReadOnlyList<PlanDto> GetAllPlans();
+
+    /// <summary>
+    /// Returns price id configured for <paramref name="planId"/>.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">
+    /// When the plan is not defined or has no price id configured.
+    /// </exception>
+    string GetPriceId(string planId);
 }

@@ -32,6 +32,21 @@ internal class PlanCatalog(BillingOptions billingOptions) : IPlanCatalog
             .ToList();
     }
 
+    public string GetPriceId(string planId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(planId);
+
+        if (billingOptions.Plans is null
+            || !billingOptions.Plans.TryGetValue(planId, out var plan)
+            || string.IsNullOrWhiteSpace(plan.PriceId))
+        {
+            throw new InvalidOperationException(
+                $"Billing plan '{planId}' does not have a Stripe price configured.");
+        }
+
+        return plan.PriceId;
+    }
+
     private static PlanDto ToPlanDto(PlanDefinitionOptions plan) =>
         new(plan.Id, plan.DisplayName, plan.Features);
 }

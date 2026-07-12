@@ -1,9 +1,11 @@
 @using JustTaskTracker.WebUI.Components.Shared
 @using JustTaskTracker.WebUI.Components.Shared.Forms
+@using JustTaskTracker.WebUI.Domain.Billing.Constants
 @using JustTaskTracker.WebUI.Domain.Boards
 @using JustTaskTracker.WebUI.Domain.Boards.Authorization
 @using JustTaskTracker.WebUI.Domain.Boards.Enums
 @using JustTaskTracker.WebUI.Infrastructure
+@using JustTaskTracker.WebUI.Services.Abstractions.Billing
 @using JustTaskTracker.WebUI.Services.Abstractions.Boards
 @using JustTaskTracker.WebUI.Services.Exceptions
 @implements IDisposable
@@ -12,6 +14,7 @@
 @inject IBoardDetailsStore BoardDetailsStore
 @inject IBoardStore BoardStore
 @inject IBoardMembersStore BoardMembersStore
+@inject IEntitlementsStore EntitlementsStore
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
@@ -56,10 +59,10 @@
                     This board was archived on @FormatArchivedAt(archivedAtUtc)<br />
                     Available in read-only mode.
                 </p>
-                @if (CanExportBoard)
+                @if (CanExportBoard && HasAnyExportUi(board))
                 {
                     <div class="board-page__export-actions">
-                        @if (ShowPreviousExportDownload(board))
+                        @if (ShowDownloadButton(board))
                         {
                             <div class="board-page__export-status">
                                 <button type="button"
@@ -81,7 +84,7 @@
                             </div>
                         }
 
-                        @if (ShowReExportButton(board))
+                        @if (ShowReExportAction(board))
                         {
                             <div class="board-page__export-status">
                                 <button type="button"
@@ -98,7 +101,7 @@
                             </div>
                         }
 
-                        @if (board.ReExportStatus != BoardExportStatus.None)
+                        @if (ShowReExportStatusIndicator(board))
                         {
                             <div class="board-page__export-status">
                                 <BoardExportStatusIndicator Status="board.ReExportStatus"
@@ -106,7 +109,7 @@
                                                             TooltipBelow="true" />
                             </div>
                         }
-                        else if (board.BoardExportStatus != BoardExportStatus.Completed)
+                        else if (ShowExportStatusIndicator(board))
                         {
                             <div class="board-page__export-status">
                                 <BoardExportStatusIndicator Status="board.BoardExportStatus"
@@ -160,6 +163,15 @@
         BoardDetailsStore.Board is { UserRole: var role }
         && BoardRolePermissions.CanExportBoard(role);
 
+    private bool CanDownloadArchive =>
+        EntitlementsStore.Can(Features.BoardArchiveDownload);
+
+    private bool CanViewExportStatus =>
+        EntitlementsStore.Can(Features.BoardExport);
+
+    private bool CanReExport =>
+        EntitlementsStore.Can(Features.BoardReExport);
+
     private static string FormatArchivedAt(DateTime archivedAtUtc) =>
         archivedAtUtc.ToLocalTime().ToString("g");
 
@@ -167,6 +179,26 @@
         BoardDetailsStore.Board is { ExportOptions: var exportOptions }
             ? BoardExportStatusFormatting.GetAriaLabel(BoardExportStatus.Completed, exportOptions)
             : BoardExportStatusFormatting.GetDescription(BoardExportStatus.Completed);
+
+    private bool ShowDownloadButton(BoardDetailsDto board) =>
+        CanDownloadArchive && ShowPreviousExportDownload(board);
+
+    private bool ShowReExportAction(BoardDetailsDto board) =>
+        CanReExport && ShowReExportButton(board);
+
+    private bool ShowReExportStatusIndicator(BoardDetailsDto board) =>
+        CanReExport && board.ReExportStatus != BoardExportStatus.None;
+
+    private bool ShowExportStatusIndicator(BoardDetailsDto board) =>
+        CanViewExportStatus
+        && board.ReExportStatus == BoardExportStatus.None
+        && board.BoardExportStatus != BoardExportStatus.Completed;
+
+    private bool HasAnyExportUi(BoardDetailsDto board) =>
+        ShowDownloadButton(board)
+        || ShowReExportAction(board)
+        || ShowReExportStatusIndicator(board)
+        || ShowExportStatusIndicator(board);
 
     private static bool ShowPreviousExportDownload(BoardDetailsDto board) =>
         board.BoardExportStatus == BoardExportStatus.Completed
@@ -236,6 +268,7 @@
     {
         BoardDetailsStore.StateChanged += OnBoardDetailsStoreStateChanged;
         BoardDetailsStore.RemoteBoardNameApplied += OnRemoteBoardNameApplied;
+        EntitlementsStore.StateChanged += OnEntitlementsChanged;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -251,6 +284,7 @@
     {
         BoardDetailsStore.StateChanged -= OnBoardDetailsStoreStateChanged;
         BoardDetailsStore.RemoteBoardNameApplied -= OnRemoteBoardNameApplied;
+        EntitlementsStore.StateChanged -= OnEntitlementsChanged;
     }
 
     private string GetTitleClass(bool editable)
@@ -275,6 +309,9 @@
     }
 
     private void OnBoardDetailsStoreStateChanged() =>
+        InvokeAsync(StateHasChanged);
+
+    private void OnEntitlementsChanged() =>
         InvokeAsync(StateHasChanged);
 
     private void GoToBoards() =>

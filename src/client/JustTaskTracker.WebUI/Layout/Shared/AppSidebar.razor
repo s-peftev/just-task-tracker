@@ -1,9 +1,11 @@
 @using JustTaskTracker.WebUI.Infrastructure
+@using JustTaskTracker.WebUI.Services.Abstractions.Billing
 @using JustTaskTracker.WebUI.Services.Abstractions.Hubs
 @implements IDisposable
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthState
 @inject IProfileStore ProfileStore
+@inject IEntitlementsStore EntitlementsStore
 @inject IBoardStore BoardStore
 @inject IBoardExportStatusHubService HubService
 @inject IBoardActionsHubService BoardActionsHubService
@@ -72,6 +74,7 @@
     private async Task SwitchMicrosoftAccount()
     {
         ProfileStore.Reset();
+        EntitlementsStore.Reset();
         BoardStore.Reset();
         await HubService.DisconnectAsync();
         await BoardActionsHubService.DisconnectAsync();
@@ -81,6 +84,7 @@
     private async Task Logout()
     {
         ProfileStore.Reset();
+        EntitlementsStore.Reset();
         BoardStore.Reset();
         await HubService.DisconnectAsync();
         await BoardActionsHubService.DisconnectAsync();

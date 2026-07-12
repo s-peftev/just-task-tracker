@@ -1,4 +1,5 @@
 using JustTaskTracker.WebUI.Domain.Billing;
+using JustTaskTracker.WebUI.Domain.Billing.Requests;
 using JustTaskTracker.WebUI.Services.Api.Models;
 using Refit;
 
@@ -14,4 +15,9 @@ internal interface IBillingApi
 
     [Get("/api/billing/subscription")]
     Task<IApiResponse<ApiEnvelope<SubscriptionDetailsDto>>> GetSubscriptionAsync(CancellationToken ct = default);
+
+    [Post("/api/billing/checkout")]
+    Task<IApiResponse<ApiEnvelope<CheckoutSessionResult>>> CreateCheckoutSessionAsync(
+        [Body] CreateCheckoutSessionRequest request,
+        CancellationToken ct = default);
 }

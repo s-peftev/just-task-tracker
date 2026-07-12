@@ -1,4 +1,5 @@
 using JustTaskTracker.WebUI.Domain.Billing;
+using JustTaskTracker.WebUI.Domain.Billing.Requests;
 using JustTaskTracker.WebUI.Services.Abstractions.Billing;
 using JustTaskTracker.WebUI.Services.Api;
 
@@ -23,6 +24,15 @@ internal sealed class BillingApiService(IBillingApi api) : IBillingApiService
     public async Task<SubscriptionDetailsDto> GetSubscriptionAsync(CancellationToken ct = default)
     {
         var response = await api.GetSubscriptionAsync(ct);
+
+        return ApiResponseGuard.Unwrap(response);
+    }
+
+    public async Task<CheckoutSessionResult> CreateCheckoutSessionAsync(
+        string planId,
+        CancellationToken ct = default)
+    {
+        var response = await api.CreateCheckoutSessionAsync(new CreateCheckoutSessionRequest(planId), ct);
 
         return ApiResponseGuard.Unwrap(response);
     }

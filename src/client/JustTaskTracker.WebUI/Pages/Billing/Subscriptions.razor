@@ -3,8 +3,12 @@
 @inherits OwningComponentBase<IBillingStore>
 @using JustTaskTracker.WebUI.Domain.Auth
 @using JustTaskTracker.WebUI.Domain.Billing
+@using JustTaskTracker.WebUI.Infrastructure
 @using JustTaskTracker.WebUI.Services.Abstractions.Billing
+@using JustTaskTracker.WebUI.Services.Exceptions
 @inject IProfileStore ProfileStore
+@inject IBillingApiService BillingApiService
+@inject ISnackbar Snackbar
 @inject NavigationManager Navigation
 
 @if (_isAllowed)
@@ -94,7 +98,8 @@
 
                             <button type="button"
                                     class="plan-card__action"
-                                    disabled="@(!action.IsEnabled)">
+                                    disabled="@(!IsActionEnabled(action))"
+                                    @onclick="() => OnPlanActionAsync(action, plan.PlanId)">
                                 @action.Label
                             </button>
                         }
@@ -108,6 +113,7 @@
 @code {
     private bool _isAllowed;
     private bool _pageLoadStarted;
+    private bool _isCheckoutInProgress;
 
     private IBillingStore BillingStore => Service;
 
@@ -187,6 +193,39 @@
     private bool IsCurrentPlan(string planId) =>
         BillingStore.Subscription is { PlanId: var currentPlanId }
         && planId.Equals(currentPlanId, StringComparison.OrdinalIgnoreCase);
+
+    private bool IsActionEnabled(PlanCardAction action) =>
+        action.IsEnabled && !_isCheckoutInProgress;
+
+    private async Task OnPlanActionAsync(PlanCardAction action, string planId)
+    {
+        switch (action.Kind)
+        {
+            case PlanCardActionKind.Upgrade:
+                await StartCheckoutAsync(planId);
+                break;
+            // ReturnToFree / portal flows are not wired yet.
+        }
+    }
+
+    private async Task StartCheckoutAsync(string planId)
+    {
+        if (_isCheckoutInProgress)
+            return;
+
+        _isCheckoutInProgress = true;
+
+        try
+        {
+            var session = await BillingApiService.CreateCheckoutSessionAsync(planId);
+            Navigation.NavigateTo(session.Url, forceLoad: true);
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+            _isCheckoutInProgress = false;
+        }
+    }
 
     private static bool HasUserRole(UserWithRolesDto profile) =>
         profile.Roles.Any(r => r.Equals("User", StringComparison.OrdinalIgnoreCase));

@@ -1,4 +1,6 @@
-﻿using JustTaskTracker.Application.Boards.Attachments;
+﻿using JustTaskTracker.Application.Billing.Webhooks;
+using JustTaskTracker.Application.Billing.Webhooks.Handlers;
+using JustTaskTracker.Application.Boards.Attachments;
 using JustTaskTracker.Application.Boards.Positioning;
 using JustTaskTracker.Application.Users.ProfilePhotos;
 using Microsoft.Extensions.DependencyInjection;
@@ -12,6 +14,8 @@ internal static class ServicesModule
         services.AddScoped<IBoardPositioningService, BoardPositioningService>();
         services.AddScoped<IBoardTaskAttachmentService, BoardTaskAttachmentService>();
         services.AddScoped<IProfilePhotoService, ProfilePhotoService>();
+
+        services.AddScoped<IBillingWebhookEventHandler, CustomerSubscriptionCreatedWebhookHandler>();
 
         return services;
     }

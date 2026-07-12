@@ -1,5 +1,6 @@
 using JustTaskTracker.Application.Billing.ReadModels;
 using JustTaskTracker.Domain.Billing.Constants;
+using JustTaskTracker.Domain.Billing.Entities;
 
 namespace JustTaskTracker.Application.Billing.Repositories;
 
@@ -17,4 +18,8 @@ public interface ISubscriptionRepository
     /// otherwise <see langword="null"/>.
     /// </summary>
     Task<SubscriptionDetailsReadModel?> GetSubscriptionByUserIdAsync(Guid userId, CancellationToken ct = default);
+
+    Task<bool> ExistsByStripeSubscriptionIdAsync(string stripeSubscriptionId, CancellationToken ct = default);
+
+    void Add(Subscription subscription);
 }

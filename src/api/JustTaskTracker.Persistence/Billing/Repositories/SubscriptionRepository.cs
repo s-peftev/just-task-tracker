@@ -1,6 +1,7 @@
 using JustTaskTracker.Application.Billing.ReadModels;
 using JustTaskTracker.Application.Billing.Repositories;
 using JustTaskTracker.Domain.Billing.Constants;
+using JustTaskTracker.Domain.Billing.Entities;
 using JustTaskTracker.Persistence.Common;
 using Microsoft.EntityFrameworkCore;
 
@@ -26,4 +27,12 @@ public class SubscriptionRepository(JustTaskTrackerDbContext context) : ISubscri
                 s.CurrentPeriodStartUtc,
                 s.CurrentPeriodEndUtc))
             .FirstOrDefaultAsync(ct);
+
+    public Task<bool> ExistsByStripeSubscriptionIdAsync(
+        string stripeSubscriptionId,
+        CancellationToken ct = default) =>
+        context.Subscriptions.AnyAsync(s => s.StripeSubscriptionId == stripeSubscriptionId, ct);
+
+    public void Add(Subscription subscription) =>
+        context.Subscriptions.Add(subscription);
 }

@@ -48,7 +48,7 @@ public class JustTaskTrackerDbContext(
 
     private void UpdateAuditProperties()
     {
-        var currentUserId = currentUserAccessor.AzureAdObjectId.ToString();
+        var currentUserId = TryResolveAuditUserId();
         var utcNow = dateTimeProvider.UtcNow;
 
         var changedEntries = ChangeTracker.Entries()
@@ -82,6 +82,21 @@ public class JustTaskTrackerDbContext(
                     auditable.LastModifiedBy = currentUserId;
                 }
             }
+        }
+    }
+
+    /// <summary>
+    /// Anonymous/system contexts (e.g. Stripe webhooks) have no Entra user; audit columns stay null.
+    /// </summary>
+    private string? TryResolveAuditUserId()
+    {
+        try
+        {
+            return currentUserAccessor.AzureAdObjectId.ToString();
+        }
+        catch (InvalidOperationException)
+        {
+            return null;
         }
     }
 

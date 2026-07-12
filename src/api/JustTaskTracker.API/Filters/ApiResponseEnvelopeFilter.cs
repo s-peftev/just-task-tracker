@@ -13,10 +13,16 @@ public sealed class ApiResponseEnvelopeFilter : IAsyncResultFilter
 {
     public Task OnResultExecutionAsync(ResultExecutingContext context, ResultExecutionDelegate next)
     {
+        if (ShouldSkipEnvelope(context))
+            return next();
+
         context.Result = ApplyEnvelope(context.Result);
 
         return next();
     }
+
+    private static bool ShouldSkipEnvelope(ResultExecutingContext context) =>
+        context.ActionDescriptor.EndpointMetadata.OfType<SkipApiResponseEnvelopeAttribute>().Any();
 
     private static IActionResult ApplyEnvelope(IActionResult result) =>
         result switch

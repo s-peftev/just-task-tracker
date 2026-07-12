@@ -8,15 +8,15 @@ using MediatR;
 
 namespace JustTaskTracker.Application.Billing.Queries;
 
-public record GetCurrentEntitlementsUserQuery : IRequest<Result<PlanDto>>;
+public record GetCurrentUserEntitlementsQuery : IRequest<Result<PlanDto>>;
 
-public class GetCurrentEntitlementsUserQueryHandler(
+public class GetCurrentUserEntitlementsQueryHandler(
     ICurrentUserAccessor currentUser,
     IUserRepository userRepository,
     IEntitlementService entitlementService)
-    : IRequestHandler<GetCurrentEntitlementsUserQuery, Result<PlanDto>>
+    : IRequestHandler<GetCurrentUserEntitlementsQuery, Result<PlanDto>>
 {
-    public async Task<Result<PlanDto>> Handle(GetCurrentEntitlementsUserQuery request, CancellationToken ct)
+    public async Task<Result<PlanDto>> Handle(GetCurrentUserEntitlementsQuery request, CancellationToken ct)
     {
         var userInfo = await userRepository.GetUserInfoByAzureAOIAsync(currentUser.AzureAdObjectId, ct);
 

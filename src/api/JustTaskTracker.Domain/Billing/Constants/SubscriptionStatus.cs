@@ -1,4 +1,4 @@
-namespace JustTaskTracker.Domain.Billing.Enums;
+namespace JustTaskTracker.Domain.Billing.Constants;
 
 public static class SubscriptionStatus
 {

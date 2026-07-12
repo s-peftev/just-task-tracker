@@ -21,8 +21,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Billing\Queries\" />
     <Folder Include="Boards\Repositories\" />
-    <Folder Include="Billing\" />
   </ItemGroup>
 
 </Project>

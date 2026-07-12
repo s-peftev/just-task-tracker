@@ -1,0 +1,51 @@
+@page "/subscriptions"
+@attribute [Authorize]
+@implements IDisposable
+@using JustTaskTracker.WebUI.Domain.Auth
+@inject IProfileStore ProfileStore
+@inject NavigationManager Navigation
+
+@if (_isAllowed)
+{
+    <PageTitle>Subscriptions — JustTaskTracker</PageTitle>
+
+    <div class="subscriptions">
+    </div>
+}
+
+@code {
+    private bool _isAllowed;
+
+    protected override void OnInitialized()
+    {
+        ProfileStore.StateChanged += OnProfileStoreStateChanged;
+        EvaluateAccess();
+    }
+
+    public void Dispose() =>
+        ProfileStore.StateChanged -= OnProfileStoreStateChanged;
+
+    private void OnProfileStoreStateChanged()
+    {
+        EvaluateAccess();
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void EvaluateAccess()
+    {
+        if (!ProfileStore.IsLoaded || ProfileStore.Profile is null)
+            return;
+
+        if (!HasUserRole(ProfileStore.Profile))
+        {
+            _isAllowed = false;
+            Navigation.NavigateTo("/not-found", replace: true);
+            return;
+        }
+
+        _isAllowed = true;
+    }
+
+    private static bool HasUserRole(UserWithRolesDto profile) =>
+        profile.Roles.Any(r => r.Equals("User", StringComparison.OrdinalIgnoreCase));
+}

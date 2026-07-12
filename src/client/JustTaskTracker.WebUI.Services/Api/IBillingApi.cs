@@ -11,4 +11,7 @@ internal interface IBillingApi
 
     [Get("/api/billing/plans")]
     Task<IApiResponse<ApiEnvelope<IReadOnlyList<PlanCardDto>>>> GetPlansAsync(CancellationToken ct = default);
+
+    [Get("/api/billing/subscription")]
+    Task<IApiResponse<ApiEnvelope<SubscriptionDetailsDto>>> GetSubscriptionAsync(CancellationToken ct = default);
 }

@@ -52,7 +52,11 @@
 
     /* Plan marketing accents (same soft spectrum as warning/danger text) */
     --jtt-plan-accent-free: var(--jtt-text-warning);
-    --jtt-plan-accent-pro: #c97878;
+    --jtt-plan-accent-pro: #d12323;
+
+    /* Subscription status badges on plan cards */
+    --jtt-subscription-status-active: #9ccc9c;
+    --jtt-subscription-status-past-due: #ff8e72;
 
     /* Typography */
     --jtt-font-family-sans: 'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif;

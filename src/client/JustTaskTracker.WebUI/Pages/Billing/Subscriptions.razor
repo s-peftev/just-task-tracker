@@ -35,9 +35,25 @@
                 @foreach (var plan in BillingStore.Plans)
                 {
                     var copy = PlanCopyCatalog.GetOrEmpty(plan.PlanId);
+                    var isCurrentPlan = IsCurrentPlan(plan.PlanId);
+                    var statusLabel = isCurrentPlan
+                        ? SubscriptionStatusFormatting.TryGetBadgeLabel(BillingStore.Subscription?.Status)
+                        : null;
+                    var statusCss = isCurrentPlan
+                        ? SubscriptionStatusFormatting.TryGetBadgeCssModifier(BillingStore.Subscription?.Status)
+                        : null;
+                    var action = PlanCardActionResolver.Resolve(
+                        plan,
+                        BillingStore.Subscription);
 
                     <PlanCard @key="plan.PlanId" AccentClass="@copy.AccentClass">
-                        <h2 class="plan-card__title">@plan.PlanDisplayName</h2>
+                        <div class="plan-card__title-row">
+                            <h2 class="plan-card__title">@plan.PlanDisplayName</h2>
+                            @if (statusLabel is not null && statusCss is not null)
+                            {
+                                <span class="plan-card__status @statusCss">@statusLabel</span>
+                            }
+                        </div>
 
                         <p class="plan-card__price">
                             @if (plan.Price is { } price)
@@ -71,6 +87,17 @@
                                 }
                             </ul>
                         }
+
+                        @if (action is not null)
+                        {
+                            <div class="plan-card__separator" role="separator"></div>
+
+                            <button type="button"
+                                    class="plan-card__action"
+                                    disabled="@(!action.IsEnabled)">
+                                @action.Label
+                            </button>
+                        }
                     </PlanCard>
                 }
             </div>
@@ -80,7 +107,7 @@
 
 @code {
     private bool _isAllowed;
-    private bool _plansLoadStarted;
+    private bool _pageLoadStarted;
 
     private IBillingStore BillingStore => Service;
 
@@ -96,15 +123,15 @@
         if (!_isAllowed)
             return;
 
-        await LoadPlansAsync();
+        await LoadPageDataAsync();
     }
 
     protected override async Task OnParametersSetAsync()
     {
-        if (!_isAllowed || _plansLoadStarted)
+        if (!_isAllowed || _pageLoadStarted)
             return;
 
-        await LoadPlansAsync();
+        await LoadPageDataAsync();
     }
 
     protected override void Dispose(bool disposing)
@@ -123,8 +150,8 @@
         EvaluateAccess();
         InvokeAsync(async () =>
         {
-            if (_isAllowed && !_plansLoadStarted)
-                await LoadPlansAsync();
+            if (_isAllowed && !_pageLoadStarted)
+                await LoadPageDataAsync();
 
             StateHasChanged();
         });
@@ -148,14 +175,18 @@
         _isAllowed = true;
     }
 
-    private async Task LoadPlansAsync()
+    private async Task LoadPageDataAsync()
     {
-        if (_plansLoadStarted || !_isAllowed)
+        if (_pageLoadStarted || !_isAllowed)
             return;
 
-        _plansLoadStarted = true;
-        await BillingStore.EnsurePlansLoadedAsync();
+        _pageLoadStarted = true;
+        await BillingStore.EnsureLoadedAsync();
     }
+
+    private bool IsCurrentPlan(string planId) =>
+        BillingStore.Subscription is { PlanId: var currentPlanId }
+        && planId.Equals(currentPlanId, StringComparison.OrdinalIgnoreCase);
 
     private static bool HasUserRole(UserWithRolesDto profile) =>
         profile.Roles.Any(r => r.Equals("User", StringComparison.OrdinalIgnoreCase));

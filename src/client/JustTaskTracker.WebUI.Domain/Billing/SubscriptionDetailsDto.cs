@@ -1,4 +1,4 @@
-﻿namespace JustTaskTracker.Domain.Billing.DTOs;
+namespace JustTaskTracker.WebUI.Domain.Billing;
 
 public record SubscriptionDetailsDto(
     string PlanId,

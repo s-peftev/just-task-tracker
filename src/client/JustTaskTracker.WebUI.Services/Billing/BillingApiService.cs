@@ -19,4 +19,11 @@ internal sealed class BillingApiService(IBillingApi api) : IBillingApiService
 
         return ApiResponseGuard.Unwrap(response);
     }
+
+    public async Task<SubscriptionDetailsDto> GetSubscriptionAsync(CancellationToken ct = default)
+    {
+        var response = await api.GetSubscriptionAsync(ct);
+
+        return ApiResponseGuard.Unwrap(response);
+    }
 }

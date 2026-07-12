@@ -54,19 +54,15 @@ internal class EntitlementService(
 
             return new SubscriptionDetailsDto(
                 defaultPlan.PlanId,
-                defaultPlan.PlanDisplayName,
-                Status: string.Empty,
+                Status: SubscriptionStatus.Active,
                 CancelAtPeriodEnd: false,
                 CanManageInPortal: false,
                 CurrentPeriodStartUtc: null,
                 CurrentPeriodEndUtc: null);
         }
 
-        var effectivePlan = ResolveEffectivePlanAsync(subscription.PlanId);
-
         return new SubscriptionDetailsDto(
             subscription.PlanId,
-            effectivePlan.PlanDisplayName,
             subscription.Status,
             subscription.CancelAtPeriodEnd,
             CanManageInPortal: true,

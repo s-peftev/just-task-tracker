@@ -17,11 +17,35 @@
 }
 
 /* ChildContent is rendered by the parent, so it needs ::deep for scoped CSS. */
+.plan-card ::deep .plan-card__title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
 .plan-card ::deep .plan-card__title {
     margin: 0;
     font-size: 1.5rem;
     font-weight: 600;
     color: var(--jtt-text-strong);
+}
+
+.plan-card ::deep .plan-card__status {
+    flex-shrink: 0;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    line-height: 1;
+    text-transform: uppercase;
+}
+
+.plan-card ::deep .plan-card__status--active {
+    color: var(--jtt-subscription-status-active);
+}
+
+.plan-card ::deep .plan-card__status--past-due {
+    color: var(--jtt-subscription-status-past-due);
 }
 
 .plan-card.plan-card--free ::deep .plan-card__title {
@@ -111,4 +135,40 @@
 
 .plan-card ::deep .plan-card__highlight--inherited .plan-card__highlight-text {
     color: var(--jtt-text-faint);
+}
+
+.plan-card ::deep .plan-card__action {
+    margin-top: auto;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.75rem 1rem;
+    border: 1px solid transparent;
+    border-radius: var(--jtt-radius-md);
+    font-family: inherit;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    line-height: 1.2;
+    cursor: pointer;
+    transition: opacity 0.2s, border-color 0.2s, background-color 0.2s;
+}
+
+.plan-card.plan-card--free ::deep .plan-card__action {
+    color: #fff;
+    background: var(--jtt-plan-accent-free);
+    border-color: var(--jtt-plan-accent-free);
+}
+
+.plan-card.plan-card--pro ::deep .plan-card__action {
+    color: #fff;
+    background: var(--jtt-plan-accent-pro);
+    border-color: var(--jtt-plan-accent-pro);
+}
+
+.plan-card ::deep .plan-card__action:disabled {
+    cursor: default;
+    opacity: 0.55;
+}
+
+.plan-card ::deep .plan-card__action:not(:disabled):hover {
+    opacity: 0.9;
 }

@@ -9,13 +9,17 @@ namespace JustTaskTracker.WebUI.Services.Abstractions.Billing;
 public interface IBillingStore
 {
     IReadOnlyList<PlanCardDto> Plans { get; }
+    SubscriptionDetailsDto? Subscription { get; }
     bool IsLoading { get; }
     bool IsLoaded { get; }
     string? ErrorMessage { get; }
 
     event Action? StateChanged;
 
-    Task EnsurePlansLoadedAsync(CancellationToken ct = default);
+    /// <summary>
+    /// Loads current subscription first, then the plans catalog.
+    /// </summary>
+    Task EnsureLoadedAsync(CancellationToken ct = default);
 
-    Task RefreshPlansAsync(CancellationToken ct = default);
+    Task RefreshAsync(CancellationToken ct = default);
 }

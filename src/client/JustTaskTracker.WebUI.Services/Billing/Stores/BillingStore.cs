@@ -4,9 +4,9 @@ using JustTaskTracker.WebUI.Services.Abstractions.Billing;
 namespace JustTaskTracker.WebUI.Services.Billing.Stores;
 
 /// <summary>
-/// Page-scoped billing store (plans catalog). Intended to be resolved from an
-/// <see cref="Microsoft.AspNetCore.Components.OwningComponentBase"/> scope so it
-/// is created on entering Subscriptions and disposed on leaving.
+/// Page-scoped billing store (subscription + plans). Resolve from
+/// <see cref="Microsoft.AspNetCore.Components.OwningComponentBase"/> so it lives
+/// only while Subscriptions is open.
 /// </summary>
 internal sealed class BillingStore(IBillingApiService billingApiService) : IBillingStore, IDisposable
 {
@@ -15,16 +15,17 @@ internal sealed class BillingStore(IBillingApiService billingApiService) : IBill
     private int _loadGeneration;
 
     public IReadOnlyList<PlanCardDto> Plans { get; private set; } = [];
+    public SubscriptionDetailsDto? Subscription { get; private set; }
     public bool IsLoading { get; private set; }
     public bool IsLoaded { get; private set; }
     public string? ErrorMessage { get; private set; }
 
     public event Action? StateChanged;
 
-    public Task EnsurePlansLoadedAsync(CancellationToken ct = default) =>
+    public Task EnsureLoadedAsync(CancellationToken ct = default) =>
         EnsureLoadedInternalAsync(forceRefresh: false, ct);
 
-    public Task RefreshPlansAsync(CancellationToken ct = default) =>
+    public Task RefreshAsync(CancellationToken ct = default) =>
         EnsureLoadedInternalAsync(forceRefresh: true, ct);
 
     public void Dispose() => _sync.Dispose();
@@ -46,11 +47,12 @@ internal sealed class BillingStore(IBillingApiService billingApiService) : IBill
             {
                 _loadGeneration++;
                 Plans = [];
+                Subscription = null;
                 IsLoaded = false;
             }
 
             if (forceRefresh || _inFlightLoad is null || _inFlightLoad.IsCompleted)
-                _inFlightLoad = LoadPlansAsync(_loadGeneration);
+                _inFlightLoad = LoadAsync(_loadGeneration);
 
             loadTask = _inFlightLoad;
         }
@@ -62,7 +64,7 @@ internal sealed class BillingStore(IBillingApiService billingApiService) : IBill
         await loadTask.WaitAsync(ct);
     }
 
-    private async Task LoadPlansAsync(int generation)
+    private async Task LoadAsync(int generation)
     {
         IsLoading = true;
         ErrorMessage = null;
@@ -70,11 +72,14 @@ internal sealed class BillingStore(IBillingApiService billingApiService) : IBill
 
         try
         {
+            // Subscription first so plan cards can bind current-plan state immediately after catalog load.
+            var subscription = await billingApiService.GetSubscriptionAsync(CancellationToken.None);
             var plans = await billingApiService.GetPlansAsync(CancellationToken.None);
 
             if (IsStaleGeneration(generation))
                 return;
 
+            Subscription = subscription;
             Plans = plans;
             IsLoaded = true;
         }
@@ -83,6 +88,7 @@ internal sealed class BillingStore(IBillingApiService billingApiService) : IBill
             if (IsStaleGeneration(generation))
                 return;
 
+            Subscription = null;
             Plans = [];
             IsLoaded = false;
             ErrorMessage = ex.Message;

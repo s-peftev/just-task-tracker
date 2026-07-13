@@ -3,7 +3,6 @@ using JustTaskTracker.Application.Auth;
 using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Options;
 using JustTaskTracker.Domain.Boards.Authorization;
-using JustTaskTracker.Domain.Boards.Errors;
 using JustTaskTracker.Domain.Common.Results;
 using JustTaskTracker.Domain.Common.Results.Errors;
 using MediatR;
@@ -28,9 +27,6 @@ public class SubscribeBoardExportStatusCommandHandler(
             distinctBoardIds,
             currentUserAccessor.AzureAdObjectId,
             ct);
-
-        if (rolesByBoardId.Count != distinctBoardIds.Count)
-            return Result<IReadOnlyList<Guid>>.Failure(BoardsErrors.ExportStatusSubscribeNotAllowed);
 
         if (rolesByBoardId.Values.Any(role => !BoardRolePermissions.CanExportBoard(role)))
             return Result<IReadOnlyList<Guid>>.Failure(GeneralErrors.Forbidden);

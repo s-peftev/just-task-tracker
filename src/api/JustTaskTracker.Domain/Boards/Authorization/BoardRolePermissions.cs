@@ -50,5 +50,6 @@ public static class BoardRolePermissions
             or BoardMemberRole.User;
 
     public static bool CanLeaveBoard(BoardMemberRole role) =>
-        role is not BoardMemberRole.Owner;
+        role is BoardMemberRole.Admin
+            or BoardMemberRole.ScrumMaster;
 }

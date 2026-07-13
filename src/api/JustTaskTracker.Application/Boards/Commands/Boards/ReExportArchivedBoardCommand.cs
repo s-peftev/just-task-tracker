@@ -2,6 +2,7 @@ using FluentValidation;
 using JustTaskTracker.Application.Auth;
 using JustTaskTracker.Application.Boards.Notifiers;
 using JustTaskTracker.Application.Boards.Repositories;
+using JustTaskTracker.Application.Common.Behaviors;
 using JustTaskTracker.Application.Common.ExternalProviders;
 using JustTaskTracker.Domain.Boards.Authorization;
 using JustTaskTracker.Domain.Boards.DTOs.Boards;
@@ -15,8 +16,7 @@ using Microsoft.Extensions.Logging;
 
 namespace JustTaskTracker.Application.Boards.Commands.Boards;
 
-public record ReExportArchivedBoardCommand(Guid BoardId, BoardExportOptions ReExportOptions)
-    : IRequest<Result>;
+public record ReExportArchivedBoardCommand(Guid BoardId, BoardExportOptions ReExportOptions, string Feature) : IRequest<Result>, IRequireFeature;
 
 public class ReExportArchivedBoardCommandHandler(
     ICurrentUserAccessor currentUserAccessor,

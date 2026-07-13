@@ -22,6 +22,7 @@
 
   <ItemGroup>
     <Folder Include="Boards\Repositories\" />
+    <Folder Include="Billing\" />
   </ItemGroup>
 
 </Project>

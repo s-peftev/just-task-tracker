@@ -1,6 +1,7 @@
 using FluentValidation;
 using JustTaskTracker.Application.Auth;
 using JustTaskTracker.Application.Boards.Repositories;
+using JustTaskTracker.Application.Common.Behaviors;
 using JustTaskTracker.Application.Common.ExternalProviders;
 using JustTaskTracker.Application.Common.Options;
 using JustTaskTracker.Domain.Boards.Authorization;
@@ -13,7 +14,7 @@ using MediatR;
 
 namespace JustTaskTracker.Application.Boards.Queries.Boards;
 
-public record GetBoardArchiveQuery(Guid BoardId) : IRequest<Result<BoardArchiveDownloadDto>>;
+public record GetBoardArchiveQuery(Guid BoardId, string Feature) : IRequest<Result<BoardArchiveDownloadDto>>, IRequireFeature;
 
 public class GetBoardArchiveQueryHandler(
     ICurrentUserAccessor currentUserAccessor,

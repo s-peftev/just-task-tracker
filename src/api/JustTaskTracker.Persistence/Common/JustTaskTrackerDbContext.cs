@@ -1,4 +1,5 @@
 using JustTaskTracker.Domain.Auth.Entities;
+using JustTaskTracker.Domain.Billing.Entities;
 using JustTaskTracker.Domain.Common.Interfaces;
 using JustTaskTracker.Domain.Boards.Entities;
 using JustTaskTracker.Persistence.Common.Configurations;
@@ -22,6 +23,8 @@ public class JustTaskTrackerDbContext(
     public DbSet<BoardTask> BoardTasks => Set<BoardTask>();
     public DbSet<BoardTaskComment> BoardTaskComments => Set<BoardTaskComment>();
     public DbSet<BoardTaskAttachment> BoardTaskAttachments => Set<BoardTaskAttachment>();
+    public DbSet<Subscription> Subscriptions => Set<Subscription>();
+    public DbSet<StripeWebhookEvent> StripeWebhookEvents => Set<StripeWebhookEvent>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

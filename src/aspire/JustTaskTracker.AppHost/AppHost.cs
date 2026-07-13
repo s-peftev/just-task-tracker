@@ -10,6 +10,12 @@ var migrations = builder.AddProject<Projects.JustTaskTracker_Database>("migratio
     .WithReference(database)
     .WaitFor(database);
 
+var stripeTunnel = builder.AddExecutable("stripe-tunnel", "stripe", workingDirectory: "",
+    "listen",
+    "--forward-to",
+    "https://localhost:5001/api/billing/stripe/webhook")
+    .WithOtlpExporter();
+
 var api = builder.AddProject<Projects.JustTaskTracker_API>("api")
     .WithReference(database)
     .WaitFor(database)

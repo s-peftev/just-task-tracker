@@ -62,7 +62,7 @@ public class BoardsController(ISender sender) : ControllerBase
     [Authorize(Policy = AuthorizationPolicies.IsAppMember)]
     public async Task<IActionResult> ArchiveAndExport(Guid id, [FromBody] BoardExportOptions exportOptions, CancellationToken ct)
     {
-        var result = await sender.Send(new ArchiveAndExportBoardCommand(id, exportOptions), ct);
+        var result = await sender.Send(new ArchiveAndExportBoardCommand(id, exportOptions, Features.BoardExport), ct);
 
         return result.Match(
             data => Ok(data),

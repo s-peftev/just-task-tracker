@@ -1,6 +1,11 @@
+@using JustTaskTracker.WebUI.Domain.Billing.Constants
+@using JustTaskTracker.WebUI.Domain.Boards.Authorization
+@using JustTaskTracker.WebUI.Domain.Boards.Enums
+@using JustTaskTracker.WebUI.Services.Abstractions.Billing
 @using JustTaskTracker.WebUI.Services.Abstractions.Boards
 @implements IDisposable
 @inject IBoardDetailsStore BoardDetailsStore
+@inject IEntitlementsStore EntitlementsStore
 
 <div class="board-menu">
     <button type="button"
@@ -149,18 +154,28 @@
     private bool CanLeaveBoard => BoardRolePermissions.CanLeaveBoard(UserRole);
     private bool CanArchiveBoard =>
         BoardRolePermissions.CanArchiveBoard(UserRole)
-        && BoardDetailsStore.Board is { IsArchived: false };
+        && BoardDetailsStore.Board is { IsArchived: false }
+        && EntitlementsStore.Can(Features.BoardExport);
     private bool CanDeleteBoard => BoardRolePermissions.CanDeleteBoard(UserRole);
 
     private bool _isOpen;
 
-    protected override void OnInitialized() =>
+    protected override void OnInitialized()
+    {
         BoardDetailsStore.StateChanged += OnBoardDetailsStoreStateChanged;
+        EntitlementsStore.StateChanged += OnEntitlementsStoreStateChanged;
+    }
 
-    public void Dispose() =>
+    public void Dispose()
+    {
         BoardDetailsStore.StateChanged -= OnBoardDetailsStoreStateChanged;
+        EntitlementsStore.StateChanged -= OnEntitlementsStoreStateChanged;
+    }
 
     private void OnBoardDetailsStoreStateChanged() =>
+        InvokeAsync(StateHasChanged);
+
+    private void OnEntitlementsStoreStateChanged() =>
         InvokeAsync(StateHasChanged);
 
     private void Toggle() =>

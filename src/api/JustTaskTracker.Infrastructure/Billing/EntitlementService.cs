@@ -35,7 +35,8 @@ internal class EntitlementService(
                 Features.GetAll().ToList());
         }
 
-        var effectivePlan = await ResolveEffectivePlanAsync(userId, ct);
+        var planId = await subscriptionRepository.GetUserPlanIdAsync(userId, ct);
+        var effectivePlan = ResolveEffectivePlanAsync(planId);
 
         return new PlanDto(
             effectivePlan.PlanId,
@@ -43,10 +44,34 @@ internal class EntitlementService(
             effectivePlan.Features);
     }
 
-    public async Task<PlanDto> ResolveEffectivePlanAsync(Guid userId, CancellationToken ct = default)
+    public async Task<SubscriptionDetailsDto> GetUserSubscriptionAsync(Guid userId, CancellationToken ct = default)
     {
-        var planId = await subscriptionRepository.GetUserPlanIdAsync(userId, ct);
+        var subscription = await subscriptionRepository.GetSubscriptionByUserIdAsync(userId, ct);
 
+        if (subscription is null)
+        {
+            var defaultPlan = planCatalog.GetPlan(planCatalog.DefaultPlanId);
+
+            return new SubscriptionDetailsDto(
+                defaultPlan.PlanId,
+                Status: SubscriptionStatus.Active,
+                CancelAtPeriodEnd: false,
+                HasBillableSubscription: false,
+                CurrentPeriodStartUtc: null,
+                CurrentPeriodEndUtc: null);
+        }
+
+        return new SubscriptionDetailsDto(
+            subscription.PlanId,
+            subscription.Status,
+            subscription.CancelAtPeriodEnd,
+            HasBillableSubscription: true,
+            subscription.CurrentPeriodStartUtc,
+            subscription.CurrentPeriodEndUtc);
+    }
+
+    private PlanDto ResolveEffectivePlanAsync(string? planId)
+    {
         if (planId is null)
             return planCatalog.GetPlan(planCatalog.DefaultPlanId);
 

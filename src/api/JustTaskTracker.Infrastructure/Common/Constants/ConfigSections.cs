@@ -7,4 +7,5 @@ public static class ConfigSections
     public const string PaginationDefaults = nameof(PaginationDefaults);
     public const string ServiceBus = nameof(ServiceBus);
     public const string CosmosDB = nameof(CosmosDB);
+    public const string Stripe = nameof(Stripe);
 }

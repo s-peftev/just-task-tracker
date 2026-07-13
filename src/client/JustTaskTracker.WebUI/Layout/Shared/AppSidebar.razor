@@ -1,9 +1,11 @@
 @using JustTaskTracker.WebUI.Infrastructure
+@using JustTaskTracker.WebUI.Services.Abstractions.Billing
 @using JustTaskTracker.WebUI.Services.Abstractions.Hubs
 @implements IDisposable
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthState
 @inject IProfileStore ProfileStore
+@inject IEntitlementsStore EntitlementsStore
 @inject IBoardStore BoardStore
 @inject IBoardExportStatusHubService HubService
 @inject IBoardActionsHubService BoardActionsHubService
@@ -42,6 +44,22 @@
                      Match="NavLinkMatch.All">
                 Boards
             </NavLink>
+            @if (CanViewSubscriptions(profile))
+            {
+                <NavLink href="/subscriptions"
+                         class="sidebar__tab sidebar__tab--subscriptions text-sidebar-tab"
+                         ActiveClass="sidebar__tab--active"
+                         Match="NavLinkMatch.All">
+                    Subscriptions
+                    @if (CurrentPlanBadge is { } planBadge)
+                    {
+                        <span class="sidebar__plan-badge @planBadge.CssClass"
+                              aria-label="@($"Current plan: {planBadge.Label}")">
+                            @planBadge.Label
+                        </span>
+                    }
+                </NavLink>
+            }
         </nav>
 
         <div class="sidebar__footer">
@@ -60,18 +78,46 @@
 }
 
 @code {
-    protected override void OnInitialized() =>
-        ProfileStore.StateChanged += OnProfileStoreStateChanged;
+    protected override void OnInitialized()
+    {
+        ProfileStore.StateChanged += OnStoreStateChanged;
+        EntitlementsStore.StateChanged += OnStoreStateChanged;
+    }
 
-    public void Dispose() =>
-        ProfileStore.StateChanged -= OnProfileStoreStateChanged;
+    public void Dispose()
+    {
+        ProfileStore.StateChanged -= OnStoreStateChanged;
+        EntitlementsStore.StateChanged -= OnStoreStateChanged;
+    }
 
-    private void OnProfileStoreStateChanged() =>
+    private void OnStoreStateChanged() =>
         InvokeAsync(StateHasChanged);
+
+    private static bool CanViewSubscriptions(UserWithRolesDto profile) =>
+        profile.Roles.Any(r => r.Equals("User", StringComparison.OrdinalIgnoreCase));
+
+    private PlanBadge? CurrentPlanBadge
+    {
+        get
+        {
+            if (EntitlementsStore.Entitlements is not { PlanDisplayName: { Length: > 0 } displayName } entitlements)
+                return null;
+
+            var cssClass = entitlements.PlanId.ToLowerInvariant() switch
+            {
+                "free" => "sidebar__plan-badge--free",
+                "pro" => "sidebar__plan-badge--pro",
+                _ => null
+            };
+
+            return new PlanBadge(displayName.ToUpperInvariant(), cssClass);
+        }
+    }
 
     private async Task SwitchMicrosoftAccount()
     {
         ProfileStore.Reset();
+        EntitlementsStore.Reset();
         BoardStore.Reset();
         await HubService.DisconnectAsync();
         await BoardActionsHubService.DisconnectAsync();
@@ -81,9 +127,12 @@
     private async Task Logout()
     {
         ProfileStore.Reset();
+        EntitlementsStore.Reset();
         BoardStore.Reset();
         await HubService.DisconnectAsync();
         await BoardActionsHubService.DisconnectAsync();
         await MicrosoftAuthNavigation.LocalSignOutAsync(Js, Navigation);
     }
+
+    private sealed record PlanBadge(string Label, string? CssClass);
 }

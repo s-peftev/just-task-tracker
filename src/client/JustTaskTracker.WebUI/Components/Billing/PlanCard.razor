@@ -1,0 +1,16 @@
+<div class="@CssClass">
+    @ChildContent
+</div>
+
+@code {
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    [Parameter]
+    public string? AccentClass { get; set; }
+
+    private string CssClass =>
+        string.IsNullOrWhiteSpace(AccentClass)
+            ? "plan-card"
+            : $"plan-card {AccentClass}";
+}

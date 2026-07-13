@@ -2,7 +2,9 @@
 @implements IDisposable
 @using Microsoft.AspNetCore.Components.Authorization
 @using JustTaskTracker.WebUI.Infrastructure
+@using JustTaskTracker.WebUI.Services.Abstractions.Billing
 @inject IProfileStore ProfileStore
+@inject IEntitlementsStore EntitlementsStore
 @inject IBoardStore BoardStore
 @inject AuthenticationStateProvider AuthState
 @inject NavigationManager Navigation
@@ -74,8 +76,11 @@
     private bool _isAuthenticated;
     private bool _isSidebarCollapsed;
 
-    protected override void OnInitialized() =>
+    protected override void OnInitialized()
+    {
         ProfileStore.StateChanged += OnStoreStateChanged;
+        EntitlementsStore.StateChanged += OnStoreStateChanged;
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -88,23 +93,32 @@
         var switchResult = await MicrosoftAuthNavigation.TryCompleteAccountSwitchAsync(Js, AuthState);
         if (switchResult == AccountSwitchResult.SameAccountRequiresFullLogout)
         {
-            await EnsureProfileAsync(AccountSwitchResult.Switched);
+            await EnsureProfileAndEntitlementsAsync(AccountSwitchResult.Switched);
             return;
         }
 
-        await EnsureProfileAsync(switchResult);
+        await EnsureProfileAndEntitlementsAsync(switchResult);
 
         if (ProfileStore.RequiresLogin)
             Navigation.NavigateTo("/login");
     }
 
-    public void Dispose() => ProfileStore.StateChanged -= OnStoreStateChanged;
+    public void Dispose()
+    {
+        ProfileStore.StateChanged -= OnStoreStateChanged;
+        EntitlementsStore.StateChanged -= OnStoreStateChanged;
+    }
 
     private void OnStoreStateChanged() => InvokeAsync(StateHasChanged);
 
     private void ToggleSidebar() => _isSidebarCollapsed = !_isSidebarCollapsed;
 
-    private async Task EnsureProfileAsync(AccountSwitchResult switchResult)
+    /// <summary>
+    /// Loads profile first, then entitlements. Sequential on purpose: first login
+    /// provisions the app user via ProfileStore (GET me → POST login); entitlements
+    /// require that user to exist, so parallel would race on a cold account.
+    /// </summary>
+    private async Task EnsureProfileAndEntitlementsAsync(AccountSwitchResult switchResult)
     {
         var authState = await AuthState.GetAuthenticationStateAsync();
         if (authState.User.Identity?.IsAuthenticated != true)
@@ -119,5 +133,13 @@
             await ProfileStore.RefreshAsync();
         else
             await ProfileStore.EnsureLoadedAsync();
+
+        if (ProfileStore.RequiresLogin || !ProfileStore.IsLoaded || ProfileStore.Profile is null)
+            return;
+
+        if (needsRefresh)
+            await EntitlementsStore.RefreshAsync();
+        else
+            await EntitlementsStore.EnsureLoadedAsync();
     }
 }

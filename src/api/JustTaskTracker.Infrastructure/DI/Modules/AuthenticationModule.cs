@@ -47,6 +47,7 @@ internal static class AuthenticationModule
         services.AddAuthorizationBuilder()
             .AddPolicy(AuthorizationPolicies.IsAppAdmin, policy => policy.RequireRole(Roles.Admin.ToString()))
             .AddPolicy(AuthorizationPolicies.IsAppContributor, policy => policy.RequireRole(Roles.Admin.ToString(), Roles.User.ToString()))
+            .AddPolicy(AuthorizationPolicies.IsAppUser, policy => policy.RequireRole(Roles.User.ToString()))
             .AddPolicy(AuthorizationPolicies.IsAppMember, policy => policy.RequireRole(Roles.Admin.ToString(), Roles.User.ToString(), Roles.Guest.ToString()));
 
         return services;

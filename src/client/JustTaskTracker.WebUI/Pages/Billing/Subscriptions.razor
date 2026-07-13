@@ -1,0 +1,232 @@
+@page "/subscriptions"
+@attribute [Authorize]
+@inherits OwningComponentBase<IBillingStore>
+@using JustTaskTracker.WebUI.Domain.Auth
+@using JustTaskTracker.WebUI.Domain.Billing
+@using JustTaskTracker.WebUI.Infrastructure
+@using JustTaskTracker.WebUI.Services.Abstractions.Billing
+@using JustTaskTracker.WebUI.Services.Exceptions
+@inject IProfileStore ProfileStore
+@inject IBillingApiService BillingApiService
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+
+@if (_isAllowed)
+{
+    <PageTitle>Subscriptions — JustTaskTracker</PageTitle>
+
+    <div class="subscriptions">
+        @if (BillingStore.IsLoading && !BillingStore.IsLoaded)
+        {
+            <div class="page-state">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+            </div>
+        }
+        else if (BillingStore.ErrorMessage is { } error)
+        {
+            <div class="page-state">
+                <MudAlert Severity="Severity.Error">@error</MudAlert>
+            </div>
+        }
+        else if (BillingStore.IsLoaded)
+        {
+            <header class="subscriptions__header">
+                <p class="subscriptions__eyebrow">Available Plans</p>
+                <h1 class="subscriptions__title">Choose the Perfect Plan for Your Needs</h1>
+            </header>
+
+            <div class="subscriptions__plans">
+                @foreach (var plan in BillingStore.Plans)
+                {
+                    var copy = PlanCopyCatalog.GetOrEmpty(plan.PlanId);
+                    var isCurrentPlan = IsCurrentPlan(plan.PlanId);
+                    var statusLabel = isCurrentPlan
+                        ? SubscriptionStatusFormatting.TryGetBadgeLabel(BillingStore.Subscription?.Status)
+                        : null;
+                    var statusCss = isCurrentPlan
+                        ? SubscriptionStatusFormatting.TryGetBadgeCssModifier(BillingStore.Subscription?.Status)
+                        : null;
+                    var action = PlanCardActionResolver.Resolve(
+                        plan,
+                        BillingStore.Subscription);
+
+                    <PlanCard @key="plan.PlanId" AccentClass="@copy.AccentClass">
+                        <div class="plan-card__title-row">
+                            <h2 class="plan-card__title">@plan.PlanDisplayName</h2>
+                            @if (statusLabel is not null && statusCss is not null)
+                            {
+                                <span class="plan-card__status @statusCss">@statusLabel</span>
+                            }
+                        </div>
+
+                        <p class="plan-card__price">
+                            @if (plan.Price is { } price)
+                            {
+                                <span class="plan-card__price-amount">@PlanPriceFormatting.FormatAmount(price.UnitAmount, price.Currency)</span>
+                                <span class="plan-card__price-interval">@PlanPriceFormatting.FormatInterval(price.Interval)</span>
+                            }
+                            else
+                            {
+                                <span class="plan-card__price-amount">@PlanPriceFormatting.FormatFreeAmount()</span>
+                                <span class="plan-card__price-interval">@PlanPriceFormatting.FormatFreeInterval()</span>
+                            }
+                        </p>
+
+                        @if (!string.IsNullOrWhiteSpace(copy.Audience))
+                        {
+                            <p class="plan-card__audience">@copy.Audience</p>
+                        }
+
+                        <div class="plan-card__separator" role="separator"></div>
+
+                        @if (copy.Highlights.Count > 0)
+                        {
+                            <ul class="plan-card__highlights">
+                                @foreach (var highlight in copy.Highlights)
+                                {
+                                    <li class="plan-card__highlight @(highlight.IsInherited ? "plan-card__highlight--inherited" : null)">
+                                        <PlanHighlightIcon Kind="highlight.Icon" />
+                                        <span class="plan-card__highlight-text">@highlight.Text</span>
+                                    </li>
+                                }
+                            </ul>
+                        }
+
+                        @if (action is not null)
+                        {
+                            <div class="plan-card__separator" role="separator"></div>
+
+                            <button type="button"
+                                    class="plan-card__action"
+                                    disabled="@(!IsActionEnabled(action))"
+                                    @onclick="() => OnPlanActionAsync(action, plan.PlanId)">
+                                @action.Label
+                            </button>
+                        }
+                    </PlanCard>
+                }
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private bool _isAllowed;
+    private bool _pageLoadStarted;
+    private bool _isCheckoutInProgress;
+
+    private IBillingStore BillingStore => Service;
+
+    protected override void OnInitialized()
+    {
+        ProfileStore.StateChanged += OnProfileStoreStateChanged;
+        BillingStore.StateChanged += OnBillingStoreStateChanged;
+        EvaluateAccess();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!_isAllowed)
+            return;
+
+        await LoadPageDataAsync();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!_isAllowed || _pageLoadStarted)
+            return;
+
+        await LoadPageDataAsync();
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            ProfileStore.StateChanged -= OnProfileStoreStateChanged;
+            BillingStore.StateChanged -= OnBillingStoreStateChanged;
+        }
+
+        base.Dispose(disposing);
+    }
+
+    private void OnProfileStoreStateChanged()
+    {
+        EvaluateAccess();
+        InvokeAsync(async () =>
+        {
+            if (_isAllowed && !_pageLoadStarted)
+                await LoadPageDataAsync();
+
+            StateHasChanged();
+        });
+    }
+
+    private void OnBillingStoreStateChanged() =>
+        InvokeAsync(StateHasChanged);
+
+    private void EvaluateAccess()
+    {
+        if (!ProfileStore.IsLoaded || ProfileStore.Profile is null)
+            return;
+
+        if (!HasUserRole(ProfileStore.Profile))
+        {
+            _isAllowed = false;
+            Navigation.NavigateTo("/not-found", replace: true);
+            return;
+        }
+
+        _isAllowed = true;
+    }
+
+    private async Task LoadPageDataAsync()
+    {
+        if (_pageLoadStarted || !_isAllowed)
+            return;
+
+        _pageLoadStarted = true;
+        await BillingStore.EnsureLoadedAsync();
+    }
+
+    private bool IsCurrentPlan(string planId) =>
+        BillingStore.Subscription is { PlanId: var currentPlanId }
+        && planId.Equals(currentPlanId, StringComparison.OrdinalIgnoreCase);
+
+    private bool IsActionEnabled(PlanCardAction action) =>
+        action.IsEnabled && !_isCheckoutInProgress;
+
+    private async Task OnPlanActionAsync(PlanCardAction action, string planId)
+    {
+        switch (action.Kind)
+        {
+            case PlanCardActionKind.Upgrade:
+                await StartCheckoutAsync(planId);
+                break;
+            // ReturnToFree / portal flows are not wired yet.
+        }
+    }
+
+    private async Task StartCheckoutAsync(string planId)
+    {
+        if (_isCheckoutInProgress)
+            return;
+
+        _isCheckoutInProgress = true;
+
+        try
+        {
+            var session = await BillingApiService.CreateCheckoutSessionAsync(planId);
+            Navigation.NavigateTo(session.Url, forceLoad: true);
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+            _isCheckoutInProgress = false;
+        }
+    }
+
+    private static bool HasUserRole(UserWithRolesDto profile) =>
+        profile.Roles.Any(r => r.Equals("User", StringComparison.OrdinalIgnoreCase));
+}

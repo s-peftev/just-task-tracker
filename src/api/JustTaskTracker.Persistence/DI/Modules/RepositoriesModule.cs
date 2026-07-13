@@ -22,6 +22,7 @@ internal static class RepositoriesModule
         services.AddScoped<IBoardTaskCommentRepository, BoardTaskCommentRepository>();
         services.AddScoped<IAttachmentRepository, AttachmentRepository>();
         services.AddScoped<ISubscriptionRepository, SubscriptionRepository>();
+        services.AddScoped<IStripeWebhookEventRepository, StripeWebhookEventRepository>();
 
         return services;
     }

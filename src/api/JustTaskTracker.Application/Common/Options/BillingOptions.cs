@@ -39,7 +39,7 @@ public class PlanDefinitionOptions
 {
     public required string Id { get; set; }
     public required string DisplayName { get; set; }
-    public string? StripePriceId { get; set; }
+    public string? PriceId { get; set; }
     public string[] Features { get; set; } = [];
 
     internal void Validate(string sectionPath)

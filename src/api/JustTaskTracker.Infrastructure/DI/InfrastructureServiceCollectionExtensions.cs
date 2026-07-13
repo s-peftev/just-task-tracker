@@ -15,7 +15,8 @@ public static class InfrastructureServiceCollectionExtensions
             .AddUtilsModule()
             .AddServicesModule()
             .AddAzureModule(configuration)
-            .AddHangfireModule(configuration);
+            .AddHangfireModule(configuration)
+            .AddBillingModule();
 
         return services;
     }

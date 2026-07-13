@@ -1,11 +1,15 @@
 @using JustTaskTracker.WebUI.Domain.Auth
+@using JustTaskTracker.WebUI.Domain.Billing.Constants
 @using JustTaskTracker.WebUI.Domain.Boards
 @using JustTaskTracker.WebUI.Domain.Boards.Authorization
 @using JustTaskTracker.WebUI.Domain.Boards.Enums
 @using JustTaskTracker.WebUI.Infrastructure
+@using JustTaskTracker.WebUI.Services.Abstractions.Billing
 @using JustTaskTracker.WebUI.Services.Abstractions.Boards
 @using JustTaskTracker.WebUI.Services.Exceptions
+@implements IDisposable
 @inject IBoardArchiveDownloadService BoardArchiveDownloadService
+@inject IEntitlementsStore EntitlementsStore
 @inject ISnackbar Snackbar
 
 <div class="board-card card-elevated @(Board.IsArchived ? "board-card--archived" : null)"
@@ -14,10 +18,10 @@
      @onclick="OnClickHandler"
      @onkeydown="OnCardKeyDownAsync">
     <div class="board-card__body">
-        @if (Board.IsArchived && CanExportBoard)
+        @if (Board.IsArchived && CanExportBoard && HasAnyExportUi)
         {
             <div class="board-card__corner-actions">
-                @if (ShowPreviousExportDownload(Board))
+                @if (ShowDownloadButton)
                 {
                     <button type="button"
                             class="board-card__corner-action board-card__corner-action--download"
@@ -38,14 +42,14 @@
                     </button>
                 }
 
-                @if (Board.ReExportStatus != BoardExportStatus.None)
+                @if (ShowReExportStatusIndicator)
                 {
                     <div class="board-card__corner-action board-card__corner-action--indicator">
                         <BoardExportStatusIndicator Status="Board.ReExportStatus"
                                                     TooltipBelow="true" />
                     </div>
                 }
-                else if (Board.BoardExportStatus != BoardExportStatus.Completed)
+                else if (ShowExportStatusIndicator)
                 {
                     <div class="board-card__corner-action board-card__corner-action--indicator">
                         <BoardExportStatusIndicator Status="Board.BoardExportStatus"
@@ -82,6 +86,29 @@
     private bool CanExportBoard =>
         BoardRolePermissions.CanExportBoard(Board.UserRole);
 
+    private bool CanDownloadArchive =>
+        EntitlementsStore.Can(Features.BoardArchiveDownload);
+
+    private bool CanViewExportStatus =>
+        EntitlementsStore.Can(Features.BoardExport);
+
+    private bool CanViewReExportStatus =>
+        EntitlementsStore.Can(Features.BoardReExport);
+
+    private bool ShowDownloadButton =>
+        CanDownloadArchive && ShowPreviousExportDownload(Board);
+
+    private bool ShowReExportStatusIndicator =>
+        CanViewReExportStatus && Board.ReExportStatus != BoardExportStatus.None;
+
+    private bool ShowExportStatusIndicator =>
+        CanViewExportStatus
+        && Board.ReExportStatus == BoardExportStatus.None
+        && Board.BoardExportStatus != BoardExportStatus.Completed;
+
+    private bool HasAnyExportUi =>
+        ShowDownloadButton || ShowReExportStatusIndicator || ShowExportStatusIndicator;
+
     private static string DownloadAriaLabel =>
         BoardExportStatusFormatting.GetDescription(BoardExportStatus.Completed);
 
@@ -90,6 +117,14 @@
         && (board.ReExportStatus == BoardExportStatus.None
             || board.ReExportStatus == BoardExportStatus.Requested
             || board.ReExportStatus == BoardExportStatus.Pending);
+
+    protected override void OnInitialized() =>
+        EntitlementsStore.StateChanged += OnEntitlementsChanged;
+
+    public void Dispose() =>
+        EntitlementsStore.StateChanged -= OnEntitlementsChanged;
+
+    private void OnEntitlementsChanged() => InvokeAsync(StateHasChanged);
 
     private Task OnClickHandler() => OnClick.InvokeAsync(Board);
 

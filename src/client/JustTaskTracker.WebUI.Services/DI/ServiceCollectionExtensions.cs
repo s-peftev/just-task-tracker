@@ -1,10 +1,13 @@
 using JustTaskTracker.WebUI.Services.Abstractions.Auth;
+using JustTaskTracker.WebUI.Services.Abstractions.Billing;
 using JustTaskTracker.WebUI.Services.Abstractions.Boards;
 using JustTaskTracker.WebUI.Services.Abstractions.Hubs;
 using JustTaskTracker.WebUI.Services.Abstractions.Users;
 using JustTaskTracker.WebUI.Services.Api;
 using JustTaskTracker.WebUI.Services.Auth;
 using JustTaskTracker.WebUI.Services.Auth.Stores;
+using JustTaskTracker.WebUI.Services.Billing;
+using JustTaskTracker.WebUI.Services.Billing.Stores;
 using JustTaskTracker.WebUI.Services.Configuration;
 using JustTaskTracker.WebUI.Services.Boards;
 using JustTaskTracker.WebUI.Services.Boards.Actions;
@@ -55,8 +58,16 @@ public static class ServiceCollectionExtensions
             .ConfigureHttpClient(c => c.BaseAddress = new Uri(options.BaseUrl))
             .AddHttpMessageHandler<ApiAuthorizationMessageHandler>();
 
+        services.AddRefitClient<IBillingApi>(RefitSettings)
+            .ConfigureHttpClient(c => c.BaseAddress = new Uri(options.BaseUrl))
+            .AddHttpMessageHandler<ApiAuthorizationMessageHandler>();
+
         services.AddScoped<IAuthApiService, AuthApiService>();
         services.AddScoped<IProfileStore, ProfileStore>();
+
+        services.AddScoped<IBillingApiService, BillingApiService>();
+        services.AddScoped<IEntitlementsStore, EntitlementsStore>();
+        services.AddScoped<IBillingStore, BillingStore>();
 
         services.AddScoped<IUsersApiService, UsersApiService>();
         services.AddScoped<IBoardApiService, BoardApiService>();

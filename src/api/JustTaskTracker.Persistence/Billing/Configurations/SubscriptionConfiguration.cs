@@ -1,6 +1,5 @@
 using JustTaskTracker.Domain.Billing.Constants;
 using JustTaskTracker.Domain.Billing.Entities;
-using JustTaskTracker.Domain.Billing.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 

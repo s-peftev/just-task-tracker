@@ -22,13 +22,13 @@ public static class PlanCopyCatalog
         new(
             "Discuss work in task comments and share file attachments",
             PlanHighlightIconKind.Discuss),
-        new(
-            "Archive boards when you’re done",
-            PlanHighlightIconKind.Archive),
     ];
 
     private static readonly IReadOnlyList<PlanHighlight> ProExclusiveHighlights =
     [
+        new(
+            "Archive boards when you’re done",
+            PlanHighlightIconKind.Archive),
         new(
             "Create downloadable copies of archived boards",
             PlanHighlightIconKind.DownloadCopy),
@@ -43,7 +43,7 @@ public static class PlanCopyCatalog
         PlanAccentClasses.Free);
 
     private static readonly PlanCopy Pro = new(
-        "Best for owners who need archive downloads and export control.",
+        "Best for archive downloads and export control.",
         ExtendWithBaseline(FreeHighlights, ProExclusiveHighlights),
         PlanAccentClasses.Pro);
 

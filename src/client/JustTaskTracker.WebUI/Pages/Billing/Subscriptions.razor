@@ -135,7 +135,8 @@
                                         {
                                             <a class="plan-card__portal-link"
                                                href="#"
-                                               @onclick:preventDefault="true">
+                                               @onclick:preventDefault="true"
+                                               @onclick="StartPortalSessionAsync">
                                                 Manage billing
                                             </a>
                                         }
@@ -154,7 +155,7 @@
 @code {
     private bool _isAllowed;
     private bool _pageLoadStarted;
-    private bool _isCheckoutInProgress;
+    private bool _isBillingRedirectInProgress;
 
     private IBillingStore BillingStore => Service;
 
@@ -236,7 +237,7 @@
         && planId.Equals(currentPlanId, StringComparison.OrdinalIgnoreCase);
 
     private bool IsActionEnabled(PlanCardAction action) =>
-        action.IsEnabled && !_isCheckoutInProgress;
+        action.IsEnabled && !_isBillingRedirectInProgress;
 
     private async Task OnPlanActionAsync(PlanCardAction action, string planId)
     {
@@ -245,16 +246,16 @@
             case PlanCardActionKind.Upgrade:
                 await StartCheckoutAsync(planId);
                 break;
-            // ReturnToFree / portal flows are not wired yet.
+            // ReturnToFree is not wired yet.
         }
     }
 
     private async Task StartCheckoutAsync(string planId)
     {
-        if (_isCheckoutInProgress)
+        if (_isBillingRedirectInProgress)
             return;
 
-        _isCheckoutInProgress = true;
+        _isBillingRedirectInProgress = true;
 
         try
         {
@@ -264,7 +265,26 @@
         catch (ApiServiceException ex)
         {
             Snackbar.ShowApiError(ex);
-            _isCheckoutInProgress = false;
+            _isBillingRedirectInProgress = false;
+        }
+    }
+
+    private async Task StartPortalSessionAsync()
+    {
+        if (_isBillingRedirectInProgress)
+            return;
+
+        _isBillingRedirectInProgress = true;
+
+        try
+        {
+            var session = await BillingApiService.CreatePortalSessionAsync();
+            Navigation.NavigateTo(session.Url, forceLoad: true);
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+            _isBillingRedirectInProgress = false;
         }
     }
 

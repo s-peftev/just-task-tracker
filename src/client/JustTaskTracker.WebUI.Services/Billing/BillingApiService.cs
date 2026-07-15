@@ -36,4 +36,11 @@ internal sealed class BillingApiService(IBillingApi api) : IBillingApiService
 
         return ApiResponseGuard.Unwrap(response);
     }
+
+    public async Task<PortalSessionResult> CreatePortalSessionAsync(CancellationToken ct = default)
+    {
+        var response = await api.CreatePortalSessionAsync(ct);
+
+        return ApiResponseGuard.Unwrap(response);
+    }
 }

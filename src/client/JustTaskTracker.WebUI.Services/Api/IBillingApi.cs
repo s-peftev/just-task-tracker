@@ -20,4 +20,8 @@ internal interface IBillingApi
     Task<IApiResponse<ApiEnvelope<CheckoutSessionResult>>> CreateCheckoutSessionAsync(
         [Body] CreateCheckoutSessionRequest request,
         CancellationToken ct = default);
+
+    [Post("/api/billing/portal")]
+    Task<IApiResponse<ApiEnvelope<PortalSessionResult>>> CreatePortalSessionAsync(
+        CancellationToken ct = default);
 }

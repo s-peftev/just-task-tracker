@@ -11,4 +11,6 @@ public interface IBillingApiService
     Task<SubscriptionDetailsDto> GetSubscriptionAsync(CancellationToken ct = default);
 
     Task<CheckoutSessionResult> CreateCheckoutSessionAsync(string planId, CancellationToken ct = default);
+
+    Task<PortalSessionResult> CreatePortalSessionAsync(CancellationToken ct = default);
 }

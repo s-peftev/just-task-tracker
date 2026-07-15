@@ -70,6 +70,9 @@ internal class EntitlementService(
             subscription.CurrentPeriodEndUtc);
     }
 
+    public Task<string?> GetBillableStripeCustomerIdAsync(Guid userId, CancellationToken ct = default) =>
+        subscriptionRepository.GetBillableStripeCustomerIdAsync(userId, ct);
+
     private PlanDto ResolveEffectivePlanAsync(string? planId)
     {
         if (planId is null)

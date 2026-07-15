@@ -30,4 +30,10 @@ public interface IEntitlementService
     /// <see langword="false"/>.
     /// </summary>
     Task<SubscriptionDetailsDto> GetUserSubscriptionAsync(Guid userId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Returns the Stripe customer id for the user's current billable subscription,
+    /// or <see langword="null"/> when none exists.
+    /// </summary>
+    Task<string?> GetBillableStripeCustomerIdAsync(Guid userId, CancellationToken ct = default);
 }

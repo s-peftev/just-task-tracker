@@ -10,6 +10,11 @@ public static class BillingErrors
         ErrorType.Conflict,
         ["An active subscription already exists for this user."]);
 
+    public static readonly Error SubscriptionNotFound = new(
+        nameof(SubscriptionNotFound),
+        ErrorType.NotFound,
+        ["No active subscription was found for this user."]);
+
     public static readonly Error WebhookPayloadInvalid = new(
         nameof(WebhookPayloadInvalid),
         ErrorType.Validation,

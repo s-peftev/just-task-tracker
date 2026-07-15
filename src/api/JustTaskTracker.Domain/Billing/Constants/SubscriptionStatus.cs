@@ -18,8 +18,24 @@ public static class SubscriptionStatus
         PastDue,
     ];
 
+    private static readonly HashSet<string> KnownSet =
+    [
+        Incomplete,
+        IncompleteExpired,
+        Trialing,
+        Active,
+        PastDue,
+        Canceled,
+        Unpaid,
+        Paused,
+    ];
+
     public static bool IsBillable(string status) =>
         !string.IsNullOrEmpty(status) && BillableSet.Contains(status);
+
+    /// <summary>Returns whether <paramref name="status"/> is one of Stripe's documented subscription statuses.</summary>
+    public static bool IsKnown(string status) =>
+        !string.IsNullOrEmpty(status) && KnownSet.Contains(status);
 
     public static IReadOnlyCollection<string> AllBillable => BillableSet;
 }

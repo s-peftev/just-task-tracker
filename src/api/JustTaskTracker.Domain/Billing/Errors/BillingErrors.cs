@@ -19,4 +19,9 @@ public static class BillingErrors
         nameof(WebhookPayloadInvalid),
         ErrorType.Validation,
         ["The Stripe webhook payload is missing required subscription fields."]);
+
+    public static readonly Error UnknownSubscriptionStatus = new(
+        nameof(UnknownSubscriptionStatus),
+        ErrorType.Validation,
+        ["The Stripe webhook reported a subscription status that is not recognized."]);
 }

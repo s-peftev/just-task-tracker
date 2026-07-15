@@ -36,26 +36,52 @@
             </header>
 
             <div class="subscriptions__plans">
+                <div class="subscriptions__plans-row">
+                @{
+                    var subscription = BillingStore.Subscription;
+                    var reservePortalSlot = BillingStore.Plans.Any(plan =>
+                    {
+                        var planAction = PlanCardActionResolver.Resolve(plan, subscription);
+                        return planAction?.Kind == PlanCardActionKind.Current
+                            && subscription is { HasBillableSubscription: true };
+                    });
+                }
                 @foreach (var plan in BillingStore.Plans)
                 {
                     var copy = PlanCopyCatalog.GetOrEmpty(plan.PlanId);
-                    var isCurrentPlan = IsCurrentPlan(plan.PlanId);
-                    var statusLabel = isCurrentPlan
-                        ? SubscriptionStatusFormatting.TryGetBadgeLabel(BillingStore.Subscription?.Status)
+                    var isCurrentBillablePlan = IsCurrentBillablePlan(plan.PlanId);
+                    var statusLabel = isCurrentBillablePlan
+                        ? SubscriptionStatusFormatting.TryGetBadgeLabel(subscription?.Status)
                         : null;
-                    var statusCss = isCurrentPlan
-                        ? SubscriptionStatusFormatting.TryGetBadgeCssModifier(BillingStore.Subscription?.Status)
+                    var statusCss = isCurrentBillablePlan
+                        ? SubscriptionStatusFormatting.TryGetBadgeCssModifier(subscription?.Status)
                         : null;
+                    var statusNotice = PlanCardSubscriptionNoticeResolver.Resolve(
+                        plan.PlanId,
+                        subscription,
+                        DateTime.UtcNow);
                     var action = PlanCardActionResolver.Resolve(
                         plan,
-                        BillingStore.Subscription);
+                        subscription);
+                    var showPortalLink = action?.Kind == PlanCardActionKind.Current
+                        && subscription is { HasBillableSubscription: true };
 
                     <PlanCard @key="plan.PlanId" AccentClass="@copy.AccentClass">
                         <div class="plan-card__title-row">
-                            <h2 class="plan-card__title">@plan.PlanDisplayName</h2>
+                            <div class="plan-card__title-col">
+                                <div class="plan-card__title" role="heading" aria-level="2">@plan.PlanDisplayName</div>
+                            </div>
                             @if (statusLabel is not null && statusCss is not null)
                             {
-                                <span class="plan-card__status @statusCss">@statusLabel</span>
+                                <div class="plan-card__status-block">
+                                    <div class="plan-card__status @statusCss">@statusLabel</div>
+                                    @if (statusNotice is not null)
+                                    {
+                                        <div class="plan-card__status-note @(statusNotice.Kind == PlanCardSubscriptionNoticeKind.PastDue ? "plan-card__status-note--wrap" : null)">
+                                            @statusNotice.Text
+                                        </div>
+                                    }
+                                </div>
                             }
                         </div>
 
@@ -94,15 +120,32 @@
 
                         @if (action is not null)
                         {
-                            <button type="button"
-                                    class="plan-card__action"
-                                    disabled="@(!IsActionEnabled(action))"
-                                    @onclick="() => OnPlanActionAsync(action, plan.PlanId)">
-                                @action.Label
-                            </button>
+                            <div class="plan-card__footer">
+                                <button type="button"
+                                        class="plan-card__action"
+                                        disabled="@(!IsActionEnabled(action))"
+                                        @onclick="() => OnPlanActionAsync(action, plan.PlanId)">
+                                    @action.Label
+                                </button>
+
+                                @if (reservePortalSlot)
+                                {
+                                    <div class="plan-card__portal-slot">
+                                        @if (showPortalLink)
+                                        {
+                                            <a class="plan-card__portal-link"
+                                               href="#"
+                                               @onclick:preventDefault="true">
+                                                Manage billing
+                                            </a>
+                                        }
+                                    </div>
+                                }
+                            </div>
                         }
                     </PlanCard>
                 }
+                </div>
             </div>
         }
     </div>
@@ -188,8 +231,8 @@
         await BillingStore.EnsureLoadedAsync();
     }
 
-    private bool IsCurrentPlan(string planId) =>
-        BillingStore.Subscription is { PlanId: var currentPlanId }
+    private bool IsCurrentBillablePlan(string planId) =>
+        BillingStore.Subscription is { HasBillableSubscription: true, PlanId: var currentPlanId }
         && planId.Equals(currentPlanId, StringComparison.OrdinalIgnoreCase);
 
     private bool IsActionEnabled(PlanCardAction action) =>

@@ -19,9 +19,9 @@ public interface IEntitlementService
     Task<bool> CanUseAsync(Guid userId, IReadOnlyList<string> globalRoles, string feature, CancellationToken ct = default);
 
     /// <summary>
-    /// Returns the user's effective plan and feature set for API/UI consumption.
+    /// Returns the user's entitlements for API/UI consumption.
     /// </summary>
-    Task<PlanDto> GetEntitlementsAsync(Guid userId, IReadOnlyList<string> globalRoles, CancellationToken ct = default);
+    Task<EntitlementDto> GetEntitlementsAsync(Guid userId, IReadOnlyList<string> globalRoles, CancellationToken ct = default);
 
     /// <summary>
     /// Returns subscription details for the billing UI. When the user has no

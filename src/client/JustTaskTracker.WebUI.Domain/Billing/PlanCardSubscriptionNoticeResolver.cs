@@ -24,7 +24,7 @@ public static class PlanCardSubscriptionNoticeResolver
             SubscriptionStatuses.Active => ResolveActive(subscription, utcNow),
             SubscriptionStatuses.PastDue => new PlanCardSubscriptionNotice(
                 PlanCardSubscriptionNoticeKind.PastDue,
-                "Payment issue. Update your payment details in the billing portal so your subscription is not canceled in the coming days."),
+                SubscriptionStatusCopy.PastDueNotice),
             _ => null,
         };
     }

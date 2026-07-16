@@ -23,8 +23,6 @@ public sealed class CustomerSubscriptionCreatedWebhookHandler(
         if (!TryGetRequiredFields(billingEvent, out var userId, out var planId, out var customerId, out var subscriptionId, out var status))
             return Result.Failure(BillingErrors.WebhookPayloadInvalid);
 
-        // Incomplete / non-billable statuses are acknowledged but not persisted yet.
-        // Lifecycle sync (e.g. incomplete → active) belongs in a future subscription.updated handler.
         if (!SubscriptionStatus.IsBillable(status))
         {
             logger.LogInformation(

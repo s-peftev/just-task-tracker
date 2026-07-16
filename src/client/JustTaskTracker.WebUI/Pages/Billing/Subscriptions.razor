@@ -49,11 +49,11 @@
                 @foreach (var plan in BillingStore.Plans)
                 {
                     var copy = PlanCopyCatalog.GetOrEmpty(plan.PlanId);
-                    var isCurrentBillablePlan = IsCurrentBillablePlan(plan.PlanId);
-                    var statusLabel = isCurrentBillablePlan
+                    var isCurrentPlan = IsCurrentPlan(plan.PlanId);
+                    var statusLabel = isCurrentPlan
                         ? SubscriptionStatusFormatting.TryGetBadgeLabel(subscription?.Status)
                         : null;
-                    var statusCss = isCurrentBillablePlan
+                    var statusCss = isCurrentPlan
                         ? SubscriptionStatusFormatting.TryGetBadgeCssModifier(subscription?.Status)
                         : null;
                     var statusNotice = PlanCardSubscriptionNoticeResolver.Resolve(
@@ -232,8 +232,8 @@
         await BillingStore.EnsureLoadedAsync();
     }
 
-    private bool IsCurrentBillablePlan(string planId) =>
-        BillingStore.Subscription is { HasBillableSubscription: true, PlanId: var currentPlanId }
+    private bool IsCurrentPlan(string planId) =>
+        BillingStore.Subscription is { PlanId: var currentPlanId }
         && planId.Equals(currentPlanId, StringComparison.OrdinalIgnoreCase);
 
     private bool IsActionEnabled(PlanCardAction action) =>

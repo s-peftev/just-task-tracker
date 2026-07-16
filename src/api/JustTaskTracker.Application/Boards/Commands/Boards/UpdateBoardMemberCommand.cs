@@ -1,5 +1,6 @@
 using FluentValidation;
 using JustTaskTracker.Application.Auth;
+using JustTaskTracker.Application.Auth.Repositories;
 using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Behaviors;
 using JustTaskTracker.Application.Common.Persistence;
@@ -18,6 +19,7 @@ public record UpdateBoardMemberCommand(Guid BoardId, Guid UserId, BoardMemberRol
 public class UpdateBoardMemberCommandHandler(
     ICurrentUserAccessor currentUserAccessor,
     IBoardRepository boardRepository,
+    IUserRepository userRepository,
     IUnitOfWork unitOfWork)
     : IRequestHandler<UpdateBoardMemberCommand, Result>
 {
@@ -47,6 +49,11 @@ public class UpdateBoardMemberCommandHandler(
 
         if (member.Role == request.Role)
             return Result.Success();
+
+        var globalRoles = await userRepository.GetGlobalRolesByUserIdAsync(request.UserId, ct);
+
+        if (!BoardRolePermissions.IsAllowedBoardRoleForGlobalRoles(globalRoles, request.Role))
+            return Result.Failure(BoardMembersErrors.GlobalAdminBoardRoleRestricted);
 
         member.Role = request.Role;
 

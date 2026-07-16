@@ -1,3 +1,4 @@
+using JustTaskTracker.Domain.Auth.Constants;
 using JustTaskTracker.Domain.Boards.Enums;
 
 namespace JustTaskTracker.Domain.Boards.Authorization;
@@ -24,6 +25,18 @@ public static class BoardRolePermissions
 
     public static bool CanManageMembers(BoardMemberRole role) =>
         role is BoardMemberRole.Owner or BoardMemberRole.Admin;
+
+    /// <summary>
+    /// Global app admins may only hold <see cref="BoardMemberRole.Admin"/> on a board.
+    /// </summary>
+    public static bool IsAllowedBoardRoleForGlobalRoles(
+        IReadOnlyList<string> globalRoles,
+        BoardMemberRole boardRole)
+    {
+        var isGlobalAdmin = globalRoles.Contains(Roles.Admin, StringComparer.OrdinalIgnoreCase);
+
+        return !isGlobalAdmin || boardRole == BoardMemberRole.Admin;
+    }
 
     public static bool CanManageColumns(BoardMemberRole role) =>
         role is BoardMemberRole.Owner or BoardMemberRole.Admin or BoardMemberRole.ScrumMaster;

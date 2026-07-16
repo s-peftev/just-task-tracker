@@ -40,6 +40,11 @@ public class AddBoardMemberCommandHandler(
         if (await boardRepository.IsBoardMemberAsync(request.BoardId, request.UserId, ct))
             return Result.Failure(BoardMembersErrors.UserAlreadyMember);
 
+        var globalRoles = await userRepository.GetGlobalRolesByUserIdAsync(request.UserId, ct);
+
+        if (!BoardRolePermissions.IsAllowedBoardRoleForGlobalRoles(globalRoles, request.Role))
+            return Result.Failure(BoardMembersErrors.GlobalAdminBoardRoleRestricted);
+
         boardRepository.AddMember(new BoardMember
         {
             BoardId = request.BoardId,

@@ -34,4 +34,9 @@ public static class BoardMembersErrors
         nameof(CannotChangeOwnRole),
         ErrorType.Business,
         ["You cannot change your own board role."]);
+
+    public static readonly Error GlobalAdminBoardRoleRestricted = new(
+        nameof(GlobalAdminBoardRoleRestricted),
+        ErrorType.Conflict,
+        ["A global administrator can only be assigned the Admin role on a board."]);
 }

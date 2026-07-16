@@ -5,4 +5,5 @@ public static class UserFieldLengths
     public const int MaxEmailLength = 320;
     public const int MaxDisplayNameLength = 256;
     public const int MaxProfilePhotoVersionLength = 30;
+    public const int MaxGlobalRoleLength = 16;
 }

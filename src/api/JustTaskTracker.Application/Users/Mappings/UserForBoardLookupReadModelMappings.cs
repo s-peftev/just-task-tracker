@@ -7,11 +7,13 @@ public static class UserForBoardLookupReadModelMappings
 {
     public static UserForBoardLookupDto ToDto(
         this UserForBoardLookupReadModel user,
-        Func<UserForBoardLookupReadModel, string?> profilePhotoUrlResolver) =>
+        Func<UserForBoardLookupReadModel, string?> profilePhotoUrlResolver,
+        Func<IReadOnlyList<string>, bool> isGlobalAdminResolver) =>
         new(
             user.Id,
             user.Email,
             user.DisplayName,
             profilePhotoUrlResolver(user),
+            isGlobalAdminResolver(user.GlobalRoles),
             user.BoardMemberRole);
 }

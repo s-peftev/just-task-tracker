@@ -7,4 +7,5 @@ public record UserForBoardLookupReadModel(
     string Email,
     string? DisplayName,
     string? ProfilePhotoVersion,
+    IReadOnlyList<string> GlobalRoles,
     BoardMemberRole? BoardMemberRole);

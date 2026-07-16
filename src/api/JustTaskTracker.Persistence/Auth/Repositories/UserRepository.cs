@@ -59,6 +59,7 @@ public class UserRepository(JustTaskTrackerDbContext context) : Repository<User,
                     u.Email,
                     u.DisplayName,
                     u.ProfilePhotoVersion,
+                    u.GlobalRoles.Select(r => r.Role).ToList(),
                     _context.BoardMembers
                         .Where(m => m.BoardId == boardId && m.UserId == u.Id)
                         .Select(m => (BoardMemberRole?)m.Role)

@@ -27,7 +27,9 @@ public class UserRepository(JustTaskTrackerDbContext context) : Repository<User,
             .FirstOrDefaultAsync(ct);
 
     public async Task<User?> GetUserByAzureAOIAsync(Guid azureAdObjectId, CancellationToken ct = default) =>
-        await _dbSet.FirstOrDefaultAsync(u => u.AzureAdObjectId == azureAdObjectId, ct);
+        await _dbSet
+            .Include(u => u.GlobalRoles)
+            .FirstOrDefaultAsync(u => u.AzureAdObjectId == azureAdObjectId, ct);
 
     public async Task<PagedList<UserForBoardLookupReadModel>> GetPagedUserForBoardLookup(
         Guid boardId,

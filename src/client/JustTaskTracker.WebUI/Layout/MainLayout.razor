@@ -91,13 +91,14 @@
             return;
 
         var switchResult = await MicrosoftAuthNavigation.TryCompleteAccountSwitchAsync(Js, AuthState);
-        if (switchResult == AccountSwitchResult.SameAccountRequiresFullLogout)
-        {
-            await EnsureProfileAndEntitlementsAsync(AccountSwitchResult.Switched);
-            return;
-        }
+        var pendingAppLogin = await MicrosoftAuthNavigation.ConsumePendingAppLoginAsync(Js);
 
-        await EnsureProfileAndEntitlementsAsync(switchResult);
+        // Same-account switch still needs POST /login for role sync (treated as interactive).
+        var useLogin = pendingAppLogin
+            || switchResult is AccountSwitchResult.Switched
+                or AccountSwitchResult.SameAccountRequiresFullLogout;
+
+        await EnsureProfileAndEntitlementsAsync(useLogin);
 
         if (ProfileStore.RequiresLogin)
             Navigation.NavigateTo("/login");
@@ -115,29 +116,29 @@
 
     /// <summary>
     /// Loads profile first, then entitlements. Sequential on purpose: first login
-    /// provisions the app user via ProfileStore (GET me → POST login); entitlements
-    /// require that user to exist, so parallel would race on a cold account.
+    /// provisions the app user; entitlements require that user to exist.
+    /// Interactive flows use POST /auth/login; session restore uses GET /auth/me.
     /// </summary>
-    private async Task EnsureProfileAndEntitlementsAsync(AccountSwitchResult switchResult)
+    private async Task EnsureProfileAndEntitlementsAsync(bool useLogin)
     {
         var authState = await AuthState.GetAuthenticationStateAsync();
         if (authState.User.Identity?.IsAuthenticated != true)
             return;
 
-        var needsRefresh = switchResult == AccountSwitchResult.Switched
-            || !ProfileStore.IsLoaded
-            || ProfileStore.Profile is not { } cached
-            || !MicrosoftAuthNavigation.ProfileMatchesAuth(cached, authState.User);
+        var profileMismatch = ProfileStore.IsLoaded
+            && ProfileStore.Profile is { } cached
+            && !MicrosoftAuthNavigation.ProfileMatchesAuth(cached, authState.User);
 
-        if (needsRefresh)
-            await ProfileStore.RefreshAsync();
+        if (useLogin || profileMismatch)
+            await ProfileStore.LoginAsync();
         else
             await ProfileStore.EnsureLoadedAsync();
 
         if (ProfileStore.RequiresLogin || !ProfileStore.IsLoaded || ProfileStore.Profile is null)
             return;
 
-        if (needsRefresh)
+        // Login / mismatch always refreshes entitlements; silent restore uses EnsureLoaded.
+        if (useLogin || profileMismatch)
             await EntitlementsStore.RefreshAsync();
         else
             await EntitlementsStore.EnsureLoadedAsync();

@@ -6,7 +6,9 @@
 @inject AuthenticationStateProvider AuthStateProvider
 @inject IJSRuntime Js
 
-<RemoteAuthenticatorView Action="@Action" OnLogOutSucceeded="HandleLogOutSucceeded" />
+<RemoteAuthenticatorView Action="@Action"
+                         OnLogInSucceeded="HandleLogInSucceeded"
+                         OnLogOutSucceeded="HandleLogOutSucceeded" />
 
 @code {
     [Parameter] public string? Action { get; set; }
@@ -20,6 +22,17 @@
 
         _logoutFallbackStarted = true;
         await EnsureLogoutRedirectAsync();
+    }
+
+    private async Task HandleLogInSucceeded(RemoteAuthenticationState state)
+    {
+        // Marks this session start as an interactive login so MainLayout calls POST /auth/login
+        // (provision + role sync) instead of GET /auth/me. F5 with a cached MSAL session never
+        // hits OnLogInSucceeded, so it keeps using /me.
+        await Js.InvokeVoidAsync(
+            "sessionStorage.setItem",
+            MicrosoftAuthNavigation.PendingAppLoginStorageKey,
+            "1");
     }
 
     private async Task HandleLogOutSucceeded(RemoteAuthenticationState state)

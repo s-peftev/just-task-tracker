@@ -5,5 +5,6 @@ namespace JustTaskTracker.WebUI.Domain.Boards;
 
 public record BoardMemberDto(
     UserDto User,
+    bool IsGlobalAdmin,
     BoardMemberRole Role,
     DateTime JoinedAtUtc);

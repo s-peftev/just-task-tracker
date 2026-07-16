@@ -3,5 +3,14 @@
 
 @foreach (var role in BoardMemberRoleFormatting.AssignableRoles)
 {
-    <MudSelectItem T="BoardMemberRole" Value="@role">@BoardMemberRoleFormatting.Format(role)</MudSelectItem>
+    <MudSelectItem T="BoardMemberRole"
+                   Value="@role"
+                   Disabled="@(IsGlobalAdmin && !BoardMemberRoleFormatting.IsAssignableForGlobalAdmin(role))">
+        @BoardMemberRoleFormatting.Format(role)
+    </MudSelectItem>
+}
+
+@code {
+    [Parameter]
+    public bool IsGlobalAdmin { get; set; }
 }

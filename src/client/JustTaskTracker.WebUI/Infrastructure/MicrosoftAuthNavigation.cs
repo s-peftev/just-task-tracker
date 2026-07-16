@@ -22,6 +22,12 @@ public static class MicrosoftAuthNavigation
     public const string SwitchAccountPendingStorageKey = "jtt.switchAccountPending";
     public const string SwitchAccountPreviousUserStorageKey = "jtt.switchAccountPreviousUser";
 
+    /// <summary>
+    /// Set on interactive Entra login success; consumed by MainLayout to call POST /auth/login
+    /// (role sync) instead of GET /auth/me (session restore).
+    /// </summary>
+    public const string PendingAppLoginStorageKey = "jtt.pendingAppLogin";
+
     private const string LocalSignOutJsMethod = "jttAuth.localSignOut";
 
     public static void NavigateToMicrosoftLogin(
@@ -97,6 +103,18 @@ public static class MicrosoftAuthNavigation
         return string.Equals(previousUser, currentUser, StringComparison.OrdinalIgnoreCase)
             ? AccountSwitchResult.SameAccountRequiresFullLogout
             : AccountSwitchResult.Switched;
+    }
+
+    /// <summary>
+    /// Reads and clears <see cref="PendingAppLoginStorageKey"/>. Returns true when an
+    /// interactive Entra login just completed and the app should POST /auth/login.
+    /// </summary>
+    public static async Task<bool> ConsumePendingAppLoginAsync(IJSRuntime js)
+    {
+        var pending = await js.InvokeAsync<string?>("sessionStorage.getItem", PendingAppLoginStorageKey);
+        await js.InvokeVoidAsync("sessionStorage.removeItem", PendingAppLoginStorageKey);
+
+        return pending == "1";
     }
 
     public static string GetAccountIdentifier(ClaimsPrincipal user)

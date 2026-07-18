@@ -10,7 +10,7 @@ namespace JustTaskTracker.WebUI.Services.Boards.Stores;
 
 internal sealed class BoardStore(IBoardApiService boardApiService) : IBoardStore
 {
-    public const int ActivePageSize = 11;
+    public const int ActivePageSize = 23;
     public const int ArchivedPageSize = 12;
     private const int SearchDebounceMilliseconds = 300;
 
@@ -45,10 +45,15 @@ internal sealed class BoardStore(IBoardApiService boardApiService) : IBoardStore
     public Task SetArchivedSearchAsync(string searchText, CancellationToken ct = default) =>
         SetSearchInternalAsync(_archived, isArchived: true, searchText, ct);
 
-    public Task RefreshAsync(CancellationToken ct = default) =>
-        Task.WhenAll(
+    public Task RefreshAsync(bool includeArchived = true, CancellationToken ct = default)
+    {
+        if (!includeArchived)
+            return LoadInternalAsync(_active, isArchived: false, _active.CurrentPage, _active.SearchText, ct);
+
+        return Task.WhenAll(
             LoadInternalAsync(_active, isArchived: false, _active.CurrentPage, _active.SearchText, ct),
             LoadInternalAsync(_archived, isArchived: true, _archived.CurrentPage, _archived.SearchText, ct));
+    }
 
     public BoardMemberRole? GetCachedRole(Guid boardId) =>
         _roleCache.TryGetValue(boardId, out var role) ? role : null;
@@ -134,6 +139,14 @@ internal sealed class BoardStore(IBoardApiService boardApiService) : IBoardStore
         _active.Reset();
         _archived.Reset();
         _roleCache.Clear();
+        NotifyStateChanged();
+    }
+
+    public void ResetArchived()
+    {
+        CancelSearchDebounce(_archived);
+        Interlocked.Increment(ref _archived.LoadGeneration);
+        _archived.Reset();
         NotifyStateChanged();
     }
 

@@ -12,6 +12,7 @@
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
+@inject IJSRuntime Js
 
 <PageTitle>Boards — JustTaskTracker</PageTitle>
 
@@ -19,12 +20,25 @@
     <section class="boards__section">
         <header class="boards__header">
             <h2 class="text-section-title">Active boards</h2>
-            <input class="boards__search-input"
-                   type="search"
-                   maxlength="40"
-                   placeholder="Search boards by name"
-                   value="@BoardStore.Active.SearchText"
-                   @oninput="OnActiveSearchInputAsync" />
+            <div class="boards__search-row">
+                <input class="boards__search-input"
+                       type="search"
+                       maxlength="40"
+                       placeholder="Search boards by name"
+                       value="@BoardStore.Active.SearchText"
+                       @oninput="OnActiveSearchInputAsync" />
+                <button type="button"
+                        class="boards__archived-toggle @(_showArchivedBoards ? "boards__archived-toggle--active" : null)"
+                        aria-pressed="@_showArchivedBoards"
+                        aria-label="Show archived boards"
+                        @onclick="ToggleShowArchivedBoardsAsync">
+                    <svg class="boards__archived-toggle-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path d="M20.54 5.23l-1.39-1.68C18.88 3.21 18.47 3 18 3H6c-.47 0-.88.21-1.16.55L3.46 5.23C3.17 5.57 3 6.02 3 6.5V19c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6.5c0-.48-.17-.93-.46-1.27zM12 17.5 6.5 12H10v-2h4v2h3.5L12 17.5zM5.12 5l.81-1h12l.94 1H5.12z"
+                              fill="currentColor" />
+                    </svg>
+                    <span class="boards__archived-toggle-tooltip" aria-hidden="true">Show archived boards</span>
+                </button>
+            </div>
             <div class="boards__pager">
                 <button type="button"
                         class="btn-noir"
@@ -80,70 +94,77 @@
         </div>
     </section>
 
-    <hr class="boards__divider" />
+    @if (_showArchivedBoards)
+    {
+        <hr class="boards__divider" />
 
-    <section class="boards__section">
-        <header class="boards__header">
-            <h2 class="text-section-title">Archived boards</h2>
-            <input class="boards__search-input"
-                   type="search"
-                   maxlength="40"
-                   placeholder="Search boards by name"
-                   value="@BoardStore.Archived.SearchText"
-                   @oninput="OnArchivedSearchInputAsync" />
-            <div class="boards__pager">
-                <button type="button"
-                        class="btn-noir"
-                        disabled="@(BoardStore.Archived.CurrentPage <= 1 || BoardStore.Archived.IsLoading)"
-                        @onclick="() => ChangeArchivedPageAsync(BoardStore.Archived.CurrentPage - 1)">
-                    <span>Prev</span>
-                </button>
-                <span class="text-meta-subtle">
-                    Page @BoardStore.Archived.CurrentPage of @(Math.Max(BoardStore.Archived.Pagination.TotalPages, 1))
-                </span>
-                <button type="button"
-                        class="btn-noir"
-                        disabled="@(BoardStore.Archived.CurrentPage >= Math.Max(BoardStore.Archived.Pagination.TotalPages, 1) || BoardStore.Archived.IsLoading)"
-                        @onclick="() => ChangeArchivedPageAsync(BoardStore.Archived.CurrentPage + 1)">
-                    <span>Next</span>
-                </button>
+        <section class="boards__section">
+            <header class="boards__header">
+                <h2 class="text-section-title">Archived boards</h2>
+                <input class="boards__search-input"
+                       type="search"
+                       maxlength="40"
+                       placeholder="Search boards by name"
+                       value="@BoardStore.Archived.SearchText"
+                       @oninput="OnArchivedSearchInputAsync" />
+                <div class="boards__pager">
+                    <button type="button"
+                            class="btn-noir"
+                            disabled="@(BoardStore.Archived.CurrentPage <= 1 || BoardStore.Archived.IsLoading)"
+                            @onclick="() => ChangeArchivedPageAsync(BoardStore.Archived.CurrentPage - 1)">
+                        <span>Prev</span>
+                    </button>
+                    <span class="text-meta-subtle">
+                        Page @BoardStore.Archived.CurrentPage of @(Math.Max(BoardStore.Archived.Pagination.TotalPages, 1))
+                    </span>
+                    <button type="button"
+                            class="btn-noir"
+                            disabled="@(BoardStore.Archived.CurrentPage >= Math.Max(BoardStore.Archived.Pagination.TotalPages, 1) || BoardStore.Archived.IsLoading)"
+                            @onclick="() => ChangeArchivedPageAsync(BoardStore.Archived.CurrentPage + 1)">
+                        <span>Next</span>
+                    </button>
+                </div>
+            </header>
+
+            <div class="boards__boards">
+                @if (BoardStore.Archived.IsLoading && BoardStore.Archived.Boards.Count == 0)
+                {
+                    <div class="page-state">
+                        <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+                    </div>
+                }
+                else if (BoardStore.Archived.ErrorMessage is { } archivedError)
+                {
+                    <div class="page-state">
+                        <MudAlert Severity="Severity.Error">@archivedError</MudAlert>
+                    </div>
+                }
+                else if (BoardStore.Archived.Boards.Count == 0)
+                {
+                    <div class="page-state">
+                        <p class="text-empty">You don't have any archived boards.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="boards__grid">
+                        @foreach (var board in BoardStore.Archived.Boards)
+                        {
+                            <BoardCard Board="board" OnClick="OpenBoard" />
+                        }
+                    </div>
+                }
             </div>
-        </header>
-
-        <div class="boards__boards">
-            @if (BoardStore.Archived.IsLoading && BoardStore.Archived.Boards.Count == 0)
-            {
-                <div class="page-state">
-                    <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
-                </div>
-            }
-            else if (BoardStore.Archived.ErrorMessage is { } archivedError)
-            {
-                <div class="page-state">
-                    <MudAlert Severity="Severity.Error">@archivedError</MudAlert>
-                </div>
-            }
-            else if (BoardStore.Archived.Boards.Count == 0)
-            {
-                <div class="page-state">
-                    <p class="text-empty">You don't have any archived boards.</p>
-                </div>
-            }
-            else
-            {
-                <div class="boards__grid">
-                    @foreach (var board in BoardStore.Archived.Boards)
-                    {
-                        <BoardCard Board="board" OnClick="OpenBoard" />
-                    }
-                </div>
-            }
-        </div>
-    </section>
+        </section>
+    }
 </div>
 
 @code {
+    private const string ShowArchivedBoardsStorageKey = "jtt.showArchivedBoards";
+
     private IReadOnlyList<Guid> _subscribedArchivedBoardIds = [];
+    private bool _showArchivedBoards = true;
+    private bool _preferenceLoaded;
 
     private bool CanCreateBoard =>
         ProfileStore.Profile?.Roles.Any(r =>
@@ -153,10 +174,12 @@
     [Inject]
     private IProfileStore ProfileStore { get; set; } = default!;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         BoardStore.StateChanged += OnStoreStateChanged;
         ProfileStore.StateChanged += OnProfileStoreStateChanged;
+        _showArchivedBoards = await ReadShowArchivedBoardsPreferenceAsync();
+        _preferenceLoaded = true;
     }
 
     protected override Task OnParametersSetAsync() =>
@@ -164,13 +187,16 @@
 
     private async Task TryRefreshBoardsAsync()
     {
-        if (!ProfileStore.IsLoaded || ProfileStore.RequiresLogin)
+        if (!_preferenceLoaded || !ProfileStore.IsLoaded || ProfileStore.RequiresLogin)
             return;
 
-        if (BoardStore.Active.IsLoading || BoardStore.Archived.IsLoading)
+        if (BoardStore.Active.IsLoading)
             return;
 
-        await BoardStore.RefreshAsync();
+        if (_showArchivedBoards && BoardStore.Archived.IsLoading)
+            return;
+
+        await BoardStore.RefreshAsync(includeArchived: _showArchivedBoards);
     }
 
     private void OpenBoard(BoardLookupDto board) =>
@@ -187,6 +213,53 @@
 
     private Task OnArchivedSearchInputAsync(ChangeEventArgs e) =>
         BoardStore.SetArchivedSearchAsync(e.Value?.ToString() ?? string.Empty);
+
+    private async Task ToggleShowArchivedBoardsAsync()
+    {
+        _showArchivedBoards = !_showArchivedBoards;
+        await PersistShowArchivedBoardsPreferenceAsync(_showArchivedBoards);
+
+        if (_showArchivedBoards)
+        {
+            await BoardStore.LoadArchivedAsync(1);
+            return;
+        }
+
+        await SyncArchivedHubSubscriptionsAsync(Array.Empty<Guid>());
+        BoardStore.ResetArchived();
+    }
+
+    private async Task<bool> ReadShowArchivedBoardsPreferenceAsync()
+    {
+        try
+        {
+            var stored = await Js.InvokeAsync<string?>("localStorage.getItem", ShowArchivedBoardsStorageKey);
+            // Default ON when unset — matches previous always-visible archived section.
+            if (string.IsNullOrWhiteSpace(stored))
+                return true;
+
+            return stored is "1" or "true";
+        }
+        catch (JSException)
+        {
+            return true;
+        }
+    }
+
+    private async Task PersistShowArchivedBoardsPreferenceAsync(bool showArchived)
+    {
+        try
+        {
+            await Js.InvokeVoidAsync(
+                "localStorage.setItem",
+                ShowArchivedBoardsStorageKey,
+                showArchived ? "1" : "0");
+        }
+        catch (JSException)
+        {
+            // Preference is best-effort; UI state still applies for this session.
+        }
+    }
 
     private async Task CreateBoardAsync()
     {
@@ -223,7 +296,8 @@
     private void OnStoreStateChanged() =>
         InvokeAsync(async () =>
         {
-            await SyncArchivedHubSubscriptionsAsync();
+            if (_showArchivedBoards)
+                await SyncArchivedHubSubscriptionsAsync();
             StateHasChanged();
         });
 

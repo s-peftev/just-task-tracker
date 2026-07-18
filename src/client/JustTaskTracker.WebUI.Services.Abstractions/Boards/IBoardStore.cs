@@ -22,7 +22,7 @@ public interface IBoardStore
 
     Task SetArchivedSearchAsync(string searchText, CancellationToken ct = default);
 
-    Task RefreshAsync(CancellationToken ct = default);
+    Task RefreshAsync(bool includeArchived = true, CancellationToken ct = default);
 
     BoardMemberRole? GetCachedRole(Guid boardId);
 
@@ -35,4 +35,10 @@ public interface IBoardStore
     void ApplyReExportStatusChanged(Guid boardId, BoardExportStatus status);
 
     void Reset();
+
+    /// <summary>
+    /// Clears archived-section list state (boards, search, pagination) without
+    /// touching the active section or role cache.
+    /// </summary>
+    void ResetArchived();
 }

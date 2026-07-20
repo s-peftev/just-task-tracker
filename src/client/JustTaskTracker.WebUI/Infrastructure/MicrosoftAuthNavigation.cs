@@ -57,7 +57,7 @@ public static class MicrosoftAuthNavigation
     public static async Task NavigateToFullLogoutAsync(
         IJSRuntime js,
         NavigationManager navigation,
-        string returnUrl = "/")
+        string returnUrl = "/login")
     {
         await js.InvokeVoidAsync("sessionStorage.setItem", LogoutReturnUrlStorageKey, returnUrl);
         navigation.NavigateToLogout("authentication/logout", returnUrl);

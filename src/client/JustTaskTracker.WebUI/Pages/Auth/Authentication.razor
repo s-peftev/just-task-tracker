@@ -39,7 +39,7 @@
     {
         await Js.InvokeVoidAsync("sessionStorage.removeItem", MicrosoftAuthNavigation.LogoutReturnUrlStorageKey);
 
-        var returnUrl = string.IsNullOrWhiteSpace(state.ReturnUrl) ? "/" : state.ReturnUrl;
+        var returnUrl = string.IsNullOrWhiteSpace(state.ReturnUrl) ? "/login" : state.ReturnUrl;
         Navigation.NavigateTo(returnUrl, replace: true);
     }
 
@@ -73,7 +73,7 @@
             "sessionStorage.getItem",
             MicrosoftAuthNavigation.LogoutReturnUrlStorageKey);
 
-        returnUrl = string.IsNullOrWhiteSpace(returnUrl) ? "/" : returnUrl;
+        returnUrl = string.IsNullOrWhiteSpace(returnUrl) ? "/login" : returnUrl;
 
         await Js.InvokeVoidAsync("sessionStorage.removeItem", MicrosoftAuthNavigation.LogoutReturnUrlStorageKey);
         Navigation.NavigateTo(returnUrl, replace: true);

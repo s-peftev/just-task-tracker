@@ -5,5 +5,6 @@ namespace JustTaskTracker.Application.Boards.ReadModels;
 
 public record BoardMemberReadModel(
     UserReadModel User,
+    IReadOnlyList<string> GlobalRoles,
     BoardMemberRole Role,
     DateTime JoinedAtUtc);

@@ -592,10 +592,15 @@ html, body {
     border-color: rgb(97, 179, 216);
 }
 
-.board-members-overlay__member-avatar {
+.board-members-overlay__member-avatar-wrap {
     grid-column: 1;
     grid-row: 1 / span 2;
     align-self: center;
+    width: fit-content;
+}
+
+.board-members-overlay__member-avatar {
+    display: block;
 }
 
 .board-members-overlay__member-name {
@@ -608,6 +613,10 @@ html, body {
     color: var(--jtt-text-primary);
     font-size: var(--jtt-font-size-body);
     line-height: 1.35;
+}
+
+.board-members-overlay__app-admin-label {
+    color: var(--jtt-text-accent);
 }
 
 .board-members-overlay__member-email {
@@ -741,10 +750,14 @@ html, body {
     cursor: not-allowed;
 }
 
-.board-members-overlay__member-select-btn .board-members-overlay__member-avatar {
+.board-members-overlay__member-select-btn .board-members-overlay__member-avatar-wrap {
     grid-column: 1;
     grid-row: 1 / span 2;
     align-self: center;
+}
+
+.board-members-overlay__member-select-btn .board-members-overlay__member-avatar {
+    display: block;
 }
 
 .board-members-overlay__member-select-btn .board-members-overlay__member-name {

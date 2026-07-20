@@ -198,6 +198,7 @@ public class BoardRepository(JustTaskTrackerDbContext context)
                         member.User.Email,
                         member.User.DisplayName,
                         member.User.ProfilePhotoVersion),
+                    member.User.GlobalRoles.Select(r => r.Role).ToList(),
                     member.Role,
                     member.JoinedAtUtc),
                 pageNumber,

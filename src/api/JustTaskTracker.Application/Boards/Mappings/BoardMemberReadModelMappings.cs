@@ -9,9 +9,11 @@ public static class BoardMemberReadModelMappings
 {
     public static BoardMemberDto ToDto(
         this BoardMemberReadModel member,
-        Func<UserReadModel, string?> profilePhotoUrlResolver) =>
+        Func<UserReadModel, string?> profilePhotoUrlResolver,
+        Func<IReadOnlyList<string>, bool> isGlobalAdminResolver) =>
         new(
             member.User.ToDto(profilePhotoUrlResolver),
+            isGlobalAdminResolver(member.GlobalRoles),
             member.Role,
             member.JoinedAtUtc);
 }

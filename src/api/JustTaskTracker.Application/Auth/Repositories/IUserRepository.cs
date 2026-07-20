@@ -13,6 +13,8 @@ public interface IUserRepository : IRepository<User, Guid>
 
     Task<User?> GetUserByAzureAOIAsync(Guid azureAdObjectId, CancellationToken ct = default);
 
+    Task<IReadOnlyList<string>> GetGlobalRolesByUserIdAsync(Guid userId, CancellationToken ct = default);
+
     Task<PagedList<UserForBoardLookupReadModel>> GetPagedUserForBoardLookup(
         Guid boardId,
         Guid excludeUserAzureAOI,

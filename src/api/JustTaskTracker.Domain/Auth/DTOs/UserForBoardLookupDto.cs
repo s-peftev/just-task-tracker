@@ -7,4 +7,5 @@ public record UserForBoardLookupDto(
     string Email,
     string? DisplayName,
     string? ProfilePhotoUrl,
+    bool IsGlobalAdmin,
     BoardMemberRole? BoardMemberRole);

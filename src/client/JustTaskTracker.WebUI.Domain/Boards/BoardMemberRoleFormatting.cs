@@ -11,6 +11,9 @@ public static class BoardMemberRoleFormatting
         BoardMemberRole.User,
     ];
 
+    public const string GlobalAdminBoardRoleHint =
+        "App admins can only be assigned the Board Admin role.";
+
     public static string Format(BoardMemberRole role) =>
         role switch
         {
@@ -20,4 +23,7 @@ public static class BoardMemberRoleFormatting
             BoardMemberRole.User => "User",
             _ => role.ToString(),
         };
+
+    public static bool IsAssignableForGlobalAdmin(BoardMemberRole role) =>
+        role == BoardMemberRole.Admin;
 }

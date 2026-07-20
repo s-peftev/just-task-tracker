@@ -29,10 +29,13 @@ internal sealed class ProfileStore(IAuthApiService authApiService) : IProfileSto
     public event Action? StateChanged;
 
     public Task EnsureLoadedAsync(CancellationToken ct = default) =>
-        EnsureLoadedInternalAsync(forceRefresh: false, ct);
+        EnsureLoadedInternalAsync(forceRefresh: false, useLogin: false, ct);
 
     public Task RefreshAsync(CancellationToken ct = default) =>
-        EnsureLoadedInternalAsync(forceRefresh: true, ct);
+        EnsureLoadedInternalAsync(forceRefresh: true, useLogin: false, ct);
+
+    public Task LoginAsync(CancellationToken ct = default) =>
+        EnsureLoadedInternalAsync(forceRefresh: true, useLogin: true, ct);
 
     public void Reset()
     {
@@ -67,9 +70,9 @@ internal sealed class ProfileStore(IAuthApiService authApiService) : IProfileSto
 
     // -----------------------------------------------------------------
 
-    private async Task EnsureLoadedInternalAsync(bool forceRefresh, CancellationToken ct)
+    private async Task EnsureLoadedInternalAsync(bool forceRefresh, bool useLogin, CancellationToken ct)
     {
-        // Fast path: already loaded and no refresh requested.
+        // Fast path: already loaded and no refresh/login requested.
         if (!forceRefresh && IsLoaded)
             return;
 
@@ -95,7 +98,11 @@ internal sealed class ProfileStore(IAuthApiService authApiService) : IProfileSto
             }
 
             if (forceRefresh || _inFlightLoad is null || _inFlightLoad.IsCompleted)
-                _inFlightLoad = LoadProfileAsync(_loadGeneration);
+            {
+                _inFlightLoad = useLogin
+                    ? LoadViaLoginAsync(_loadGeneration)
+                    : LoadViaMeAsync(_loadGeneration);
+            }
 
             loadTask = _inFlightLoad;
         }
@@ -112,7 +119,11 @@ internal sealed class ProfileStore(IAuthApiService authApiService) : IProfileSto
         await loadTask.WaitAsync(ct);
     }
 
-    private async Task LoadProfileAsync(int generation)
+    /// <summary>
+    /// Session restore path: GET /auth/me. On 404 (user not provisioned), one-shot
+    /// POST /auth/login so a lost pending-login flag still provisions the account.
+    /// </summary>
+    private async Task LoadViaMeAsync(int generation)
     {
         IsLoading = true;
         ErrorMessage = null;
@@ -120,14 +131,11 @@ internal sealed class ProfileStore(IAuthApiService authApiService) : IProfileSto
 
         try
         {
-            // CancellationToken.None is intentional: LoadProfileAsync is a shared
-            // task. Cancelling one caller's token must not abort the HTTP request
-            // for other callers that are awaiting the same task via WaitAsync.
-            var profile = await authApiService.GetCurrentUserAsync(CancellationToken.None);
-
-            // null means user is authenticated in Entra but not yet provisioned
-            // in the application database; LoginAsync provisions and returns them.
-            profile ??= await authApiService.LoginAsync(CancellationToken.None);
+            // CancellationToken.None is intentional: shared in-flight task must not
+            // abort when one caller's WaitAsync token is cancelled.
+            // null = Entra-authenticated but not yet provisioned in the app DB.
+            var profile = await authApiService.GetCurrentUserAsync(CancellationToken.None)
+                ?? await authApiService.LoginAsync(CancellationToken.None);
 
             if (IsStaleGeneration(generation))
                 return;
@@ -142,8 +150,6 @@ internal sealed class ProfileStore(IAuthApiService authApiService) : IProfileSto
             if (IsStaleGeneration(generation))
                 return;
 
-            // A valid MSAL token was rejected by the API (audience/scope mismatch,
-            // revoked consent, etc.). Signal components to redirect to /login.
             Profile = null;
             IsLoaded = false;
             RequiresLogin = true;
@@ -154,7 +160,6 @@ internal sealed class ProfileStore(IAuthApiService authApiService) : IProfileSto
             if (IsStaleGeneration(generation))
                 return;
 
-            // Network errors, 5xx, unexpected exceptions.
             Profile = null;
             IsLoaded = false;
             RequiresLogin = false;
@@ -162,26 +167,76 @@ internal sealed class ProfileStore(IAuthApiService authApiService) : IProfileSto
         }
         finally
         {
-            if (!IsStaleGeneration(generation))
-                IsLoading = false;
-
-            // Clear the in-flight reference under lock so a subsequent EnsureLoadedAsync
-            // or RefreshAsync call can start a fresh load (e.g. after an error).
-            // CancellationToken.None ensures cleanup always completes.
-            await _sync.WaitAsync(CancellationToken.None);
-            try
-            {
-                if (!IsStaleGeneration(generation))
-                    _inFlightLoad = null;
-            }
-            finally
-            {
-                _sync.Release();
-            }
-
-            // Notify after releasing the lock to avoid potential re-entrancy issues.
-            NotifyStateChanged();
+            await CompleteLoadAsync(generation);
         }
+    }
+
+    /// <summary>
+    /// Interactive login / switch / mismatch path: POST /auth/login (provision + role sync).
+    /// </summary>
+    private async Task LoadViaLoginAsync(int generation)
+    {
+        IsLoading = true;
+        ErrorMessage = null;
+        NotifyStateChanged();
+
+        try
+        {
+            var profile = await authApiService.LoginAsync(CancellationToken.None);
+
+            if (IsStaleGeneration(generation))
+                return;
+
+            Profile = profile;
+            IsLoaded = true;
+            RequiresLogin = false;
+        }
+        catch (ApiServiceException ex) when (
+            ex.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+        {
+            if (IsStaleGeneration(generation))
+                return;
+
+            Profile = null;
+            IsLoaded = false;
+            RequiresLogin = true;
+            ErrorMessage = null;
+        }
+        catch (Exception ex)
+        {
+            if (IsStaleGeneration(generation))
+                return;
+
+            Profile = null;
+            IsLoaded = false;
+            RequiresLogin = false;
+            ErrorMessage = ex.Message;
+        }
+        finally
+        {
+            await CompleteLoadAsync(generation);
+        }
+    }
+
+    private async Task CompleteLoadAsync(int generation)
+    {
+        if (!IsStaleGeneration(generation))
+            IsLoading = false;
+
+        // Clear the in-flight reference under lock so a subsequent EnsureLoadedAsync,
+        // RefreshAsync, or LoginAsync can start a fresh load (e.g. after an error).
+        await _sync.WaitAsync(CancellationToken.None);
+        try
+        {
+            if (!IsStaleGeneration(generation))
+                _inFlightLoad = null;
+        }
+        finally
+        {
+            _sync.Release();
+        }
+
+        NotifyStateChanged();
     }
 
     private bool IsStaleGeneration(int generation) => generation != _loadGeneration;

@@ -6,6 +6,7 @@ using JustTaskTracker.Application.Common.Options;
 using JustTaskTracker.Application.Common.Validators;
 using JustTaskTracker.Application.Users.ProfilePhotos;
 using JustTaskTracker.Application.Users.ReadModels;
+using JustTaskTracker.Domain.Auth.Constants;
 using JustTaskTracker.Domain.Boards.Authorization;
 using JustTaskTracker.Domain.Boards.DTOs.Boards;
 using JustTaskTracker.Domain.Boards.Enums.SearchFields;
@@ -17,7 +18,7 @@ using MediatR;
 
 namespace JustTaskTracker.Application.Boards.Queries.Boards;
 
-public record GetBoardMembersQuery(Guid BoardId, TextSearchOptions<BoardMemberSearchField>? SearchOptions) 
+public record GetBoardMembersQuery(Guid BoardId, TextSearchOptions<BoardMemberSearchField>? SearchOptions)
     : PaginatedRequest, IRequest<Result<PagedList<BoardMemberDto>>>;
 
 public class GetBoardMembersQueryHandler(
@@ -43,9 +44,12 @@ public class GetBoardMembersQueryHandler(
         Func<UserReadModel, string?> profilePhotoUrlResolver = user =>
             user.ProfilePhotoVersion is null ? null : profilePhotoService.BuildThumbnailUrl(user.Id, user.ProfilePhotoVersion);
 
+        Func<IReadOnlyList<string>, bool> isGlobalAdminResolver = roles =>
+            roles.Contains(Roles.Admin, StringComparer.OrdinalIgnoreCase);
+
         var members = new PagedList<BoardMemberDto>(
             membersInfo.Metadata,
-            membersInfo.Items.Select(member => member.ToDto(profilePhotoUrlResolver)));
+            membersInfo.Items.Select(member => member.ToDto(profilePhotoUrlResolver, isGlobalAdminResolver)));
 
         return Result<PagedList<BoardMemberDto>>.Success(members);
     }

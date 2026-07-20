@@ -97,13 +97,20 @@
                         {
                             <li class="board-members-overlay__item">
                                 <div class="board-members-overlay__member @(IsCurrentUser(member) ? "board-members-overlay__member--current-user" : null)">
-                                    <UserAvatarPlaceholder Class="board-members-overlay__member-avatar"
-                                                           Preset="UserAvatarPlaceholderPreset.Member"
-                                                           DisplayName="@member.User.DisplayName"
-                                                           Email="@member.User.Email"
-                                                           ProfilePhotoUrl="@member.User.ProfilePhotoUrl"
-                                                           Title="@member.User.Email" />
-                                    <span class="board-members-overlay__member-name">@GetMemberDisplayName(member)</span>
+                                    <div class="board-members-overlay__member-avatar-wrap">
+                                        <UserAvatarPlaceholder Class="board-members-overlay__member-avatar"
+                                                               Preset="UserAvatarPlaceholderPreset.Member"
+                                                               DisplayName="@member.User.DisplayName"
+                                                               Email="@member.User.Email"
+                                                               ProfilePhotoUrl="@member.User.ProfilePhotoUrl"
+                                                               Title="@member.User.Email" />
+                                    </div>
+                                    <span class="board-members-overlay__member-name">
+                                        @GetMemberDisplayName(member)@if (member.IsGlobalAdmin)
+                                        {
+                                            <span class="board-members-overlay__app-admin-label"> (App Admin)</span>
+                                        }
+                                    </span>
                                     <span class="board-members-overlay__member-email">@member.User.Email</span>
                                     <div class="board-members-overlay__member-aside">
                                         @if (CanEditMemberRole(member))
@@ -119,7 +126,7 @@
                                                        AnchorOrigin="Origin.BottomCenter"
                                                        TransformOrigin="Origin.TopCenter"
                                                        aria-label="@($"Role for {GetMemberDisplayName(member)}")">
-                                                <BoardMemberRoleSelectItems />
+                                                <BoardMemberRoleSelectItems IsGlobalAdmin="member.IsGlobalAdmin" />
                                             </MudSelect>
                                         }
                                         else
@@ -185,13 +192,20 @@
                         {
                             <li class="board-members-overlay__item">
                                 <div class="board-members-overlay__member">
-                                    <UserAvatarPlaceholder Class="board-members-overlay__member-avatar"
-                                                           Preset="UserAvatarPlaceholderPreset.Member"
-                                                           DisplayName="@user.DisplayName"
-                                                           Email="@user.Email"
-                                                           ProfilePhotoUrl="@user.ProfilePhotoUrl"
-                                                           Title="@user.Email" />
-                                    <span class="board-members-overlay__member-name">@UserDisplayFormatting.GetShortName(user)</span>
+                                    <div class="board-members-overlay__member-avatar-wrap">
+                                        <UserAvatarPlaceholder Class="board-members-overlay__member-avatar"
+                                                               Preset="UserAvatarPlaceholderPreset.Member"
+                                                               DisplayName="@user.DisplayName"
+                                                               Email="@user.Email"
+                                                               ProfilePhotoUrl="@user.ProfilePhotoUrl"
+                                                               Title="@user.Email" />
+                                    </div>
+                                    <span class="board-members-overlay__member-name">
+                                        @UserDisplayFormatting.GetShortName(user)@if (user.IsGlobalAdmin)
+                                        {
+                                            <span class="board-members-overlay__app-admin-label"> (App Admin)</span>
+                                        }
+                                    </span>
                                     <span class="board-members-overlay__member-email">@user.Email</span>
 
                                     @if (user.BoardMemberRole is { } role)
@@ -338,6 +352,12 @@
     {
         if (newRole == member.Role)
             return;
+
+        if (member.IsGlobalAdmin && !BoardMemberRoleFormatting.IsAssignableForGlobalAdmin(newRole))
+        {
+            Snackbar.Add(BoardMemberRoleFormatting.GlobalAdminBoardRoleHint, Severity.Warning);
+            return;
+        }
 
         var displayName = UserDisplayFormatting.GetShortName(member.User);
         var message =

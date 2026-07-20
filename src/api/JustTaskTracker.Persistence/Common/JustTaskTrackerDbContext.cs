@@ -17,6 +17,7 @@ public class JustTaskTrackerDbContext(
     : DbContext(options)
 {
     public DbSet<User> Users => Set<User>();
+    public DbSet<UserGlobalRole> UserGlobalRoles => Set<UserGlobalRole>();
     public DbSet<Board> Boards => Set<Board>();
     public DbSet<BoardMember> BoardMembers => Set<BoardMember>();
     public DbSet<Column> Columns => Set<Column>();

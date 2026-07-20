@@ -28,6 +28,7 @@
 .user-avatar-placeholder--sidebar {
     --user-avatar-size: 12rem;
     --user-avatar-letter-scale: 0.333;
+    background-color: var(--jtt-accent-secondary);
 }
 
 .user-avatar-placeholder--comment {

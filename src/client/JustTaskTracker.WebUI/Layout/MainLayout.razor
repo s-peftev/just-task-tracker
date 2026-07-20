@@ -1,4 +1,4 @@
-﻿@inherits LayoutComponentBase
+@inherits LayoutComponentBase
 @implements IDisposable
 @using Microsoft.AspNetCore.Components.Authorization
 @using JustTaskTracker.WebUI.Infrastructure
@@ -16,7 +16,6 @@
 <MudSnackbarProvider />
 
 <div class="layout-wrapper">
-    <AppNavBar />
     <main class="layout-main">
         @if (ProfileStore.Profile is { } profile)
         {

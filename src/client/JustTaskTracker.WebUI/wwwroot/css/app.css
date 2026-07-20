@@ -1,16 +1,24 @@
 /* ─── Design tokens ─── */
 :root {
-    --jtt-navbar-height: 3.5rem;
-
     /* Solid surfaces */
     --jtt-surface-app: #1F1F21;
     --jtt-surface-raised: #18191A;
+    --jtt-surface-content: #090a0a;
+    --jtt-surface-sidebar: #121212;
+    --jtt-surface-plan-card: #1E2125;
 
     --jtt-surface-task-card: color-mix(in srgb, white 10%, var(--jtt-surface-raised));
 
+    /* Brand accent */
+    --jtt-accent: #389466;
+    --jtt-accent-secondary: #2D7A5E;
+    --jtt-accent-tertiary: #1A5D41;
+    --jtt-accent-archive: #C9A227;
+    --jtt-accent-archive-secondary: #8B7018;
+
     /* Translucent overlays */
-    --jtt-overlay-accent-10: rgba(97, 179, 216, 0.10);
-    --jtt-overlay-accent-15: rgba(97, 179, 216, 0.15);
+    --jtt-overlay-accent-10: color-mix(in srgb, var(--jtt-accent) 10%, transparent);
+    --jtt-overlay-accent-15: color-mix(in srgb, var(--jtt-accent) 15%, transparent);
     --jtt-overlay-neutral-20: rgba(150, 150, 150, 0.2);
     --jtt-overlay-white-08: rgba(255, 255, 255, 0.08);
     --jtt-overlay-white-10: rgba(255, 255, 255, 0.10);
@@ -50,9 +58,17 @@
     --jtt-text-warning: #ffcc66;
     --jtt-text-on-app: rgba(255, 255, 255, 0.87);
 
-    /* Plan marketing accents (same soft spectrum as warning/danger text) */
-    --jtt-plan-accent-free: var(--jtt-text-warning);
-    --jtt-plan-accent-pro: #d12323;
+    /* Plan marketing accents */
+    --jtt-plan-accent-free: var(--jtt-text-strong);
+    --jtt-plan-accent-pro: var(--jtt-text-warning);
+
+    /* Warning radial gradient (archived board cards, Pro plan card) */
+    --jtt-gradient-warning-inner: var(--jtt-overlay-white-10);
+    --jtt-gradient-warning-outer: var(--jtt-overlay-warning-10);
+
+    /* Accent radial gradient (active board cards) */
+    --jtt-gradient-accent-inner: var(--jtt-overlay-white-10);
+    --jtt-gradient-accent-outer: var(--jtt-overlay-accent-10);
 
     /* Subscription status badges on plan cards */
     --jtt-subscription-status-active: #9ccc9c;
@@ -422,7 +438,7 @@ html, body {
 /* ─── Board members overlay (shared) ─── */
 .board-members-overlay {
     position: fixed;
-    top: var(--jtt-navbar-height);
+    top: 0;
     right: 0;
     bottom: 0;
     left: 0;
@@ -453,7 +469,7 @@ html, body {
     width: 600px;
     max-width: calc(100vw - 3rem);
     height: 800px;
-    max-height: min(800px, calc(100dvh - var(--jtt-navbar-height) - 2rem));
+    max-height: min(800px, calc(100dvh - 2rem));
     box-sizing: border-box;
     display: flex;
     flex-direction: column;

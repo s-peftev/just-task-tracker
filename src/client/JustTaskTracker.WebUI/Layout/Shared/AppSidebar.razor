@@ -16,6 +16,8 @@
 @if (ProfileStore.Profile is { } profile)
 {
     <aside class="sidebar">
+        <a href="/" class="sidebar__brand">JustTaskTracker</a>
+
         <div class="sidebar__profile">
             <SidebarProfileAvatar DisplayName="@profile.DisplayName"
                                   Email="@profile.Email"
@@ -44,7 +46,11 @@
                      class="sidebar__tab text-sidebar-tab"
                      ActiveClass="sidebar__tab--active"
                      Match="NavLinkMatch.All">
-                Boards
+                <img class="sidebar__tab-icon"
+                     src="kanban-svgrepo-com.svg"
+                     alt=""
+                     aria-hidden="true" />
+                <span>Boards</span>
             </NavLink>
             @if (CanViewSubscriptions(profile))
             {
@@ -52,7 +58,11 @@
                          class="@SubscriptionsTabCssClass"
                          ActiveClass="sidebar__tab--active"
                          Match="NavLinkMatch.All">
-                    Subscriptions
+                    <img class="sidebar__tab-icon"
+                         src="money-check-pen-svgrepo-com.svg"
+                         alt=""
+                         aria-hidden="true" />
+                    <span>Subscriptions</span>
                     @if (CurrentPlanBadge is { } planBadge)
                     {
                         <span class="sidebar__plan-meta">
@@ -87,12 +97,23 @@
             <button type="button"
                     class="sidebar__footer-action text-sidebar-tab"
                     @onclick="SwitchMicrosoftAccount">
-                Switch Microsoft account
+                <img class="sidebar__footer-action-icon"
+                     src="microsoft-svgrepo-com.svg"
+                     alt=""
+                     aria-hidden="true" />
+                <span>Switch Microsoft account</span>
             </button>
             <button type="button"
                     class="sidebar__footer-action text-sidebar-tab"
                     @onclick="Logout">
-                Log out
+                <svg class="sidebar__footer-action-icon"
+                     viewBox="0 0 24 24"
+                     aria-hidden="true"
+                     focusable="false">
+                    <path fill="currentColor"
+                          d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5-5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z" />
+                </svg>
+                <span>Log out</span>
             </button>
         </div>
     </aside>

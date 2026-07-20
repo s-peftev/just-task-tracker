@@ -41,8 +41,8 @@
 
 .sidebar-profile-avatar__action:hover:not(:disabled) {
     background: var(--jtt-surface-app);
-    color: var(--jtt-text-accent);
-    border-color: var(--jtt-text-accent);
+    color: var(--jtt-accent);
+    border-color: var(--jtt-accent);
 }
 
 .sidebar-profile-avatar__action--danger:hover:not(:disabled) {

@@ -21,12 +21,28 @@
         <header class="boards__header">
             <h2 class="text-section-title">Active boards</h2>
             <div class="boards__search-row">
-                <input class="boards__search-input"
+                <input class="boards__search-input boards__search-input--active"
                        type="search"
                        maxlength="40"
                        placeholder="Search boards by name"
                        value="@BoardStore.Active.SearchText"
                        @oninput="OnActiveSearchInputAsync" />
+                @if (CanCreateBoard)
+                {
+                    <button type="button"
+                            class="boards__create-button"
+                            aria-label="Create new board"
+                            title="Create new board"
+                            @onclick="CreateBoardAsync">
+                        <svg class="boards__create-button-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <path d="M12 5v14M5 12h14"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  stroke-width="4"
+                                  stroke-linecap="round" />
+                        </svg>
+                    </button>
+                }
                 <button type="button"
                         class="boards__archived-toggle @(_showArchivedBoards ? "boards__archived-toggle--active" : null)"
                         aria-pressed="@_showArchivedBoards"
@@ -71,7 +87,7 @@
                     <MudAlert Severity="Severity.Error">@activeError</MudAlert>
                 </div>
             }
-            else if (BoardStore.Active.Boards.Count == 0 && !CanCreateBoard)
+            else if (BoardStore.Active.Boards.Count == 0)
             {
                 <div class="page-state">
                     <p class="text-empty">You don't have any boards yet.</p>
@@ -80,11 +96,6 @@
             else
             {
                 <div class="boards__grid">
-                    @if (CanCreateBoard)
-                    {
-                        <CreateBoardCard OnClick="CreateBoardAsync" />
-                    }
-
                     @foreach (var board in BoardStore.Active.Boards)
                     {
                         <BoardCard Board="board" OnClick="OpenBoard" />
@@ -101,7 +112,7 @@
         <section class="boards__section">
             <header class="boards__header">
                 <h2 class="text-section-title">Archived boards</h2>
-                <input class="boards__search-input"
+                <input class="boards__search-input boards__search-input--archived"
                        type="search"
                        maxlength="40"
                        placeholder="Search boards by name"

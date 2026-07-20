@@ -6,7 +6,7 @@
     width: 600px;
     max-width: calc(100vw - 3rem);
     height: 400px;
-    max-height: min(400px, calc(100dvh - var(--jtt-navbar-height) - 8rem));
+    max-height: min(400px, calc(100dvh - 8rem));
     box-sizing: border-box;
     display: flex;
     flex-direction: column;

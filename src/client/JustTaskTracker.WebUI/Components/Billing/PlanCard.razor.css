@@ -8,7 +8,7 @@
     flex-direction: column;
     gap: 1.25rem;
     padding: 1.5rem;
-    background: #000;
+    background: var(--jtt-surface-plan-card);
     color: var(--jtt-text-strong);
     border: 1px solid var(--jtt-stroke-default);
     border-radius: var(--jtt-radius-md);
@@ -26,6 +26,16 @@
 
 .plan-card.plan-card--free ::deep .plan-card__title {
     color: var(--jtt-plan-accent-free);
+}
+
+.plan-card.plan-card--pro {
+    background:
+        radial-gradient(
+            circle at left,
+            var(--jtt-gradient-warning-inner),
+            var(--jtt-gradient-warning-outer)
+        ),
+        var(--jtt-surface-plan-card);
 }
 
 .plan-card.plan-card--pro ::deep .plan-card__title {

@@ -13,7 +13,6 @@
     --board-column-width: 272px;
     --board-column-max-height: calc(
         100dvh
-        - var(--jtt-navbar-height)
         - var(--board-page-header-height)
         - var(--board-page-footer-handle-height)
         - var(--board-page-content-gap)
@@ -41,11 +40,15 @@
     margin-top: calc(-1 * var(--board-page-header-height));
     padding-top: calc(var(--board-page-header-height) + var(--board-page-content-gap));
     overflow: hidden;
-    background-color: var(--jtt-overlay-accent-10);
+    background:
+        var(--jtt-overlay-accent-10),
+        var(--jtt-surface-content);
 }
 
 .board-page--archived .board-page__content {
-    background-color: var(--jtt-overlay-warning-10);
+    background:
+        var(--jtt-overlay-warning-10),
+        var(--jtt-surface-content);
 }
 
 .board-page__content--panning {
@@ -90,6 +93,6 @@
 
 .board-page--task-only {
     flex: 1 1 0;
-    min-height: calc(100dvh - var(--jtt-navbar-height));
+    min-height: 100dvh;
     background-color: var(--jtt-surface-app);
 }

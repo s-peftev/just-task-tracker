@@ -71,44 +71,26 @@
     border-radius: 0 12px 12px 0;
     border: 1px solid transparent;
     box-sizing: border-box;
-    background: #000000;
-    color: #fff;
+    background: var(--jtt-accent);
+    color: var(--jtt-text-strong);
     cursor: pointer;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     transition: left var(--sidebar-transition-duration) ease,
-        border-color 0.2s ease;
+        background-color 0.2s ease;
     z-index: 3;
 }
 
-.sidebar-shell__toggle::before {
-    content: "";
-    position: absolute;
-    left: -28px;
-    top: 0;
-    width: 20px;
-    height: 100%;
-    border: 1px solid transparent;
-    box-sizing: border-box;
-    border-radius: 12px 0 0 12px;
-    background: #000000;
-    transition: border-color 0.2s ease;
-}
-
 .sidebar-shell__toggle:hover {
-    border-color: rgba(97, 179, 216, 0.4);
-}
-
-.sidebar-shell__toggle:hover::before {
-    border-color: rgba(97, 179, 216, 0.4);
+    background: var(--jtt-accent-secondary);
 }
 
 .sidebar-shell__toggle-icon {
     width: 10px;
     height: 10px;
-    border-left: 3px solid #fff;
-    border-bottom: 3px solid #fff;
+    border-left: 3px solid currentColor;
+    border-bottom: 3px solid currentColor;
     border-radius: 2px;
 }
 

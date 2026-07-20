@@ -6,6 +6,7 @@
     --jtt-surface-content: #090a0a;
     --jtt-surface-sidebar: #121212;
     --jtt-surface-plan-card: #1E2125;
+    --jtt-surface-board-card: #1C1F22;
 
     --jtt-surface-task-card: color-mix(in srgb, white 10%, var(--jtt-surface-raised));
 
@@ -829,7 +830,7 @@ html, body {
 }
 
 .mud-progress-circular.mud-primary-text {
-    color: var(--jtt-text-accent) !important;
+    color: var(--jtt-accent) !important;
 }
 
 .mud-snackbar.mud-alert-filled-success,
@@ -916,7 +917,7 @@ h1:focus {
 }
 
 .loading-progress circle:last-child {
-    stroke: var(--jtt-text-accent);
+    stroke: var(--jtt-accent);
     stroke-dasharray: calc(3.141 * var(--blazor-load-percentage, 0%) * 0.8), 500%;
     transition: stroke-dasharray 0.05s ease-in-out;
 }

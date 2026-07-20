@@ -15,7 +15,10 @@
 }
 
 .sidebar__brand {
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
     margin: 0 2rem 1.25rem;
     font-size: 1.25rem;
     font-weight: 700;
@@ -28,8 +31,19 @@
     transition: color 0.15s;
 }
 
+.sidebar__brand-logo {
+    flex-shrink: 0;
+    width: 1.375rem;
+    height: 1.375rem;
+    fill: var(--jtt-accent);
+}
+
 .sidebar__brand:hover {
     color: var(--jtt-text-muted);
+}
+
+.sidebar__brand:hover .sidebar__brand-logo {
+    fill: var(--jtt-accent-secondary);
 }
 
 .sidebar__profile {

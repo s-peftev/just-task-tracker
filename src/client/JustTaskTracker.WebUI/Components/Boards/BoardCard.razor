@@ -12,64 +12,84 @@
 @inject IEntitlementsStore EntitlementsStore
 @inject ISnackbar Snackbar
 
-<div class="board-card card-elevated @(Board.IsArchived ? "board-card--archived" : null)"
+<div class="board-card @(Board.IsArchived ? "board-card--archived" : null)"
      role="button"
      tabindex="0"
      @onclick="OnClickHandler"
      @onkeydown="OnCardKeyDownAsync">
-    @if (Board.IsArchived && CanExportBoard && HasAnyExportUi)
-    {
-        <div class="board-card__corner-actions">
-            @if (ShowDownloadButton)
-            {
-                <button type="button"
-                        class="board-card__corner-action board-card__corner-action--download"
-                        aria-label="@DownloadAriaLabel"
-                        disabled="@_isDownloadingArchive"
-                        @onclick="DownloadArchiveAsync"
-                        @onclick:stopPropagation="true">
-                    <svg class="board-card__corner-icon"
-                         viewBox="0 0 24 24"
-                         aria-hidden="true"
-                         focusable="false">
-                        <path d="M20.54 5.23l-1.39-1.68C18.88 3.21 18.47 3 18 3H6c-.47 0-.88.21-1.16.55L3.46 5.23C3.17 5.57 3 6.02 3 6.5V19c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6.5c0-.48-.17-.93-.46-1.27zM12 17.5 6.5 12H10v-2h4v2h3.5L12 17.5zM5.12 5l.81-1h12l.94 1H5.12z"
-                              fill="currentColor" />
-                    </svg>
-                    <span class="board-card__corner-tooltip" aria-hidden="true">
-                        <BoardDownloadCopyTooltip Status="BoardExportStatus.Completed" />
-                    </span>
-                </button>
-            }
-
-            @if (ShowReExportStatusIndicator)
-            {
-                <div class="board-card__corner-action board-card__corner-action--indicator">
-                    <BoardExportStatusIndicator Status="Board.ReExportStatus"
-                                                TooltipBelow="true" />
-                </div>
-            }
-            else if (ShowExportStatusIndicator)
-            {
-                <div class="board-card__corner-action board-card__corner-action--indicator">
-                    <BoardExportStatusIndicator Status="Board.BoardExportStatus"
-                                                TooltipBelow="true" />
-                </div>
-            }
-        </div>
-    }
-
     <div class="board-card__header">
         <span class="board-card__name" title="@Board.Name">@Board.Name</span>
+
+        @if (Board.IsArchived && CanExportBoard && HasAnyExportUi)
+        {
+            <div class="board-card__header-actions">
+                @if (ShowDownloadButton)
+                {
+                    <button type="button"
+                            class="board-card__action board-card__action--download"
+                            aria-label="@DownloadAriaLabel"
+                            disabled="@_isDownloadingArchive"
+                            @onclick="DownloadArchiveAsync"
+                            @onclick:stopPropagation="true">
+                        <svg class="board-card__action-icon"
+                             viewBox="0 0 24 24"
+                             aria-hidden="true"
+                             focusable="false">
+                            <path d="M20.54 5.23l-1.39-1.68C18.88 3.21 18.47 3 18 3H6c-.47 0-.88.21-1.16.55L3.46 5.23C3.17 5.57 3 6.02 3 6.5V19c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6.5c0-.48-.17-.93-.46-1.27zM12 17.5 6.5 12H10v-2h4v2h3.5L12 17.5zM5.12 5l.81-1h12l.94 1H5.12z"
+                                  fill="currentColor" />
+                        </svg>
+                        <span class="board-card__action-tooltip" aria-hidden="true">
+                            <BoardDownloadCopyTooltip Status="BoardExportStatus.Completed" />
+                        </span>
+                    </button>
+                }
+
+                @if (ShowReExportStatusIndicator)
+                {
+                    <div class="board-card__action board-card__action--indicator">
+                        <BoardExportStatusIndicator Status="Board.ReExportStatus"
+                                                    TooltipBelow="true" />
+                    </div>
+                }
+                else if (ShowExportStatusIndicator)
+                {
+                    <div class="board-card__action board-card__action--indicator">
+                        <BoardExportStatusIndicator Status="Board.BoardExportStatus"
+                                                    TooltipBelow="true" />
+                    </div>
+                }
+            </div>
+        }
     </div>
+
+    <div class="board-card__divider" role="separator"></div>
 
     <div class="board-card__body">
         <p class="board-card__meta">
-            <span class="board-card__meta-label">Board creator:</span>
-            @OwnerDisplayName
+            <svg class="board-card__meta-icon"
+                 viewBox="0 0 24 24"
+                 aria-hidden="true"
+                 focusable="false">
+                <path fill="currentColor"
+                      d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+            </svg>
+            <span class="board-card__meta-text">
+                <span class="board-card__meta-label">Board creator:</span>
+                @OwnerDisplayName
+            </span>
         </p>
         <p class="board-card__meta">
-            <span class="board-card__meta-label">Your role:</span>
-            @Board.UserRole
+            <svg class="board-card__meta-icon"
+                 viewBox="0 0 24 24"
+                 aria-hidden="true"
+                 focusable="false">
+                <path fill="currentColor"
+                      d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z" />
+            </svg>
+            <span class="board-card__meta-text">
+                <span class="board-card__meta-label">Your role:</span>
+                <span class="board-card__meta-value">@RoleDisplayName</span>
+            </span>
         </p>
     </div>
 </div>
@@ -159,4 +179,7 @@
         string.IsNullOrWhiteSpace(Board.OwnerEmail)
             ? "—"
             : UserDisplayFormatting.GetShortName(Board.OwnerDisplayName, Board.OwnerEmail);
+
+    private string RoleDisplayName =>
+        BoardMemberRoleFormatting.Format(Board.UserRole);
 }

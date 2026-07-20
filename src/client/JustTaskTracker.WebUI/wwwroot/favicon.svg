@@ -1,18 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
-  <defs>
-    <clipPath id="clip">
-      <rect width="512" height="512" rx="110" ry="110" />
-    </clipPath>
-  </defs>
-  
-  <rect width="512" height="512" fill="#111827" clip-path="url(#clip)" />
-  
-  <text x="50%" y="54%" 
-        dominant-baseline="middle" 
-        text-anchor="middle" 
-        fill="#82EB00" 
-        font-family="ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" 
-        font-weight="normal" 
-        font-size="210" 
-        letter-spacing="-10">JTT</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52" fill="#389466">
+  <path d="M32,17.5c0-0.8-0.7-1.5-1.5-1.5h-9c-0.8,0-1.5,0.7-1.5,1.5v27c0,0.8,0.7,1.5,1.5,1.5h9c0.8,0,1.5-0.7,1.5-1.5V17.5z"/>
+  <path d="M14,17.5c0-0.8-0.7-1.5-1.5-1.5h-9C2.7,16,2,16.7,2,17.5v31C2,49.3,2.7,50,3.5,50h9c0.8,0,1.5-0.7,1.5-1.5V17.5z"/>
+  <path d="M50,17.5c0-0.8-0.7-1.5-1.5-1.5h-9c-0.8,0-1.5,0.7-1.5,1.5v23c0,0.8,0.7,1.5,1.5,1.5h9c0.8,0,1.5-0.7,1.5-1.5V17.5z"/>
+  <path d="M50,3.5C50,2.7,49.3,2,48.5,2h-45C2.7,2,2,2.7,2,3.5v5C2,9.3,2.7,10,3.5,10h45c0.8,0,1.5-0.7,1.5-1.5V3.5z"/>
 </svg>

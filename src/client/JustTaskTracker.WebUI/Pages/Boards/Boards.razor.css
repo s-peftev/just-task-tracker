@@ -165,21 +165,23 @@
     height: 2.25rem;
     padding: 0;
     border: none;
-    border-radius: var(--jtt-radius-sm);
-    background: transparent;
-    color: var(--jtt-accent);
+    border-radius: calc(var(--jtt-radius-sm) * 2);
+    background: var(--jtt-accent);
+    color: var(--jtt-text-strong);
     cursor: pointer;
+    transition: background-color 0.15s;
 }
 
 .boards__create-button:hover,
 .boards__create-button:focus-visible {
-    color: var(--jtt-accent-secondary);
+    background: var(--jtt-accent-secondary);
+    color: var(--jtt-text-strong);
     outline: none;
 }
 
 .boards__create-button-icon {
-    width: 2.25rem;
-    height: 2.25rem;
+    width: 1.125rem;
+    height: 1.125rem;
     display: block;
 }
 

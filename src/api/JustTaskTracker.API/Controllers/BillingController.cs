@@ -55,4 +55,15 @@ public class BillingController(ISender sender) : ControllerBase
             data => Ok(data),
             error => error.CreateErrorResponse());
     }
+
+    [HttpPost("portal")]
+    [Authorize(Policy = AuthorizationPolicies.IsAppUser)]
+    public async Task<IActionResult> CreatePortalSession(CancellationToken ct)
+    {
+        var result = await sender.Send(new CreatePortalSessionCommand(), ct);
+
+        return result.Match(
+            data => Ok(data),
+            error => error.CreateErrorResponse());
+    }
 }

@@ -1,4 +1,5 @@
 using JustTaskTracker.Application.Billing.Abstractions;
+using JustTaskTracker.Domain.Billing.Constants;
 using JustTaskTracker.Domain.Billing.DTOs;
 using JustTaskTracker.Infrastructure.Common.Options;
 using Stripe;
@@ -166,9 +167,19 @@ internal class StripeBillingService(
             subscription.Status,
             ToUtc(items.Select(item => item.CurrentPeriodStart).DefaultIfEmpty().Min()),
             ToUtc(items.Select(item => item.CurrentPeriodEnd).DefaultIfEmpty().Max()),
-            subscription.CancelAtPeriodEnd,
+            ResolveCancelAtPeriodEnd(subscription),
             TryGetUserId(subscription.Metadata));
     }
+
+    /// <summary>
+    /// Stripe may schedule end-of-period cancellation via <c>cancel_at</c> while leaving
+    /// <c>cancel_at_period_end</c> as <see langword="false"/> (e.g. Customer Portal on newer API versions).
+    /// Treat that as a pending cancel for an active subscription.
+    /// </summary>
+    private static bool ResolveCancelAtPeriodEnd(Subscription subscription) =>
+        subscription.CancelAtPeriodEnd
+        || (subscription.CancelAt != default
+            && string.Equals(subscription.Status, SubscriptionStatus.Active, StringComparison.Ordinal));
 
     private static BillingWebhookEvent MapFromCheckoutSession(Event stripeEvent, Session session)
     {

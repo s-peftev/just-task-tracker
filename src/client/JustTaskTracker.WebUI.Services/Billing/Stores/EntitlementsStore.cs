@@ -19,7 +19,7 @@ internal sealed class EntitlementsStore(IBillingApiService billingApiService) : 
     private int _loadGeneration;
     private CancellationTokenSource? _paymentConfirmationCts;
 
-    public PlanDto? Entitlements { get; private set; }
+    public EntitlementDto? Entitlements { get; private set; }
     public bool IsLoading { get; private set; }
     public bool IsLoaded { get; private set; }
     public string? ErrorMessage { get; private set; }
@@ -110,12 +110,12 @@ internal sealed class EntitlementsStore(IBillingApiService billingApiService) : 
     private async Task<bool> TryMatchPurchasedPlanAsync(string expectedPlanId, CancellationToken ct)
     {
         // Avoid RefreshAsync's clear-to-null so sidebar entitlements do not flicker during polls.
-        var plan = await billingApiService.GetEntitlementsAsync(ct);
+        var entitlements = await billingApiService.GetEntitlementsAsync(ct);
 
         await _sync.WaitAsync(ct);
         try
         {
-            ApplyPlan(plan);
+            ApplyEntitlements(entitlements);
         }
         finally
         {
@@ -124,14 +124,14 @@ internal sealed class EntitlementsStore(IBillingApiService billingApiService) : 
 
         NotifyStateChanged();
 
-        return plan.PlanId.Equals(expectedPlanId, StringComparison.OrdinalIgnoreCase);
+        return entitlements.PlanId.Equals(expectedPlanId, StringComparison.OrdinalIgnoreCase);
     }
 
-    private void ApplyPlan(PlanDto plan)
+    private void ApplyEntitlements(EntitlementDto entitlements)
     {
-        Entitlements = plan;
+        Entitlements = entitlements;
         _features.Clear();
-        foreach (var feature in plan.Features)
+        foreach (var feature in entitlements.Features)
             _features.Add(feature);
 
         IsLoaded = true;
@@ -196,7 +196,7 @@ internal sealed class EntitlementsStore(IBillingApiService billingApiService) : 
 
         try
         {
-            var plan = await billingApiService.GetEntitlementsAsync(CancellationToken.None);
+            var entitlements = await billingApiService.GetEntitlementsAsync(CancellationToken.None);
 
             if (IsStaleGeneration(generation))
                 return;
@@ -207,7 +207,7 @@ internal sealed class EntitlementsStore(IBillingApiService billingApiService) : 
                 if (IsStaleGeneration(generation))
                     return;
 
-                ApplyPlan(plan);
+                ApplyEntitlements(entitlements);
             }
             finally
             {

@@ -7,7 +7,7 @@ namespace JustTaskTracker.WebUI.Services.Billing;
 
 internal sealed class BillingApiService(IBillingApi api) : IBillingApiService
 {
-    public async Task<PlanDto> GetEntitlementsAsync(CancellationToken ct = default)
+    public async Task<EntitlementDto> GetEntitlementsAsync(CancellationToken ct = default)
     {
         var response = await api.GetEntitlementsAsync(ct);
 
@@ -33,6 +33,13 @@ internal sealed class BillingApiService(IBillingApi api) : IBillingApiService
         CancellationToken ct = default)
     {
         var response = await api.CreateCheckoutSessionAsync(new CreateCheckoutSessionRequest(planId), ct);
+
+        return ApiResponseGuard.Unwrap(response);
+    }
+
+    public async Task<PortalSessionResult> CreatePortalSessionAsync(CancellationToken ct = default)
+    {
+        var response = await api.CreatePortalSessionAsync(ct);
 
         return ApiResponseGuard.Unwrap(response);
     }

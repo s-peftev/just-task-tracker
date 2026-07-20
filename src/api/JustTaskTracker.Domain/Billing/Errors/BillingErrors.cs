@@ -10,8 +10,18 @@ public static class BillingErrors
         ErrorType.Conflict,
         ["An active subscription already exists for this user."]);
 
+    public static readonly Error SubscriptionNotFound = new(
+        nameof(SubscriptionNotFound),
+        ErrorType.NotFound,
+        ["No active subscription was found for this user."]);
+
     public static readonly Error WebhookPayloadInvalid = new(
         nameof(WebhookPayloadInvalid),
         ErrorType.Validation,
         ["The Stripe webhook payload is missing required subscription fields."]);
+
+    public static readonly Error UnknownSubscriptionStatus = new(
+        nameof(UnknownSubscriptionStatus),
+        ErrorType.Validation,
+        ["The Stripe webhook reported a subscription status that is not recognized."]);
 }

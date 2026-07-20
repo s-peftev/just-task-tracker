@@ -23,6 +23,10 @@ public static class PlanCardActionResolver
         PlanCardDto plan,
         SubscriptionDetailsDto? subscription)
     {
+        // Free has no CTA: current-plan / return-to-free buttons are intentionally omitted.
+        if (IsFreePlan(plan.PlanId))
+            return null;
+
         var currentPlanId = subscription?.PlanId;
 
         if (IsSamePlan(plan.PlanId, currentPlanId))
@@ -31,14 +35,6 @@ public static class PlanCardActionResolver
                 PlanCardActionKind.Current,
                 "Your Current Plan",
                 IsEnabled: false);
-        }
-
-        if (IsFreePlan(plan.PlanId))
-        {
-            return new PlanCardAction(
-                PlanCardActionKind.ReturnToFree,
-                "Return to Free",
-                IsEnabled: true);
         }
 
         // Paid plan card: upgrade only while the user is on Free.

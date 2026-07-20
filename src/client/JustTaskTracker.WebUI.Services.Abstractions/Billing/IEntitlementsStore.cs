@@ -4,7 +4,7 @@ namespace JustTaskTracker.WebUI.Services.Abstractions.Billing;
 
 public interface IEntitlementsStore
 {
-    PlanDto? Entitlements { get; }
+    EntitlementDto? Entitlements { get; }
     bool IsLoading { get; }
     bool IsLoaded { get; }
     string? ErrorMessage { get; }

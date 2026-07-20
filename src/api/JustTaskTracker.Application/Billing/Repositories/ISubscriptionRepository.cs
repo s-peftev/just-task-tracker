@@ -23,5 +23,11 @@ public interface ISubscriptionRepository
 
     Task<Subscription?> GetByStripeSubscriptionIdAsync(string stripeSubscriptionId, CancellationToken ct = default);
 
+    /// <summary>
+    /// Returns the Stripe customer id of the user's current billable subscription, if any;
+    /// otherwise <see langword="null"/>.
+    /// </summary>
+    Task<string?> GetBillableStripeCustomerIdAsync(Guid userId, CancellationToken ct = default);
+
     void Add(Subscription subscription);
 }

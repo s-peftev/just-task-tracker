@@ -40,6 +40,12 @@ public class SubscriptionRepository(JustTaskTrackerDbContext context) : ISubscri
             s => s.StripeSubscriptionId == stripeSubscriptionId,
             ct);
 
+    public Task<string?> GetBillableStripeCustomerIdAsync(Guid userId, CancellationToken ct = default) =>
+        context.Subscriptions
+            .Where(s => s.UserId == userId && SubscriptionStatus.AllBillable.Contains(s.Status))
+            .Select(s => s.StripeCustomerId)
+            .FirstOrDefaultAsync(ct);
+
     public void Add(Subscription subscription) =>
         context.Subscriptions.Add(subscription);
 }

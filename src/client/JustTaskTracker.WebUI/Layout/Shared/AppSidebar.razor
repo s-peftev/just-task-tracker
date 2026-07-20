@@ -1,3 +1,5 @@
+@using JustTaskTracker.WebUI.Domain.Billing
+@using JustTaskTracker.WebUI.Domain.Billing.Constants
 @using JustTaskTracker.WebUI.Infrastructure
 @using JustTaskTracker.WebUI.Services.Abstractions.Billing
 @using JustTaskTracker.WebUI.Services.Abstractions.Hubs
@@ -47,15 +49,34 @@
             @if (CanViewSubscriptions(profile))
             {
                 <NavLink href="/subscriptions"
-                         class="sidebar__tab sidebar__tab--subscriptions text-sidebar-tab"
+                         class="@SubscriptionsTabCssClass"
                          ActiveClass="sidebar__tab--active"
                          Match="NavLinkMatch.All">
                     Subscriptions
                     @if (CurrentPlanBadge is { } planBadge)
                     {
-                        <span class="sidebar__plan-badge @planBadge.CssClass"
-                              aria-label="@($"Current plan: {planBadge.Label}")">
-                            @planBadge.Label
+                        <span class="sidebar__plan-meta">
+                            @if (ShowPastDueWarning)
+                            {
+                                <span class="sidebar__past-due"
+                                      tabindex="0"
+                                      aria-label="@SubscriptionStatusCopy.PastDueNotice">
+                                    <svg class="sidebar__past-due-icon"
+                                         viewBox="0 0 24 24"
+                                         aria-hidden="true"
+                                         focusable="false">
+                                        <path fill="currentColor"
+                                              d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z" />
+                                    </svg>
+                                    <span class="sidebar__past-due-tooltip" aria-hidden="true">
+                                        @SubscriptionStatusCopy.PastDueNotice
+                                    </span>
+                                </span>
+                            }
+                            <span class="sidebar__plan-badge @planBadge.CssClass"
+                                  aria-label="@($"Current plan: {planBadge.Label}")">
+                                @planBadge.Label
+                            </span>
                         </span>
                     }
                 </NavLink>
@@ -95,6 +116,15 @@
 
     private static bool CanViewSubscriptions(UserWithRolesDto profile) =>
         profile.Roles.Any(r => r.Equals("User", StringComparison.OrdinalIgnoreCase));
+
+    private bool ShowPastDueWarning =>
+        EntitlementsStore.Entitlements is { Status: var status }
+        && status.Equals(SubscriptionStatuses.PastDue, StringComparison.OrdinalIgnoreCase);
+
+    private string SubscriptionsTabCssClass =>
+        ShowPastDueWarning
+            ? "sidebar__tab sidebar__tab--subscriptions sidebar__tab--subscriptions-past-due text-sidebar-tab"
+            : "sidebar__tab sidebar__tab--subscriptions text-sidebar-tab";
 
     private PlanBadge? CurrentPlanBadge
     {

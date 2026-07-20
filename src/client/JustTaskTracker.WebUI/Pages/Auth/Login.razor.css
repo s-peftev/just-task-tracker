@@ -1,14 +1,194 @@
-.login-card {
-    max-width: 28rem;
-    width: 100%;
-    padding: 2.5rem;
+.login-page {
+    position: relative;
+    background-color: var(--jtt-surface-login);
+    isolation: isolate;
+    overflow: auto;
 }
 
-.login-card__title {
-    font-family: 'Copperplate', 'Georgia', 'Times New Roman', serif;
-    font-size: 2.25rem;
-    color: var(--jtt-text-primary);
-    text-align: center;
-    margin: 0 0 2rem;
+.login-page__content {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1.75rem;
+    width: fit-content;
+    max-width: 95vw;
+    transform: translateY(-3.5rem);
+}
+
+.login-page__intro {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1.25rem;
+    max-width: 28rem;
+    padding-left: 1.25rem;
+    box-sizing: border-box;
+}
+
+.login-page__brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+}
+
+.login-page__brand-logo {
+    flex-shrink: 0;
+    display: block;
+    width: 1.5rem;
+    height: 1.5rem;
+}
+
+.login-page__brand-name {
+    font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+    font-size: 1.125rem;
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--jtt-text-strong);
+}
+
+.login-page__headline {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    margin: 0;
+    font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+    font-size: clamp(1.75rem, 4vw, 2.5rem);
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+}
+
+.login-page__headline-line {
+    color: var(--jtt-text-strong);
+}
+
+.login-page__headline-line--accent {
+    color: var(--jtt-accent);
+}
+
+.login-page__stage {
+    position: relative;
+    width: fit-content;
+    max-width: 100%;
+}
+
+.login-page__bg {
+    display: block;
+    width: auto;
+    height: auto;
+    max-width: none;
+    zoom: 0.45;
+    pointer-events: none;
+    user-select: none;
+    -webkit-mask-image:
+        linear-gradient(to right, transparent 0%, #000 14%, #000 86%, transparent 100%),
+        linear-gradient(to bottom, transparent 0%, #000 14%, #000 86%, transparent 100%);
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-size: 100% 100%;
+    -webkit-mask-composite: source-in;
+    mask-image:
+        linear-gradient(to right, transparent 0%, #000 14%, #000 86%, transparent 100%),
+        linear-gradient(to bottom, transparent 0%, #000 14%, #000 86%, transparent 100%);
+    mask-repeat: no-repeat;
+    mask-size: 100% 100%;
+    mask-composite: intersect;
+}
+
+@supports not (zoom: 1) {
+    .login-page__bg {
+        width: min(45vw, 48rem);
+        height: auto;
+        zoom: unset;
+    }
+}
+
+.login-page__tagline {
+    position: absolute;
+    top: 1.25rem;
+    left: 1.25rem;
+    z-index: 1;
+    margin: 0;
+    max-width: 20rem;
+    font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+    font-size: 0.9375rem;
     font-weight: 400;
+    line-height: 1.8;
+    word-spacing: 0.22em;
+    letter-spacing: 0.02em;
+    color: var(--jtt-text-faint);
+    text-align: left;
+    pointer-events: none;
+}
+
+.login-card {
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: max-content;
+    max-width: calc(100% - 2rem);
+    padding: 0;
+    transform: translateX(-50%);
+    box-sizing: border-box;
+}
+
+.login-card__button {
+    --login-button-bg: var(--jtt-surface-login-button);
+    --login-button-border: #333333;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    box-sizing: border-box;
+    min-width: 30.492rem;
+    padding: 0.825rem 3.267rem;
+    border: 1px solid var(--login-button-border);
+    border-radius: var(--jtt-radius-md);
+    background: var(--login-button-bg);
+    color: var(--jtt-text-strong);
+    font-family: "Segoe UI", "Inter", system-ui, sans-serif;
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.25;
+    letter-spacing: normal;
+    text-transform: none;
+    cursor: pointer;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+.login-card__button:hover,
+.login-card__button:focus-visible {
+    background: color-mix(in srgb, var(--login-button-bg) 88%, white);
+    border-color: color-mix(in srgb, var(--login-button-border) 70%, white);
+    outline: none;
+}
+
+.login-card__ms-icon {
+    flex-shrink: 0;
+    width: 1.375rem;
+    height: 1.375rem;
+    display: block;
+}
+
+@media (max-width: 36rem) {
+    .login-card__button {
+        min-width: 0;
+        width: 100%;
+        padding-inline: 1.5rem;
+    }
+
+    .login-page__intro {
+        padding-left: 0.75rem;
+    }
+
+    .login-page__tagline {
+        top: 0.75rem;
+        left: 0.75rem;
+        max-width: 14rem;
+        font-size: 0.8125rem;
+    }
 }

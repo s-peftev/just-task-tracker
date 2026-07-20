@@ -7,6 +7,8 @@
     --jtt-surface-sidebar: #121212;
     --jtt-surface-plan-card: #1E2125;
     --jtt-surface-board-card: #1C1F22;
+    --jtt-surface-login: #151617;
+    --jtt-surface-login-button: #1A1A1A;
 
     --jtt-surface-task-card: color-mix(in srgb, white 10%, var(--jtt-surface-raised));
 

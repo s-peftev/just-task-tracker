@@ -3,9 +3,11 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @using JustTaskTracker.WebUI.Infrastructure
 @using JustTaskTracker.WebUI.Services.Abstractions.Billing
+@using JustTaskTracker.WebUI.Services.Abstractions.Boards
 @inject IProfileStore ProfileStore
 @inject IEntitlementsStore EntitlementsStore
 @inject IBoardStore BoardStore
+@inject IBoardDetailsStore BoardDetailsStore
 @inject AuthenticationStateProvider AuthState
 @inject NavigationManager Navigation
 @inject IJSRuntime Js
@@ -19,7 +21,7 @@
     <main class="layout-main">
         @if (ProfileStore.Profile is { } profile)
         {
-            <div class="sidebar-shell @(_isSidebarCollapsed ? "sidebar-shell--collapsed" : null)">
+            <div class="sidebar-shell @GetSidebarShellClass()">
                 <div class="sidebar-shell__sidebar">
                     <AppSidebar @key="profile.Id" />
                 </div>
@@ -79,6 +81,8 @@
     {
         ProfileStore.StateChanged += OnStoreStateChanged;
         EntitlementsStore.StateChanged += OnStoreStateChanged;
+        BoardDetailsStore.StateChanged += OnStoreStateChanged;
+        Navigation.LocationChanged += OnLocationChanged;
     }
 
     protected override async Task OnInitializedAsync()
@@ -107,11 +111,44 @@
     {
         ProfileStore.StateChanged -= OnStoreStateChanged;
         EntitlementsStore.StateChanged -= OnStoreStateChanged;
+        BoardDetailsStore.StateChanged -= OnStoreStateChanged;
+        Navigation.LocationChanged -= OnLocationChanged;
     }
 
     private void OnStoreStateChanged() => InvokeAsync(StateHasChanged);
 
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e) =>
+        InvokeAsync(StateHasChanged);
+
     private void ToggleSidebar() => _isSidebarCollapsed = !_isSidebarCollapsed;
+
+    private string GetSidebarShellClass()
+    {
+        var classes = new List<string>();
+        if (_isSidebarCollapsed)
+            classes.Add("sidebar-shell--collapsed");
+        if (IsViewingBoardPage)
+            classes.Add("sidebar-shell--board-page");
+        if (IsViewingArchivedBoard)
+            classes.Add("sidebar-shell--archived-board");
+        return string.Join(' ', classes);
+    }
+
+    private bool IsViewingBoardPage
+    {
+        get
+        {
+            var path = Navigation.ToBaseRelativePath(Navigation.Uri).Trim('/');
+            if (!path.StartsWith("boards/", StringComparison.OrdinalIgnoreCase))
+                return false;
+
+            var boardSegment = path["boards/".Length..].Split('/', 2)[0];
+            return Guid.TryParse(boardSegment, out _);
+        }
+    }
+
+    private bool IsViewingArchivedBoard =>
+        IsViewingBoardPage && BoardDetailsStore.Board is { IsArchived: true };
 
     /// <summary>
     /// Loads profile first, then entitlements. Sequential on purpose: first login

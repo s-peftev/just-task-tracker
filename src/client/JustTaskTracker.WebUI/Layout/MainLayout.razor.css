@@ -64,6 +64,10 @@
 }
 
 .sidebar-shell__content::before {
+    content: none;
+}
+
+.sidebar-shell--board-page .sidebar-shell__content::before {
     content: "";
     position: absolute;
     top: 0;
@@ -77,6 +81,18 @@
         color-mix(in srgb, var(--jtt-accent-tertiary) 22%, transparent),
         transparent 100%
     );
+}
+
+.sidebar-shell--board-page.sidebar-shell--archived-board .sidebar-shell__content::before {
+    background: linear-gradient(
+        to right,
+        color-mix(in srgb, var(--jtt-accent-archive-secondary) 28%, transparent),
+        transparent 100%
+    );
+}
+
+.sidebar-shell--archived-board ::deep .sidebar {
+    border-right-color: var(--jtt-accent-archive-secondary);
 }
 
 .sidebar-shell__toggle {

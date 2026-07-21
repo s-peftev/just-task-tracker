@@ -44,6 +44,12 @@
     background-color: var(--jtt-surface-content);
 }
 
+.board-page--archived {
+    --jtt-surface-task-card: var(--jtt-surface-task-card-archive);
+    --jtt-board-mine-accent: var(--jtt-accent-archive);
+    --jtt-board-progress-fill: var(--jtt-accent-archive);
+}
+
 .board-page--archived .board-page__content {
     background:
         var(--jtt-overlay-warning-10),

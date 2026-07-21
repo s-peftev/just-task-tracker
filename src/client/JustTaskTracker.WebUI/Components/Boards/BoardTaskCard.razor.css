@@ -33,7 +33,7 @@
 }
 
 .board-task-card--assigned-to-me {
-    border: 1px solid var(--jtt-accent);
+    border: 1px solid var(--jtt-board-mine-accent);
 }
 
 .board-task-card__body {
@@ -76,5 +76,5 @@
 }
 
 .board-task-card__stat--assigned-to-me {
-    color: var(--jtt-accent);
+    color: var(--jtt-board-mine-accent);
 }

@@ -12,6 +12,7 @@
     --jtt-surface-login-button: #1A1A1A;
 
     --jtt-surface-task-card: color-mix(in srgb, var(--jtt-accent) 10%, color-mix(in srgb, black 28%, #1C2125));
+    --jtt-surface-task-card-archive: color-mix(in srgb, var(--jtt-accent-archive) 12%, color-mix(in srgb, black 28%, #1C2125));
 
     /* Brand accent */
     --jtt-accent: #389466;
@@ -19,6 +20,10 @@
     --jtt-accent-tertiary: #1A5D41;
     --jtt-accent-archive: #C9A227;
     --jtt-accent-archive-secondary: #8B7018;
+
+    /* Board contextual accents (switch to archive on archived boards) */
+    --jtt-board-mine-accent: var(--jtt-accent);
+    --jtt-board-progress-fill: var(--jtt-accent-tertiary);
 
     /* Translucent overlays */
     --jtt-overlay-accent-10: color-mix(in srgb, var(--jtt-accent) 10%, transparent);

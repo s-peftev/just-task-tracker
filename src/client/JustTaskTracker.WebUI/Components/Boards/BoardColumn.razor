@@ -46,7 +46,13 @@
         </div>
 
         <div class="board-column__header-actions">
-            <span class="board-column__count">@GetVisibleTaskCount()</span>
+            <span class="board-column__count" aria-label="@GetCountAriaLabel()">
+                <span class="board-column__count-mine"
+                      title="Tasks assigned to you">@GetAssignedToMeTaskCount()</span>
+                <span class="board-column__count-separator" aria-hidden="true">/</span>
+                <span class="board-column__count-total"
+                      title="Total tasks in this column">@GetTotalTaskCount()</span>
+            </span>
             @if (CanDeleteColumn)
             {
                 <button type="button"
@@ -63,6 +69,19 @@
             }
         </div>
     </header>
+
+    <div class="board-column__progress"
+         title="@GetColumnShareTooltip()"
+         role="meter"
+         aria-valuemin="0"
+         aria-valuemax="100"
+         aria-valuenow="@GetColumnSharePercentRounded()"
+         aria-label="@GetColumnShareTooltip()">
+        <div class="board-column__progress-track">
+            <div class="board-column__progress-fill"
+                 style="--board-column-progress: @GetColumnSharePercentCss()"></div>
+        </div>
+    </div>
 
     <div @ref="_tasksListRef"
          class="board-column__tasks @(_hasTaskContent ? "board-column__tasks--filled" : null)">
@@ -491,16 +510,51 @@
         _sortableTasks.AddRange(ordered);
     }
 
-    private int GetVisibleTaskCount()
-    {
-        if (!BoardDetailsStore.ShowOnlyMyTasks)
-            return Column.BoardTasks.Count;
+    private int GetTotalTaskCount() => Column.BoardTasks.Count;
 
+    private int GetBoardTaskCount() =>
+        BoardDetailsStore.Board?.Columns.Sum(column => column.BoardTasks.Count) ?? 0;
+
+    private double GetColumnSharePercent()
+    {
+        var boardTotal = GetBoardTaskCount();
+        if (boardTotal <= 0)
+            return 0;
+
+        return 100d * GetTotalTaskCount() / boardTotal;
+    }
+
+    private int GetColumnSharePercentRounded() =>
+        (int)Math.Round(GetColumnSharePercent(), MidpointRounding.AwayFromZero);
+
+    private string GetColumnSharePercentCss() =>
+        $"{GetColumnSharePercent().ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)}%";
+
+    private string GetColumnShareTooltip()
+    {
+        var columnTotal = GetTotalTaskCount();
+        var boardTotal = GetBoardTaskCount();
+        return $"{columnTotal} of {boardTotal} tasks on this board are in this column";
+    }
+
+    private int GetAssignedToMeTaskCount()
+    {
         if (ProfileStore.Profile is not { } profile)
             return 0;
 
         return Column.BoardTasks.Count(task => task.IsAssignedToCurrentUser(profile.Id));
     }
+
+    private int GetVisibleTaskCount()
+    {
+        if (!BoardDetailsStore.ShowOnlyMyTasks)
+            return GetTotalTaskCount();
+
+        return GetAssignedToMeTaskCount();
+    }
+
+    private string GetCountAriaLabel() =>
+        $"{GetAssignedToMeTaskCount()} assigned to you, {GetTotalTaskCount()} total in this column";
 
     private bool IsTaskVisible(BoardTaskPreviewDto task)
     {

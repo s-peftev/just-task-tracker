@@ -4,11 +4,13 @@
         class="board-task-card @(CanDrag ? "board-task-card--draggable" : null) @(IsAssignedToCurrentUser ? "board-task-card--assigned-to-me" : null)"
         @onpointerdown="OnPointerDown"
         @onpointerup="OnPointerUp">
-    <span class="board-task-card__title">@Task.Title</span>
+    <div class="board-task-card__body">
+        <span class="board-task-card__title">@Task.Title</span>
+    </div>
 
-    @if (Task.AssigneeId is not null || Task.CommentsCount > 0 || Task.AttachmentsCount > 0)
+    @if (HasFooter)
     {
-        <span class="board-task-card__meta" aria-hidden="true">
+        <div class="board-task-card__footer" aria-hidden="true">
             @if (Task.AssigneeId is not null)
             {
                 <span class="board-task-card__stat @(IsAssignedToCurrentUser ? "board-task-card__stat--assigned-to-me" : null)">
@@ -80,7 +82,7 @@
                     <span class="board-task-card__stat-value">@Task.AttachmentsCount</span>
                 </span>
             }
-        </span>
+        </div>
     }
 </button>
 
@@ -98,6 +100,9 @@
 
     [Parameter]
     public EventCallback<BoardTaskPreviewDto> OnTaskClick { get; set; }
+
+    private bool HasFooter =>
+        Task.AssigneeId is not null || Task.CommentsCount > 0 || Task.AttachmentsCount > 0;
 
     private double? _pointerDownX;
     private double? _pointerDownY;

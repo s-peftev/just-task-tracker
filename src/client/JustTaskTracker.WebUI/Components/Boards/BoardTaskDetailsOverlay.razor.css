@@ -115,7 +115,7 @@
     overflow: auto;
     padding: 1.25rem 1.5rem;
     box-sizing: border-box;
-    background-color: var(--jtt-surface-task-card);
+    background-color: var(--jtt-surface-content);
     border-right: 1px solid var(--board-task-overlay-divider);
 }
 

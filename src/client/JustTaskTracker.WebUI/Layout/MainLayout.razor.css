@@ -59,7 +59,24 @@
     padding: 0;
     overflow: hidden;
     box-sizing: border-box;
+    position: relative;
     transition: width var(--sidebar-transition-duration) ease;
+}
+
+.sidebar-shell__content::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 0.75rem;
+    z-index: 5;
+    pointer-events: none;
+    background: linear-gradient(
+        to right,
+        color-mix(in srgb, var(--jtt-accent-tertiary) 22%, transparent),
+        transparent 100%
+    );
 }
 
 .sidebar-shell__toggle {

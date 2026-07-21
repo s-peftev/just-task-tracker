@@ -7,10 +7,11 @@
     --jtt-surface-sidebar: #121212;
     --jtt-surface-plan-card: #1E2125;
     --jtt-surface-board-card: #1C1F22;
+    --jtt-surface-board-column: #18191A;
     --jtt-surface-login: #151617;
     --jtt-surface-login-button: #1A1A1A;
 
-    --jtt-surface-task-card: color-mix(in srgb, white 10%, var(--jtt-surface-raised));
+    --jtt-surface-task-card: color-mix(in srgb, var(--jtt-accent) 10%, color-mix(in srgb, black 28%, #1C2125));
 
     /* Brand accent */
     --jtt-accent: #389466;
@@ -40,8 +41,8 @@
     --jtt-stroke-strong: rgba(255, 255, 255, 0.40);
     --jtt-stroke-muted: rgba(255, 255, 255, 0.23);
     --jtt-stroke-separator: rgba(255, 255, 255, 0.12);
-    --jtt-stroke-accent: rgba(97, 179, 216, 0.20);
-    --jtt-stroke-accent-strong: rgba(97, 179, 216, 0.55);
+    --jtt-stroke-accent: color-mix(in srgb, var(--jtt-accent) 35%, transparent);
+    --jtt-stroke-accent-strong: color-mix(in srgb, var(--jtt-accent) 70%, transparent);
     --jtt-stroke-solid: rgb(255, 255, 255);
     --jtt-stroke-danger: rgb(255, 122, 122);
     --jtt-stroke-danger-soft: rgba(255, 122, 122, 0.20);
@@ -56,7 +57,7 @@
     --jtt-text-muted: rgba(255, 255, 255, 0.75);
     --jtt-text-subtle: rgba(255, 255, 255, 0.65);
     --jtt-text-faint: rgba(255, 255, 255, 0.55);
-    --jtt-text-accent: rgba(97, 179, 216, 0.65);
+    --jtt-text-accent: var(--jtt-accent);
     --jtt-text-danger: #ff7a7a;
     --jtt-text-warning: #ffcc66;
     --jtt-text-on-app: rgba(255, 255, 255, 0.87);
@@ -424,7 +425,7 @@ html, body {
 .resource-form-dialog .mud-input.mud-input-outlined:focus-within .mud-shrink > .mud-input-outlined-border,
 .board-form-dialog .mud-input.mud-input-outlined:focus-within > .mud-input-outlined-border,
 .board-form-dialog .mud-input.mud-input-outlined:focus-within .mud-shrink > .mud-input-outlined-border {
-    border-color: var(--jtt-stroke-accent) !important;
+    border-color: var(--jtt-accent) !important;
 }
 
 .resource-form-dialog .mud-input-control:not(.mud-input-error) .mud-input:focus-within ~ label.mud-input-label.mud-input-label-inputcontrol,
@@ -608,7 +609,7 @@ html, body {
 }
 
 .board-members-overlay__member--current-user {
-    border-color: rgb(97, 179, 216);
+    border-color: var(--jtt-accent-tertiary);
 }
 
 .board-members-overlay__member-avatar-wrap {
@@ -972,7 +973,7 @@ h1:focus {
 .board-column__tasks-sortable {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 1rem;
     width: 100%;
     min-height: 1.5rem;
     flex: 1 1 auto;

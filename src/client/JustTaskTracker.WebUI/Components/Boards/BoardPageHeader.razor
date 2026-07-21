@@ -39,16 +39,18 @@
             }
             else if (CanRenameBoard)
             {
-                <h1 @key="_nameHighlightVersion"
-                    class="@GetTitleClass(editable: true)"
-                    @onclick="StartNameEdit">
+                <span role="heading"
+                      aria-level="1"
+                      class="@GetTitleClass(editable: true)"
+                      @onclick="StartNameEdit">
                     @board.Name
-                </h1>
+                </span>
             }
             else
             {
-                <h1 @key="_nameHighlightVersion"
-                    class="@GetTitleClass(editable: false)">@board.Name</h1>
+                <span role="heading"
+                      aria-level="1"
+                      class="@GetTitleClass(editable: false)">@board.Name</span>
             }
         </div>
 
@@ -150,7 +152,8 @@
     private bool _isSavingName;
     private bool _isDownloadingArchive;
     private bool _focusTitleInput;
-    private int _nameHighlightVersion;
+    private bool _isNameHighlighted;
+    private int _nameHighlightToken;
     private string _editName = string.Empty;
     private ElementReference _titleInputRef;
 
@@ -293,7 +296,7 @@
             ? "text-section-title board-page__title board-page__title--editable"
             : "text-section-title board-page__title";
 
-        if (_nameHighlightVersion > 0)
+        if (_isNameHighlighted)
             classes += " board-page__title--remote-updated";
 
         return classes;
@@ -304,8 +307,22 @@
         if (_isEditingName)
             return;
 
-        _nameHighlightVersion++;
-        InvokeAsync(StateHasChanged);
+        _ = HighlightRemoteNameAsync();
+    }
+
+    private async Task HighlightRemoteNameAsync()
+    {
+        var token = ++_nameHighlightToken;
+        _isNameHighlighted = true;
+        await InvokeAsync(StateHasChanged);
+
+        await Task.Delay(1000);
+
+        if (token != _nameHighlightToken)
+            return;
+
+        _isNameHighlighted = false;
+        await InvokeAsync(StateHasChanged);
     }
 
     private void OnBoardDetailsStoreStateChanged() =>

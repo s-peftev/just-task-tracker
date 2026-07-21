@@ -1,7 +1,7 @@
 @property --footer-curtain-color {
     syntax: '<color>';
     inherits: true;
-    initial-value: #000;
+    initial-value: #18191A;
 }
 
 /* Drawer: handle on top, tray below. Closed — tray sits under viewport, only handle peeks.
@@ -39,14 +39,14 @@
     max-width: calc(100% - 3rem);
     margin-top: var(--board-page-footer-handle-height);
     pointer-events: auto;
-    --footer-curtain-color: #000;
+    --footer-curtain-color: var(--jtt-surface-board-column);
     background-color: var(--footer-curtain-color);
     border-radius: var(--board-page-footer-top-radius) var(--board-page-footer-top-radius) 0 0;
     transition: --footer-curtain-color 0.2s ease;
 }
 
 .board-page__footer-panel:hover {
-    --footer-curtain-color: var(--jtt-surface-raised);
+    --footer-curtain-color: color-mix(in srgb, white 6%, var(--jtt-surface-board-column));
 }
 
 .board-page__footer-tab {
@@ -148,7 +148,7 @@
     font-family: inherit;
     border: 2px solid var(--jtt-stroke-muted);
     border-radius: var(--jtt-radius-sm);
-    background: var(--jtt-overlay-accent-10);
+    background: var(--jtt-overlay-white-08);
     backdrop-filter: blur(12px);
     color: var(--jtt-text-primary);
     outline: none;
@@ -161,5 +161,5 @@
 }
 
 .board-page__footer-search-input:focus {
-    border-color: var(--jtt-stroke-accent-strong);
+    border-color: var(--jtt-accent);
 }

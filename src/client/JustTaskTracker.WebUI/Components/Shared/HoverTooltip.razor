@@ -1,0 +1,21 @@
+@* Interactive hover/focus tooltip. Stays open while pointer or focus is inside. *@
+
+<div class="hover-tooltip">
+    <div class="hover-tooltip__trigger">
+        @Trigger
+    </div>
+    @if (ChildContent is not null)
+    {
+        <div class="hover-tooltip__panel" role="tooltip">
+            @ChildContent
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public RenderFragment Trigger { get; set; } = default!;
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+}

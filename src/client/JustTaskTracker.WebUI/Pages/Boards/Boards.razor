@@ -27,22 +27,6 @@
                        placeholder="Search boards by name"
                        value="@BoardStore.Active.SearchText"
                        @oninput="OnActiveSearchInputAsync" />
-                @if (CanCreateBoard)
-                {
-                    <button type="button"
-                            class="boards__create-button"
-                            aria-label="Create new board"
-                            title="Create new board"
-                            @onclick="CreateBoardAsync">
-                        <svg class="boards__create-button-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                            <path d="M12 5v14M5 12h14"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  stroke-width="3"
-                                  stroke-linecap="round" />
-                        </svg>
-                    </button>
-                }
                 <button type="button"
                         class="boards__archived-toggle @(_showArchivedBoards ? "boards__archived-toggle--active" : null)"
                         aria-pressed="@_showArchivedBoards"
@@ -54,6 +38,63 @@
                     </svg>
                     <span class="boards__archived-toggle-tooltip" aria-hidden="true">Show archived boards</span>
                 </button>
+                @if (CanCreateBoard)
+                {
+                    @if (IsBoardCreateLimitReached)
+                    {
+                        <HoverTooltip>
+                            <Trigger>
+                                <button type="button"
+                                        class="boards__create-button boards__create-button--disabled"
+                                        aria-label="Create new board"
+                                        disabled
+                                        @onclick="CreateBoardAsync">
+                                    <svg class="boards__create-button-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                        <path d="M12 5v14M5 12h14"
+                                              fill="none"
+                                              stroke="currentColor"
+                                              stroke-width="3"
+                                              stroke-linecap="round" />
+                                    </svg>
+                                </button>
+                            </Trigger>
+                            <ChildContent>
+                                <p class="hover-tooltip__panel-text">
+                                    You've reached the board limit for your plan. Upgrade your plan to create more boards.
+                                </p>
+                                <button type="button"
+                                        class="hover-tooltip__action"
+                                        @onclick="GoToSubscriptions">
+                                    View subscriptions
+                                </button>
+                            </ChildContent>
+                        </HoverTooltip>
+                    }
+                    else
+                    {
+                        <button type="button"
+                                class="boards__create-button"
+                                aria-label="Create new board"
+                                title="Create new board"
+                                @onclick="CreateBoardAsync">
+                            <svg class="boards__create-button-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                <path d="M12 5v14M5 12h14"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      stroke-width="3"
+                                      stroke-linecap="round" />
+                            </svg>
+                        </button>
+                    }
+                }
+                @if (BoardLimitLabel is { } boardLimitLabel)
+                {
+                    <span class="boards__board-limit @(IsBoardCreateLimitReached ? "boards__board-limit--reached" : null)"
+                          title="Active boards used / plan limit">
+                        <span class="boards__board-limit-value">@boardLimitLabel</span>
+                        <span class="boards__board-limit-caption">board limit</span>
+                    </span>
+                }
             </div>
             <div class="boards__pager">
                 <button type="button"
@@ -182,13 +223,56 @@
             r.Equals("Admin", StringComparison.OrdinalIgnoreCase) ||
             r.Equals("User", StringComparison.OrdinalIgnoreCase)) ?? false;
 
+    private bool ShowBoardLimitCounter =>
+        ProfileStore.Profile is { Roles: var roles }
+        && roles.Any(r => r.Equals("User", StringComparison.OrdinalIgnoreCase))
+        && !roles.Any(r =>
+            r.Equals("Admin", StringComparison.OrdinalIgnoreCase)
+            || r.Equals("Guest", StringComparison.OrdinalIgnoreCase));
+
+    private int? MaxBoardsLimit =>
+        ShowBoardLimitCounter
+            ? EntitlementsStore.Entitlements?.Limits.MaxBoards
+            : null;
+
+    private int ActiveBoardUsageCount
+    {
+        get
+        {
+            var active = BoardStore.Active;
+
+            // When the full unfiltered active list fits the current page, count owned boards
+            // (matches MaxBoards semantics). Otherwise fall back to list TotalCount.
+            if (string.IsNullOrWhiteSpace(active.SearchText)
+                && active.IsLoaded
+                && active.Pagination.TotalCount <= active.Boards.Count)
+            {
+                return active.Boards.Count(board => board.UserRole == BoardMemberRole.Owner);
+            }
+
+            return active.Pagination.TotalCount;
+        }
+    }
+
+    private string? BoardLimitLabel =>
+        MaxBoardsLimit is int max
+            ? $"{ActiveBoardUsageCount} / {max}"
+            : null;
+
+    private bool IsBoardCreateLimitReached =>
+        MaxBoardsLimit is int max && ActiveBoardUsageCount >= max;
+
     [Inject]
     private IProfileStore ProfileStore { get; set; } = default!;
+
+    [Inject]
+    private IEntitlementsStore EntitlementsStore { get; set; } = default!;
 
     protected override async Task OnInitializedAsync()
     {
         BoardStore.StateChanged += OnStoreStateChanged;
         ProfileStore.StateChanged += OnProfileStoreStateChanged;
+        EntitlementsStore.StateChanged += OnEntitlementsStoreStateChanged;
         _showArchivedBoards = await ReadShowArchivedBoardsPreferenceAsync();
         _preferenceLoaded = true;
     }
@@ -274,6 +358,9 @@
 
     private async Task CreateBoardAsync()
     {
+        if (IsBoardCreateLimitReached)
+            return;
+
         var dialog = await DialogService.ShowResourceFormAsync(
             "Create new board",
             "Create",
@@ -297,10 +384,14 @@
         }
     }
 
+    private void GoToSubscriptions() =>
+        Navigation.NavigateTo("/subscriptions");
+
     public async ValueTask DisposeAsync()
     {
         BoardStore.StateChanged -= OnStoreStateChanged;
         ProfileStore.StateChanged -= OnProfileStoreStateChanged;
+        EntitlementsStore.StateChanged -= OnEntitlementsStoreStateChanged;
         await SyncArchivedHubSubscriptionsAsync(Array.Empty<Guid>());
     }
 
@@ -318,6 +409,9 @@
             await TryRefreshBoardsAsync();
             StateHasChanged();
         });
+
+    private void OnEntitlementsStoreStateChanged() =>
+        InvokeAsync(StateHasChanged);
 
     private async Task SyncArchivedHubSubscriptionsAsync(
         IReadOnlyList<Guid>? overrideNewIds = null)

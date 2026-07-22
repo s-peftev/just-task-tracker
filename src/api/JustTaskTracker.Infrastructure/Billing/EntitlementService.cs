@@ -1,3 +1,4 @@
+using JustTaskTracker.Application.Auth.Repositories;
 using JustTaskTracker.Application.Billing.Abstractions;
 using JustTaskTracker.Application.Billing.ReadModels;
 using JustTaskTracker.Application.Billing.Repositories;
@@ -9,23 +10,24 @@ namespace JustTaskTracker.Infrastructure.Billing;
 
 internal class EntitlementService(
     IPlanCatalog planCatalog,
-    ISubscriptionRepository subscriptionRepository) : IEntitlementService
+    ISubscriptionRepository subscriptionRepository,
+    IUserRepository userRepository) : IEntitlementService
 {
-    public async Task<bool> CanUseAsync(Guid userId, IReadOnlyList<string> globalRoles, string feature, CancellationToken ct = default)
+    public async Task<bool> CanUseAsync(Guid userId, string feature, CancellationToken ct = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(feature);
 
         if (!Features.IsValid(feature))
             return false;
 
-        var entitlements = await GetEntitlementsAsync(userId, globalRoles, ct);
+        var entitlements = await GetEntitlementsAsync(userId, ct);
 
         return entitlements.Features.Contains(feature);
     }
 
-    public async Task<EntitlementDto> GetEntitlementsAsync(Guid userId, IReadOnlyList<string> globalRoles, CancellationToken ct = default)
+    public async Task<EntitlementDto> GetEntitlementsAsync(Guid userId, CancellationToken ct = default)
     {
-        var roles = globalRoles ?? [];
+        var roles = await userRepository.GetGlobalRolesByUserIdAsync(userId, ct);
 
         if (HasRole(roles, Roles.Admin))
         {

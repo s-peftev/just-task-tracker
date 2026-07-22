@@ -37,6 +37,12 @@ public interface IBoardRepository : IRepository<Board, Guid>
 
     Task<bool> IsArchivedAsync(Guid boardId, CancellationToken ct = default);
 
+    Task<Guid?> GetOwnerUserIdAsync(Guid boardId, CancellationToken ct = default);
+
+    Task<int> CountActiveOwnedBoardsByUserIdAsync(Guid userId, CancellationToken ct = default);
+
+    Task<int> CountMembersByBoardIdAsync(Guid boardId, CancellationToken ct = default);
+
     Task<IReadOnlyDictionary<Guid, BoardMemberRole>> GetUserRolesForArchivedBoardsAsync(IReadOnlyList<Guid> boardIds, Guid azureAdObjectId, CancellationToken ct = default);
 
     /// <summary>

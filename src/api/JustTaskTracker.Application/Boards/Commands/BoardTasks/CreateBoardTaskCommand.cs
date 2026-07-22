@@ -6,6 +6,7 @@ using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Behaviors;
 using JustTaskTracker.Application.Common.Persistence;
 using JustTaskTracker.Application.Common.Utils;
+using JustTaskTracker.Domain.Billing.Enums;
 using JustTaskTracker.Domain.Boards.Authorization;
 using JustTaskTracker.Domain.Boards.Constants;
 using JustTaskTracker.Domain.Boards.DTOs.BoardTasks;
@@ -19,7 +20,12 @@ using MediatR;
 namespace JustTaskTracker.Application.Boards.Commands.BoardTasks;
 
 public record CreateBoardTaskCommand(Guid BoardId, Guid ColumnId, string Title)
-    : IRequest<Result<BoardTaskPreviewDto>>, IRequireActiveBoard;
+    : IRequest<Result<BoardTaskPreviewDto>>, IRequireActiveBoard, IRequirePlanLimit
+{
+    public PlanLimitKind Limit => PlanLimitKind.TasksPerBoard;
+
+    Guid? IRequirePlanLimit.BoardId => BoardId;
+}
 
 public class CreateBoardTaskCommandHandler(
     ICurrentUserAccessor currentUserAccessor,

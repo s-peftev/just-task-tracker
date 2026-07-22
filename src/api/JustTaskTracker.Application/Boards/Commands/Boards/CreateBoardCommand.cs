@@ -2,7 +2,9 @@ using FluentValidation;
 using JustTaskTracker.Application.Auth;
 using JustTaskTracker.Application.Auth.Repositories;
 using JustTaskTracker.Application.Boards.Repositories;
+using JustTaskTracker.Application.Common.Behaviors;
 using JustTaskTracker.Application.Common.Persistence;
+using JustTaskTracker.Domain.Billing.Enums;
 using JustTaskTracker.Domain.Boards.Constants;
 using JustTaskTracker.Domain.Boards.DTOs.Boards;
 using JustTaskTracker.Domain.Boards.Entities;
@@ -13,7 +15,12 @@ using MediatR;
 
 namespace JustTaskTracker.Application.Boards.Commands.Boards;
 
-public record CreateBoardCommand(string Name) : IRequest<Result<BoardDetailsDto>>;
+public record CreateBoardCommand(string Name) : IRequest<Result<BoardDetailsDto>>, IRequirePlanLimit
+{
+    public PlanLimitKind Limit => PlanLimitKind.Boards;
+
+    public Guid? BoardId => null;
+}
 
 public class CreateBoardCommandHandler(
     ICurrentUserAccessor currentUserAccessor,

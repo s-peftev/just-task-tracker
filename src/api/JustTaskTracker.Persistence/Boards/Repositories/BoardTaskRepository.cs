@@ -113,6 +113,9 @@ public class BoardTaskRepository(JustTaskTrackerDbContext context)
     public async Task<int> GetCountByColumnIdAsync(Guid columnId, CancellationToken ct = default) =>
         await _dbSet.CountAsync(t => t.ColumnId == columnId, ct);
 
+    public async Task<int> CountByBoardIdAsync(Guid boardId, CancellationToken ct = default) =>
+        await _dbSet.CountAsync(t => t.Column!.BoardId == boardId, ct);
+
     public void RemoveRange(IReadOnlyList<BoardTask> tasks)
     {
         foreach (var task in tasks)

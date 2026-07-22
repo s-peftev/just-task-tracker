@@ -6,6 +6,7 @@ using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Behaviors;
 using JustTaskTracker.Application.Common.Persistence;
 using JustTaskTracker.Application.Common.Utils;
+using JustTaskTracker.Domain.Billing.Enums;
 using JustTaskTracker.Domain.Boards.Authorization;
 using JustTaskTracker.Domain.Boards.Constants;
 using JustTaskTracker.Domain.Boards.DTOs.Columns;
@@ -20,7 +21,11 @@ using MediatR;
 namespace JustTaskTracker.Application.Boards.Commands.Columns;
 
 public record CreateColumnCommand(Guid BoardId, string Name)
-    : IRequest<Result<ColumnDto>>, IRequireActiveBoard;
+    : IRequest<Result<ColumnDto>>, IRequireActiveBoard, IRequirePlanLimit
+{
+    public PlanLimitKind Limit => PlanLimitKind.ColumnsPerBoard;
+    Guid? IRequirePlanLimit.BoardId => BoardId;
+}
 
 public class CreateColumnCommandHandler(
     ICurrentUserAccessor currentUserAccessor,

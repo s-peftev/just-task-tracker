@@ -58,6 +58,9 @@ public class ColumnRepository(JustTaskTrackerDbContext context)
             .OrderBy(c => c.Position)
             .ToListAsync(ct);
 
+    public async Task<int> CountByBoardIdAsync(Guid boardId, CancellationToken ct = default) =>
+        await _dbSet.CountAsync(c => c.BoardId == boardId, ct);
+
     public void RemoveRange(IReadOnlyList<Column> columns)
     {
         foreach (var column in columns)

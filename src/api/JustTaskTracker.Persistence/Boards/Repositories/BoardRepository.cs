@@ -163,6 +163,23 @@ public class BoardRepository(JustTaskTrackerDbContext context)
     public async Task<bool> IsArchivedAsync(Guid boardId, CancellationToken ct = default) =>
         await _dbSet.AnyAsync(b => b.Id == boardId && b.IsArchived, ct);
 
+    public async Task<Guid?> GetOwnerUserIdAsync(Guid boardId, CancellationToken ct = default) =>
+        await _context.BoardMembers
+            .Where(m => m.BoardId == boardId && m.Role == BoardMemberRole.Owner)
+            .Select(m => (Guid?)m.UserId)
+            .FirstOrDefaultAsync(ct);
+
+    public async Task<int> CountActiveOwnedBoardsByUserIdAsync(Guid userId, CancellationToken ct = default) =>
+        await _context.BoardMembers
+            .CountAsync(
+                m => m.UserId == userId
+                     && m.Role == BoardMemberRole.Owner
+                     && !m.Board!.IsArchived,
+                ct);
+
+    public async Task<int> CountMembersByBoardIdAsync(Guid boardId, CancellationToken ct = default) =>
+        await _context.BoardMembers.CountAsync(m => m.BoardId == boardId, ct);
+
     public async Task<IReadOnlyDictionary<Guid, BoardMemberRole>> GetUserRolesForArchivedBoardsAsync(IReadOnlyList<Guid> boardIds, Guid azureAdObjectId, CancellationToken ct = default)
     {
         if (boardIds.Count is 0)

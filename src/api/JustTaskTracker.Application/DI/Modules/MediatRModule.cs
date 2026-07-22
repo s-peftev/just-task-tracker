@@ -16,6 +16,7 @@ internal static class MediatRModule
             cfg.AddOpenBehavior(typeof(LoggingBehavior<,>));
             cfg.AddOpenBehavior(typeof(ArchivedBoardGuardBehavior<,>));
             cfg.AddOpenBehavior(typeof(FeatureGuardBehavior<,>));
+            cfg.AddOpenBehavior(typeof(PlanLimitGuardBehavior<,>));
             cfg.AddOpenBehavior(typeof(ValidationBehavior<,>));
         });
 

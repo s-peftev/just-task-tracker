@@ -16,5 +16,7 @@ public interface IColumnRepository : IRepository<Column, Guid>
 
     Task<IReadOnlyList<Column>> GetListByBoardIdAsync(Guid boardId, CancellationToken ct = default);
 
+    Task<int> CountByBoardIdAsync(Guid boardId, CancellationToken ct = default);
+
     void RemoveRange(IReadOnlyList<Column> columns);
 }

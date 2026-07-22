@@ -1,7 +1,6 @@
 using JustTaskTracker.Application.Auth;
 using JustTaskTracker.Application.Auth.Repositories;
 using JustTaskTracker.Application.Billing.Abstractions;
-using JustTaskTracker.Domain.Billing.Errors;
 using JustTaskTracker.Domain.Common.Results;
 using JustTaskTracker.Domain.Common.Results.Errors;
 using MediatR;
@@ -9,12 +8,11 @@ using MediatR;
 namespace JustTaskTracker.Application.Common.Behaviors;
 
 /// <summary>
-/// MediatR pipeline behavior that blocks requests when the current user
-/// is not entitled to the required billing feature.
-/// Applies only to requests implementing <see cref="IRequireFeature"/>.
+/// MediatR pipeline behavior that blocks create/add requests that would exceed
+/// the effective plan limit. Applies only to requests implementing <see cref="IRequirePlanLimit"/>.
 /// </summary>
-public class FeatureGuardBehavior<TRequest, TResponse>(
-    IEntitlementService entitlementService,
+public class PlanLimitGuardBehavior<TRequest, TResponse>(
+    IPlanLimitChecker planLimitChecker,
     ICurrentUserAccessor currentUserAccessor,
     IUserRepository userRepository)
     : IPipelineBehavior<TRequest, TResponse>
@@ -26,7 +24,7 @@ public class FeatureGuardBehavior<TRequest, TResponse>(
         RequestHandlerDelegate<TResponse> next,
         CancellationToken ct)
     {
-        if (request is not IRequireFeature featureRequest)
+        if (request is not IRequirePlanLimit limitRequest)
             return await next(ct);
 
         var user = await userRepository.GetUserInfoByAzureAOIAsync(currentUserAccessor.AzureAdObjectId, ct);
@@ -34,11 +32,15 @@ public class FeatureGuardBehavior<TRequest, TResponse>(
         if (user is null)
             return ResultResponseFactory.CreateFailure<TResponse>(GeneralErrors.Unauthorized);
 
-        if (await entitlementService.CanUseAsync(user.Id, featureRequest.Feature, ct))
-        {
-            return await next(ct);
-        }
+        var error = await planLimitChecker.EvaluateAsync(
+            limitRequest.Limit,
+            user.Id,
+            limitRequest.BoardId,
+            ct);
 
-        return ResultResponseFactory.CreateFailure<TResponse>(EntitlementErrors.FeatureNotAvailable);
+        if (error is not null)
+            return ResultResponseFactory.CreateFailure<TResponse>(error);
+
+        return await next(ct);
     }
 }

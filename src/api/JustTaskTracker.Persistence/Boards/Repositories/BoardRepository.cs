@@ -88,6 +88,10 @@ public class BoardRepository(JustTaskTrackerDbContext context)
                                 t.Comments.Count,
                                 t.Attachments.Count,
                                 t.AssigneeId)))),
+                b.Members
+                    .Where(m => m.Role == BoardMemberRole.Owner)
+                    .Select(m => (Guid?)m.UserId)
+                    .FirstOrDefault(),
                 b.ArchivedAtUtc))
             .AsSplitQuery()
             .FirstOrDefaultAsync(ct);

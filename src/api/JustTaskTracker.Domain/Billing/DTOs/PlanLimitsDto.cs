@@ -4,4 +4,8 @@ public record PlanLimitsDto(
     int? MaxBoards,
     int? MaxColumnsPerBoard,
     int? MaxTasksPerBoard,
-    int? MaxMembersPerBoard);
+    int? MaxMembersPerBoard)
+{
+    public BoardLimitsDto ToBoardLimits() =>
+        new(MaxColumnsPerBoard, MaxTasksPerBoard, MaxMembersPerBoard);
+}

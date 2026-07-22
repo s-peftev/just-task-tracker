@@ -1,6 +1,7 @@
 using FluentValidation;
 using JustTaskTracker.Application.Auth;
 using JustTaskTracker.Application.Auth.Repositories;
+using JustTaskTracker.Application.Billing.Abstractions;
 using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Behaviors;
 using JustTaskTracker.Application.Common.Persistence;
@@ -26,7 +27,8 @@ public class CreateBoardCommandHandler(
     ICurrentUserAccessor currentUserAccessor,
     IUserRepository userRepository,
     IBoardRepository boardRepository,
-    IUnitOfWork unitOfWork)
+    IUnitOfWork unitOfWork,
+    IEntitlementService entitlementService)
     : IRequestHandler<CreateBoardCommand, Result<BoardDetailsDto>>
 {
     public async Task<Result<BoardDetailsDto>> Handle(CreateBoardCommand request, CancellationToken ct)
@@ -48,6 +50,8 @@ public class CreateBoardCommandHandler(
 
         await unitOfWork.SaveChangesAsync(ct);
 
+        var ownerEntitlements = await entitlementService.GetEntitlementsAsync(currentUserInfo.Id, ct);
+
         return Result<BoardDetailsDto>.Success(new BoardDetailsDto(
             board.Id,
             board.Name,
@@ -55,7 +59,8 @@ public class CreateBoardCommandHandler(
             board.IsArchived,
             BoardMemberRole.Owner,
             [],
-            BoardExportStatus.None));
+            BoardExportStatus.None,
+            ownerEntitlements.Limits.ToBoardLimits()));
     }
 }
 

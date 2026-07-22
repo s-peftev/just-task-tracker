@@ -161,8 +161,8 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 2.25rem;
-    height: 2.25rem;
+    width: 1.75rem;
+    height: 1.75rem;
     padding: 0;
     border: none;
     border-radius: calc(var(--jtt-radius-sm) * 2);
@@ -180,8 +180,8 @@
 }
 
 .boards__create-button-icon {
-    width: 1.125rem;
-    height: 1.125rem;
+    width: 0.875rem;
+    height: 0.875rem;
     display: block;
 }
 

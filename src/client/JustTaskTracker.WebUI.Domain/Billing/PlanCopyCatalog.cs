@@ -4,25 +4,14 @@ namespace JustTaskTracker.WebUI.Domain.Billing;
 
 /// <summary>
 /// Maps catalog <c>PlanId</c> values to UI marketing copy and accent styling.
-/// Wider plans compose a narrower baseline (muted inherited highlights) plus exclusive ones.
+/// Limit bullets are derived from <see cref="PlanLimitsDto"/>; feature bullets are plan-exclusive.
 /// </summary>
 public static class PlanCopyCatalog
 {
-    private static readonly IReadOnlyList<PlanHighlight> FreeHighlights =
-    [
-        new(
-            "Create and manage unlimited boards for your work",
-            PlanHighlightIconKind.Boards),
-        new(
-            "Organize work with columns, tasks, assignees, and drag-and-drop",
-            PlanHighlightIconKind.Organize),
-        new(
-            "Collaborate with unlimited board members",
-            PlanHighlightIconKind.Collaborate),
-        new(
-            "Discuss work in task comments and share file attachments",
-            PlanHighlightIconKind.Discuss),
-    ];
+    private sealed record PlanMeta(
+        string Audience,
+        string? AccentClass,
+        IReadOnlyList<PlanHighlight> ExclusiveHighlights);
 
     private static readonly IReadOnlyList<PlanHighlight> ProExclusiveHighlights =
     [
@@ -37,43 +26,62 @@ public static class PlanCopyCatalog
             PlanHighlightIconKind.ConfigureCopy),
     ];
 
-    private static readonly PlanCopy Free = new(
-        "Best for individuals tracking personal work.",
-        FreeHighlights,
-        PlanAccentClasses.Free);
-
-    private static readonly PlanCopy Pro = new(
-        "Best for archive downloads and export control.",
-        ExtendWithBaseline(FreeHighlights, ProExclusiveHighlights),
-        PlanAccentClasses.Pro);
-
-    private static readonly IReadOnlyDictionary<string, PlanCopy> ByPlanId =
-        new Dictionary<string, PlanCopy>(StringComparer.OrdinalIgnoreCase)
+    private static readonly IReadOnlyDictionary<string, PlanMeta> ByPlanId =
+        new Dictionary<string, PlanMeta>(StringComparer.OrdinalIgnoreCase)
         {
-            [PlanIds.Free] = Free,
-            [PlanIds.Pro] = Pro,
+            [PlanIds.Free] = new(
+                "Best for individuals tracking personal work.",
+                PlanAccentClasses.Free,
+                []),
+            [PlanIds.Pro] = new(
+                "Best for archive downloads and export control.",
+                PlanAccentClasses.Pro,
+                ProExclusiveHighlights),
         };
 
-    public static PlanCopy? TryGet(string planId)
+    public static PlanCopy GetOrEmpty(string planId, PlanLimitsDto limits)
     {
-        if (string.IsNullOrWhiteSpace(planId))
-            return null;
+        var limitHighlights = BuildLimitHighlights(limits);
 
-        return ByPlanId.TryGetValue(planId, out var copy) ? copy : null;
+        if (string.IsNullOrWhiteSpace(planId) || !ByPlanId.TryGetValue(planId, out var meta))
+            return new PlanCopy(string.Empty, limitHighlights);
+
+        var highlights = limitHighlights
+            .Concat(meta.ExclusiveHighlights)
+            .ToList();
+
+        return new PlanCopy(meta.Audience, highlights, meta.AccentClass);
     }
 
-    public static PlanCopy GetOrEmpty(string planId) =>
-        TryGet(planId) ?? new PlanCopy(string.Empty, []);
+    private static IReadOnlyList<PlanHighlight> BuildLimitHighlights(PlanLimitsDto limits) =>
+    [
+        new(FormatBoards(limits.MaxBoards), PlanHighlightIconKind.Boards),
+        new(FormatOrganize(limits.MaxColumnsPerBoard, limits.MaxTasksPerBoard), PlanHighlightIconKind.Organize),
+        new(FormatMembers(limits.MaxMembersPerBoard), PlanHighlightIconKind.Collaborate),
+    ];
 
-    /// <summary>
-    /// Builds a wider plan's highlight list: baseline items marked inherited (muted),
-    /// then plan-exclusive items at full emphasis. Adding a mid-tier later is the same pattern.
-    /// </summary>
-    private static IReadOnlyList<PlanHighlight> ExtendWithBaseline(
-        IReadOnlyList<PlanHighlight> baseline,
-        IReadOnlyList<PlanHighlight> exclusive) =>
-        baseline
-            .Select(highlight => highlight with { IsInherited = true })
-            .Concat(exclusive)
-            .ToList();
+    private static string FormatBoards(int? maxBoards) =>
+        maxBoards is null
+            ? "Create and manage unlimited boards for your work"
+            : $"Create and manage up to {maxBoards} boards for your work";
+
+    private static string FormatMembers(int? maxMembers) =>
+        maxMembers is null
+            ? "Collaborate with unlimited board members"
+            : $"Collaborate with up to {maxMembers} board members on your boards";
+
+    private static string FormatOrganize(int? maxColumns, int? maxTasks)
+    {
+        if (maxColumns is null && maxTasks is null)
+            return "Organize work with unlimited columns and tasks.";
+
+        var columns = maxColumns is null
+            ? "unlimited columns"
+            : $"up to {maxColumns} columns";
+        var tasks = maxTasks is null
+            ? "unlimited tasks"
+            : $"up to {maxTasks} tasks";
+
+        return $"Organize work with {columns}, and {tasks} on your boards.";
+    }
 }

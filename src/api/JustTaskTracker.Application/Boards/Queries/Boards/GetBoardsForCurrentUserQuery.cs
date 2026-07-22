@@ -16,7 +16,8 @@ namespace JustTaskTracker.Application.Boards.Queries.Boards;
 
 public record GetBoardsForCurrentUserQuery(
     TextSearchOptions<BoardSearchField>? SearchOptions,
-    bool? IsArchived = null) : PaginatedRequest, IRequest<Result<PagedList<BoardLookupDto>>>;
+    bool? IsArchived = null,
+    bool? IsOwned = null) : PaginatedRequest, IRequest<Result<PagedList<BoardLookupDto>>>;
 
 public class GetBoardsForCurrentUserQueryHandler(
     ICurrentUserAccessor currentUser,
@@ -32,6 +33,7 @@ public class GetBoardsForCurrentUserQueryHandler(
             request.PageSize!.Value,
             request.SearchOptions,
             request.IsArchived,
+            request.IsOwned,
             ct);
 
         var archivedBoardIds = boards.Items

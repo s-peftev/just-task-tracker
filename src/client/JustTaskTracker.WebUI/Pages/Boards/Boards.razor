@@ -38,6 +38,17 @@
                     </svg>
                     <span class="boards__archived-toggle-tooltip" aria-hidden="true">Show archived boards</span>
                 </button>
+                <button type="button"
+                        class="boards__owned-filter @(_showOwnedOnly ? "boards__owned-filter--active" : null)"
+                        aria-pressed="@_showOwnedOnly"
+                        aria-label="Show only boards I created"
+                        @onclick="ToggleShowOwnedOnlyAsync">
+                    <svg class="boards__owned-filter-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"
+                              fill="currentColor" />
+                    </svg>
+                    <span class="boards__owned-filter-tooltip" aria-hidden="true">Show only boards I created</span>
+                </button>
                 @if (CanCreateBoard)
                 {
                     @if (IsBoardCreateLimitReached)
@@ -213,9 +224,11 @@
 
 @code {
     private const string ShowArchivedBoardsStorageKey = "jtt.showArchivedBoards";
+    private const string ShowOwnedOnlyStorageKey = "jtt.showOwnedOnlyBoards";
 
     private IReadOnlyList<Guid> _subscribedArchivedBoardIds = [];
     private bool _showArchivedBoards = true;
+    private bool _showOwnedOnly;
     private bool _preferenceLoaded;
 
     private bool CanCreateBoard =>
@@ -259,6 +272,8 @@
         ProfileStore.StateChanged += OnProfileStoreStateChanged;
         EntitlementsStore.StateChanged += OnEntitlementsStoreStateChanged;
         _showArchivedBoards = await ReadShowArchivedBoardsPreferenceAsync();
+        _showOwnedOnly = await ReadShowOwnedOnlyPreferenceAsync();
+        BoardStore.SyncIsOwnedFilter(_showOwnedOnly ? true : null);
         _preferenceLoaded = true;
     }
 
@@ -309,6 +324,15 @@
         BoardStore.ResetArchived();
     }
 
+    private async Task ToggleShowOwnedOnlyAsync()
+    {
+        _showOwnedOnly = !_showOwnedOnly;
+        await PersistShowOwnedOnlyPreferenceAsync(_showOwnedOnly);
+        await BoardStore.SetIsOwnedFilterAsync(
+            _showOwnedOnly ? true : null,
+            includeArchived: _showArchivedBoards);
+    }
+
     private async Task<bool> ReadShowArchivedBoardsPreferenceAsync()
     {
         try
@@ -334,6 +358,37 @@
                 "localStorage.setItem",
                 ShowArchivedBoardsStorageKey,
                 showArchived ? "1" : "0");
+        }
+        catch (JSException)
+        {
+            // Preference is best-effort; UI state still applies for this session.
+        }
+    }
+
+    private async Task<bool> ReadShowOwnedOnlyPreferenceAsync()
+    {
+        try
+        {
+            var stored = await Js.InvokeAsync<string?>("localStorage.getItem", ShowOwnedOnlyStorageKey);
+            if (string.IsNullOrWhiteSpace(stored))
+                return false;
+
+            return stored is "1" or "true";
+        }
+        catch (JSException)
+        {
+            return false;
+        }
+    }
+
+    private async Task PersistShowOwnedOnlyPreferenceAsync(bool showOwnedOnly)
+    {
+        try
+        {
+            await Js.InvokeVoidAsync(
+                "localStorage.setItem",
+                ShowOwnedOnlyStorageKey,
+                showOwnedOnly ? "1" : "0");
         }
         catch (JSException)
         {

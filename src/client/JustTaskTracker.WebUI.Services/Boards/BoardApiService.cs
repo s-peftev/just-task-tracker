@@ -20,6 +20,7 @@ internal class BoardApiService(IBoardApi api) : IBoardApiService
             request.PageSize!.Value,
             search,
             request.IsArchived,
+            request.IsOwned,
             ct);
 
         return ApiResponseGuard.Unwrap(response);

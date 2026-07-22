@@ -14,6 +14,7 @@ internal interface IBoardApi
         int pageSize,
         [AliasAs("SearchOptions.Search")] string? searchOptionsSearch = null,
         bool? isArchived = null,
+        bool? isOwned = null,
         CancellationToken ct = default);
 
     [Get("/api/boards/owned/active/count")]

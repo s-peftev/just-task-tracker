@@ -6,5 +6,6 @@ namespace JustTaskTracker.WebUI.Domain.Boards.Requests;
 
 public record GetBoardsForCurrentUserRequest(
     TextSearchOptions<BoardSearchField>? TextSearchOptions = null,
-    bool? IsArchived = null)
+    bool? IsArchived = null,
+    bool? IsOwned = null)
     : PaginatedRequest;

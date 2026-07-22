@@ -102,6 +102,7 @@ public class BoardRepository(JustTaskTrackerDbContext context)
         int pageSize,
         TextSearchOptions<BoardSearchField>? searchOptions = null,
         bool? isArchived = null,
+        bool? isOwned = null,
         CancellationToken ct = default)
     {
         var fields = SearchFieldsResolver.Resolve(searchOptions?.SearchIn, BoardSearchFields.Map);
@@ -109,6 +110,14 @@ public class BoardRepository(JustTaskTrackerDbContext context)
         return await _dbSet
             .Where(b => b.Members.Any(m => m.User!.AzureAdObjectId == azureAdObjectId))
             .Where(b => isArchived == null || b.IsArchived == isArchived)
+            .Where(b => isOwned == null
+                || (isOwned.Value
+                    ? b.Members.Any(m =>
+                        m.User!.AzureAdObjectId == azureAdObjectId
+                        && m.Role == BoardMemberRole.Owner)
+                    : b.Members.Any(m =>
+                        m.User!.AzureAdObjectId == azureAdObjectId
+                        && m.Role != BoardMemberRole.Owner)))
             .ApplyTextSearch(searchOptions?.Search, fields)
             .Select(b => new
             {

@@ -21,6 +21,7 @@ internal sealed class BoardStore(IBoardApiService boardApiService) : IBoardStore
     public BoardListSectionState Active => _active.ToState();
     public BoardListSectionState Archived => _archived.ToState();
     public int? ActiveOwnedBoardsCount { get; private set; }
+    public bool? IsOwnedFilter { get; private set; }
 
     public event Action? StateChanged;
 
@@ -45,6 +46,21 @@ internal sealed class BoardStore(IBoardApiService boardApiService) : IBoardStore
 
     public Task SetArchivedSearchAsync(string searchText, CancellationToken ct = default) =>
         SetSearchInternalAsync(_archived, isArchived: true, searchText, ct);
+
+    public void SyncIsOwnedFilter(bool? isOwned) =>
+        IsOwnedFilter = isOwned;
+
+    public Task SetIsOwnedFilterAsync(bool? isOwned, bool includeArchived, CancellationToken ct = default)
+    {
+        IsOwnedFilter = isOwned;
+
+        if (!includeArchived)
+            return LoadInternalAsync(_active, isArchived: false, 1, _active.SearchText, ct);
+
+        return Task.WhenAll(
+            LoadInternalAsync(_active, isArchived: false, 1, _active.SearchText, ct),
+            LoadInternalAsync(_archived, isArchived: true, 1, _archived.SearchText, ct));
+    }
 
     public Task RefreshAsync(bool includeArchived = true, CancellationToken ct = default)
     {
@@ -150,6 +166,7 @@ internal sealed class BoardStore(IBoardApiService boardApiService) : IBoardStore
         _archived.Reset();
         _roleCache.Clear();
         ActiveOwnedBoardsCount = null;
+        IsOwnedFilter = null;
         NotifyStateChanged();
     }
 
@@ -217,7 +234,7 @@ internal sealed class BoardStore(IBoardApiService boardApiService) : IBoardStore
                 ? null
                 : new TextSearchOptions<BoardSearchField>(searchText);
 
-            var request = new GetBoardsForCurrentUserRequest(textSearch, isArchived)
+            var request = new GetBoardsForCurrentUserRequest(textSearch, isArchived, IsOwnedFilter)
             {
                 PageNumber = pageNumber,
                 PageSize = isArchived ? ArchivedPageSize : ActivePageSize,

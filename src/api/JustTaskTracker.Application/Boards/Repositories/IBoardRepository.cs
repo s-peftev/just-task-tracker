@@ -31,6 +31,7 @@ public interface IBoardRepository : IRepository<Board, Guid>
         int pageSize,
         TextSearchOptions<BoardSearchField>? searchOptions = null,
         bool? isArchived = null,
+        bool? isOwned = null,
         CancellationToken ct = default);
 
     Task<bool> IsBoardMemberAsync(Guid boardId, Guid userId, CancellationToken ct = default);

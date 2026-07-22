@@ -26,15 +26,17 @@ internal class EntitlementService(
     public async Task<EntitlementDto> GetEntitlementsAsync(Guid userId, IReadOnlyList<string> globalRoles, CancellationToken ct = default)
     {
         var roles = globalRoles ?? [];
-        var defaultPlan = planCatalog.GetPlan(planCatalog.DefaultPlanId);
 
         if (HasRole(roles, Roles.Admin))
         {
+            var proPlan = planCatalog.GetPlan(PlanIds.Pro);
+
             return new EntitlementDto(
-                defaultPlan.PlanId,
-                defaultPlan.PlanDisplayName,
+                proPlan.PlanId,
+                proPlan.PlanDisplayName,
                 SubscriptionStatus.Active,
-                Features.GetAll().ToList());
+                proPlan.Features,
+                proPlan.Limits);
         }
 
         var subscription = await subscriptionRepository.GetSubscriptionByUserIdAsync(userId, ct);
@@ -84,7 +86,8 @@ internal class EntitlementService(
                 effectivePlan.PlanId,
                 effectivePlan.PlanDisplayName,
                 subscription.Status,
-                effectivePlan.Features);
+                effectivePlan.Features,
+                effectivePlan.Limits);
         }
         catch (InvalidOperationException)
         {
@@ -100,7 +103,8 @@ internal class EntitlementService(
             defaultPlan.PlanId,
             defaultPlan.PlanDisplayName,
             SubscriptionStatus.Active,
-            defaultPlan.Features);
+            defaultPlan.Features,
+            defaultPlan.Limits);
     }
 
     private static bool HasRole(IReadOnlyList<string> globalRoles, string role) =>

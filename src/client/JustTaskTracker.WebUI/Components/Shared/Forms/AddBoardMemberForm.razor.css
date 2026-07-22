@@ -4,7 +4,7 @@
 
 .add-board-member-form__message {
     margin: 0 0 1.75rem;
-    color: rgba(255, 255, 255, 0.80);
+    color: var(--jtt-text-body);
     font-size: var(--mud-typography-body1-size, 1rem);
     line-height: var(--mud-typography-body1-lineheight, 1.5);
 }

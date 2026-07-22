@@ -12,8 +12,9 @@
     flex-direction: column;
     padding: 0;
     border-radius: var(--jtt-radius-lg);
-    background-color: #000;
-    box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.35);
+    border: 1px solid var(--jtt-stroke-subtle);
+    background-color: var(--jtt-surface-raised);
+    box-shadow: var(--jtt-shadow-panel);
     transform: translateX(-50%);
     overflow: hidden;
 }

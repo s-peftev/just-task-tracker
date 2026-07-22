@@ -4,18 +4,19 @@
     box-sizing: border-box;
     margin: 0;
     padding: 0.625rem 0.75rem;
-    border: none;
+    border: 1px solid var(--jtt-stroke-subtle);
     border-radius: var(--jtt-radius-md);
-    background-color: var(--jtt-overlay-white-10);
+    background-color: var(--jtt-surface-content);
     color: inherit;
     font: inherit;
     text-align: left;
     cursor: pointer;
-    transition: background-color 0.15s;
+    transition: background-color 0.15s, border-color 0.15s;
 }
 
 .board-task-search-result:hover {
-    background-color: var(--jtt-overlay-white-15);
+    background-color: var(--jtt-overlay-accent-10);
+    border-color: var(--jtt-stroke-accent);
 }
 
 .board-task-search-result__title {

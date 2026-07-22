@@ -1,0 +1,4 @@
+.theme-toggle__icon--glow {
+    color: var(--jtt-text-warning);
+    filter: drop-shadow(0 0 0.35rem color-mix(in srgb, var(--jtt-text-warning) 65%, transparent));
+}

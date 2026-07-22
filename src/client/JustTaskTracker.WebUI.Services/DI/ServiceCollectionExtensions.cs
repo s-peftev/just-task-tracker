@@ -2,6 +2,7 @@ using JustTaskTracker.WebUI.Services.Abstractions.Auth;
 using JustTaskTracker.WebUI.Services.Abstractions.Billing;
 using JustTaskTracker.WebUI.Services.Abstractions.Boards;
 using JustTaskTracker.WebUI.Services.Abstractions.Hubs;
+using JustTaskTracker.WebUI.Services.Abstractions.Theme;
 using JustTaskTracker.WebUI.Services.Abstractions.Users;
 using JustTaskTracker.WebUI.Services.Api;
 using JustTaskTracker.WebUI.Services.Auth;
@@ -13,6 +14,7 @@ using JustTaskTracker.WebUI.Services.Boards;
 using JustTaskTracker.WebUI.Services.Boards.Actions;
 using JustTaskTracker.WebUI.Services.Boards.Stores;
 using JustTaskTracker.WebUI.Services.Hubs;
+using JustTaskTracker.WebUI.Services.Theme;
 using JustTaskTracker.WebUI.Services.Users;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -64,6 +66,7 @@ public static class ServiceCollectionExtensions
 
         services.AddScoped<IAuthApiService, AuthApiService>();
         services.AddScoped<IProfileStore, ProfileStore>();
+        services.AddScoped<IThemeService, ThemeService>();
 
         services.AddScoped<IBillingApiService, BillingApiService>();
         services.AddScoped<IEntitlementsStore, EntitlementsStore>();

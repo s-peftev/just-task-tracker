@@ -1,6 +1,6 @@
 .login-page {
     position: relative;
-    background-color: var(--jtt-surface-login);
+    background-color: var(--jtt-login-surface);
     isolation: isolate;
     overflow: auto;
 }
@@ -43,7 +43,7 @@
     font-size: 1.125rem;
     font-weight: 700;
     line-height: 1.2;
-    color: var(--jtt-text-strong);
+    color: var(--jtt-login-text-strong);
 }
 
 .login-page__headline {
@@ -59,11 +59,11 @@
 }
 
 .login-page__headline-line {
-    color: var(--jtt-text-strong);
+    color: var(--jtt-login-text-strong);
 }
 
 .login-page__headline-line--accent {
-    color: var(--jtt-accent);
+    color: var(--jtt-login-accent);
 }
 
 .login-page__stage {
@@ -115,7 +115,7 @@
     line-height: 1.8;
     word-spacing: 0.22em;
     letter-spacing: 0.02em;
-    color: var(--jtt-text-faint);
+    color: var(--jtt-login-text-faint);
     text-align: left;
     pointer-events: none;
 }
@@ -136,9 +136,6 @@
 }
 
 .login-card__button {
-    --login-button-bg: var(--jtt-surface-login-button);
-    --login-button-border: #333333;
-
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -146,10 +143,10 @@
     box-sizing: border-box;
     min-width: 30.492rem;
     padding: 0.825rem 3.267rem;
-    border: 1px solid var(--login-button-border);
+    border: 1px solid var(--jtt-login-button-border);
     border-radius: var(--jtt-radius-md);
-    background: var(--login-button-bg);
-    color: var(--jtt-text-strong);
+    background: var(--jtt-login-button-bg);
+    color: var(--jtt-login-text-strong);
     font-family: "Segoe UI", "Inter", system-ui, sans-serif;
     font-size: 0.875rem;
     font-weight: 600;
@@ -162,8 +159,8 @@
 
 .login-card__button:hover,
 .login-card__button:focus-visible {
-    background: color-mix(in srgb, var(--login-button-bg) 88%, white);
-    border-color: color-mix(in srgb, var(--login-button-border) 70%, white);
+    background: color-mix(in srgb, var(--jtt-login-button-bg) 88%, white);
+    border-color: color-mix(in srgb, var(--jtt-login-button-border) 70%, white);
     outline: none;
 }
 

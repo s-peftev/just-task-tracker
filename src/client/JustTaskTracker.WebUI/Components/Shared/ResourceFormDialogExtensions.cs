@@ -43,8 +43,7 @@ public static class ResourceFormDialogExtensions
         {
             builder.OpenElement(0, "p");
             builder.AddAttribute(1, "class", "confirm-dialog__message");
-            builder.AddAttribute(2, "style", "color: rgba(255,255,255,0.80); white-space: pre-line;");
-            builder.AddContent(3, message);
+            builder.AddContent(2, message);
             builder.CloseElement();
         };
 

@@ -3,7 +3,7 @@
     font-size: var(--jtt-font-size-meta);
     font-weight: var(--jtt-font-weight-body);
     line-height: 1.45;
-    color: rgba(255, 255, 255, 0.80);
+    color: var(--jtt-text-body);
 }
 
 .re-export-board-form__message--muted {

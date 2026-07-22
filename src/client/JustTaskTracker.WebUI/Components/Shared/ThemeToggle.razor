@@ -1,0 +1,38 @@
+@implements IDisposable
+@inject IThemeService ThemeService
+
+<button type="button"
+        class="sidebar__footer-action text-sidebar-tab"
+        aria-label="@ToggleLabel"
+        @onclick="ToggleThemeAsync">
+    <svg class="sidebar__footer-action-icon @(ThemeService.IsLight ? "theme-toggle__icon--glow" : null)"
+         viewBox="0 0 24 24"
+         aria-hidden="true"
+         focusable="false">
+        <path fill="none"
+              stroke="currentColor"
+              stroke-width="1.75"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.74V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.26A7 7 0 0 0 12 2z" />
+    </svg>
+    <span>@ToggleLabel</span>
+</button>
+
+@code {
+    private string ToggleLabel =>
+        ThemeService.IsDark ? "Turn the lights on" : "Turn the lights off";
+    protected override void OnInitialized()
+    {
+        ThemeService.ThemeChanged += OnThemeChanged;
+    }
+
+    private Task ToggleThemeAsync() => ThemeService.ToggleThemeAsync();
+
+    private void OnThemeChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        ThemeService.ThemeChanged -= OnThemeChanged;
+    }
+}

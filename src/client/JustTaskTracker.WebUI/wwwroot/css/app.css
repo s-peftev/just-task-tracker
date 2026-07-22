@@ -8,11 +8,16 @@
     --jtt-surface-plan-card: #1E2125;
     --jtt-surface-board-card: #1C1F22;
     --jtt-surface-board-column: #18191A;
-    --jtt-surface-login: #151617;
-    --jtt-surface-login-button: #1A1A1A;
-
     --jtt-surface-task-card: color-mix(in srgb, var(--jtt-accent) 10%, color-mix(in srgb, black 28%, #1C2125));
     --jtt-surface-task-card-archive: color-mix(in srgb, var(--jtt-accent-archive) 12%, color-mix(in srgb, black 28%, #1C2125));
+
+    /* Login page only — never overridden by html.light; always dark look */
+    --jtt-login-surface: #151617;
+    --jtt-login-button-bg: #1A1A1A;
+    --jtt-login-button-border: #333333;
+    --jtt-login-text-strong: #fff;
+    --jtt-login-text-faint: rgba(255, 255, 255, 0.55);
+    --jtt-login-accent: #389466;
 
     /* Brand accent */
     --jtt-accent: #389466;
@@ -107,10 +112,103 @@
 
     /* MudBlazor palette */
     --mud-palette-background: transparent;
-    --mud-palette-surface: rgba(28, 28, 30, 0.95);
+    --mud-palette-surface: #1C1C1E;
     --mud-palette-appbar-background: transparent;
     --mud-palette-text-primary: var(--jtt-text-on-app);
     --mud-palette-text-secondary: rgba(255, 255, 255, 0.60);
+}
+
+html.light {
+    /* Solid surfaces — Notion + Green */
+    --jtt-surface-app: #FAFAF9;
+    --jtt-surface-raised: #FFFFFF;
+    --jtt-surface-content: #e4e7eb;
+    --jtt-surface-sidebar: #FFFFFF;
+    --jtt-surface-plan-card: #FFFFFF;
+    --jtt-surface-board-card: #FFFFFF;
+    --jtt-surface-board-column: #FFFFFF;
+    --jtt-surface-task-card: color-mix(in srgb, var(--jtt-accent) 8%, #FFFFFF);
+    --jtt-surface-task-card-archive: color-mix(in srgb, var(--jtt-accent-archive) 22%, #FFF8E1);
+
+    /* Brand accent */
+    --jtt-accent: #22C55E;
+    --jtt-accent-secondary: #16A34A;
+    --jtt-accent-tertiary: #15803D;
+    --jtt-accent-archive: #C9A227;
+    --jtt-accent-archive-secondary: #8B7018;
+
+    /* Board contextual accents */
+    --jtt-board-mine-accent: var(--jtt-accent);
+    --jtt-board-progress-fill: var(--jtt-accent-tertiary);
+
+    /* Translucent overlays */
+    --jtt-overlay-accent-10: color-mix(in srgb, var(--jtt-accent) 10%, transparent);
+    --jtt-overlay-accent-15: color-mix(in srgb, var(--jtt-accent) 15%, transparent);
+    --jtt-overlay-neutral-20: color-mix(in srgb, #E7E5E4 80%, transparent);
+    --jtt-overlay-white-08: color-mix(in srgb, #292524 4%, transparent);
+    --jtt-overlay-white-10: color-mix(in srgb, #292524 5%, transparent);
+    --jtt-overlay-white-15: color-mix(in srgb, #292524 8%, transparent);
+    --jtt-overlay-white-16: color-mix(in srgb, #292524 9%, transparent);
+    --jtt-overlay-white-20: color-mix(in srgb, #292524 12%, transparent);
+    --jtt-overlay-white-28: color-mix(in srgb, #292524 16%, transparent);
+    --jtt-overlay-danger-10: rgba(220, 53, 69, 0.10);
+    --jtt-overlay-danger-15: rgba(220, 53, 69, 0.15);
+    --jtt-overlay-warning-10: rgba(201, 162, 39, 0.12);
+    --jtt-overlay-warning-15: rgba(201, 162, 39, 0.18);
+
+    /* Strokes */
+    --jtt-stroke-subtle: #E7E5E4;
+    --jtt-stroke-default: #E7E5E4;
+    --jtt-stroke-strong: color-mix(in srgb, #292524 28%, #E7E5E4);
+    --jtt-stroke-muted: #E7E5E4;
+    --jtt-stroke-separator: #E7E5E4;
+    --jtt-stroke-accent: color-mix(in srgb, var(--jtt-accent) 35%, transparent);
+    --jtt-stroke-accent-strong: color-mix(in srgb, var(--jtt-accent) 70%, transparent);
+    --jtt-stroke-solid: #292524;
+    --jtt-stroke-danger: rgb(220, 53, 69);
+    --jtt-stroke-danger-soft: rgba(220, 53, 69, 0.20);
+    --jtt-stroke-danger-strong: rgba(220, 53, 69, 0.40);
+    --jtt-stroke-warning-soft: rgba(201, 162, 39, 0.25);
+    --jtt-stroke-warning-strong: rgba(201, 162, 39, 0.45);
+
+    /* Text */
+    --jtt-text-strong: #292524;
+    --jtt-text-primary: #292524;
+    --jtt-text-body: #292524;
+    --jtt-text-muted: #78716C;
+    --jtt-text-subtle: #78716C;
+    --jtt-text-faint: color-mix(in srgb, #78716C 75%, #FAFAF9);
+    --jtt-text-accent: var(--jtt-accent);
+    --jtt-text-danger: #c62828;
+    --jtt-text-warning: #b8860b;
+    --jtt-text-on-app: #292524;
+
+    /* Plan marketing accents */
+    --jtt-plan-accent-free: var(--jtt-text-strong);
+    --jtt-plan-accent-pro: var(--jtt-text-warning);
+
+    /* Warning radial gradient */
+    --jtt-gradient-warning-inner: var(--jtt-overlay-white-10);
+    --jtt-gradient-warning-outer: var(--jtt-overlay-warning-10);
+
+    /* Accent radial gradient */
+    --jtt-gradient-accent-inner: var(--jtt-overlay-white-10);
+    --jtt-gradient-accent-outer: var(--jtt-overlay-accent-10);
+
+    /* Subscription status badges */
+    --jtt-subscription-status-active: #16A34A;
+    --jtt-subscription-status-past-due: #d84315;
+
+    /* Shape & elevation */
+    --jtt-shadow-elevated: 0 0 0 1px #E7E5E4, 0 1px 2px color-mix(in srgb, #292524 6%, transparent);
+    --jtt-shadow-panel: 0 8px 28px color-mix(in srgb, #292524 8%, transparent), 0 0 0 1px #E7E5E4;
+
+    /* MudBlazor palette */
+    --mud-palette-background: transparent;
+    --mud-palette-surface: #FFFFFF;
+    --mud-palette-appbar-background: transparent;
+    --mud-palette-text-primary: var(--jtt-text-on-app);
+    --mud-palette-text-secondary: #78716C;
 }
 
 /* ─── Base ─── */
@@ -387,11 +485,12 @@ html, body {
 /* ─── Dialogs ─── */
 .mud-dialog.resource-form-dialog,
 .mud-dialog.board-form-dialog {
-    background-color: var(--jtt-overlay-white-10) !important;
-    backdrop-filter: blur(12px);
+    background-color: var(--jtt-surface-raised) !important;
+    border: 1px solid var(--jtt-stroke-subtle) !important;
     border-radius: var(--jtt-radius-md) !important;
     overflow: hidden !important;
-    box-shadow: var(--jtt-shadow-elevated) !important;
+    box-shadow: var(--jtt-shadow-panel) !important;
+    color: var(--jtt-text-primary) !important;
 }
 
 .resource-form-dialog__actions,
@@ -413,6 +512,8 @@ html, body {
 
 .resource-form-dialog .confirm-dialog__message,
 .board-form-dialog .confirm-dialog__message {
+    margin: 0;
+    color: var(--jtt-text-body);
     white-space: pre-line;
     max-width: 100%;
 }
@@ -423,7 +524,7 @@ html, body {
 
 .resource-form-dialog #add-board-member-form .add-board-member-form__message {
     margin: 0 0 1.75rem;
-    color: rgba(255, 255, 255, 0.80);
+    color: var(--jtt-text-body);
 }
 
 .resource-form-dialog .mud-input.mud-input-outlined:focus-within > .mud-input-outlined-border,
@@ -483,8 +584,9 @@ html, body {
     display: flex;
     flex-direction: column;
     border-radius: var(--jtt-radius-lg);
-    background-color: #000;
-    box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.35);
+    border: 1px solid var(--jtt-stroke-subtle);
+    background-color: var(--jtt-surface-raised);
+    box-shadow: var(--jtt-shadow-panel);
     overflow: hidden;
     pointer-events: auto;
 }
@@ -540,8 +642,7 @@ html, body {
     font-family: inherit;
     border: 2px solid var(--jtt-stroke-muted);
     border-radius: var(--jtt-radius-sm);
-    background: var(--jtt-overlay-accent-10);
-    backdrop-filter: blur(12px);
+    background: var(--jtt-surface-content);
     color: var(--jtt-text-primary);
     outline: none;
 }
@@ -608,9 +709,9 @@ html, body {
     grid-template-rows: auto auto;
     gap: 0.125rem 0.625rem;
     padding: 0.5rem 0.625rem;
-    border: 1px solid transparent;
+    border: 1px solid var(--jtt-stroke-subtle);
     border-radius: var(--jtt-radius-md);
-    background-color: var(--jtt-overlay-white-10);
+    background-color: var(--jtt-surface-content);
 }
 
 .board-members-overlay__member--current-user {
@@ -719,7 +820,7 @@ html, body {
     padding: 0.25rem 0.625rem;
     border: 1px solid var(--jtt-stroke-muted);
     border-radius: var(--jtt-radius-sm);
-    background: var(--jtt-overlay-white-10);
+    background: var(--jtt-surface-raised);
     color: var(--jtt-text-primary);
     font: inherit;
     font-size: 0.75rem;
@@ -757,9 +858,9 @@ html, body {
     margin: 0;
     padding: 0.5rem 0.625rem;
     box-sizing: border-box;
-    border: none;
+    border: 1px solid var(--jtt-stroke-subtle);
     border-radius: var(--jtt-radius-md);
-    background-color: var(--jtt-overlay-white-10);
+    background-color: var(--jtt-surface-content);
     text-align: left;
     font: inherit;
     cursor: pointer;

@@ -50,4 +50,9 @@ public interface IBoardMembersStore
     void Close();
 
     void Reset();
+
+    /// <summary>
+    /// Adjusts the known members total after a successful add outside this store.
+    /// </summary>
+    void IncrementMemberCount();
 }

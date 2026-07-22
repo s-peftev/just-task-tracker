@@ -132,6 +132,24 @@
                           @onkeydown="OnTaskTitleKeyDownAsync"
                           @onblur="OnTaskTitleBlurAsync"></textarea>
             }
+            else if (IsTaskLimitReached)
+            {
+                <HoverTooltip Placement="HoverTooltipPlacement.Top">
+                    <Trigger>
+                        <button type="button"
+                                class="board-column__add-task board-column__add-task--disabled"
+                                disabled
+                                aria-disabled="true">
+                            + Add task
+                        </button>
+                    </Trigger>
+                    <ChildContent>
+                        <p class="hover-tooltip__panel-text">
+                            This board has reached its task limit.
+                        </p>
+                    </ChildContent>
+                </HoverTooltip>
+            }
             else
             {
                 <button type="button"
@@ -207,6 +225,11 @@
 
     private bool CanMoveTasks =>
         !BoardDetailsStore.IsReadOnly && BoardRolePermissions.CanMoveTasks(UserRole);
+
+    private bool IsTaskLimitReached =>
+        BoardDetailsStore.Board is { } board
+        && board.Limits.MaxTasksPerBoard is int max
+        && board.Columns.Sum(column => column.BoardTasks.Count) >= max;
 
     private bool _hasTaskContent => GetVisibleTaskCount() > 0;
 
@@ -413,7 +436,7 @@
 
     private void StartAddTask()
     {
-        if (!CanManageTasks || _isAddingTask)
+        if (!CanManageTasks || _isAddingTask || IsTaskLimitReached)
             return;
 
         _newTaskTitle = string.Empty;
@@ -449,7 +472,7 @@
 
     private async Task SaveTaskAsync()
     {
-        if (!_isAddingTask || _isSavingTask)
+        if (!_isAddingTask || _isSavingTask || IsTaskLimitReached)
             return;
 
         var trimmedTitle = _newTaskTitle.Trim();

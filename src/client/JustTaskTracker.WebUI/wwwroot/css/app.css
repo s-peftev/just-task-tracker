@@ -811,11 +811,14 @@ html, body {
     cursor: not-allowed;
 }
 
-.board-members-overlay__add-btn {
+.board-members-overlay__add-action {
     grid-column: 3;
     grid-row: 1 / span 2;
     align-self: center;
     flex-shrink: 0;
+}
+
+.board-members-overlay__add-btn {
     margin: 0;
     padding: 0.25rem 0.625rem;
     border: 1px solid var(--jtt-stroke-muted);

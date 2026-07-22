@@ -227,6 +227,16 @@
     padding: 0;
 }
 
+.board-column__footer ::deep .hover-tooltip,
+.board-column__footer ::deep .hover-tooltip__trigger {
+    display: block;
+    width: 100%;
+}
+
+.board-column__footer ::deep .hover-tooltip__panel {
+    z-index: 40;
+}
+
 .board-column__add-task {
     width: 100%;
     margin: 0;
@@ -241,6 +251,12 @@
     transition: background-color 0.2s;
 }
 
-.board-column__add-task:hover {
+.board-column__add-task:hover:not(:disabled) {
     background-color: var(--jtt-overlay-white-10);
+}
+
+.board-column__add-task--disabled,
+.board-column__add-task:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
 }

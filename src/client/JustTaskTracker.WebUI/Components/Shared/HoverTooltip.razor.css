@@ -12,9 +12,7 @@
 
 .hover-tooltip__panel {
     position: absolute;
-    top: calc(100% + 0.5rem);
-    left: 50%;
-    z-index: 5;
+    z-index: 30;
     display: flex;
     flex-direction: column;
     align-items: stretch;
@@ -30,11 +28,32 @@
     font-weight: var(--jtt-font-weight-body);
     line-height: 1.4;
     white-space: normal;
-    transform: translateX(-50%);
     visibility: hidden;
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.15s ease, visibility 0.15s ease;
+}
+
+/* Default: below, centered */
+.hover-tooltip__panel {
+    top: calc(100% + 0.5rem);
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.hover-tooltip--top .hover-tooltip__panel {
+    top: auto;
+    bottom: calc(100% + 0.5rem);
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.hover-tooltip--left .hover-tooltip__panel {
+    top: 50%;
+    left: auto;
+    right: calc(100% + 0.5rem);
+    bottom: auto;
+    transform: translateY(-50%);
 }
 
 .hover-tooltip:hover .hover-tooltip__panel,
@@ -52,6 +71,23 @@
     left: 0;
     right: 0;
     height: 0.5rem;
+}
+
+.hover-tooltip--top::after {
+    top: auto;
+    bottom: 100%;
+    left: 0;
+    right: 0;
+    height: 0.5rem;
+}
+
+.hover-tooltip--left::after {
+    top: 0;
+    right: 100%;
+    bottom: 0;
+    left: auto;
+    width: 0.5rem;
+    height: auto;
 }
 
 .hover-tooltip__panel-text {

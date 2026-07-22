@@ -110,20 +110,6 @@
     gap: 0.75rem;
 }
 
-.board-page__controls ::deep .btn-icon--round {
-    border-color: var(--jtt-accent);
-    color: var(--jtt-accent);
-}
-
-.board-page__controls ::deep .btn-icon--round:hover {
-    background-color: var(--jtt-overlay-accent-10);
-    color: var(--jtt-accent);
-}
-
-.board-page__controls ::deep .btn-icon--round:active {
-    background-color: var(--jtt-overlay-accent-15);
-}
-
 .board-page__archived-notice {
     margin: 0;
     max-width: 28rem;

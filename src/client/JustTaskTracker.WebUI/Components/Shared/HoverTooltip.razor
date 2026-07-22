@@ -1,6 +1,6 @@
 @* Interactive hover/focus tooltip. Stays open while pointer or focus is inside. *@
 
-<div class="hover-tooltip">
+<div class="hover-tooltip @GetPlacementClass()">
     <div class="hover-tooltip__trigger">
         @Trigger
     </div>
@@ -18,4 +18,15 @@
 
     [Parameter]
     public RenderFragment? ChildContent { get; set; }
+
+    [Parameter]
+    public HoverTooltipPlacement Placement { get; set; } = HoverTooltipPlacement.Bottom;
+
+    private string? GetPlacementClass() =>
+        Placement switch
+        {
+            HoverTooltipPlacement.Top => "hover-tooltip--top",
+            HoverTooltipPlacement.Left => "hover-tooltip--left",
+            _ => null,
+        };
 }

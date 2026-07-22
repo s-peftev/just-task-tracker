@@ -25,6 +25,13 @@ internal class BoardApiService(IBoardApi api) : IBoardApiService
         return ApiResponseGuard.Unwrap(response);
     }
 
+    public async Task<ActiveOwnedBoardsCountDto> GetActiveOwnedBoardsCountAsync(CancellationToken ct = default)
+    {
+        var response = await api.GetActiveOwnedCountAsync(ct);
+
+        return ApiResponseGuard.Unwrap(response);
+    }
+
     public async Task<BoardDetailsDto> GetBoardByIdAsync(Guid boardId, CancellationToken ct = default)
     {
         var response = await api.GetByIdAsync(boardId, ct);

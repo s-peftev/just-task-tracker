@@ -20,6 +20,7 @@ internal sealed class BoardStore(IBoardApiService boardApiService) : IBoardStore
 
     public BoardListSectionState Active => _active.ToState();
     public BoardListSectionState Archived => _archived.ToState();
+    public int? ActiveOwnedBoardsCount { get; private set; }
 
     public event Action? StateChanged;
 
@@ -60,8 +61,17 @@ internal sealed class BoardStore(IBoardApiService boardApiService) : IBoardStore
 
     public void ApplyBoardArchived(Guid boardId, DateTime archivedAtUtc, BoardExportStatus boardExportStatus)
     {
-        if (_active.Boards.Any(board => board.Id == boardId))
+        var removedActiveBoard = _active.Boards.FirstOrDefault(board => board.Id == boardId);
+
+        if (removedActiveBoard is not null)
             _active.Boards = _active.Boards.Where(board => board.Id != boardId).ToList();
+
+        if (removedActiveBoard?.UserRole == BoardMemberRole.Owner
+            && ActiveOwnedBoardsCount is int ownedCount
+            && ownedCount > 0)
+        {
+            ActiveOwnedBoardsCount = ownedCount - 1;
+        }
 
         var archivedBoards = _archived.Boards.ToList();
         var archivedIndex = archivedBoards.FindIndex(board => board.Id == boardId);
@@ -139,6 +149,7 @@ internal sealed class BoardStore(IBoardApiService boardApiService) : IBoardStore
         _active.Reset();
         _archived.Reset();
         _roleCache.Clear();
+        ActiveOwnedBoardsCount = null;
         NotifyStateChanged();
     }
 
@@ -211,7 +222,28 @@ internal sealed class BoardStore(IBoardApiService boardApiService) : IBoardStore
                 PageNumber = pageNumber,
                 PageSize = isArchived ? ArchivedPageSize : ActivePageSize,
             };
-            var page = await boardApiService.GetMyBoardsAsync(request, ct);
+
+            PagedList<BoardLookupDto> page;
+            int? ownedCount = null;
+
+            if (isArchived)
+            {
+                page = await boardApiService.GetMyBoardsAsync(request, ct);
+            }
+            else
+            {
+                var ownedCountTask = boardApiService.GetActiveOwnedBoardsCountAsync(ct);
+                page = await boardApiService.GetMyBoardsAsync(request, ct);
+
+                try
+                {
+                    ownedCount = (await ownedCountTask).Count;
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    // Count endpoint is contributor-only; board list must still load for members.
+                }
+            }
 
             if (generation != section.LoadGeneration)
                 return;
@@ -220,6 +252,9 @@ internal sealed class BoardStore(IBoardApiService boardApiService) : IBoardStore
             section.Pagination = page.Metadata;
             section.CurrentPage = page.Metadata.CurrentPage;
             section.IsLoaded = true;
+
+            if (ownedCount is not null)
+                ActiveOwnedBoardsCount = ownedCount;
 
             foreach (var board in page.Items)
                 _roleCache[board.Id] = board.UserRole;

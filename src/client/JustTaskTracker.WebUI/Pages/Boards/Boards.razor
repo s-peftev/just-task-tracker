@@ -235,24 +235,7 @@
             ? EntitlementsStore.Entitlements?.Limits.MaxBoards
             : null;
 
-    private int ActiveBoardUsageCount
-    {
-        get
-        {
-            var active = BoardStore.Active;
-
-            // When the full unfiltered active list fits the current page, count owned boards
-            // (matches MaxBoards semantics). Otherwise fall back to list TotalCount.
-            if (string.IsNullOrWhiteSpace(active.SearchText)
-                && active.IsLoaded
-                && active.Pagination.TotalCount <= active.Boards.Count)
-            {
-                return active.Boards.Count(board => board.UserRole == BoardMemberRole.Owner);
-            }
-
-            return active.Pagination.TotalCount;
-        }
-    }
+    private int ActiveBoardUsageCount => BoardStore.ActiveOwnedBoardsCount ?? 0;
 
     private string? BoardLimitLabel =>
         MaxBoardsLimit is int max
@@ -260,7 +243,9 @@
             : null;
 
     private bool IsBoardCreateLimitReached =>
-        MaxBoardsLimit is int max && ActiveBoardUsageCount >= max;
+        MaxBoardsLimit is int max
+        && BoardStore.ActiveOwnedBoardsCount is int count
+        && count >= max;
 
     [Inject]
     private IProfileStore ProfileStore { get; set; } = default!;

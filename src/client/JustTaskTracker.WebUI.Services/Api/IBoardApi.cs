@@ -16,6 +16,10 @@ internal interface IBoardApi
         bool? isArchived = null,
         CancellationToken ct = default);
 
+    [Get("/api/boards/owned/active/count")]
+    Task<IApiResponse<ApiEnvelope<ActiveOwnedBoardsCountDto>>> GetActiveOwnedCountAsync(
+        CancellationToken ct = default);
+
     [Get("/api/boards/{id}")]
     Task<IApiResponse<ApiEnvelope<BoardDetailsDto>>> GetByIdAsync(Guid id, CancellationToken ct = default);
 

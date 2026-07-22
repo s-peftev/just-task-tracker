@@ -12,6 +12,12 @@ public interface IBoardStore
     BoardListSectionState Active { get; }
     BoardListSectionState Archived { get; }
 
+    /// <summary>
+    /// Count of non-archived boards where the current user is Owner.
+    /// Null until the first successful active-section load.
+    /// </summary>
+    int? ActiveOwnedBoardsCount { get; }
+
     event Action? StateChanged;
 
     Task LoadActiveAsync(int pageNumber, CancellationToken ct = default);

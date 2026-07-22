@@ -25,6 +25,17 @@ public class BoardsController(ISender sender) : ControllerBase
             error => error.CreateErrorResponse());
     }
 
+    [HttpGet("owned/active/count")]
+    [Authorize(Policy = AuthorizationPolicies.IsAppContributor)]
+    public async Task<IActionResult> GetActiveOwnedCount(CancellationToken ct)
+    {
+        var result = await sender.Send(new GetActiveOwnedBoardsCountQuery(), ct);
+
+        return result.Match(
+            data => Ok(data),
+            error => error.CreateErrorResponse());
+    }
+
     [HttpGet("{id:guid}")]
     [Authorize(Policy = AuthorizationPolicies.IsAppMember)]
     public async Task<IActionResult> GetMyById(Guid id, CancellationToken ct)

@@ -205,6 +205,18 @@ internal sealed class BoardMembersStore(IBoardApiService boardApiService) : IBoa
         NotifyStateChanged();
     }
 
+    public void IncrementMemberCount()
+    {
+        Pagination = new PaginationMetadata
+        {
+            CurrentPage = Pagination.CurrentPage,
+            PageSize = Pagination.PageSize,
+            TotalCount = Pagination.TotalCount + 1,
+        };
+
+        NotifyStateChanged();
+    }
+
     public void Reset()
     {
         Close();

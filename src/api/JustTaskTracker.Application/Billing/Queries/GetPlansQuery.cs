@@ -33,6 +33,7 @@ public class GetPlansQueryHandler(
             plan.PlanId,
             plan.PlanDisplayName,
             plan.Features,
+            plan.Limits,
             price);
     }
 }

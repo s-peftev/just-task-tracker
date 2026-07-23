@@ -23,8 +23,7 @@ public class GetCurrentUserEntitlementsQueryHandler(
         if (userInfo is null)
             return Result<EntitlementDto>.Failure(GeneralErrors.NotFound);
 
-        var rolesFromToken = currentUser.AppRoles ?? [];
-        var entitlements = await entitlementService.GetEntitlementsAsync(userInfo.Id, rolesFromToken, ct);
+        var entitlements = await entitlementService.GetEntitlementsAsync(userInfo.Id, ct);
 
         return Result<EntitlementDto>.Success(entitlements);
     }

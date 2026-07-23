@@ -10,4 +10,5 @@ public record BoardDetailsReadModel(
     bool IsArchived,
     BoardMemberRole UserRole,
     IEnumerable<ColumnDto> Columns,
+    Guid? OwnerUserId,
     DateTime? ArchivedAtUtc);

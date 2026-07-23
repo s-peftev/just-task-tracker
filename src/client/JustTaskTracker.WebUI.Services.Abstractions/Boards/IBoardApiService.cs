@@ -7,6 +7,9 @@ namespace JustTaskTracker.WebUI.Services.Abstractions.Boards;
 public interface IBoardApiService
 {
     Task<PagedList<BoardLookupDto>> GetMyBoardsAsync(GetBoardsForCurrentUserRequest request, CancellationToken ct = default);
+
+    Task<ActiveOwnedBoardsCountDto> GetActiveOwnedBoardsCountAsync(CancellationToken ct = default);
+
     Task<BoardDetailsDto> GetBoardByIdAsync(Guid boardId, CancellationToken ct = default);
 
     Task<PagedList<BoardMemberDto>> GetBoardMembersAsync(

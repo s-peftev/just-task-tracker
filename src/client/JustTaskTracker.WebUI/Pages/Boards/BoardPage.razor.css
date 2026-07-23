@@ -98,6 +98,21 @@
     max-height: calc(var(--board-column-max-height) - var(--board-page-footer-tray-height));
 }
 
+.board-page__column-slot ::deep .hover-tooltip,
+.board-page__column-slot ::deep .hover-tooltip__trigger {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    align-self: stretch;
+    width: var(--board-column-width);
+    min-height: 100%;
+    height: 100%;
+}
+
+.board-page__column-slot ::deep .hover-tooltip__panel {
+    z-index: 40;
+}
+
 .board-page__add-column-btn {
     width: var(--board-column-width);
     flex: 1 1 auto;
@@ -110,10 +125,16 @@
     color: var(--jtt-accent-tertiary);
 }
 
-.board-page__add-column-btn:hover {
+.board-page__add-column-btn:hover:not(:disabled) {
     background: var(--jtt-overlay-accent-10);
     border-color: var(--jtt-accent-tertiary);
     color: var(--jtt-accent);
+}
+
+.board-page__add-column-btn--disabled,
+.board-page__add-column-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
 }
 
 .board-page--task-only {

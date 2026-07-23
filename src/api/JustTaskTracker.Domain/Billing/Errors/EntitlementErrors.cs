@@ -9,4 +9,14 @@ public static class EntitlementErrors
         nameof(FeatureNotAvailable),
         ErrorType.Forbidden,
         ["This feature is not available on your current plan."]);
+
+    public static readonly Error LimitReached = new(
+        nameof(LimitReached),
+        ErrorType.Forbidden,
+        ["You have reached the limit for your current plan."]);
+
+    public static readonly Error BoardLimitReached = new(
+        nameof(BoardLimitReached),
+        ErrorType.Forbidden,
+        ["This board has reached the limit for the owner's plan."]);
 }

@@ -17,6 +17,7 @@ internal static class ServicesModule
         services.AddScoped<IBoardActionNotifier, BoardActionNotifier>();
         services.AddSingleton<IPlanCatalog, PlanCatalog>();
         services.AddScoped<IEntitlementService, EntitlementService>();
+        services.AddScoped<IPlanLimitChecker, PlanLimitChecker>();
 
         return services;
     }

@@ -25,5 +25,7 @@ public interface IBoardTaskRepository : IRepository<BoardTask, Guid>
 
     Task<int> GetCountByColumnIdAsync(Guid columnId, CancellationToken ct = default);
 
+    Task<int> CountByBoardIdAsync(Guid boardId, CancellationToken ct = default);
+
     void RemoveRange(IReadOnlyList<BoardTask> tasks);
 }

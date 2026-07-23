@@ -1,3 +1,4 @@
+using JustTaskTracker.Application.Auth.Repositories;
 using JustTaskTracker.Application.Billing.Abstractions;
 using JustTaskTracker.Application.Billing.ReadModels;
 using JustTaskTracker.Application.Billing.Repositories;
@@ -9,32 +10,35 @@ namespace JustTaskTracker.Infrastructure.Billing;
 
 internal class EntitlementService(
     IPlanCatalog planCatalog,
-    ISubscriptionRepository subscriptionRepository) : IEntitlementService
+    ISubscriptionRepository subscriptionRepository,
+    IUserRepository userRepository) : IEntitlementService
 {
-    public async Task<bool> CanUseAsync(Guid userId, IReadOnlyList<string> globalRoles, string feature, CancellationToken ct = default)
+    public async Task<bool> CanUseAsync(Guid userId, string feature, CancellationToken ct = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(feature);
 
         if (!Features.IsValid(feature))
             return false;
 
-        var entitlements = await GetEntitlementsAsync(userId, globalRoles, ct);
+        var entitlements = await GetEntitlementsAsync(userId, ct);
 
         return entitlements.Features.Contains(feature);
     }
 
-    public async Task<EntitlementDto> GetEntitlementsAsync(Guid userId, IReadOnlyList<string> globalRoles, CancellationToken ct = default)
+    public async Task<EntitlementDto> GetEntitlementsAsync(Guid userId, CancellationToken ct = default)
     {
-        var roles = globalRoles ?? [];
-        var defaultPlan = planCatalog.GetPlan(planCatalog.DefaultPlanId);
+        var roles = await userRepository.GetGlobalRolesByUserIdAsync(userId, ct);
 
         if (HasRole(roles, Roles.Admin))
         {
+            var proPlan = planCatalog.GetPlan(PlanIds.Pro);
+
             return new EntitlementDto(
-                defaultPlan.PlanId,
-                defaultPlan.PlanDisplayName,
+                proPlan.PlanId,
+                proPlan.PlanDisplayName,
                 SubscriptionStatus.Active,
-                Features.GetAll().ToList());
+                proPlan.Features,
+                proPlan.Limits);
         }
 
         var subscription = await subscriptionRepository.GetSubscriptionByUserIdAsync(userId, ct);
@@ -84,7 +88,8 @@ internal class EntitlementService(
                 effectivePlan.PlanId,
                 effectivePlan.PlanDisplayName,
                 subscription.Status,
-                effectivePlan.Features);
+                effectivePlan.Features,
+                effectivePlan.Limits);
         }
         catch (InvalidOperationException)
         {
@@ -100,7 +105,8 @@ internal class EntitlementService(
             defaultPlan.PlanId,
             defaultPlan.PlanDisplayName,
             SubscriptionStatus.Active,
-            defaultPlan.Features);
+            defaultPlan.Features,
+            defaultPlan.Limits);
     }
 
     private static bool HasRole(IReadOnlyList<string> globalRoles, string role) =>

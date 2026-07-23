@@ -4,6 +4,7 @@ using JustTaskTracker.Application.Auth.Repositories;
 using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.Behaviors;
 using JustTaskTracker.Application.Common.Persistence;
+using JustTaskTracker.Domain.Billing.Enums;
 using JustTaskTracker.Domain.Boards.Authorization;
 using JustTaskTracker.Domain.Boards.Entities;
 using JustTaskTracker.Domain.Boards.Enums;
@@ -15,7 +16,12 @@ using MediatR;
 namespace JustTaskTracker.Application.Boards.Commands.Boards;
 
 public record AddBoardMemberCommand(Guid BoardId, Guid UserId, BoardMemberRole Role)
-    : IRequest<Result>, IRequireActiveBoard;
+    : IRequest<Result>, IRequireActiveBoard, IRequirePlanLimit
+{
+    public PlanLimitKind Limit => PlanLimitKind.MembersPerBoard;
+
+    Guid? IRequirePlanLimit.BoardId => BoardId;
+}
 
 public class AddBoardMemberCommandHandler(
     ICurrentUserAccessor currentUserAccessor,

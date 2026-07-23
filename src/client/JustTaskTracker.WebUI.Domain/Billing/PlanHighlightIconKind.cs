@@ -5,7 +5,6 @@ public enum PlanHighlightIconKind
     Boards,
     Organize,
     Collaborate,
-    Discuss,
     Archive,
     DownloadCopy,
     ConfigureCopy,

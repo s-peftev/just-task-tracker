@@ -48,7 +48,7 @@
                 }
                 @foreach (var plan in BillingStore.Plans)
                 {
-                    var copy = PlanCopyCatalog.GetOrEmpty(plan.PlanId);
+                    var copy = PlanCopyCatalog.GetOrEmpty(plan.PlanId, plan.Limits);
                     var isCurrentPlan = IsCurrentPlan(plan.PlanId);
                     var statusLabel = isCurrentPlan
                         ? SubscriptionStatusFormatting.TryGetBadgeLabel(subscription?.Status)
@@ -110,7 +110,7 @@
                             <ul class="plan-card__highlights">
                                 @foreach (var highlight in copy.Highlights)
                                 {
-                                    <li class="plan-card__highlight @(highlight.IsInherited ? "plan-card__highlight--inherited" : null)">
+                                    <li class="plan-card__highlight">
                                         <PlanHighlightIcon Kind="highlight.Icon" />
                                         <span class="plan-card__highlight-text">@highlight.Text</span>
                                     </li>

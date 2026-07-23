@@ -34,11 +34,7 @@ public class FeatureGuardBehavior<TRequest, TResponse>(
         if (user is null)
             return ResultResponseFactory.CreateFailure<TResponse>(GeneralErrors.Unauthorized);
 
-        if (await entitlementService.CanUseAsync(
-                user.Id,
-                currentUserAccessor.AppRoles,
-                featureRequest.Feature,
-                ct))
+        if (await entitlementService.CanUseAsync(user.Id, featureRequest.Feature, ct))
         {
             return await next(ct);
         }

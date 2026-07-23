@@ -59,5 +59,12 @@ internal class PlanCatalog(BillingOptions billingOptions) : IPlanCatalog
     }
 
     private static PlanDto ToPlanDto(PlanDefinitionOptions plan) =>
-        new(plan.Id, plan.DisplayName, plan.Features);
+        new(plan.Id, plan.DisplayName, plan.Features, MapLimits(plan.Limits));
+
+    private static PlanLimitsDto MapLimits(PlanLimitsOptions limits) =>
+        new(
+            limits.MaxBoards,
+            limits.MaxColumnsPerBoard,
+            limits.MaxTasksPerBoard,
+            limits.MaxMembersPerBoard);
 }

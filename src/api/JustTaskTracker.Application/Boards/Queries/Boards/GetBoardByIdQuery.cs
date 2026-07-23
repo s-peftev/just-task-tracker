@@ -1,4 +1,5 @@
 using JustTaskTracker.Application.Auth;
+using JustTaskTracker.Application.Billing.Abstractions;
 using JustTaskTracker.Application.Boards.Mappings;
 using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Common.ExternalProviders;
@@ -15,7 +16,8 @@ public record GetBoardByIdQuery(Guid BoardId) : IRequest<Result<BoardDetailsDto>
 public class GetBoardByIdQueryHandler(
     ICurrentUserAccessor currentUserAccessor,
     IBoardRepository boardRepository,
-    IBoardExportService boardExportService)
+    IBoardExportService boardExportService,
+    IEntitlementService entitlementService)
     : IRequestHandler<GetBoardByIdQuery, Result<BoardDetailsDto>>
 {
     public async Task<Result<BoardDetailsDto>> Handle(GetBoardByIdQuery request, CancellationToken ct)
@@ -30,10 +32,15 @@ public class GetBoardByIdQueryHandler(
         if (board is null)
             return Result<BoardDetailsDto>.Failure(GeneralErrors.NotFound);
 
+        if (board.OwnerUserId is null)
+            return Result<BoardDetailsDto>.Failure(GeneralErrors.NotFound);
+
+        var ownerEntitlements = await entitlementService.GetEntitlementsAsync(board.OwnerUserId.Value, ct);
         var exportInfo = board.IsArchived
             ? await boardExportService.GetBoardExportInfoAsync(board.Id, ct)
             : null;
 
-        return Result<BoardDetailsDto>.Success(board.ToDto(exportInfo));
+        return Result<BoardDetailsDto>.Success(
+            board.ToDto(ownerEntitlements.Limits.ToBoardLimits(), exportInfo));
     }
 }

@@ -20,7 +20,15 @@ internal class BoardApiService(IBoardApi api) : IBoardApiService
             request.PageSize!.Value,
             search,
             request.IsArchived,
+            request.IsOwned,
             ct);
+
+        return ApiResponseGuard.Unwrap(response);
+    }
+
+    public async Task<ActiveOwnedBoardsCountDto> GetActiveOwnedBoardsCountAsync(CancellationToken ct = default)
+    {
+        var response = await api.GetActiveOwnedCountAsync(ct);
 
         return ApiResponseGuard.Unwrap(response);
     }

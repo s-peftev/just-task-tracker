@@ -31,11 +31,18 @@ public interface IBoardRepository : IRepository<Board, Guid>
         int pageSize,
         TextSearchOptions<BoardSearchField>? searchOptions = null,
         bool? isArchived = null,
+        bool? isOwned = null,
         CancellationToken ct = default);
 
     Task<bool> IsBoardMemberAsync(Guid boardId, Guid userId, CancellationToken ct = default);
 
     Task<bool> IsArchivedAsync(Guid boardId, CancellationToken ct = default);
+
+    Task<Guid?> GetOwnerUserIdAsync(Guid boardId, CancellationToken ct = default);
+
+    Task<int> CountActiveOwnedBoardsByUserIdAsync(Guid userId, CancellationToken ct = default);
+
+    Task<int> CountMembersByBoardIdAsync(Guid boardId, CancellationToken ct = default);
 
     Task<IReadOnlyDictionary<Guid, BoardMemberRole>> GetUserRolesForArchivedBoardsAsync(IReadOnlyList<Guid> boardIds, Guid azureAdObjectId, CancellationToken ct = default);
 

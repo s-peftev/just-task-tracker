@@ -69,11 +69,32 @@
                     @if (CanManageColumns)
                     {
                         <div class="board-page__column-slot">
-                            <button type="button"
-                                    class="btn-glass-white board-page__add-column-btn"
-                                    @onclick="CreateColumnAsync">
-                                + Add column
-                            </button>
+                            @if (IsColumnLimitReached)
+                            {
+                                <HoverTooltip Placement="HoverTooltipPlacement.Left">
+                                    <Trigger>
+                                        <button type="button"
+                                                class="btn-glass-white board-page__add-column-btn board-page__add-column-btn--disabled"
+                                                disabled
+                                                aria-disabled="true">
+                                            + Add column
+                                        </button>
+                                    </Trigger>
+                                    <ChildContent>
+                                        <p class="hover-tooltip__panel-text">
+                                            This board has reached its column limit.
+                                        </p>
+                                    </ChildContent>
+                                </HoverTooltip>
+                            }
+                            else
+                            {
+                                <button type="button"
+                                        class="btn-glass-white board-page__add-column-btn"
+                                        @onclick="CreateColumnAsync">
+                                    + Add column
+                                </button>
+                            }
                         </div>
                     }
                 </div>
@@ -128,6 +149,11 @@
         !BoardDetailsStore.IsReadOnly
         && BoardDetailsStore.Board is { UserRole: var role }
         && BoardRolePermissions.CanManageColumns(role);
+
+    private bool IsColumnLimitReached =>
+        BoardDetailsStore.Board is { } board
+        && board.Limits.MaxColumnsPerBoard is int max
+        && board.Columns.Count >= max;
 
     private string? GetBoardPageRootClass()
     {
@@ -389,6 +415,9 @@
 
     private async Task CreateColumnAsync()
     {
+        if (IsColumnLimitReached)
+            return;
+
         var dialog = await DialogService.ShowResourceFormAsync(
             "Create new column",
             "Create",
@@ -397,6 +426,9 @@
         var result = await dialog.Result;
 
         if (result is not { Canceled: false, Data: string name })
+            return;
+
+        if (IsColumnLimitReached)
             return;
 
         try

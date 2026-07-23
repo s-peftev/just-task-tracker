@@ -88,6 +88,10 @@ public class BoardRepository(JustTaskTrackerDbContext context)
                                 t.Comments.Count,
                                 t.Attachments.Count,
                                 t.AssigneeId)))),
+                b.Members
+                    .Where(m => m.Role == BoardMemberRole.Owner)
+                    .Select(m => (Guid?)m.UserId)
+                    .FirstOrDefault(),
                 b.ArchivedAtUtc))
             .AsSplitQuery()
             .FirstOrDefaultAsync(ct);
@@ -98,6 +102,7 @@ public class BoardRepository(JustTaskTrackerDbContext context)
         int pageSize,
         TextSearchOptions<BoardSearchField>? searchOptions = null,
         bool? isArchived = null,
+        bool? isOwned = null,
         CancellationToken ct = default)
     {
         var fields = SearchFieldsResolver.Resolve(searchOptions?.SearchIn, BoardSearchFields.Map);
@@ -105,6 +110,14 @@ public class BoardRepository(JustTaskTrackerDbContext context)
         return await _dbSet
             .Where(b => b.Members.Any(m => m.User!.AzureAdObjectId == azureAdObjectId))
             .Where(b => isArchived == null || b.IsArchived == isArchived)
+            .Where(b => isOwned == null
+                || (isOwned.Value
+                    ? b.Members.Any(m =>
+                        m.User!.AzureAdObjectId == azureAdObjectId
+                        && m.Role == BoardMemberRole.Owner)
+                    : b.Members.Any(m =>
+                        m.User!.AzureAdObjectId == azureAdObjectId
+                        && m.Role != BoardMemberRole.Owner)))
             .ApplyTextSearch(searchOptions?.Search, fields)
             .Select(b => new
             {
@@ -162,6 +175,23 @@ public class BoardRepository(JustTaskTrackerDbContext context)
 
     public async Task<bool> IsArchivedAsync(Guid boardId, CancellationToken ct = default) =>
         await _dbSet.AnyAsync(b => b.Id == boardId && b.IsArchived, ct);
+
+    public async Task<Guid?> GetOwnerUserIdAsync(Guid boardId, CancellationToken ct = default) =>
+        await _context.BoardMembers
+            .Where(m => m.BoardId == boardId && m.Role == BoardMemberRole.Owner)
+            .Select(m => (Guid?)m.UserId)
+            .FirstOrDefaultAsync(ct);
+
+    public async Task<int> CountActiveOwnedBoardsByUserIdAsync(Guid userId, CancellationToken ct = default) =>
+        await _context.BoardMembers
+            .CountAsync(
+                m => m.UserId == userId
+                     && m.Role == BoardMemberRole.Owner
+                     && !m.Board!.IsArchived,
+                ct);
+
+    public async Task<int> CountMembersByBoardIdAsync(Guid boardId, CancellationToken ct = default) =>
+        await _context.BoardMembers.CountAsync(m => m.BoardId == boardId, ct);
 
     public async Task<IReadOnlyDictionary<Guid, BoardMemberRole>> GetUserRolesForArchivedBoardsAsync(IReadOnlyList<Guid> boardIds, Guid azureAdObjectId, CancellationToken ct = default)
     {

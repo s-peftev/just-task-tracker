@@ -212,14 +212,36 @@
                                     {
                                         <span class="board-members-overlay__member-role">@BoardMemberRoleFormatting.Format(role)</span>
                                     }
+                                    else if (IsMemberLimitReached)
+                                    {
+                                        <div class="board-members-overlay__add-action">
+                                            <HoverTooltip Placement="HoverTooltipPlacement.Left">
+                                                <Trigger>
+                                                    <button type="button"
+                                                            class="board-members-overlay__add-btn"
+                                                            disabled
+                                                            aria-disabled="true">
+                                                        Add to board
+                                                    </button>
+                                                </Trigger>
+                                                <ChildContent>
+                                                    <p class="hover-tooltip__panel-text">
+                                                        This board has reached its member limit.
+                                                    </p>
+                                                </ChildContent>
+                                            </HoverTooltip>
+                                        </div>
+                                    }
                                     else
                                     {
-                                        <button type="button"
-                                                class="board-members-overlay__add-btn"
-                                                disabled="@BoardAddMemberStore.IsAddingMember"
-                                                @onclick="() => OpenAddMemberDialogAsync(user)">
-                                            Add to board
-                                        </button>
+                                        <div class="board-members-overlay__add-action">
+                                            <button type="button"
+                                                    class="board-members-overlay__add-btn"
+                                                    disabled="@BoardAddMemberStore.IsAddingMember"
+                                                    @onclick="() => OpenAddMemberDialogAsync(user)">
+                                                Add to board
+                                            </button>
+                                        </div>
                                     }
                                 </div>
                             </li>
@@ -242,6 +264,8 @@
 </div>
 
 @code {
+    private int _memberCountForLimits;
+
     private bool CanViewBoard => BoardRolePermissions.CanViewBoard(BoardMembersStore.UserRole);
 
     private bool CanManageMembers =>
@@ -249,8 +273,13 @@
     private bool IsMembersTabActive => BoardMembersStore.ActiveTab == BoardMembersOverlayTab.Members;
     private bool IsAddMemberTabActive => BoardMembersStore.ActiveTab == BoardMembersOverlayTab.AddMember;
 
+    private bool IsMemberLimitReached =>
+        BoardDetailsStore.Board?.Limits.MaxMembersPerBoard is int max
+        && _memberCountForLimits >= max;
+
     protected override void OnInitialized()
     {
+        SyncMemberCountForLimits();
         BoardMembersStore.StateChanged += OnStoreStateChanged;
         BoardAddMemberStore.StateChanged += OnStoreStateChanged;
         ProfileStore.StateChanged += OnStoreStateChanged;
@@ -285,8 +314,19 @@
         _ = InvokeAsync(StateHasChanged);
     }
 
-    private void OnStoreStateChanged() =>
-        InvokeAsync(StateHasChanged);
+    private void OnStoreStateChanged()
+    {
+        SyncMemberCountForLimits();
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private void SyncMemberCountForLimits()
+    {
+        if (!string.IsNullOrWhiteSpace(BoardMembersStore.SearchText) || BoardMembersStore.IsLoading)
+            return;
+
+        _memberCountForLimits = BoardMembersStore.Pagination.TotalCount;
+    }
 
     private async Task SetTabAsync(BoardMembersOverlayTab tab)
     {
@@ -324,6 +364,7 @@
         {
             await BoardMembersStore.RemoveMemberAsync(member.User.Id);
             BoardAddMemberStore.ClearUserMembership(member.User.Id);
+            _memberCountForLimits = Math.Max(0, _memberCountForLimits - 1);
             Snackbar.Add($"{displayName} removed from the board.", Severity.Success);
         }
         catch (ApiServiceException ex)
@@ -392,6 +433,9 @@
 
     private async Task OpenAddMemberDialogAsync(UserForBoardLookupDto user)
     {
+        if (IsMemberLimitReached)
+            return;
+
         var dialog = await DialogService.ShowResourceFormAsync(
             "Add member",
             "Add",
@@ -403,9 +447,14 @@
         if (result is not { Canceled: false, Data: BoardMemberRole role })
             return;
 
+        if (IsMemberLimitReached)
+            return;
+
         try
         {
             await BoardAddMemberStore.AddMemberAsync(user.Id, role);
+            BoardMembersStore.IncrementMemberCount();
+            _memberCountForLimits++;
             Snackbar.Add($"{UserDisplayFormatting.GetShortName(user)} added to the board.", Severity.Success);
         }
         catch (ApiServiceException ex)

@@ -1,4 +1,5 @@
 using JustTaskTracker.Application.Boards.ReadModels;
+using JustTaskTracker.Domain.Billing.DTOs;
 using JustTaskTracker.Domain.Boards.DTOs.Boards;
 using JustTaskTracker.Domain.Boards.Enums;
 
@@ -8,6 +9,7 @@ public static class BoardDetailsReadModelMappings
 {
     public static BoardDetailsDto ToDto(
         this BoardDetailsReadModel board,
+        BoardLimitsDto limits,
         BoardExportStatusInfo? exportInfo)
     {
         var boardExportStatus = board.IsArchived
@@ -34,6 +36,7 @@ public static class BoardDetailsReadModelMappings
             board.UserRole,
             board.Columns,
             boardExportStatus,
+            limits,
             exportOptions,
             reExportStatus,
             reExportOptions,

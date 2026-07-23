@@ -41,6 +41,7 @@ public class PlanDefinitionOptions
     public required string DisplayName { get; set; }
     public string? PriceId { get; set; }
     public string[] Features { get; set; } = [];
+    public required PlanLimitsOptions Limits { get; set; }
 
     internal void Validate(string sectionPath)
     {
@@ -61,6 +62,39 @@ public class PlanDefinitionOptions
                     $"{sectionPath}:{nameof(Features)} contains unknown feature '{feature}'. " +
                     $"Allowed: {string.Join(", ", FeatureRegistry.GetAll())}");
             }
+        }
+
+        if (Limits is null)
+            throw new InvalidOperationException($"{sectionPath}:{nameof(Limits)} is not configured.");
+
+        Limits.Validate($"{sectionPath}:{nameof(Limits)}");
+    }
+}
+
+public class PlanLimitsOptions
+{
+    public int? MaxBoards { get; set; }
+    public int? MaxColumnsPerBoard { get; set; }
+    public int? MaxTasksPerBoard { get; set; }
+    public int? MaxMembersPerBoard { get; set; }
+
+    internal void Validate(string sectionPath)
+    {
+        ValidateLimit(sectionPath, nameof(MaxBoards), MaxBoards);
+        ValidateLimit(sectionPath, nameof(MaxColumnsPerBoard), MaxColumnsPerBoard);
+        ValidateLimit(sectionPath, nameof(MaxTasksPerBoard), MaxTasksPerBoard);
+        ValidateLimit(sectionPath, nameof(MaxMembersPerBoard), MaxMembersPerBoard);
+    }
+
+    private static void ValidateLimit(string sectionPath, string name, int? value)
+    {
+        if (value is null)
+            return;
+
+        if (value <= 0)
+        {
+            throw new InvalidOperationException(
+                $"{sectionPath}:{name} must be greater than 0 when set (null means unlimited).");
         }
     }
 }

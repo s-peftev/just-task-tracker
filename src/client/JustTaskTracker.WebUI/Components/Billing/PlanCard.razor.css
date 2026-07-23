@@ -102,25 +102,17 @@
     gap: 0.75rem;
 }
 
-.plan-card.plan-card--free ::deep .plan-card__highlight:not(.plan-card__highlight--inherited) .plan-highlight-icon {
+.plan-card.plan-card--free ::deep .plan-highlight-icon {
     color: var(--jtt-plan-accent-free);
 }
 
-.plan-card.plan-card--pro ::deep .plan-card__highlight:not(.plan-card__highlight--inherited) .plan-highlight-icon {
+.plan-card.plan-card--pro ::deep .plan-highlight-icon {
     color: var(--jtt-plan-accent-pro);
-}
-
-.plan-card ::deep .plan-card__highlight--inherited .plan-highlight-icon {
-    color: var(--jtt-text-faint);
 }
 
 .plan-card ::deep .plan-card__highlight-text {
     color: var(--jtt-text-primary);
     line-height: 1.4;
-}
-
-.plan-card ::deep .plan-card__highlight--inherited .plan-card__highlight-text {
-    color: var(--jtt-text-faint);
 }
 
 .plan-card ::deep .plan-card__footer {

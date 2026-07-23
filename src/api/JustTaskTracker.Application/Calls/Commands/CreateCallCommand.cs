@@ -75,6 +75,7 @@ public class CreateCallCommandHandler(
         return Result<CallSessionDto>.Success(new CallSessionDto(
             callSession.Id,
             callSession.BoardId,
+            callSession.CreatedByUserId,
             callSession.Title,
             callSession.Topic,
             callSession.Visibility,

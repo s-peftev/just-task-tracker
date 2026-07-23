@@ -445,3 +445,8 @@ FodyWeavers.xsd
 # System files
 **/.DS_Store
 **/Thumbs.db
+
+# AI Assistants internals
+.claude/
+_bmad/
+_bmad-output/

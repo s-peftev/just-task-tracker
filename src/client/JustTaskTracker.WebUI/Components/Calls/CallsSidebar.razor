@@ -1,0 +1,215 @@
+@using JustTaskTracker.WebUI.Domain.Calls
+@using JustTaskTracker.WebUI.Services.Abstractions.Auth
+@using JustTaskTracker.WebUI.Services.Abstractions.Calls
+@using JustTaskTracker.WebUI.Validation
+@implements IAsyncDisposable
+@inject ICallSessionStore CallSessionStore
+@inject ICallsInteropService CallsInteropService
+@inject IProfileStore ProfileStore
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IJSRuntime Js
+
+<aside @ref="_sidebarRef" class="calls-sidebar @(CallSessionStore.IsSidebarOpen ? "calls-sidebar--open" : null)" aria-hidden="@(!CallSessionStore.IsSidebarOpen)">
+    <div class="calls-sidebar__header">
+        <span class="calls-sidebar__title">Video calls</span>
+    </div>
+
+    @if (CallSessionStore.CurrentCallId is not null)
+    {
+        <div class="calls-sidebar__media">
+            <div @ref="_localVideoRef" class="calls-sidebar__local-video"></div>
+            <div @ref="_remoteVideoRef" class="calls-sidebar__remote-video"></div>
+
+            <div class="calls-sidebar__media-actions">
+                @if (IsCurrentUserCallCreator())
+                {
+                    <button type="button" class="btn-glass calls-sidebar__end-btn" @onclick="EndCallAsync">
+                        End call
+                    </button>
+                }
+                else
+                {
+                    <button type="button" class="btn-glass calls-sidebar__leave-btn" @onclick="LeaveCallAsync">
+                        Leave
+                    </button>
+                }
+            </div>
+        </div>
+    }
+
+    <div class="calls-sidebar__body">
+        @if (CallSessionStore.IsLoadingActiveCalls)
+        {
+            <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Small" />
+        }
+        else if (CallSessionStore.ErrorMessage is { } error)
+        {
+            <p class="calls-sidebar__error">@error</p>
+        }
+        else if (CallSessionStore.ActiveCalls.Count == 0)
+        {
+            <p class="calls-sidebar__empty">No active calls on this board.</p>
+        }
+        else
+        {
+            <ul class="calls-sidebar__list">
+                @foreach (var call in CallSessionStore.ActiveCalls)
+                {
+                    <li class="calls-sidebar__list-item">
+                        <div class="calls-sidebar__call-info">
+                            <span class="calls-sidebar__call-title">@call.Title</span>
+                            @if (!string.IsNullOrWhiteSpace(call.Topic))
+                            {
+                                <span class="calls-sidebar__call-topic">@call.Topic</span>
+                            }
+                        </div>
+
+                        @if (CallSessionStore.CurrentCallId != call.Id)
+                        {
+                            <button type="button" class="btn-glass calls-sidebar__join-btn" @onclick="() => JoinCallAsync(call)">
+                                Join
+                            </button>
+                        }
+                    </li>
+                }
+            </ul>
+        }
+    </div>
+
+    <div class="calls-sidebar__footer">
+        <button type="button" class="btn-glass-white calls-sidebar__create-btn" @onclick="CreateCallAsync">
+            + Create call
+        </button>
+    </div>
+</aside>
+
+@code {
+    [Parameter, EditorRequired]
+    public Guid BoardId { get; set; }
+
+    private ElementReference _sidebarRef;
+    private ElementReference _localVideoRef;
+    private ElementReference _remoteVideoRef;
+    private IJSObjectReference? _outsideClickHandle;
+    private DotNetObjectReference<CallsSidebar>? _selfRef;
+    private bool _outsideClickRegistered;
+
+    protected override void OnInitialized()
+    {
+        CallSessionStore.StateChanged += OnStoreStateChanged;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (CallSessionStore.IsSidebarOpen && !_outsideClickRegistered)
+        {
+            _outsideClickRegistered = true;
+            _selfRef = DotNetObjectReference.Create(this);
+            var module = await Js.InvokeAsync<IJSObjectReference>("import", "./js/calls.js");
+            _outsideClickHandle = await module.InvokeAsync<IJSObjectReference>(
+                "registerOutsideClickHandler", _sidebarRef, _selfRef);
+        }
+        else if (!CallSessionStore.IsSidebarOpen && _outsideClickRegistered)
+        {
+            await DisposeOutsideClickHandlerAsync();
+        }
+    }
+
+    [JSInvokable]
+    public void OnOutsideClick() => CallSessionStore.CloseSidebar();
+
+    private bool IsCurrentUserCallCreator()
+    {
+        var currentCall = CallSessionStore.ActiveCalls.FirstOrDefault(c => c.Id == CallSessionStore.CurrentCallId);
+
+        return currentCall is not null
+            && ProfileStore.Profile is { } profile
+            && currentCall.CreatedByUserId == profile.Id;
+    }
+
+    private async Task CreateCallAsync()
+    {
+        var dialog = await DialogService.ShowResourceFormAsync(
+            "Create video call",
+            "Create",
+            CreateCallForm.FormId,
+            CreateCallForm.Render());
+
+        var result = await dialog.Result;
+
+        if (result is not { Canceled: false, Data: CreateCallResult callResult })
+            return;
+
+        var session = await CallSessionStore.CreateCallAsync(BoardId, callResult.Title, callResult.Topic);
+
+        if (session is null)
+        {
+            if (CallSessionStore.ErrorMessage is { } error)
+                Snackbar.Add(error, Severity.Error);
+
+            return;
+        }
+
+        await JoinCallAsync(session);
+    }
+
+    private async Task JoinCallAsync(CallSessionDto call)
+    {
+        var environment = await CallsInteropService.CheckEnvironmentAsync();
+
+        if (!environment.IsSupported)
+        {
+            Snackbar.Add(environment.Reason ?? "This browser doesn't support video calls.", Severity.Error);
+            return;
+        }
+
+        var joinInfo = await CallSessionStore.JoinCallAsync(call.Id);
+
+        if (joinInfo is null)
+        {
+            if (CallSessionStore.ErrorMessage is { } error)
+                Snackbar.Add(error, Severity.Error);
+
+            return;
+        }
+
+        await InvokeAsync(StateHasChanged);
+        await CallsInteropService.JoinRoomAsync(joinInfo.Token, joinInfo.AcsRoomId, _localVideoRef, _remoteVideoRef);
+    }
+
+    private async Task EndCallAsync()
+    {
+        await CallsInteropService.HangUpAsync();
+        await CallSessionStore.EndCurrentCallAsync();
+    }
+
+    private async Task LeaveCallAsync()
+    {
+        await CallsInteropService.HangUpAsync();
+        CallSessionStore.LeaveCurrentCall();
+    }
+
+    private void OnStoreStateChanged() => InvokeAsync(StateHasChanged);
+
+    private async Task DisposeOutsideClickHandlerAsync()
+    {
+        _outsideClickRegistered = false;
+
+        if (_outsideClickHandle is not null)
+        {
+            await _outsideClickHandle.InvokeVoidAsync("dispose");
+            await _outsideClickHandle.DisposeAsync();
+            _outsideClickHandle = null;
+        }
+
+        _selfRef?.Dispose();
+        _selfRef = null;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        CallSessionStore.StateChanged -= OnStoreStateChanged;
+        await DisposeOutsideClickHandlerAsync();
+    }
+}

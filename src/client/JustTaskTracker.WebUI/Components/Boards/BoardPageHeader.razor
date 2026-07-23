@@ -7,6 +7,7 @@
 @using JustTaskTracker.WebUI.Infrastructure
 @using JustTaskTracker.WebUI.Services.Abstractions.Billing
 @using JustTaskTracker.WebUI.Services.Abstractions.Boards
+@using JustTaskTracker.WebUI.Services.Abstractions.Calls
 @using JustTaskTracker.WebUI.Services.Exceptions
 @implements IDisposable
 @inject IBoardApiService BoardApiService
@@ -15,6 +16,7 @@
 @inject IBoardStore BoardStore
 @inject IBoardMembersStore BoardMembersStore
 @inject IEntitlementsStore EntitlementsStore
+@inject ICallSessionStore CallSessionStore
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
@@ -122,6 +124,17 @@
                     </div>
                 }
             }
+
+            <button type="button"
+                    data-calls-toggle
+                    class="board-page-header__calls-btn btn-icon"
+                    aria-label="Video calls"
+                    @onclick="ToggleCallsSidebarAsync">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path d="M6.62 10.79a15.05 15.05 0 0 0 6.59 6.59l2.2-2.2a1 1 0 0 1 1.02-.24c1.12.37 2.33.57 3.57.57a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1C10.61 21 3 13.39 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.24.2 2.45.57 3.57a1 1 0 0 1-.25 1.02l-2.2 2.2z"
+                          fill="currentColor" />
+                </svg>
+            </button>
 
             <BoardPageStats BoardId="BoardId" OnMembersClick="OpenMembersOverlayAsync" />
 
@@ -320,6 +333,17 @@
 
     private void OnEntitlementsChanged() =>
         InvokeAsync(StateHasChanged);
+
+    private async Task ToggleCallsSidebarAsync()
+    {
+        if (CallSessionStore.IsSidebarOpen)
+        {
+            CallSessionStore.CloseSidebar();
+            return;
+        }
+
+        await CallSessionStore.OpenSidebarAsync(BoardId);
+    }
 
     private async Task OpenMembersOverlayAsync()
     {

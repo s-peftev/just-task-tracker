@@ -1,0 +1,26 @@
+<div @ref="_tileRef" class="call-page__tile">
+    <span class="call-page__tile-label">@(IsLocal ? "You" : "Participant")</span>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public string TileId { get; set; } = default!;
+
+    [Parameter]
+    public bool IsLocal { get; set; }
+
+    [Parameter]
+    public EventCallback<(string TileId, ElementReference Element)> OnReady { get; set; }
+
+    private ElementReference _tileRef;
+    private bool _reported;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _reported)
+            return;
+
+        _reported = true;
+        await OnReady.InvokeAsync((TileId, _tileRef));
+    }
+}

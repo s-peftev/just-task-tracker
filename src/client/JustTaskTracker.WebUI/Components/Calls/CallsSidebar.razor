@@ -1,42 +1,17 @@
 @using JustTaskTracker.WebUI.Domain.Calls
-@using JustTaskTracker.WebUI.Services.Abstractions.Auth
 @using JustTaskTracker.WebUI.Services.Abstractions.Calls
 @using JustTaskTracker.WebUI.Validation
-@implements IAsyncDisposable
+@implements IDisposable
 @inject ICallSessionStore CallSessionStore
 @inject ICallsInteropService CallsInteropService
-@inject IProfileStore ProfileStore
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
-@inject IJSRuntime Js
+@inject NavigationManager Navigation
 
-<aside @ref="_sidebarRef" class="calls-sidebar @(CallSessionStore.IsSidebarOpen ? "calls-sidebar--open" : null)" aria-hidden="@(!CallSessionStore.IsSidebarOpen)">
+<aside class="calls-sidebar @(CallSessionStore.IsSidebarOpen ? "calls-sidebar--open" : null)" aria-hidden="@(!CallSessionStore.IsSidebarOpen)">
     <div class="calls-sidebar__header">
         <span class="calls-sidebar__title">Video calls</span>
     </div>
-
-    @if (CallSessionStore.CurrentCallId is not null)
-    {
-        <div class="calls-sidebar__media">
-            <div @ref="_localVideoRef" class="calls-sidebar__local-video"></div>
-            <div @ref="_remoteVideoRef" class="calls-sidebar__remote-video"></div>
-
-            <div class="calls-sidebar__media-actions">
-                @if (IsCurrentUserCallCreator())
-                {
-                    <button type="button" class="btn-glass calls-sidebar__end-btn" @onclick="EndCallAsync">
-                        End call
-                    </button>
-                }
-                else
-                {
-                    <button type="button" class="btn-glass calls-sidebar__leave-btn" @onclick="LeaveCallAsync">
-                        Leave
-                    </button>
-                }
-            </div>
-        </div>
-    }
 
     <div class="calls-sidebar__body">
         @if (CallSessionStore.IsLoadingActiveCalls)
@@ -65,7 +40,11 @@
                             }
                         </div>
 
-                        @if (CallSessionStore.CurrentCallId != call.Id)
+                        @if (CallSessionStore.CurrentCallId == call.Id)
+                        {
+                            <span class="calls-sidebar__in-call-label">In call</span>
+                        }
+                        else
                         {
                             <button type="button" class="btn-glass calls-sidebar__join-btn" @onclick="() => JoinCallAsync(call)">
                                 Join
@@ -88,44 +67,9 @@
     [Parameter, EditorRequired]
     public Guid BoardId { get; set; }
 
-    private ElementReference _sidebarRef;
-    private ElementReference _localVideoRef;
-    private ElementReference _remoteVideoRef;
-    private IJSObjectReference? _outsideClickHandle;
-    private DotNetObjectReference<CallsSidebar>? _selfRef;
-    private bool _outsideClickRegistered;
-
     protected override void OnInitialized()
     {
         CallSessionStore.StateChanged += OnStoreStateChanged;
-    }
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (CallSessionStore.IsSidebarOpen && !_outsideClickRegistered)
-        {
-            _outsideClickRegistered = true;
-            _selfRef = DotNetObjectReference.Create(this);
-            var module = await Js.InvokeAsync<IJSObjectReference>("import", "./js/calls.js");
-            _outsideClickHandle = await module.InvokeAsync<IJSObjectReference>(
-                "registerOutsideClickHandler", _sidebarRef, _selfRef);
-        }
-        else if (!CallSessionStore.IsSidebarOpen && _outsideClickRegistered)
-        {
-            await DisposeOutsideClickHandlerAsync();
-        }
-    }
-
-    [JSInvokable]
-    public void OnOutsideClick() => CallSessionStore.CloseSidebar();
-
-    private bool IsCurrentUserCallCreator()
-    {
-        var currentCall = CallSessionStore.ActiveCalls.FirstOrDefault(c => c.Id == CallSessionStore.CurrentCallId);
-
-        return currentCall is not null
-            && ProfileStore.Profile is { } profile
-            && currentCall.CreatedByUserId == profile.Id;
     }
 
     private async Task CreateCallAsync()
@@ -164,52 +108,13 @@
             return;
         }
 
-        var joinInfo = await CallSessionStore.JoinCallAsync(call.Id);
-
-        if (joinInfo is null)
-        {
-            if (CallSessionStore.ErrorMessage is { } error)
-                Snackbar.Add(error, Severity.Error);
-
-            return;
-        }
-
-        await InvokeAsync(StateHasChanged);
-        await CallsInteropService.JoinRoomAsync(joinInfo.Token, joinInfo.AcsRoomId, _localVideoRef, _remoteVideoRef);
-    }
-
-    private async Task EndCallAsync()
-    {
-        await CallsInteropService.HangUpAsync();
-        await CallSessionStore.EndCurrentCallAsync();
-    }
-
-    private async Task LeaveCallAsync()
-    {
-        await CallsInteropService.HangUpAsync();
-        CallSessionStore.LeaveCurrentCall();
+        Navigation.NavigateTo($"/boards/{BoardId}/calls/{call.Id}");
     }
 
     private void OnStoreStateChanged() => InvokeAsync(StateHasChanged);
 
-    private async Task DisposeOutsideClickHandlerAsync()
-    {
-        _outsideClickRegistered = false;
-
-        if (_outsideClickHandle is not null)
-        {
-            await _outsideClickHandle.InvokeVoidAsync("dispose");
-            await _outsideClickHandle.DisposeAsync();
-            _outsideClickHandle = null;
-        }
-
-        _selfRef?.Dispose();
-        _selfRef = null;
-    }
-
-    public async ValueTask DisposeAsync()
+    public void Dispose()
     {
         CallSessionStore.StateChanged -= OnStoreStateChanged;
-        await DisposeOutsideClickHandlerAsync();
     }
 }

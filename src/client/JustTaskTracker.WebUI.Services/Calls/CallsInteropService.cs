@@ -9,7 +9,6 @@ internal sealed class CallsInteropService(IJSRuntime js) : ICallsInteropService,
     private const string ModulePath = "./js/calls.js";
 
     private IJSObjectReference? _module;
-    private IJSObjectReference? _callHandle;
 
     public async Task<CallEnvironmentCheckResult> CheckEnvironmentAsync()
     {
@@ -18,23 +17,48 @@ internal sealed class CallsInteropService(IJSRuntime js) : ICallsInteropService,
         return await module.InvokeAsync<CallEnvironmentCheckResult>("checkEnvironment");
     }
 
-    public async Task JoinRoomAsync(string token, string acsRoomId, ElementReference localVideoContainer, ElementReference remoteVideoContainer)
+    public async Task JoinRoomAsync<T>(string token, string acsRoomId, DotNetObjectReference<T> callbackRef) where T : class
     {
         var module = await EnsureModuleAsync();
 
-        _callHandle = await module.InvokeAsync<IJSObjectReference>(
-            "join", token, acsRoomId, localVideoContainer, remoteVideoContainer);
+        await module.InvokeVoidAsync("join", token, acsRoomId, callbackRef);
+    }
+
+    public async Task RegisterTileElementAsync(string tileId, ElementReference element)
+    {
+        var module = await EnsureModuleAsync();
+
+        await module.InvokeVoidAsync("registerTileElement", tileId, element);
+    }
+
+    public async Task UnregisterTileElementAsync(string tileId)
+    {
+        var module = await EnsureModuleAsync();
+
+        await module.InvokeVoidAsync("unregisterTileElement", tileId);
+    }
+
+    public async Task<bool> ToggleMicAsync()
+    {
+        var module = await EnsureModuleAsync();
+
+        return await module.InvokeAsync<bool>("toggleMic");
+    }
+
+    public async Task<bool> ToggleCameraAsync()
+    {
+        var module = await EnsureModuleAsync();
+
+        return await module.InvokeAsync<bool>("toggleCamera");
     }
 
     public async Task HangUpAsync()
     {
-        if (_callHandle is null)
+        if (_module is null)
             return;
 
-        await _callHandle.InvokeVoidAsync("hangUp");
-        await _callHandle.InvokeVoidAsync("dispose");
-        await _callHandle.DisposeAsync();
-        _callHandle = null;
+        await _module.InvokeVoidAsync("hangUp");
+        await _module.InvokeVoidAsync("disposeCall");
     }
 
     private async Task<IJSObjectReference> EnsureModuleAsync() =>
@@ -42,13 +66,6 @@ internal sealed class CallsInteropService(IJSRuntime js) : ICallsInteropService,
 
     public async ValueTask DisposeAsync()
     {
-        if (_callHandle is not null)
-        {
-            await _callHandle.InvokeVoidAsync("dispose");
-            await _callHandle.DisposeAsync();
-            _callHandle = null;
-        }
-
         if (_module is not null)
         {
             await _module.DisposeAsync();

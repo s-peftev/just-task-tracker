@@ -152,6 +152,22 @@
     right: 0;
 }
 
+.board-page-header__calls-btn {
+    color: var(--jtt-text-strong);
+    border: none;
+    border-radius: var(--jtt-radius-sm);
+}
+
+.board-page-header__calls-btn:hover,
+.board-page-header__calls-btn:focus-visible {
+    color: var(--jtt-accent);
+}
+
+.board-page-header__calls-btn svg {
+    width: 1.375rem;
+    height: 1.375rem;
+}
+
 .board-page__download-btn {
     position: relative;
     color: var(--jtt-text-warning);

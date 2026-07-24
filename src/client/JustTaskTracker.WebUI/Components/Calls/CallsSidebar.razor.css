@@ -1,0 +1,102 @@
+.calls-sidebar {
+    position: fixed;
+    top: var(--board-page-header-height, 4rem);
+    right: 0;
+    height: calc(100vh - var(--board-page-header-height, 4rem));
+    width: 400px;
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--jtt-surface-sidebar);
+    border-left: 1px solid var(--jtt-stroke-default);
+    box-shadow: var(--jtt-shadow-panel);
+    color: var(--jtt-text-primary);
+    transform: translateX(100%);
+    transition: transform 0.2s ease-in-out;
+    overflow-y: auto;
+}
+
+.calls-sidebar--open {
+    transform: translateX(0);
+}
+
+.calls-sidebar__header {
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--jtt-stroke-subtle);
+}
+
+.calls-sidebar__title {
+    font-weight: var(--jtt-font-weight-strong);
+    color: var(--jtt-text-strong);
+}
+
+.calls-sidebar__body {
+    flex: 1 1 auto;
+    padding: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.calls-sidebar__empty,
+.calls-sidebar__error {
+    color: var(--jtt-text-muted);
+    font-size: 0.85rem;
+}
+
+.calls-sidebar__error {
+    color: var(--jtt-text-danger);
+}
+
+.calls-sidebar__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.calls-sidebar__list-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--jtt-stroke-subtle);
+    border-radius: var(--jtt-radius-sm);
+    background-color: var(--jtt-surface-raised);
+}
+
+.calls-sidebar__call-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    overflow-wrap: anywhere;
+}
+
+.calls-sidebar__call-title {
+    font-weight: var(--jtt-font-weight-strong);
+    color: var(--jtt-text-strong);
+}
+
+.calls-sidebar__call-topic {
+    font-size: 0.8rem;
+    color: var(--jtt-text-muted);
+}
+
+.calls-sidebar__in-call-label {
+    font-size: 0.8rem;
+    color: var(--jtt-text-accent);
+    white-space: nowrap;
+}
+
+.calls-sidebar__join-btn,
+.calls-sidebar__create-btn {
+    white-space: nowrap;
+}
+
+.calls-sidebar__footer {
+    padding: 0.75rem;
+    border-top: 1px solid var(--jtt-stroke-subtle);
+}

@@ -1,0 +1,95 @@
+@using JustTaskTracker.WebUI.Domain.Calls
+@using JustTaskTracker.WebUI.Validation
+
+<form id="@FormId" @onsubmit="SubmitAsync" @onsubmit:preventDefault="true">
+    <div @onfocusout="OnFieldFocusOutAsync">
+        <MudTextField @bind-Value="_model.Title"
+                      @bind-Value:after="OnFieldChangedAsync"
+                      Label="Title"
+                      Variant="Variant.Outlined"
+                      Counter="@CallFieldLengths.MaxTitleLength"
+                      MaxLength="@CallFieldLengths.MaxTitleLength"
+                      AutoFocus="true"
+                      Required="false"
+                      OnlyValidateIfDirty="true"
+                      Error="_showValidation && _titleError is not null"
+                      ErrorText="@(_showValidation ? _titleError : null)" />
+
+        <MudTextField @bind-Value="_model.Topic"
+                      @bind-Value:after="OnFieldChangedAsync"
+                      Label="Topic (optional)"
+                      Variant="Variant.Outlined"
+                      Lines="3"
+                      Counter="@CallFieldLengths.MaxTopicLength"
+                      MaxLength="@CallFieldLengths.MaxTopicLength"
+                      Required="false"
+                      OnlyValidateIfDirty="true"
+                      Error="_showValidation && _topicError is not null"
+                      ErrorText="@(_showValidation ? _topicError : null)"
+                      Class="mt-4" />
+    </div>
+</form>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private readonly CreateCallModel _model = new();
+    private readonly CreateCallModelValidator _validator = new();
+    private bool _showValidation;
+    private bool _isDirty;
+    private string? _titleError;
+    private string? _topicError;
+
+    private async Task OnFieldChangedAsync()
+    {
+        _isDirty = true;
+
+        if (_showValidation)
+            await ValidateAsync();
+    }
+
+    private async Task OnFieldFocusOutAsync(FocusEventArgs _)
+    {
+        if (_showValidation || !_isDirty)
+            return;
+
+        _showValidation = true;
+        await ValidateAsync();
+    }
+
+    private async Task SubmitAsync()
+    {
+        _showValidation = true;
+        await ValidateAsync();
+
+        if (_titleError is not null || _topicError is not null)
+            return;
+
+        var topic = string.IsNullOrWhiteSpace(_model.Topic) ? null : _model.Topic.Trim();
+
+        MudDialog.Close(DialogResult.Ok(new CreateCallResult(_model.Title.Trim(), topic)));
+    }
+
+    private async Task ValidateAsync()
+    {
+        if (!_showValidation)
+        {
+            _titleError = null;
+            _topicError = null;
+            return;
+        }
+
+        var result = await _validator.ValidateAsync(_model);
+        _titleError = result.Errors.FirstOrDefault(e => e.PropertyName == nameof(CreateCallModel.Title))?.ErrorMessage;
+        _topicError = result.Errors.FirstOrDefault(e => e.PropertyName == nameof(CreateCallModel.Topic))?.ErrorMessage;
+    }
+
+    public const string FormId = "create-call-form";
+
+    public static RenderFragment Render() => builder =>
+    {
+        builder.OpenComponent<CreateCallForm>(0);
+        builder.CloseComponent();
+    };
+}

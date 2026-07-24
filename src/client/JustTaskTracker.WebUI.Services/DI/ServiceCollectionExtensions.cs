@@ -1,6 +1,7 @@
 using JustTaskTracker.WebUI.Services.Abstractions.Auth;
 using JustTaskTracker.WebUI.Services.Abstractions.Billing;
 using JustTaskTracker.WebUI.Services.Abstractions.Boards;
+using JustTaskTracker.WebUI.Services.Abstractions.Calls;
 using JustTaskTracker.WebUI.Services.Abstractions.Hubs;
 using JustTaskTracker.WebUI.Services.Abstractions.Theme;
 using JustTaskTracker.WebUI.Services.Abstractions.Users;
@@ -13,6 +14,8 @@ using JustTaskTracker.WebUI.Services.Configuration;
 using JustTaskTracker.WebUI.Services.Boards;
 using JustTaskTracker.WebUI.Services.Boards.Actions;
 using JustTaskTracker.WebUI.Services.Boards.Stores;
+using JustTaskTracker.WebUI.Services.Calls;
+using JustTaskTracker.WebUI.Services.Calls.Stores;
 using JustTaskTracker.WebUI.Services.Hubs;
 using JustTaskTracker.WebUI.Services.Theme;
 using JustTaskTracker.WebUI.Services.Users;
@@ -64,6 +67,10 @@ public static class ServiceCollectionExtensions
             .ConfigureHttpClient(c => c.BaseAddress = new Uri(options.BaseUrl))
             .AddHttpMessageHandler<ApiAuthorizationMessageHandler>();
 
+        services.AddRefitClient<ICallsApi>(RefitSettings)
+            .ConfigureHttpClient(c => c.BaseAddress = new Uri(options.BaseUrl))
+            .AddHttpMessageHandler<ApiAuthorizationMessageHandler>();
+
         services.AddScoped<IAuthApiService, AuthApiService>();
         services.AddScoped<IProfileStore, ProfileStore>();
         services.AddScoped<IThemeService, ThemeService>();
@@ -87,6 +94,10 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IBoardTrayOverlapService, BoardTrayOverlapService>();
         services.AddScoped<IBoardExportStatusHubService, BoardExportStatusHubService>();
         services.AddScoped<IBoardActionsHubService, BoardActionsHubService>();
+
+        services.AddScoped<ICallsApiService, CallsApiService>();
+        services.AddScoped<ICallSessionStore, CallSessionStore>();
+        services.AddScoped<ICallsInteropService, CallsInteropService>();
 
         return services;
     }

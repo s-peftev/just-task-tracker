@@ -449,4 +449,3 @@ FodyWeavers.xsd
 # AI Assistants internals
 .claude/
 _bmad/
-_bmad-output/

@@ -111,6 +111,8 @@
         <BoardMembersOverlay />
     }
 
+    <CallsSidebar BoardId="Id" />
+
     @if (TaskId is { } taskId && ColumnId is { } columnId)
     {
         <BoardTaskDetailsOverlay @key="taskId"

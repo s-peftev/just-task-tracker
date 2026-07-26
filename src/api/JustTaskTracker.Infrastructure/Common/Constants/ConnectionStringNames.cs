@@ -7,4 +7,5 @@ internal static class ConnectionStringNames
     public const string ServiceBus = nameof(ServiceBus);
     public const string CosmosDB = nameof(CosmosDB);
     public const string SignalR = nameof(SignalR);
+    public const string ACS = nameof(ACS);
 }

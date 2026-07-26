@@ -1,0 +1,170 @@
+@page "/boards/{BoardId:guid}/calls/{CallId:guid}"
+@attribute [Authorize]
+@implements IAsyncDisposable
+@using JustTaskTracker.WebUI.Services.Abstractions.Auth
+@using JustTaskTracker.WebUI.Services.Abstractions.Calls
+@inject ICallSessionStore CallSessionStore
+@inject ICallsInteropService CallsInteropService
+@inject IProfileStore ProfileStore
+@inject NavigationManager Navigation
+
+<PageTitle>Call — JustTaskTracker</PageTitle>
+
+<div class="call-page">
+    @if (_isJoining)
+    {
+        <div class="page-state page-state--stacked">
+            <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+        </div>
+    }
+    else if (_joinError is { } error)
+    {
+        <div class="page-state page-state--stacked">
+            <MudAlert Severity="Severity.Error">@error</MudAlert>
+            <button type="button" class="btn-noir" @onclick="GoBackToBoard">
+                <span>Back to board</span>
+            </button>
+        </div>
+    }
+    else
+    {
+        <div class="call-page__grid" style="--call-grid-columns: @GridColumns;">
+            @foreach (var tile in _tiles)
+            {
+                <CallGridTile @key="tile.TileId" TileId="@tile.TileId" IsLocal="@tile.IsLocal" OnReady="OnTileElementReadyAsync" />
+            }
+        </div>
+
+        <div class="call-page__controls">
+            <button type="button" class="btn-glass call-page__control-btn" @onclick="ToggleMicAsync">
+                @(_micOn ? "Mute" : "Unmute")
+            </button>
+            <button type="button" class="btn-glass call-page__control-btn" @onclick="ToggleCameraAsync">
+                @(_cameraOn ? "Stop video" : "Start video")
+            </button>
+            <button type="button" class="btn-glass call-page__control-btn call-page__leave-btn" @onclick="LeaveAsync">
+                Leave
+            </button>
+            @if (_isCreator)
+            {
+                <button type="button" class="btn-glass call-page__control-btn call-page__end-btn" @onclick="EndCallAsync">
+                    End call
+                </button>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public Guid BoardId { get; set; }
+
+    [Parameter]
+    public Guid CallId { get; set; }
+
+    private record CallTile(string TileId, bool IsLocal);
+
+    // Zoom-like layout: as few columns as possible while fitting everyone, so 1-2
+    // participants fill nearly the whole area and the grid subdivides as more join.
+    private int GridColumns => _tiles.Count <= 1 ? 1 : (int)Math.Ceiling(Math.Sqrt(_tiles.Count));
+
+    private bool _isJoining = true;
+    private string? _joinError;
+    private bool _micOn = true;
+    private bool _cameraOn;
+    private bool _isCreator;
+    private bool _hasLeft;
+    private readonly List<CallTile> _tiles = [];
+    private DotNetObjectReference<CallPage>? _selfRef;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _isCreator = CallSessionStore.ActiveCalls.FirstOrDefault(c => c.Id == CallId) is { } call
+            && ProfileStore.Profile is { } profile
+            && call.CreatedByUserId == profile.Id;
+
+        var environment = await CallsInteropService.CheckEnvironmentAsync();
+
+        if (!environment.IsSupported)
+        {
+            _isJoining = false;
+            _joinError = environment.Reason ?? "This browser doesn't support video calls.";
+            return;
+        }
+
+        var joinInfo = await CallSessionStore.JoinCallAsync(CallId);
+
+        if (joinInfo is null)
+        {
+            _isJoining = false;
+            _joinError = CallSessionStore.ErrorMessage ?? "Could not join the call.";
+            return;
+        }
+
+        _selfRef = DotNetObjectReference.Create(this);
+        await CallsInteropService.JoinRoomAsync(joinInfo.Token, joinInfo.AcsRoomId, _selfRef);
+        _isJoining = false;
+    }
+
+    [JSInvokable]
+    public Task OnTileAdded(string tileId, bool isLocal, bool hasVideo)
+    {
+        if (_tiles.Any(t => t.TileId == tileId))
+            return Task.CompletedTask;
+
+        _tiles.Add(new CallTile(tileId, isLocal));
+
+        if (isLocal)
+            _cameraOn = hasVideo;
+
+        return InvokeAsync(StateHasChanged);
+    }
+
+    [JSInvokable]
+    public Task OnTileRemoved(string tileId)
+    {
+        _tiles.RemoveAll(t => t.TileId == tileId);
+
+        return InvokeAsync(StateHasChanged);
+    }
+
+    private async Task OnTileElementReadyAsync((string TileId, ElementReference Element) args) =>
+        await CallsInteropService.RegisterTileElementAsync(args.TileId, args.Element);
+
+    private async Task ToggleMicAsync() =>
+        _micOn = await CallsInteropService.ToggleMicAsync();
+
+    private async Task ToggleCameraAsync() =>
+        _cameraOn = await CallsInteropService.ToggleCameraAsync();
+
+    private async Task LeaveAsync()
+    {
+        await EndLocalConnectionAsync();
+        CallSessionStore.LeaveCurrentCall();
+        GoBackToBoard();
+    }
+
+    private async Task EndCallAsync()
+    {
+        await EndLocalConnectionAsync();
+        await CallSessionStore.EndCurrentCallAsync();
+        GoBackToBoard();
+    }
+
+    private async Task EndLocalConnectionAsync()
+    {
+        if (_hasLeft)
+            return;
+
+        _hasLeft = true;
+        await CallsInteropService.HangUpAsync();
+    }
+
+    private void GoBackToBoard() => Navigation.NavigateTo($"/boards/{BoardId}");
+
+    public async ValueTask DisposeAsync()
+    {
+        await EndLocalConnectionAsync();
+        _selfRef?.Dispose();
+    }
+}

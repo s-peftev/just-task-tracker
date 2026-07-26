@@ -65,4 +65,16 @@ public static class BoardRolePermissions
     public static bool CanLeaveBoard(BoardMemberRole role) =>
         role is BoardMemberRole.Admin
             or BoardMemberRole.ScrumMaster;
+
+    public static bool CanCreateCall(BoardMemberRole role) =>
+        role is BoardMemberRole.Owner
+            or BoardMemberRole.Admin
+            or BoardMemberRole.ScrumMaster
+            or BoardMemberRole.User;
+
+    public static bool CanJoinCall(BoardMemberRole role) =>
+        role is BoardMemberRole.Owner
+            or BoardMemberRole.Admin
+            or BoardMemberRole.ScrumMaster
+            or BoardMemberRole.User;
 }

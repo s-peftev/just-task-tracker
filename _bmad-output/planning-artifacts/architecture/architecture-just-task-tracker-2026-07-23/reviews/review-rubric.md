@@ -1,0 +1,44 @@
+# Architecture Spine Rubric Review — JustTaskTracker Video Calls (ACS)
+
+**Reviewed:** `architecture/architecture-just-task-tracker-2026-07-23/ARCHITECTURE-SPINE.md`
+**Against:** `research/technical-webrtc-group-calls-signalr-vs-acs-research-2026-07-23.md` and live codebase (`src/api`, `src/client`)
+**Date:** 2026-07-23
+
+## Overall Verdict
+
+Solid, well-grounded spine with accurate ratification of the brownfield conventions and a genuinely useful ACS/SignalR split, but it contains one internal self-contradiction on the notification path (AD-10 text vs. structural seed) that would send two implementers in different directions, defers a persistence-layer fact (the linked-task FK target) that was one grep away from being resolved, and leaves two real MVP-scope forks — screen-share race concurrency and Event Grid delivery guarantees — undecided despite being squarely "Rule"-shaped concerns.
+
+## Critical / High Severity
+
+1. **[Item 2 & 5 — contradictory Rule, ambiguous enforceability] AD-10's prose contradicts the Structural Seed / Consistency Conventions on which notifier interface Calls uses.**
+   AD-10's Rule text says in-call live state is "relayed on the existing `BoardActions:{boardId}` group via `IBoardActionNotifier`" (the pre-existing Boards interface, `src/api/JustTaskTracker.Application/Boards/Notifiers/IBoardActionNotifier.cs`, whose single `NotifyAsync(BoardActionNotification, ct)` method is keyed on the Boards-owned `BoardActionNotificationType` enum). But the Structural Seed (`Infrastructure/Calls/Notifiers/CallStateNotifier.cs # implements ICallStateNotifier, AD-10`) and the Consistency Conventions table ("Real-time push: Only through `ICallStateNotifier`... calling `IHubContext<BoardActionsHub>`... Never a hub method pushing directly") both describe a brand-new, Calls-owned `ICallStateNotifier` that talks to `IHubContext<BoardActionsHub>` directly — bypassing `IBoardActionNotifier` entirely. These are two different designs (reuse-and-extend an existing Boards enum/interface vs. a parallel Calls-owned notifier), and the doc never resolves which one governs. This is exactly the kind of divergence-point ambiguity the spine exists to prevent — an implementer following AD-10's own sentence would build something the rest of the document forbids. (Also relevant: extending `BoardActionNotificationType`, which lives in `Domain.Boards`, to carry Calls-specific values would itself sit awkwardly against AD-5's one-directional-dependency intent — a further reason the two readings aren't equivalent.)
+
+2. **[Item 3 — wrongly deferred, real fork] The FK target for `CallSessionLinkedTask.TaskId` is deferred but was trivially resolvable, and it's in-scope, not a roadmap item.**
+   The Deferred section states: "not confirmed during the code sweep... confirm the real entity name and FK target before writing `CallSessionLinkedTaskConfiguration`." A one-line grep of the existing codebase shows the entity is `BoardTask` (`src/api/JustTaskTracker.Domain/Boards/Entities/BoardTask.cs`, with `IBoardTaskRepository`, `BoardTaskRepository`, `CreateBoardTaskCommand`, etc. — an established, unambiguous naming convention). `CallSessionLinkedTask` is part of the MVP structural seed and ERD (AD-13), not a deferred roadmap feature, so leaving its FK target unnamed is exactly the sort of thing this altitude should decide — two implementers could reasonably guess `TaskId` vs `BoardTaskId` as the property/FK name, which changes the EF configuration and Refit/DTO field naming everywhere linked-tasks are touched.
+
+3. **[Item 2 — Rule doesn't enforce its own stated prevention] AD-9's "server-authoritative single-presenter lock" doesn't specify a concurrency mechanism, so it doesn't actually prevent the race it names.**
+   AD-9 states the Rule's purpose is to prevent "two simultaneous screen-share requests racing," and says `CurrentPresenterUserId` is "checked and written before the client invokes the ACS SDK's local start" — but never specifies how the check-then-write is made atomic (e.g., optimistic concurrency token / `WHERE CurrentPresenterUserId IS NULL` conditional update / row lock inside the handler transaction). As written, two concurrent `RequestScreenShareCommand`s can both read `null` and both succeed before either write commits under default EF Core `SaveChangesAsync` semantics — the very race the AD exists to prevent. This is a Rule that describes a goal without the enforcement mechanism a "Rule" is supposed to guarantee.
+
+4. **[Item 1 — missing divergence point] ACS access-token lifetime/refresh strategy for long-running calls is unaddressed.**
+   The research document flags token validity as configurable 60–1440 minutes (default 1440). Nothing in the spine states who's responsible for refreshing an about-to-expire token during an in-progress call (client-initiated re-issue via a new API call vs. server push vs. accept-the-drop). For a "group video call" feature this is a real fork two implementers would resolve differently, and it isn't listed even under Deferred.
+
+5. **[Item 1 — missing divergence point] Event Grid delivery semantics (at-least-once, possible out-of-order/duplicate events) are not addressed by AD-11/AD-12.**
+   AD-12 makes Event Grid the sole authority for participant join/leave and session closure, which raises exactly the kind of "two implementers diverge" risk the spine should close: Event Grid is at-least-once and can redeliver or reorder events (e.g., a redelivered `CallParticipantAdded` after a `CallParticipantRemoved` already recorded a leave). The webhook handler's idempotency/ordering strategy isn't specified anywhere, despite AD-12 explicitly relying on this being the *only* source of truth.
+
+## Medium / Low Severity (7)
+
+- **[Item 8]** Inconsistent use of the `[ADOPTED...]` tag across ADs (present on AD-1,2,3,4,7,9,11; absent on AD-5,6,8,10,12,13) with no legend defining what the tag means or what its absence signifies — ambiguous given the doc's overall `status: draft`.
+- **[Item 6, low]** No explicit mention of ongoing operational concerns (call-cost monitoring/alerting on ACS per-participant-minute spend, as the research doc itself recommends) — likely acceptable to leave to existing app-wide ops tooling, but not stated either way.
+- **[Item 1, low]** No rate/volume guard on `CreateCallCommand` — AD-8 permits unlimited concurrent `CallSession`s per board; no mention of whether this needs a cap (cost/abuse control), consistent with existing `PlanLimitGuardBehavior`/plan-limit patterns already in the codebase.
+- **[Item 1, low]** `JoinCallCommand` doesn't distinguish first-join vs. rejoin-after-drop; ACS token re-issuance behavior on rejoin isn't specified.
+- **[Item 7, low]** ERD leaves `BOARD`, `USER`, `TASK` without attribute blocks — reasonable restraint since they're pre-existing/out-of-scope entities, but worth a one-line note in the diagram that this is deliberate, not an omission.
+- **[Item 6, low]** AD-7 covers secrets/config placement well (ratified against the SignalR precedent, verified in `AzureModule.cs`/`ConnectionStringNames.cs`), but doesn't mention per-environment ACS resource provisioning ownership (IaC) — likely out of scope for this altitude, but not explicitly flagged as an open question, just silent.
+- **[Item 4, low]** Stack table's "inherited — existing solution versions apply, not re-pinned here" row is a reasonable choice but slightly under-specifies which existing lockfile/csproj is authoritative for those versions.
+
+## What the spine gets right (for balance)
+
+- AD-1/AD-2/AD-6/AD-7/AD-11 are concrete, enforceable, and each map to a specific prevented divergence.
+- Ratification checks against the live codebase confirm accuracy: `IBoardRepository.GetUserRoleAsync`/`GetBoardWithUserRoleAsync`, `BoardRolePermissions`, `ICurrentUserAccessor.AzureAdObjectId`, `IUnitOfWork.SaveChangesAsync`, `Result`/`Result<T>`, the `UpdateBoardCommand.cs` record+handler+validator co-location, `HubGroupNames`, `BoardActionsHub`, and the Azure SignalR Service connection-string-only (non-Aspire) precedent in `AzureModule.cs` all check out exactly as described.
+- AD-8's `CallSession`/`Visibility`/allow-list shape genuinely absorbs the deferred scheduled-meetings roadmap without rework, matching the research's Rooms-API rationale.
+- Mermaid diagrams (dependency graph, two-tier relay graph, ERD, two sequence diagrams) are syntactically valid and substantively convey structure — none are placeholders.
+- The "Deferred" list (recording, multi-presenter, cross-provider abstraction, in-call task editing) correctly identifies genuine future-roadmap items that are NOT current forks, applying Rule-of-Three discipline appropriately — except for the two items flagged above (linked-task FK, and the notifier contradiction) which are current-scope, not future-roadmap.

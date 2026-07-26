@@ -8,4 +8,5 @@ public static class ConfigSections
     public const string ServiceBus = nameof(ServiceBus);
     public const string CosmosDB = nameof(CosmosDB);
     public const string Stripe = nameof(Stripe);
+    public const string Acs = nameof(Acs);
 }

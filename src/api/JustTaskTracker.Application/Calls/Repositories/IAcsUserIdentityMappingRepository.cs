@@ -6,5 +6,7 @@ public interface IAcsUserIdentityMappingRepository
 {
     Task<AcsUserIdentityMapping?> GetByUserIdAsync(Guid userId, CancellationToken ct = default);
 
+    Task<AcsUserIdentityMapping?> GetByAcsCommunicationUserIdAsync(string acsCommunicationUserId, CancellationToken ct = default);
+
     void Add(AcsUserIdentityMapping mapping);
 }

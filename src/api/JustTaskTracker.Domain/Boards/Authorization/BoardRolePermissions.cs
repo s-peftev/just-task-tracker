@@ -77,4 +77,11 @@ public static class BoardRolePermissions
             or BoardMemberRole.Admin
             or BoardMemberRole.ScrumMaster
             or BoardMemberRole.User;
+
+    /// <summary>
+    /// Owner/Admin may join any call on their own board, restricted or not, regardless of the
+    /// call's allow-list (AD-4). Does not apply to Open calls, which every member can already join.
+    /// </summary>
+    public static bool CanBypassCallRestriction(BoardMemberRole role) =>
+        role is BoardMemberRole.Owner or BoardMemberRole.Admin;
 }

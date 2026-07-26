@@ -11,4 +11,5 @@ public record CallSessionDto(
     CallVisibility Visibility,
     string AcsRoomId,
     CallStatus Status,
-    DateTime StartedAtUtc);
+    DateTime StartedAtUtc,
+    IReadOnlyList<Guid>? AllowedUserIds);

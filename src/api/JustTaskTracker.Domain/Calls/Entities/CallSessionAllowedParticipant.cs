@@ -1,6 +1,7 @@
 namespace JustTaskTracker.Domain.Calls.Entities;
 
-// Stub for Story 1.2 (Restricted visibility allow-list, AD-8/AD-4). Not yet EF-mapped or persisted.
+// Restricted-visibility allow-list (AD-8/AD-4). Only populated when CallSession.Visibility is
+// Restricted; the creator is always implicitly allowed regardless of whether they appear here.
 public class CallSessionAllowedParticipant
 {
     public Guid CallSessionId { get; set; }

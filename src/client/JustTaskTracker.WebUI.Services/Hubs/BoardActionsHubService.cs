@@ -1,6 +1,8 @@
 using JustTaskTracker.WebUI.Domain.Boards.Notifications.BoardActions;
+using JustTaskTracker.WebUI.Domain.Calls.Notifications;
 using JustTaskTracker.WebUI.Services.Abstractions.Auth;
 using JustTaskTracker.WebUI.Services.Abstractions.Boards;
+using JustTaskTracker.WebUI.Services.Abstractions.Calls;
 using JustTaskTracker.WebUI.Services.Abstractions.Hubs;
 using JustTaskTracker.WebUI.Services.Boards.Actions;
 using JustTaskTracker.WebUI.Services.Configuration;
@@ -15,6 +17,7 @@ internal sealed class BoardActionsHubService(
     IAccessTokenProvider tokenProvider,
     IOptions<ApiClientOptions> options,
     IBoardDetailsStore boardDetailsStore,
+    ICallSessionStore callSessionStore,
     IProfileStore profileStore,
     ILogger<BoardActionsHubService> logger)
     : IBoardActionsHubService, IAsyncDisposable
@@ -233,6 +236,10 @@ internal sealed class BoardActionsHubService(
         _connection.On<BoardActionNotificationWireDto>(
             BoardActionsHubEvents.BoardChanged,
             OnBoardChanged);
+
+        _connection.On<CallStateNotification>(
+            CallStateHubEvents.CallStateChanged,
+            callSessionStore.ApplyCallStateNotification);
 
         _connection.Reconnected += OnReconnectedAsync;
 

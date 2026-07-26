@@ -43,6 +43,16 @@ public class CallsController(ISender sender) : ControllerBase
             error => error.CreateErrorResponse());
     }
 
+    [HttpGet("{id:guid}/participants")]
+    public async Task<IActionResult> GetParticipants(Guid id, CancellationToken ct)
+    {
+        var result = await sender.Send(new GetActiveCallParticipantsQuery(id), ct);
+
+        return result.Match(
+            data => Ok(data),
+            error => error.CreateErrorResponse());
+    }
+
     [HttpPost("{id:guid}/end")]
     public async Task<IActionResult> End(Guid id, CancellationToken ct)
     {

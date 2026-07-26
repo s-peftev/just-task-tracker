@@ -47,6 +47,12 @@ let cameraOn = false;
 const remoteRenderers = new Map();
 const tileElements = new Map();
 const pendingViews = new Map();
+// Tracks which DOM node is *currently appended* for a tile, separate from pendingViews (which
+// tracks a view waiting for its tile element to exist). Needed because disposing a renderer
+// (camera turned off, or re-rendering after it's turned back on) does not itself remove the
+// <video>/<canvas> node it created -- without this, repeated on/off toggles would leave a growing
+// pile of stale, disconnected media elements behind in the tile.
+const activeViewElements = new Map();
 
 // view.target ships with no intrinsic size or aspect-ratio handling -- style it directly
 // rather than relying on CSS to reach into an element Blazor's scoped-CSS isolation doesn't
@@ -73,14 +79,26 @@ function styleView(viewTarget) {
 
 function attachView(tileId, viewTarget) {
     styleView(viewTarget);
+    detachView(tileId);
+
     const el = tileElements.get(tileId);
 
     if (el) {
         el.appendChild(viewTarget);
-        pendingViews.delete(tileId);
+        activeViewElements.set(tileId, viewTarget);
     } else {
         pendingViews.set(tileId, viewTarget);
     }
+}
+
+function detachView(tileId) {
+    const existing = activeViewElements.get(tileId);
+
+    if (existing?.parentElement)
+        existing.parentElement.removeChild(existing);
+
+    activeViewElements.delete(tileId);
+    pendingViews.delete(tileId);
 }
 
 function participantKeyOf(participant) {
@@ -91,26 +109,26 @@ async function renderRemoteStream(tileId, stream) {
     if (remoteRenderers.has(tileId))
         return;
 
-    let renderer;
-
     try {
-        renderer = new VideoStreamRenderer(stream);
+        const renderer = new VideoStreamRenderer(stream);
         remoteRenderers.set(tileId, renderer);
         const view = await renderer.createView();
         attachView(tileId, view.target);
     } catch (error) {
         console.error(`calls.js failed to render remote video for tile "${tileId}":`, error);
         remoteRenderers.delete(tileId);
-        return;
     }
+}
 
-    stream.on("isAvailableChanged", () => {
-        if (stream.isAvailable)
-            return;
+function disposeRemoteRenderer(tileId) {
+    const renderer = remoteRenderers.get(tileId);
 
-        renderer.dispose();
-        remoteRenderers.delete(tileId);
-    });
+    if (!renderer)
+        return;
+
+    renderer.dispose();
+    remoteRenderers.delete(tileId);
+    detachView(tileId);
 }
 
 // Zoom-like grid: Blazor owns one <div> tile per participant (local + each remote) and reports
@@ -146,40 +164,45 @@ export async function join(token, roomId, dotNetRef) {
 
     if (localVideoStream) {
         cameraOn = true;
+        await renderLocalVideo();
+    }
 
-        try {
-            localRenderer = new VideoStreamRenderer(localVideoStream);
-            const view = await localRenderer.createView();
-            attachView("local", view.target);
-        } catch (error) {
-            console.error("calls.js failed to render local video:", error);
-        }
+    // Handles both "a new video stream showed up" (participant.videoStreams changed) and "an
+    // existing stream's camera was turned back on/off" (same stream object, isAvailable flips) --
+    // ACS reuses the same stream object across a camera toggle rather than removing/re-adding it,
+    // so re-rendering can't be driven only from videoStreamsUpdated.
+    async function syncParticipantVideo(participant, tileId) {
+        const availableStream = participant.videoStreams.find((s) => s.isAvailable);
+
+        if (availableStream)
+            await renderRemoteStream(tileId, availableStream);
+        else
+            disposeRemoteRenderer(tileId);
+
+        await dotNetRef.invokeMethodAsync("OnTileVideoStateChanged", tileId, !!availableStream);
     }
 
     async function watchParticipant(participant) {
         const tileId = participantKeyOf(participant);
-        await dotNetRef.invokeMethodAsync("OnTileAdded", tileId, false, false);
 
-        for (const stream of participant.videoStreams) {
-            if (stream.isAvailable)
-                renderRemoteStream(tileId, stream);
-        }
+        await dotNetRef.invokeMethodAsync("OnTileAdded", tileId, false, participant.videoStreams.some((s) => s.isAvailable));
+
+        for (const stream of participant.videoStreams)
+            stream.on("isAvailableChanged", () => syncParticipantVideo(participant, tileId));
+
+        await syncParticipantVideo(participant, tileId);
 
         participant.on("videoStreamsUpdated", (e) => {
             for (const stream of e.added)
-                renderRemoteStream(tileId, stream);
+                stream.on("isAvailableChanged", () => syncParticipantVideo(participant, tileId));
+
+            syncParticipantVideo(participant, tileId);
         });
     }
 
     async function removeParticipant(participant) {
         const tileId = participantKeyOf(participant);
-        const renderer = remoteRenderers.get(tileId);
-
-        if (renderer) {
-            renderer.dispose();
-            remoteRenderers.delete(tileId);
-        }
-
+        disposeRemoteRenderer(tileId);
         tileElements.delete(tileId);
         pendingViews.delete(tileId);
         await dotNetRef.invokeMethodAsync("OnTileRemoved", tileId);
@@ -195,12 +218,23 @@ export async function join(token, roomId, dotNetRef) {
     });
 }
 
+async function renderLocalVideo() {
+    try {
+        localRenderer = new VideoStreamRenderer(localVideoStream);
+        const view = await localRenderer.createView();
+        attachView("local", view.target);
+    } catch (error) {
+        console.error("calls.js failed to render local video:", error);
+    }
+}
+
 export function registerTileElement(tileId, element) {
     tileElements.set(tileId, element);
     const pending = pendingViews.get(tileId);
 
     if (pending) {
         element.appendChild(pending);
+        activeViewElements.set(tileId, pending);
         pendingViews.delete(tileId);
     }
 }
@@ -226,10 +260,19 @@ export async function toggleCamera() {
     if (!call || !localVideoStream)
         return cameraOn;
 
-    if (cameraOn)
+    if (cameraOn) {
         await call.stopVideo(localVideoStream);
-    else
+
+        if (localRenderer) {
+            localRenderer.dispose();
+            localRenderer = null;
+        }
+
+        detachView("local");
+    } else {
         await call.startVideo(localVideoStream);
+        await renderLocalVideo();
+    }
 
     cameraOn = !cameraOn;
     return cameraOn;
@@ -250,6 +293,7 @@ export function disposeCall() {
     remoteRenderers.clear();
     tileElements.clear();
     pendingViews.clear();
+    activeViewElements.clear();
     call = null;
     localVideoStream = null;
     localRenderer = null;

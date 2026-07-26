@@ -1,11 +1,17 @@
 @page "/boards/{BoardId:guid}/calls/{CallId:guid}"
 @attribute [Authorize]
 @implements IAsyncDisposable
+@using JustTaskTracker.WebUI.Domain.Calls
 @using JustTaskTracker.WebUI.Services.Abstractions.Auth
 @using JustTaskTracker.WebUI.Services.Abstractions.Calls
+@using JustTaskTracker.WebUI.Services.Abstractions.Hubs
+@using JustTaskTracker.WebUI.Services.Exceptions
 @inject ICallSessionStore CallSessionStore
 @inject ICallsInteropService CallsInteropService
+@inject ICallsApiService CallsApiService
+@inject IBoardActionsHubService ActionsHubService
 @inject IProfileStore ProfileStore
+@inject ISnackbar Snackbar
 @inject NavigationManager Navigation
 
 <PageTitle>Call — JustTaskTracker</PageTitle>
@@ -31,7 +37,16 @@
         <div class="call-page__grid" style="--call-grid-columns: @GridColumns;">
             @foreach (var tile in _tiles)
             {
-                <CallGridTile @key="tile.TileId" TileId="@tile.TileId" IsLocal="@tile.IsLocal" OnReady="OnTileElementReadyAsync" />
+                var identity = GetTileIdentity(tile);
+
+                <CallGridTile @key="tile.TileId"
+                              TileId="@tile.TileId"
+                              IsLocal="@tile.IsLocal"
+                              HasVideo="@tile.HasVideo"
+                              DisplayName="@identity.DisplayName"
+                              Email="@identity.Email"
+                              ProfilePhotoUrl="@identity.ProfilePhotoUrl"
+                              OnReady="OnTileElementReadyAsync" />
             }
         </div>
 
@@ -62,7 +77,7 @@
     [Parameter]
     public Guid CallId { get; set; }
 
-    private record CallTile(string TileId, bool IsLocal);
+    private record CallTile(string TileId, bool IsLocal, bool HasVideo);
 
     // Zoom-like layout: as few columns as possible while fitting everyone, so 1-2
     // participants fill nearly the whole area and the grid subdivides as more join.
@@ -74,11 +89,21 @@
     private bool _cameraOn;
     private bool _isCreator;
     private bool _hasLeft;
+    private bool _joinedBoardGroup;
     private readonly List<CallTile> _tiles = [];
+    private Dictionary<string, CallParticipantDto> _participantsByAcsId = [];
     private DotNetObjectReference<CallPage>? _selfRef;
 
     protected override async Task OnInitializedAsync()
     {
+        // BoardPage owns its own join/leave of this same group and is disposed when navigating here,
+        // so this page must hold its own membership for as long as it's the one showing live call state.
+        await ActionsHubService.JoinBoardAsync(BoardId);
+        _joinedBoardGroup = true;
+
+        CallSessionStore.CallSessionClosed += OnCallSessionClosed;
+        CallSessionStore.CallParticipantsChanged += OnCallParticipantsChanged;
+
         _isCreator = CallSessionStore.ActiveCalls.FirstOrDefault(c => c.Id == CallId) is { } call
             && ProfileStore.Profile is { } profile
             && call.CreatedByUserId == profile.Id;
@@ -104,6 +129,8 @@
         _selfRef = DotNetObjectReference.Create(this);
         await CallsInteropService.JoinRoomAsync(joinInfo.Token, joinInfo.AcsRoomId, _selfRef);
         _isJoining = false;
+
+        await RefreshParticipantsAsync();
     }
 
     [JSInvokable]
@@ -112,7 +139,7 @@
         if (_tiles.Any(t => t.TileId == tileId))
             return Task.CompletedTask;
 
-        _tiles.Add(new CallTile(tileId, isLocal));
+        _tiles.Add(new CallTile(tileId, isLocal, hasVideo));
 
         if (isLocal)
             _cameraOn = hasVideo;
@@ -128,14 +155,89 @@
         return InvokeAsync(StateHasChanged);
     }
 
+    [JSInvokable]
+    public Task OnTileVideoStateChanged(string tileId, bool hasVideo)
+    {
+        var index = _tiles.FindIndex(t => t.TileId == tileId);
+
+        if (index < 0)
+            return Task.CompletedTask;
+
+        _tiles[index] = _tiles[index] with { HasVideo = hasVideo };
+
+        return InvokeAsync(StateHasChanged);
+    }
+
+    private (string? DisplayName, string? Email, string? ProfilePhotoUrl) GetTileIdentity(CallTile tile)
+    {
+        // The local tile is resolved from the profile store directly rather than the participants
+        // roster: that roster is populated by Story 1.2's Event-Grid pipeline, which can lag a moment
+        // behind the local ACS SDK connection actually completing -- the local user's own identity is
+        // always known instantly and shouldn't wait on that round-trip.
+        if (tile.IsLocal)
+        {
+            var profile = ProfileStore.Profile;
+            return (profile?.DisplayName, profile?.Email, profile?.ProfilePhotoUrl);
+        }
+
+        return _participantsByAcsId.TryGetValue(tile.TileId, out var participant)
+            ? (participant.DisplayName, participant.Email, participant.ProfilePhotoUrl)
+            : (null, null, null);
+    }
+
+    private async Task RefreshParticipantsAsync()
+    {
+        try
+        {
+            var participants = await CallsApiService.GetParticipantsAsync(CallId);
+            _participantsByAcsId = participants.ToDictionary(p => p.AcsCommunicationUserId, p => p);
+        }
+        catch (ApiServiceException)
+        {
+            // Best-effort: this only resolves display name/email/avatar for remote tiles, which
+            // already render fine (just unlabeled) without it.
+            return;
+        }
+
+        StateHasChanged();
+    }
+
+    private void OnCallParticipantsChanged(Guid callSessionId)
+    {
+        if (callSessionId != CallId)
+            return;
+
+        InvokeAsync(RefreshParticipantsAsync);
+    }
+
+    private void OnCallSessionClosed(Guid callSessionId)
+    {
+        if (callSessionId != CallId)
+            return;
+
+        InvokeAsync(async () =>
+        {
+            await EndLocalConnectionAsync();
+            Snackbar.Add("This call has ended.", Severity.Info);
+            GoBackToBoard();
+        });
+    }
+
     private async Task OnTileElementReadyAsync((string TileId, ElementReference Element) args) =>
         await CallsInteropService.RegisterTileElementAsync(args.TileId, args.Element);
 
     private async Task ToggleMicAsync() =>
         _micOn = await CallsInteropService.ToggleMicAsync();
 
-    private async Task ToggleCameraAsync() =>
+    private async Task ToggleCameraAsync()
+    {
         _cameraOn = await CallsInteropService.ToggleCameraAsync();
+
+        var index = _tiles.FindIndex(t => t.IsLocal);
+
+        if (index >= 0)
+            _tiles[index] = _tiles[index] with { HasVideo = _cameraOn };
+    }
 
     private async Task LeaveAsync()
     {
@@ -164,7 +266,13 @@
 
     public async ValueTask DisposeAsync()
     {
+        CallSessionStore.CallSessionClosed -= OnCallSessionClosed;
+        CallSessionStore.CallParticipantsChanged -= OnCallParticipantsChanged;
+
         await EndLocalConnectionAsync();
         _selfRef?.Dispose();
+
+        if (_joinedBoardGroup)
+            await ActionsHubService.LeaveBoardAsync(BoardId);
     }
 }

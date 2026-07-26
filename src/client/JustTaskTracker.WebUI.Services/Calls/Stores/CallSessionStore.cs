@@ -1,5 +1,6 @@
 using JustTaskTracker.WebUI.Domain.Calls;
 using JustTaskTracker.WebUI.Domain.Calls.Enums;
+using JustTaskTracker.WebUI.Domain.Calls.Notifications;
 using JustTaskTracker.WebUI.Services.Abstractions.Calls;
 using JustTaskTracker.WebUI.Services.Exceptions;
 
@@ -17,6 +18,8 @@ internal sealed class CallSessionStore(ICallsApiService callsApiService) : ICall
     public JoinCallResponse? CurrentJoinInfo { get; private set; }
 
     public event Action? StateChanged;
+    public event Action<Guid>? CallSessionClosed;
+    public event Action<Guid>? CallParticipantsChanged;
 
     public async Task OpenSidebarAsync(Guid boardId, CancellationToken ct = default)
     {
@@ -119,6 +122,30 @@ internal sealed class CallSessionStore(ICallsApiService callsApiService) : ICall
         CurrentCallId = null;
         CurrentJoinInfo = null;
         NotifyStateChanged();
+    }
+
+    public void ApplyCallStateNotification(CallStateNotification notification)
+    {
+        switch (notification.Type)
+        {
+            case CallStateNotificationType.SessionClosed:
+                _activeCalls.RemoveAll(c => c.Id == notification.CallSessionId);
+
+                if (CurrentCallId == notification.CallSessionId)
+                {
+                    CurrentCallId = null;
+                    CurrentJoinInfo = null;
+                }
+
+                NotifyStateChanged();
+                CallSessionClosed?.Invoke(notification.CallSessionId);
+                break;
+
+            case CallStateNotificationType.ParticipantJoined:
+            case CallStateNotificationType.ParticipantLeft:
+                CallParticipantsChanged?.Invoke(notification.CallSessionId);
+                break;
+        }
     }
 
     private void NotifyStateChanged() => StateChanged?.Invoke();

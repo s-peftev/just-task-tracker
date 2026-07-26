@@ -18,12 +18,18 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    container-type: inline-size;
 }
 
 /* ::deep: UserAvatarPlaceholder's own markup lives outside this component's CSS scope,
-   so overriding its size variable through the "Class" param needs the deep combinator. */
+   so overriding its size variable through the "Class" param needs the deep combinator.
+   Uses cqw (not %): --user-avatar-size also drives the letter's font-size via calc(), and a
+   plain "%" resolves against a different basis for width (this container) than for font-size
+   (the parent's font-size) -- that mismatch was rendering the initial at only a couple of px
+   even though the circle itself sized correctly. cqw always resolves against this container,
+   the same way, for every property that reads it. */
 .call-page__tile-avatar ::deep .call-page__tile-avatar-inner {
-    --user-avatar-size: min(40%, 12rem);
+    --user-avatar-size: min(40cqw, 12rem);
 }
 
 .call-page__tile-info {

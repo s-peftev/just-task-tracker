@@ -1,6 +1,7 @@
 @inherits LayoutComponentBase
 @implements IDisposable
 @using Microsoft.AspNetCore.Components.Authorization
+@using JustTaskTracker.WebUI.Components.Calls
 @using JustTaskTracker.WebUI.Infrastructure
 @using JustTaskTracker.WebUI.Services.Abstractions.Billing
 @using JustTaskTracker.WebUI.Services.Abstractions.Boards
@@ -18,6 +19,11 @@
 <MudPopoverProvider />
 <MudDialogProvider />
 <MudSnackbarProvider />
+
+@* Rendered here (outside .layout-wrapper) so its fixed-position overlay isn't trapped inside
+   .layout-wrapper's/.layout-main's own stacking context (both set an explicit z-index),
+   which would otherwise cap it below any open MudDialog no matter its own z-index value. *@
+<CallParticipantPickerOverlay />
 
 <div class="layout-wrapper">
     <main class="layout-main">

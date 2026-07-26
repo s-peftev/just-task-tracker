@@ -1,4 +1,5 @@
 using JustTaskTracker.WebUI.Domain.Calls;
+using JustTaskTracker.WebUI.Domain.Calls.Enums;
 using JustTaskTracker.WebUI.Domain.Calls.Notifications;
 
 namespace JustTaskTracker.WebUI.Services.Abstractions.Calls;
@@ -30,7 +31,13 @@ public interface ICallSessionStore
 
     void CloseSidebar();
 
-    Task<CallSessionDto?> CreateCallAsync(Guid boardId, string title, string? topic, CancellationToken ct = default);
+    Task<CallSessionDto?> CreateCallAsync(
+        Guid boardId,
+        string title,
+        string? topic,
+        CallVisibility visibility,
+        IReadOnlyList<Guid>? allowedUserIds,
+        CancellationToken ct = default);
 
     Task<JoinCallResponse?> JoinCallAsync(Guid callSessionId, CancellationToken ct = default);
 

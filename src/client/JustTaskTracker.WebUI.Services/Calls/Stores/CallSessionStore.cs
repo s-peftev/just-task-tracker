@@ -51,13 +51,19 @@ internal sealed class CallSessionStore(ICallsApiService callsApiService) : ICall
         NotifyStateChanged();
     }
 
-    public async Task<CallSessionDto?> CreateCallAsync(Guid boardId, string title, string? topic, CancellationToken ct = default)
+    public async Task<CallSessionDto?> CreateCallAsync(
+        Guid boardId,
+        string title,
+        string? topic,
+        CallVisibility visibility,
+        IReadOnlyList<Guid>? allowedUserIds,
+        CancellationToken ct = default)
     {
         ErrorMessage = null;
 
         try
         {
-            var request = new CreateCallRequest(boardId, title, topic, CallVisibility.Open);
+            var request = new CreateCallRequest(boardId, title, topic, visibility, allowedUserIds);
             var session = await callsApiService.CreateCallAsync(request, ct);
             _activeCalls.Add(session);
             NotifyStateChanged();

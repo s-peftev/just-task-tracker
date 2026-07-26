@@ -1,9 +1,16 @@
+@using JustTaskTracker.WebUI.Components.Shared
+@using JustTaskTracker.WebUI.Domain.Boards.Authorization
 @using JustTaskTracker.WebUI.Domain.Calls
+@using JustTaskTracker.WebUI.Domain.Calls.Enums
+@using JustTaskTracker.WebUI.Services.Abstractions.Auth
+@using JustTaskTracker.WebUI.Services.Abstractions.Boards
 @using JustTaskTracker.WebUI.Services.Abstractions.Calls
 @using JustTaskTracker.WebUI.Validation
 @implements IDisposable
 @inject ICallSessionStore CallSessionStore
 @inject ICallsInteropService CallsInteropService
+@inject IBoardDetailsStore BoardDetailsStore
+@inject IProfileStore ProfileStore
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
@@ -38,6 +45,9 @@
                             {
                                 <span class="calls-sidebar__call-topic">@call.Topic</span>
                             }
+                            <span class="calls-sidebar__call-visibility">
+                                @(call.Visibility == CallVisibility.Restricted ? "Restricted" : "Open")
+                            </span>
                         </div>
 
                         @if (CallSessionStore.CurrentCallId == call.Id)
@@ -46,7 +56,11 @@
                         }
                         else
                         {
-                            <button type="button" class="btn-glass calls-sidebar__join-btn" @onclick="() => JoinCallAsync(call)">
+                            <button type="button"
+                                    class="btn-glass calls-sidebar__join-btn"
+                                    disabled="@(!CanJoin(call))"
+                                    title="@(CanJoin(call) ? null : "You're not on this restricted call's allow-list.")"
+                                    @onclick="() => JoinCallAsync(call)">
                                 Join
                             </button>
                         }
@@ -72,20 +86,43 @@
         CallSessionStore.StateChanged += OnStoreStateChanged;
     }
 
+    private bool CanJoin(CallSessionDto call)
+    {
+        if (call.Visibility != CallVisibility.Restricted)
+            return true;
+
+        if (ProfileStore.Profile is { } profile && call.CreatedByUserId == profile.Id)
+            return true;
+
+        if (BoardDetailsStore.Board is { } board && BoardRolePermissions.CanBypassCallRestriction(board.UserRole))
+            return true;
+
+        return ProfileStore.Profile is { } currentUser
+            && (call.AllowedUserIds?.Contains(currentUser.Id) ?? false);
+    }
+
     private async Task CreateCallAsync()
     {
+        var submitState = new ResourceFormDialogState();
+
         var dialog = await DialogService.ShowResourceFormAsync(
             "Create video call",
             "Create",
             CreateCallForm.FormId,
-            CreateCallForm.Render());
+            CreateCallForm.Render(BoardId, submitState),
+            submitState: submitState);
 
         var result = await dialog.Result;
 
         if (result is not { Canceled: false, Data: CreateCallResult callResult })
             return;
 
-        var session = await CallSessionStore.CreateCallAsync(BoardId, callResult.Title, callResult.Topic);
+        var session = await CallSessionStore.CreateCallAsync(
+            BoardId,
+            callResult.Title,
+            callResult.Topic,
+            callResult.Visibility,
+            callResult.AllowedUserIds);
 
         if (session is null)
         {

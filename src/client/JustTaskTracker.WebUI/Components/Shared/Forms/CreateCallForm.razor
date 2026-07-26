@@ -1,5 +1,12 @@
+@using JustTaskTracker.WebUI.Components.Shared
 @using JustTaskTracker.WebUI.Domain.Calls
+@using JustTaskTracker.WebUI.Domain.Calls.Enums
+@using JustTaskTracker.WebUI.Services.Abstractions.Auth
+@using JustTaskTracker.WebUI.Services.Abstractions.Calls
 @using JustTaskTracker.WebUI.Validation
+@implements IDisposable
+@inject IProfileStore ProfileStore
+@inject ICallParticipantPickerStore ParticipantPickerStore
 
 <form id="@FormId" @onsubmit="SubmitAsync" @onsubmit:preventDefault="true">
     <div @onfocusout="OnFieldFocusOutAsync">
@@ -28,9 +35,48 @@
                       ErrorText="@(_showValidation ? _topicError : null)"
                       Class="mt-4" />
     </div>
+
+    <fieldset class="create-call-form__visibility-fieldset">
+        <legend class="create-call-form__visibility-legend">Visibility</legend>
+
+        <MudRadioGroup T="CallVisibility" @bind-Value="_model.Visibility" @bind-Value:after="UpdateSubmitState">
+            <MudRadio T="CallVisibility" Value="CallVisibility.Open" Color="Color.Primary">
+                Open — any board member can join
+            </MudRadio>
+            <MudRadio T="CallVisibility" Value="CallVisibility.Restricted" Color="Color.Primary">
+                Restricted — only selected members can join
+            </MudRadio>
+        </MudRadioGroup>
+    </fieldset>
+
+    <div class="create-call-form__members">
+        <button type="button"
+                class="btn-glass-white create-call-form__members-btn"
+                disabled="@(_model.Visibility != CallVisibility.Restricted)"
+                @onclick="OpenParticipantPickerAsync">
+            Select members
+            @if (_model.Visibility == CallVisibility.Restricted)
+            {
+                <span class="create-call-form__members-count">(@ParticipantPickerStore.SelectedUserIds.Count selected)</span>
+            }
+        </button>
+
+        @if (_showValidation && _model.Visibility == CallVisibility.Restricted && _membersError is not null)
+        {
+            <MudText Typo="Typo.caption" Color="Color.Error" Class="create-call-form__members-error">
+                @_membersError
+            </MudText>
+        }
+    </div>
 </form>
 
 @code {
+    [Parameter, EditorRequired]
+    public Guid BoardId { get; set; }
+
+    [Parameter, EditorRequired]
+    public ResourceFormDialogState SubmitState { get; set; } = default!;
+
     [CascadingParameter]
     private IMudDialogInstance MudDialog { get; set; } = default!;
 
@@ -40,6 +86,26 @@
     private bool _isDirty;
     private string? _titleError;
     private string? _topicError;
+    private string? _membersError;
+
+    protected override void OnInitialized()
+    {
+        ParticipantPickerStore.StateChanged += OnParticipantPickerStateChanged;
+
+        if (ProfileStore.Profile is { } profile)
+            ParticipantPickerStore.Reset(profile.Id);
+
+        UpdateSubmitState();
+    }
+
+    public void Dispose() =>
+        ParticipantPickerStore.StateChanged -= OnParticipantPickerStateChanged;
+
+    private void OnParticipantPickerStateChanged()
+    {
+        UpdateSubmitState();
+        InvokeAsync(StateHasChanged);
+    }
 
     private async Task OnFieldChangedAsync()
     {
@@ -58,17 +124,41 @@
         await ValidateAsync();
     }
 
+    private Task OpenParticipantPickerAsync()
+    {
+        if (_model.Visibility != CallVisibility.Restricted)
+            return Task.CompletedTask;
+
+        return ParticipantPickerStore.OpenAsync(BoardId);
+    }
+
+    private void UpdateSubmitState()
+    {
+        var hasEnoughMembers = _model.Visibility != CallVisibility.Restricted
+            || ParticipantPickerStore.SelectedUserIds.Count >= 2;
+
+        SubmitState.SetDisableSubmit(!hasEnoughMembers);
+    }
+
     private async Task SubmitAsync()
     {
         _showValidation = true;
         await ValidateAsync();
 
-        if (_titleError is not null || _topicError is not null)
+        _membersError = _model.Visibility == CallVisibility.Restricted && ParticipantPickerStore.SelectedUserIds.Count < 2
+            ? "Select at least one board member besides yourself."
+            : null;
+
+        if (_titleError is not null || _topicError is not null || _membersError is not null)
             return;
 
         var topic = string.IsNullOrWhiteSpace(_model.Topic) ? null : _model.Topic.Trim();
 
-        MudDialog.Close(DialogResult.Ok(new CreateCallResult(_model.Title.Trim(), topic)));
+        var allowedUserIds = _model.Visibility == CallVisibility.Restricted
+            ? ParticipantPickerStore.SelectedUserIds.ToList()
+            : null;
+
+        MudDialog.Close(DialogResult.Ok(new CreateCallResult(_model.Title.Trim(), topic, _model.Visibility, allowedUserIds)));
     }
 
     private async Task ValidateAsync()
@@ -87,9 +177,11 @@
 
     public const string FormId = "create-call-form";
 
-    public static RenderFragment Render() => builder =>
+    public static RenderFragment Render(Guid boardId, ResourceFormDialogState submitState) => builder =>
     {
         builder.OpenComponent<CreateCallForm>(0);
+        builder.AddAttribute(1, nameof(BoardId), boardId);
+        builder.AddAttribute(2, nameof(SubmitState), submitState);
         builder.CloseComponent();
     };
 }

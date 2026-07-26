@@ -85,6 +85,18 @@
     color: var(--jtt-text-muted);
 }
 
+.calls-sidebar__call-visibility {
+    font-size: 0.75rem;
+    color: var(--jtt-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.calls-sidebar__join-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
 .calls-sidebar__in-call-label {
     font-size: 0.8rem;
     color: var(--jtt-text-accent);

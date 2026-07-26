@@ -12,6 +12,7 @@ using JustTaskTracker.Domain.Calls.Constants;
 using JustTaskTracker.Domain.Calls.DTOs;
 using JustTaskTracker.Domain.Calls.Entities;
 using JustTaskTracker.Domain.Calls.Enums;
+using JustTaskTracker.Domain.Calls.Errors;
 using JustTaskTracker.Domain.Common.Results;
 using JustTaskTracker.Domain.Common.Results.Errors;
 using MediatR;
@@ -58,10 +59,7 @@ public class CreateCallCommandHandler(
         foreach (var allowedUserId in allowedUserIds)
         {
             if (!await boardRepository.IsBoardMemberAsync(request.BoardId, allowedUserId, ct))
-                return Result<CallSessionDto>.Failure(GeneralErrors.InvalidRequest with
-                {
-                    Details = [$"User '{allowedUserId}' is not a member of this board."]
-                });
+                return Result<CallSessionDto>.Failure(CallSessionsErrors.AllowedParticipantNotBoardMember);
         }
 
         // AD-14: provision the ACS Room first; only persist once it exists.

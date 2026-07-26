@@ -1,0 +1,11 @@
+.call-participant-picker-overlay__footer {
+    flex-shrink: 0;
+    display: flex;
+    justify-content: flex-end;
+    padding: 0.75rem;
+    border-top: 1px solid var(--jtt-stroke-separator);
+}
+
+.call-participant-picker-overlay__done-btn {
+    width: 100%;
+}

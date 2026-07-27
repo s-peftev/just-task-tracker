@@ -1,3 +1,4 @@
+using JustTaskTracker.WebUI.Domain.Boards;
 using JustTaskTracker.WebUI.Domain.Calls;
 using JustTaskTracker.WebUI.Services.Abstractions.Calls;
 using JustTaskTracker.WebUI.Services.Api;
@@ -30,6 +31,13 @@ internal class CallsApiService(ICallsApi api) : ICallsApiService
     public async Task<IReadOnlyList<CallParticipantDto>> GetParticipantsAsync(Guid callSessionId, CancellationToken ct = default)
     {
         var response = await api.GetParticipantsAsync(callSessionId, ct);
+
+        return ApiResponseGuard.Unwrap(response);
+    }
+
+    public async Task<IReadOnlyList<BoardTaskDetailsDto>> GetLinkedTasksAsync(Guid callSessionId, CancellationToken ct = default)
+    {
+        var response = await api.GetLinkedTasksAsync(callSessionId, ct);
 
         return ApiResponseGuard.Unwrap(response);
     }

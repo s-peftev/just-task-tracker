@@ -1,0 +1,75 @@
+@using JustTaskTracker.WebUI.Domain.Boards
+
+<aside class="call-meet-board-panel" aria-label="Meeting board">
+    <header class="call-meet-board-panel__header">
+        <div class="call-meet-board-panel__heading">
+            <h2 class="call-meet-board-panel__title" title="@Title">@Title</h2>
+
+            @if (!string.IsNullOrWhiteSpace(Topic))
+            {
+                <p class="call-meet-board-panel__topic">@Topic</p>
+            }
+        </div>
+
+        <button type="button"
+                class="btn-icon btn-icon--round btn-icon--sm call-meet-board-panel__close-btn"
+                aria-label="Close meeting board"
+                @onclick="() => OnClose.InvokeAsync()">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M18 6L6 18M6 6l12 12"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round" />
+            </svg>
+        </button>
+    </header>
+
+    <section class="call-meet-board-panel__body" aria-label="Linked tasks">
+        <h3 class="call-meet-board-panel__section-title">Linked tasks</h3>
+
+        @if (IsLoading)
+        {
+            <div class="call-meet-board-panel__state">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Small" />
+            </div>
+        }
+        else if (Tasks.Count == 0)
+        {
+            <p class="call-meet-board-panel__empty">No tasks linked to this call.</p>
+        }
+        else
+        {
+            <ul class="call-meet-board-panel__list">
+                @foreach (var task in Tasks)
+                {
+                    <li class="call-meet-board-panel__item">
+                        <span class="call-meet-board-panel__item-title" title="@task.Title">@task.Title</span>
+                        <span class="call-meet-board-panel__item-column">@task.ColumnName</span>
+
+                        @if (!string.IsNullOrWhiteSpace(task.Description))
+                        {
+                            <span class="call-meet-board-panel__item-description" title="@task.Description">@task.Description</span>
+                        }
+                    </li>
+                }
+            </ul>
+        }
+    </section>
+</aside>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Title { get; set; } = string.Empty;
+
+    [Parameter]
+    public string? Topic { get; set; }
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<BoardTaskDetailsDto> Tasks { get; set; } = [];
+
+    [Parameter]
+    public bool IsLoading { get; set; }
+
+    [Parameter, EditorRequired]
+    public EventCallback OnClose { get; set; }
+}

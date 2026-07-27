@@ -1,3 +1,4 @@
+using JustTaskTracker.WebUI.Domain.Boards;
 using JustTaskTracker.WebUI.Domain.Calls;
 
 namespace JustTaskTracker.WebUI.Services.Abstractions.Calls;
@@ -11,6 +12,8 @@ public interface ICallsApiService
     Task<JoinCallResponse> JoinCallAsync(Guid callSessionId, CancellationToken ct = default);
 
     Task<IReadOnlyList<CallParticipantDto>> GetParticipantsAsync(Guid callSessionId, CancellationToken ct = default);
+
+    Task<IReadOnlyList<BoardTaskDetailsDto>> GetLinkedTasksAsync(Guid callSessionId, CancellationToken ct = default);
 
     Task EndCallAsync(Guid callSessionId, CancellationToken ct = default);
 }

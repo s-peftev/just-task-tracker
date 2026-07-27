@@ -109,6 +109,7 @@
     --jtt-sidebar-tab-font-size: 16px;
     --jtt-sidebar-tab-font-weight: 500;
     --jtt-sidebar-tab-line-height: 1.4;
+    --jtt-sidebar-img-icon-filter: brightness(0) invert(1);
 
     /* MudBlazor palette */
     --mud-palette-background: transparent;
@@ -209,6 +210,8 @@ html.light {
     --mud-palette-appbar-background: transparent;
     --mud-palette-text-primary: var(--jtt-text-on-app);
     --mud-palette-text-secondary: #78716C;
+
+    --jtt-sidebar-img-icon-filter: brightness(0);
 }
 
 /* ─── Base ─── */

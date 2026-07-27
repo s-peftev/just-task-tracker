@@ -15,7 +15,9 @@
 
 @if (BoardDetailsStore.Board is { } board)
 {
-    <div class="board-page-stats" role="group" aria-label="Board usage">
+    <div class="board-page-stats @(HasBoardLimits(board.Limits) ? "board-page-stats--has-limits" : null)"
+         role="group"
+         aria-label="Board usage">
         <HoverTooltip>
             <Trigger>
                 <div class="board-page-stats__item @(IsLimitReached(ColumnCount(board), board.Limits.MaxColumnsPerBoard) ? "board-page-stats__item--limit-reached" : null)"
@@ -26,7 +28,7 @@
                         <path d="M50,17.5c0-0.8-0.7-1.5-1.5-1.5h-9c-0.8,0-1.5,0.7-1.5,1.5v23c0,0.8,0.7,1.5,1.5,1.5h9c0.8,0,1.5-0.7,1.5-1.5V17.5z" fill="currentColor" />
                         <path d="M50,3.5C50,2.7,49.3,2,48.5,2h-45C2.7,2,2,2.7,2,3.5v5C2,9.3,2.7,10,3.5,10h45c0.8,0,1.5-0.7,1.5-1.5V3.5z" fill="currentColor" />
                     </svg>
-                    <span class="board-page-stats__value">@FormatUsage(ColumnCount(board), board.Limits.MaxColumnsPerBoard)</span>
+                    <span class="board-page-stats__value">@ColumnCount(board)</span>
                 </div>
             </Trigger>
             <ChildContent>
@@ -50,7 +52,7 @@
                               stroke-width="3"
                               stroke-linecap="round" />
                     </svg>
-                    <span class="board-page-stats__value">@FormatUsage(TaskCount(board), board.Limits.MaxTasksPerBoard)</span>
+                    <span class="board-page-stats__value">@TaskCount(board)</span>
                 </div>
             </Trigger>
             <ChildContent>
@@ -99,11 +101,43 @@
                             <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5C15 14.17 10.33 13 8 13zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"
                                   fill="currentColor" />
                         </svg>
-                        <span class="board-page-stats__value">@FormatUsage(MemberCount, board.Limits.MaxMembersPerBoard)</span>
+                        <span class="board-page-stats__value">@MemberCount</span>
                     </button>
                 </Trigger>
                 <ChildContent>
                     <p class="hover-tooltip__panel-text">@GetMembersTooltip(board)</p>
+                </ChildContent>
+            </HoverTooltip>
+        }
+
+        @if (HasBoardLimits(board.Limits))
+        {
+            <HoverTooltip>
+                <Trigger>
+                    <span class="board-page-stats__limited"
+                          tabindex="0"
+                          aria-label="@GetLimitsAriaLabel(board.Limits)">
+                        LIMITED
+                    </span>
+                </Trigger>
+                <ChildContent>
+                    <p class="hover-tooltip__panel-text">
+                        This board has the following limits based on the owner's plan:
+                    </p>
+                    <ul class="board-page-stats__limits-list">
+                        @if (board.Limits.MaxColumnsPerBoard is int maxColumns)
+                        {
+                            <li>Up to @maxColumns columns</li>
+                        }
+                        @if (board.Limits.MaxTasksPerBoard is int maxTasks)
+                        {
+                            <li>Up to @maxTasks tasks</li>
+                        }
+                        @if (board.Limits.MaxMembersPerBoard is int maxMembers)
+                        {
+                            <li>Up to @maxMembers members</li>
+                        }
+                    </ul>
                 </ChildContent>
             </HoverTooltip>
         }
@@ -169,42 +203,38 @@
             .Count(task => task.IsAssignedToCurrentUser(profile.Id));
     }
 
-    private static string FormatUsage(int count, int? max) =>
-        max is null ? count.ToString() : $"{count} / {max}";
-
     private static bool IsLimitReached(int count, int? max) =>
         max is int limit && count >= limit;
 
-    private static string GetColumnsTooltip(BoardDetailsDto board)
-    {
-        var count = ColumnCount(board);
-        return board.Limits.MaxColumnsPerBoard is int max
-            ? $"{count} columns total. This board has a limit of {max} columns."
-            : $"{count} columns total.";
-    }
+    private static bool HasBoardLimits(BoardLimitsDto limits) =>
+        limits.MaxColumnsPerBoard is not null
+        || limits.MaxTasksPerBoard is not null
+        || limits.MaxMembersPerBoard is not null;
 
-    private static string GetTasksTooltip(BoardDetailsDto board)
-    {
-        var count = TaskCount(board);
-        return board.Limits.MaxTasksPerBoard is int max
-            ? $"{count} tasks total. This board has a limit of {max} tasks."
-            : $"{count} tasks total.";
-    }
+    private static string GetColumnsTooltip(BoardDetailsDto board) =>
+        $"{ColumnCount(board)} columns total.";
 
-    private string GetAssignedTooltip(BoardDetailsDto board)
-    {
-        var count = AssignedToMeCount(board);
-        return $"{count} tasks assigned to you. Click to filter.";
-    }
+    private static string GetTasksTooltip(BoardDetailsDto board) =>
+        $"{TaskCount(board)} tasks total.";
 
-    private string GetMembersTooltip(BoardDetailsDto board)
-    {
-        var count = MemberCount;
-        var baseText = board.Limits.MaxMembersPerBoard is int max
-            ? $"{count} members total. This board has a limit of {max} members."
-            : $"{count} members total.";
+    private string GetAssignedTooltip(BoardDetailsDto board) =>
+        $"{AssignedToMeCount(board)} tasks assigned to you. Click to filter.";
 
-        return $"{baseText} Click to manage members.";
+    private string GetMembersTooltip(BoardDetailsDto board) =>
+        $"{MemberCount} members total. Click to manage members.";
+
+    private static string GetLimitsAriaLabel(BoardLimitsDto limits)
+    {
+        var parts = new List<string>();
+
+        if (limits.MaxColumnsPerBoard is int maxColumns)
+            parts.Add($"up to {maxColumns} columns");
+        if (limits.MaxTasksPerBoard is int maxTasks)
+            parts.Add($"up to {maxTasks} tasks");
+        if (limits.MaxMembersPerBoard is int maxMembers)
+            parts.Add($"up to {maxMembers} members");
+
+        return $"Limited board. This board has the following limits based on the owner's plan: {string.Join(", ", parts)}.";
     }
 
     private static string GetColumnsAriaLabel(BoardDetailsDto board) =>

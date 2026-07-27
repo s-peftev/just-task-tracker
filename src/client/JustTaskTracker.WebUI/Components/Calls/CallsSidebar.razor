@@ -16,64 +16,82 @@
 @inject NavigationManager Navigation
 
 <aside class="calls-sidebar @(CallSessionStore.IsSidebarOpen ? "calls-sidebar--open" : null)" aria-hidden="@(!CallSessionStore.IsSidebarOpen)">
-    <div class="calls-sidebar__header">
-        <span class="calls-sidebar__title">Video calls</span>
-    </div>
+    <div class="calls-sidebar__panel">
+        <section class="calls-sidebar__section calls-sidebar__section--active" aria-label="Active video calls">
+            <header class="calls-sidebar__header">
+                <h2 class="calls-sidebar__title">Active video calls</h2>
+                <button type="button"
+                        class="calls-sidebar__create-btn"
+                        @onclick="CreateCallAsync">
+                    create call
+                </button>
+            </header>
 
-    <div class="calls-sidebar__body">
-        @if (CallSessionStore.IsLoadingActiveCalls)
-        {
-            <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Small" />
-        }
-        else if (CallSessionStore.ErrorMessage is { } error)
-        {
-            <p class="calls-sidebar__error">@error</p>
-        }
-        else if (CallSessionStore.ActiveCalls.Count == 0)
-        {
-            <p class="calls-sidebar__empty">No active calls on this board.</p>
-        }
-        else
-        {
-            <ul class="calls-sidebar__list">
-                @foreach (var call in CallSessionStore.ActiveCalls)
+            <div class="calls-sidebar__section-body">
+                @if (CallSessionStore.IsLoadingActiveCalls)
                 {
-                    <li class="calls-sidebar__list-item">
-                        <div class="calls-sidebar__call-info">
-                            <span class="calls-sidebar__call-title">@call.Title</span>
-                            @if (!string.IsNullOrWhiteSpace(call.Topic))
-                            {
-                                <span class="calls-sidebar__call-topic">@call.Topic</span>
-                            }
-                            <span class="calls-sidebar__call-visibility">
-                                @(call.Visibility == CallVisibility.Restricted ? "Restricted" : "Open")
-                            </span>
-                        </div>
-
-                        @if (CallSessionStore.CurrentCallId == call.Id)
-                        {
-                            <span class="calls-sidebar__in-call-label">In call</span>
-                        }
-                        else
-                        {
-                            <button type="button"
-                                    class="btn-glass calls-sidebar__join-btn"
-                                    disabled="@(!CanJoin(call))"
-                                    title="@(CanJoin(call) ? null : "You're not on this restricted call's allow-list.")"
-                                    @onclick="() => JoinCallAsync(call)">
-                                Join
-                            </button>
-                        }
-                    </li>
+                    <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Small" />
                 }
-            </ul>
-        }
-    </div>
+                else if (CallSessionStore.ErrorMessage is { } error)
+                {
+                    <p class="calls-sidebar__error">@error</p>
+                }
+                else if (CallSessionStore.ActiveCalls.Count == 0)
+                {
+                    <p class="calls-sidebar__empty">No active calls on this board.</p>
+                }
+                else
+                {
+                    <ul class="calls-sidebar__list">
+                        @foreach (var call in CallSessionStore.ActiveCalls)
+                        {
+                            <li class="calls-sidebar__list-item">
+                                <div class="calls-sidebar__call-info">
+                                    <span class="calls-sidebar__call-title">@call.Title</span>
+                                    @if (!string.IsNullOrWhiteSpace(call.Topic))
+                                    {
+                                        <span class="calls-sidebar__call-topic">@call.Topic</span>
+                                    }
+                                    <span class="calls-sidebar__call-visibility">
+                                        @(call.Visibility == CallVisibility.Restricted ? "Restricted" : "Open")
+                                    </span>
+                                </div>
 
-    <div class="calls-sidebar__footer">
-        <button type="button" class="btn-glass-white calls-sidebar__create-btn" @onclick="CreateCallAsync">
-            + Create call
-        </button>
+                                @if (CallSessionStore.CurrentCallId == call.Id)
+                                {
+                                    <span class="calls-sidebar__in-call-label">In call</span>
+                                }
+                                else
+                                {
+                                    <button type="button"
+                                            class="btn-glass calls-sidebar__join-btn"
+                                            disabled="@(!CanJoin(call))"
+                                            title="@(CanJoin(call) ? null : "You're not on this restricted call's allow-list.")"
+                                            @onclick="() => JoinCallAsync(call)">
+                                        Join
+                                    </button>
+                                }
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+        </section>
+
+        <section class="calls-sidebar__section calls-sidebar__section--history @GetHistorySectionClass()"
+                 aria-label="Video calls history">
+            <header class="calls-sidebar__header">
+                <button type="button"
+                        class="calls-sidebar__history-toggle"
+                        aria-expanded="@_isHistoryExpanded"
+                        @onclick="ToggleHistorySection">
+                    <span class="calls-sidebar__title">Video calls history</span>
+                </button>
+            </header>
+
+            <div class="calls-sidebar__section-body calls-sidebar__section-body--history">
+            </div>
+        </section>
     </div>
 </aside>
 
@@ -81,10 +99,18 @@
     [Parameter, EditorRequired]
     public Guid BoardId { get; set; }
 
+    private bool _isHistoryExpanded = true;
+
     protected override void OnInitialized()
     {
         CallSessionStore.StateChanged += OnStoreStateChanged;
     }
+
+    private void ToggleHistorySection() =>
+        _isHistoryExpanded = !_isHistoryExpanded;
+
+    private string? GetHistorySectionClass() =>
+        _isHistoryExpanded ? null : "calls-sidebar__section--history-collapsed";
 
     private bool CanJoin(CallSessionDto call)
     {

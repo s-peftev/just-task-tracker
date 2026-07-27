@@ -45,58 +45,62 @@
             <BoardPageHeader BoardId="Id" />
 
             <section @ref="_contentRef" class="board-page__content">
-                <div @ref="_scrollBodyRef" class="board-page__body">
-                    <Sortable TItem="ColumnDto"
-                              Items="_sortableColumns"
-                              ItemKeySelector="GetColumnKey"
-                              Handle=".board-column__header--draggable"
-                              Filter=".board-column__delete, .board-column__title-field, .board-column__title-input, .board-column__add-task, .board-column__add-task-input, .board-task-card"
-                              Delay="0"
-                              DelayOnTouchOnly="true"
-                              FallbackTolerance="5"
-                              Disabled="@(!CanManageColumns || _isReorderingColumns)"
-                              Class="board-page__columns-sortable"
-                              GhostClass="board-page__column-ghost"
-                              DragClass="board-page__column-drag"
-                              Scroll="false"
-                              OnUpdate="OnColumnsReorderedAsync">
-                        <div class="board-page__column-item @GetColumnTrayOverlapClass(context.Id)">
-                            <BoardColumn Column="@context"
-                                         UserRole="board.UserRole" />
-                        </div>
-                    </Sortable>
+                <div class="board-page__workspace">
+                    <div @ref="_scrollBodyRef" class="board-page__body">
+                        <Sortable TItem="ColumnDto"
+                                  Items="_sortableColumns"
+                                  ItemKeySelector="GetColumnKey"
+                                  Handle=".board-column__header--draggable"
+                                  Filter=".board-column__delete, .board-column__title-field, .board-column__title-input, .board-column__add-task, .board-column__add-task-input, .board-task-card"
+                                  Delay="0"
+                                  DelayOnTouchOnly="true"
+                                  FallbackTolerance="5"
+                                  Disabled="@(!CanManageColumns || _isReorderingColumns)"
+                                  Class="board-page__columns-sortable"
+                                  GhostClass="board-page__column-ghost"
+                                  DragClass="board-page__column-drag"
+                                  Scroll="false"
+                                  OnUpdate="OnColumnsReorderedAsync">
+                            <div class="board-page__column-item @GetColumnTrayOverlapClass(context.Id)">
+                                <BoardColumn Column="@context"
+                                             UserRole="board.UserRole" />
+                            </div>
+                        </Sortable>
 
-                    @if (CanManageColumns)
-                    {
-                        <div class="board-page__column-slot">
-                            @if (IsColumnLimitReached)
-                            {
-                                <HoverTooltip Placement="HoverTooltipPlacement.Left">
-                                    <Trigger>
-                                        <button type="button"
-                                                class="btn-glass-white board-page__add-column-btn board-page__add-column-btn--disabled"
-                                                disabled
-                                                aria-disabled="true">
-                                            + Add column
-                                        </button>
-                                    </Trigger>
-                                    <ChildContent>
-                                        <p class="hover-tooltip__panel-text">
-                                            This board has reached its column limit.
-                                        </p>
-                                    </ChildContent>
-                                </HoverTooltip>
-                            }
-                            else
-                            {
-                                <button type="button"
-                                        class="btn-glass-white board-page__add-column-btn"
-                                        @onclick="CreateColumnAsync">
-                                    + Add column
-                                </button>
-                            }
-                        </div>
-                    }
+                        @if (CanManageColumns)
+                        {
+                            <div class="board-page__column-slot">
+                                @if (IsColumnLimitReached)
+                                {
+                                    <HoverTooltip Placement="HoverTooltipPlacement.Left">
+                                        <Trigger>
+                                            <button type="button"
+                                                    class="btn-glass-white board-page__add-column-btn board-page__add-column-btn--disabled"
+                                                    disabled
+                                                    aria-disabled="true">
+                                                + Add column
+                                            </button>
+                                        </Trigger>
+                                        <ChildContent>
+                                            <p class="hover-tooltip__panel-text">
+                                                This board has reached its column limit.
+                                            </p>
+                                        </ChildContent>
+                                    </HoverTooltip>
+                                }
+                                else
+                                {
+                                    <button type="button"
+                                            class="btn-glass-white board-page__add-column-btn"
+                                            @onclick="CreateColumnAsync">
+                                        + Add column
+                                    </button>
+                                }
+                            </div>
+                        }
+                    </div>
+
+                    <CallsSidebar BoardId="Id" />
                 </div>
             </section>
 
@@ -110,8 +114,6 @@
     {
         <BoardMembersOverlay />
     }
-
-    <CallsSidebar BoardId="Id" />
 
     @if (TaskId is { } taskId && ColumnId is { } columnId)
     {

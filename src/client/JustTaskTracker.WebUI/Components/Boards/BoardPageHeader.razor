@@ -342,6 +342,9 @@
         }
 
         await CallSessionStore.OpenSidebarAsync(BoardId);
+
+        if (CallSessionStore.ErrorMessage is { } error)
+            Snackbar.Add(error, Severity.Error);
     }
 
     private async Task OpenMembersOverlayAsync()

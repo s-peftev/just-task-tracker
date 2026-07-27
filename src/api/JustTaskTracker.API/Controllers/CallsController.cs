@@ -23,6 +23,16 @@ public class CallsController(ISender sender) : ControllerBase
             error => error.CreateErrorResponse());
     }
 
+    [HttpGet("history")]
+    public async Task<IActionResult> GetHistoryForBoard([FromQuery] GetCallSessionHistoryForBoardQuery request, CancellationToken ct)
+    {
+        var result = await sender.Send(request, ct);
+
+        return result.Match(
+            data => Ok(data),
+            error => error.CreateErrorResponse());
+    }
+
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateCallCommand request, CancellationToken ct)
     {

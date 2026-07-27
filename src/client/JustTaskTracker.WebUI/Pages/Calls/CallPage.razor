@@ -54,7 +54,8 @@
 
             @if (_isMeetBoardOpen)
             {
-                <CallMeetBoardPanel Title="@GetCallTitle()"
+                <CallMeetBoardPanel BoardId="BoardId"
+                                    Title="@GetCallTitle()"
                                     Topic="@GetCallTopic()"
                                     Tasks="_linkedTasks"
                                     IsLoading="_isLoadingLinkedTasks"

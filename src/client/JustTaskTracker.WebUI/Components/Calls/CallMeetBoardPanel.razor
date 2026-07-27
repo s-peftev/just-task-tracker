@@ -12,7 +12,7 @@
         </div>
 
         <button type="button"
-                class="btn-icon btn-icon--round btn-icon--sm call-meet-board-panel__close-btn"
+                class="btn-icon btn-icon--sm call-meet-board-panel__close-btn"
                 aria-label="Close meeting board"
                 @onclick="() => OnClose.InvokeAsync()">
             <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -42,15 +42,7 @@
             <ul class="call-meet-board-panel__list">
                 @foreach (var task in Tasks)
                 {
-                    <li class="call-meet-board-panel__item">
-                        <span class="call-meet-board-panel__item-title" title="@task.Title">@task.Title</span>
-                        <span class="call-meet-board-panel__item-column">@task.ColumnName</span>
-
-                        @if (!string.IsNullOrWhiteSpace(task.Description))
-                        {
-                            <span class="call-meet-board-panel__item-description" title="@task.Description">@task.Description</span>
-                        }
-                    </li>
+                    <CallMeetBoardLinkedTaskItem @key="task.Id" BoardId="BoardId" Task="task" />
                 }
             </ul>
         }
@@ -58,6 +50,9 @@
 </aside>
 
 @code {
+    [Parameter, EditorRequired]
+    public Guid BoardId { get; set; }
+
     [Parameter, EditorRequired]
     public string Title { get; set; } = string.Empty;
 

@@ -19,7 +19,8 @@ public class ListActiveCallSessionsForBoardQueryHandler(
     ICurrentUserAccessor currentUserAccessor,
     IBoardRepository boardRepository,
     ICallRepository callRepository,
-    ICallSessionAllowedParticipantRepository allowedParticipantRepository)
+    ICallSessionAllowedParticipantRepository allowedParticipantRepository,
+    ICallSessionLinkedTaskRepository linkedTaskRepository)
     : IRequestHandler<ListActiveCallSessionsForBoardQuery, Result<IReadOnlyList<CallSessionDto>>>
 {
     public async Task<Result<IReadOnlyList<CallSessionDto>>> Handle(ListActiveCallSessionsForBoardQuery request, CancellationToken ct)
@@ -46,6 +47,8 @@ public class ListActiveCallSessionsForBoardQueryHandler(
             ? await allowedParticipantRepository.GetAllowedUserIdsAsync(session.Id, ct)
             : null;
 
+        var linkedTaskIds = await linkedTaskRepository.GetLinkedTaskIdsAsync(session.Id, ct);
+
         return new CallSessionDto(
             session.Id,
             session.BoardId,
@@ -56,6 +59,7 @@ public class ListActiveCallSessionsForBoardQueryHandler(
             session.AcsRoomId,
             session.Status,
             session.StartedAtUtc,
-            allowedUserIds);
+            allowedUserIds,
+            linkedTaskIds);
     }
 }

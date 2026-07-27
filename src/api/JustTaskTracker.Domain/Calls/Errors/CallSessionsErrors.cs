@@ -12,4 +12,9 @@ public static class CallSessionsErrors
         nameof(AllowedParticipantNotBoardMember),
         ErrorType.Business,
         ["A restricted call's allow-list can only include members of this board."]);
+
+    public static readonly Error LinkedTaskNotOnBoard = new(
+        nameof(LinkedTaskNotOnBoard),
+        ErrorType.Business,
+        ["A call can only link tasks that belong to its own board."]);
 }

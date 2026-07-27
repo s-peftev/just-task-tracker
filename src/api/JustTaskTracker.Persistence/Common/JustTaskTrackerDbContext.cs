@@ -30,6 +30,7 @@ public class JustTaskTrackerDbContext(
     public DbSet<CallSession> CallSessions => Set<CallSession>();
     public DbSet<CallParticipant> CallParticipants => Set<CallParticipant>();
     public DbSet<CallSessionAllowedParticipant> CallSessionAllowedParticipants => Set<CallSessionAllowedParticipant>();
+    public DbSet<CallSessionLinkedTask> CallSessionLinkedTasks => Set<CallSessionLinkedTask>();
     public DbSet<AcsUserIdentityMapping> AcsUserIdentityMappings => Set<AcsUserIdentityMapping>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

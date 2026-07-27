@@ -28,6 +28,7 @@ internal static class RepositoriesModule
         services.AddScoped<ICallRepository, CallRepository>();
         services.AddScoped<ICallParticipantRepository, CallParticipantRepository>();
         services.AddScoped<ICallSessionAllowedParticipantRepository, CallSessionAllowedParticipantRepository>();
+        services.AddScoped<ICallSessionLinkedTaskRepository, CallSessionLinkedTaskRepository>();
         services.AddScoped<IAcsUserIdentityMappingRepository, AcsUserIdentityMappingRepository>();
 
         return services;

@@ -24,15 +24,18 @@ public record CreateCallCommand(
     string Title,
     string? Topic,
     CallVisibility Visibility,
-    IReadOnlyList<Guid>? AllowedUserIds)
+    IReadOnlyList<Guid>? AllowedUserIds,
+    IReadOnlyList<Guid>? LinkedTaskIds)
     : IRequest<Result<CallSessionDto>>, IRequireActiveBoard;
 
 public class CreateCallCommandHandler(
     ICurrentUserAccessor currentUserAccessor,
     IUserRepository userRepository,
     IBoardRepository boardRepository,
+    IBoardTaskRepository boardTaskRepository,
     ICallRepository callRepository,
     ICallSessionAllowedParticipantRepository allowedParticipantRepository,
+    ICallSessionLinkedTaskRepository linkedTaskRepository,
     IAcsCallProvisioningService acsCallProvisioningService,
     IUnitOfWork unitOfWork,
     IDateTimeProvider dateTimeProvider)
@@ -62,6 +65,18 @@ public class CreateCallCommandHandler(
                 return Result<CallSessionDto>.Failure(CallSessionsErrors.AllowedParticipantNotBoardMember);
         }
 
+        // AD-13: linking is optional and not gated by Visibility; a task may already be linked to
+        // other call sessions, so only de-dupe within this request, not across sessions.
+        IReadOnlyList<Guid> linkedTaskIds = request.LinkedTaskIds is { Count: > 0 }
+            ? request.LinkedTaskIds.Distinct().ToList()
+            : [];
+
+        foreach (var taskId in linkedTaskIds)
+        {
+            if (!await boardTaskRepository.ExistsInBoardAsync(taskId, request.BoardId, ct))
+                return Result<CallSessionDto>.Failure(CallSessionsErrors.LinkedTaskNotOnBoard);
+        }
+
         // AD-14: provision the ACS Room first; only persist once it exists.
         var acsRoomId = await acsCallProvisioningService.CreateRoomAsync(ct);
 
@@ -89,6 +104,15 @@ public class CreateCallCommandHandler(
             });
         }
 
+        foreach (var taskId in linkedTaskIds)
+        {
+            linkedTaskRepository.Add(new CallSessionLinkedTask
+            {
+                CallSessionId = callSession.Id,
+                TaskId = taskId
+            });
+        }
+
         try
         {
             await unitOfWork.SaveChangesAsync(ct);
@@ -110,7 +134,8 @@ public class CreateCallCommandHandler(
             callSession.AcsRoomId,
             callSession.Status,
             callSession.StartedAtUtc,
-            request.Visibility == CallVisibility.Restricted ? allowedUserIds : null));
+            request.Visibility == CallVisibility.Restricted ? allowedUserIds : null,
+            linkedTaskIds));
     }
 }
 
@@ -137,5 +162,8 @@ public class CreateCallCommandValidator : AbstractValidator<CreateCallCommand>
             RuleForEach(x => x.AllowedUserIds)
                 .NotEmpty();
         });
+
+        RuleForEach(x => x.LinkedTaskIds)
+            .NotEmpty();
     }
 }

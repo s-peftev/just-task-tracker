@@ -37,6 +37,7 @@ public interface ICallSessionStore
         string? topic,
         CallVisibility visibility,
         IReadOnlyList<Guid>? allowedUserIds,
+        IReadOnlyList<Guid>? linkedTaskIds,
         CancellationToken ct = default);
 
     Task<JoinCallResponse?> JoinCallAsync(Guid callSessionId, CancellationToken ct = default);

@@ -6,4 +6,5 @@ public record CreateCallResult(
     string Title,
     string? Topic,
     CallVisibility Visibility,
-    IReadOnlyList<Guid>? AllowedUserIds);
+    IReadOnlyList<Guid>? AllowedUserIds,
+    IReadOnlyList<Guid>? LinkedTaskIds);

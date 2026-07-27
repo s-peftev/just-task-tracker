@@ -1,0 +1,165 @@
+@using JustTaskTracker.WebUI.Components.Shared
+@using JustTaskTracker.WebUI.Domain.Boards
+@using JustTaskTracker.WebUI.Infrastructure
+@using JustTaskTracker.WebUI.Services.Abstractions.Calls
+@using JustTaskTracker.WebUI.Services.Exceptions
+@implements IDisposable
+@inject ICallTaskLinkPickerStore PickerStore
+@inject ISnackbar Snackbar
+
+@if (PickerStore.IsOpen)
+{
+    <div class="board-members-overlay board-members-overlay--elevated"
+         role="dialog"
+         aria-modal="true"
+         aria-label="Link board tasks">
+        <div class="board-members-overlay__backdrop" aria-hidden="true"></div>
+
+        <div class="board-members-overlay__panel"
+             @onclick:stopPropagation="true"
+             @onmousedown:stopPropagation="true">
+            <div class="board-members-overlay__tabs board-members-overlay__tabs--with-close" role="tablist" aria-label="Link board tasks">
+                <div class="board-members-overlay__tab board-members-overlay__tab--active"
+                     role="tab"
+                     aria-selected="true">
+                    Link board tasks
+                </div>
+
+                <button type="button"
+                        class="btn-icon btn-icon--round btn-icon--sm board-members-overlay__close-btn"
+                        aria-label="Close task picker"
+                        @onclick="Close">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path d="M18 6L6 18M6 6l12 12"
+                              stroke="currentColor"
+                              stroke-width="2"
+                              stroke-linecap="round" />
+                    </svg>
+                </button>
+            </div>
+
+            <div class="board-members-overlay__search">
+                <input class="board-members-overlay__search-input"
+                       type="search"
+                       aria-label="Search board tasks"
+                       placeholder="Search tasks"
+                       value="@PickerStore.SearchText"
+                       @oninput="OnSearchInputAsync" />
+            </div>
+
+            <div class="board-members-overlay__body">
+                <ul class="board-members-overlay__list">
+                    <li class="board-members-overlay__item board-members-overlay__section-heading">
+                        Linked (@PickerStore.SelectedTaskIds.Count)
+                    </li>
+
+                    @foreach (var task in PickerStore.LinkedTasks)
+                    {
+                        <li class="board-members-overlay__item">
+                            <button type="button"
+                                    class="call-task-link-picker-overlay__task-select-btn call-task-link-picker-overlay__task-select-btn--linked"
+                                    @onclick="() => PickerStore.Toggle(task)">
+                                <span class="call-task-link-picker-overlay__task-title" title="@task.Title">@task.Title</span>
+                                <span class="call-task-link-picker-overlay__task-description" title="@task.Description">@GetDescription(task)</span>
+                            </button>
+                        </li>
+                    }
+
+                    <li class="board-members-overlay__item board-members-overlay__section-heading">
+                        Board tasks
+                    </li>
+
+                    @if (PickerStore.IsLoading && PickerStore.Tasks.Count == 0)
+                    {
+                        <li class="board-members-overlay__item board-members-overlay__item--state">
+                            <div class="board-members-overlay__state">
+                                <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Small" />
+                            </div>
+                        </li>
+                    }
+                    else if (NotLinkedTasks.Count == 0)
+                    {
+                        <li class="board-members-overlay__item board-members-overlay__item--state">
+                            <p class="board-members-overlay__message">No tasks found.</p>
+                        </li>
+                    }
+                    else
+                    {
+                        @foreach (var task in NotLinkedTasks)
+                        {
+                            <li class="board-members-overlay__item">
+                                <button type="button"
+                                        class="call-task-link-picker-overlay__task-select-btn"
+                                        @onclick="() => PickerStore.Toggle(task)">
+                                    <span class="call-task-link-picker-overlay__task-title" title="@task.Title">@task.Title</span>
+                                    <span class="call-task-link-picker-overlay__task-description" title="@task.Description">@GetDescription(task)</span>
+                                </button>
+                            </li>
+                        }
+                    }
+
+                    @if (PickerStore.HasMoreTasks)
+                    {
+                        <li class="board-members-overlay__item board-members-overlay__item--action">
+                            <ExpandableActionButton Text="Show more"
+                                                    Icon="ExpandableActionButtonIcon.ChevronDown"
+                                                    Disabled="@PickerStore.IsLoadingMoreTasks"
+                                                    OnClick="LoadMoreAsync" />
+                        </li>
+                    }
+                </ul>
+            </div>
+
+            <div class="call-task-link-picker-overlay__footer">
+                <button type="button"
+                        class="btn-noir call-task-link-picker-overlay__done-btn"
+                        @onclick="Close">
+                    Done
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private IReadOnlyList<BoardTaskLookupDto> NotLinkedTasks =>
+        PickerStore.Tasks.Where(t => !PickerStore.IsSelected(t.Id)).ToList();
+
+    protected override void OnInitialized() =>
+        PickerStore.StateChanged += OnStoreStateChanged;
+
+    public void Dispose() =>
+        PickerStore.StateChanged -= OnStoreStateChanged;
+
+    private void OnStoreStateChanged() =>
+        InvokeAsync(StateHasChanged);
+
+    private async Task OnSearchInputAsync(ChangeEventArgs e)
+    {
+        try
+        {
+            await PickerStore.SetSearchAsync(e.Value?.ToString() ?? string.Empty);
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+    }
+
+    private async Task LoadMoreAsync()
+    {
+        try
+        {
+            await PickerStore.LoadMoreAsync();
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+    }
+
+    private static string GetDescription(BoardTaskLookupDto task) =>
+        string.IsNullOrWhiteSpace(task.Description) ? "No description" : task.Description;
+
+    private void Close() => PickerStore.Close();
+}

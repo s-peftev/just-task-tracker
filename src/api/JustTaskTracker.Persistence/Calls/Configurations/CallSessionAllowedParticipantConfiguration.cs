@@ -1,4 +1,3 @@
-using JustTaskTracker.Domain.Auth.Entities;
 using JustTaskTracker.Domain.Calls.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -11,12 +10,12 @@ public class CallSessionAllowedParticipantConfiguration : IEntityTypeConfigurati
     {
         builder.HasKey(p => new { p.CallSessionId, p.UserId });
 
-        builder.HasOne<CallSession>()
-            .WithMany()
+        builder.HasOne(p => p.CallSession)
+            .WithMany(s => s.AllowedParticipants)
             .HasForeignKey(p => p.CallSessionId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.HasOne<User>()
+        builder.HasOne(p => p.User)
             .WithMany()
             .HasForeignKey(p => p.UserId)
             .OnDelete(DeleteBehavior.NoAction);

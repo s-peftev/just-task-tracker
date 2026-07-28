@@ -3,6 +3,7 @@ using JustTaskTracker.Application.Auth;
 using JustTaskTracker.Application.Auth.Repositories;
 using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Calls.Abstractions;
+using JustTaskTracker.Application.Calls.Mappings;
 using JustTaskTracker.Application.Calls.Notifiers;
 using JustTaskTracker.Application.Calls.Repositories;
 using JustTaskTracker.Application.Common.Behaviors;
@@ -143,37 +144,14 @@ public class CreateCallCommandHandler(
 
         await NotifyCallStartedAsync(request, callSession, board.Name, createdBy, allowedUserIds, ct);
 
-        // Just-created session: nobody has joined yet (join is a separate action, AD-8) -- no
-        // participants to report.
-        IReadOnlyList<UserDto>? allowedUsers = null;
+        // Same navigation-property projection the list/history queries use (CallRepository),
+        // instead of separately resolving allowed users/linked tasks here.
+        var sessionState = await callRepository.GetSessionWithStateAsync(callSession.Id, ct);
 
-        if (request.Visibility == CallVisibility.Restricted && allowedUserIds.Count > 0)
-        {
-            var allowedUsersById = await userRepository.GetUserInfoByIdsAsync(allowedUserIds, ct);
+        if (sessionState is null)
+            return Result<CallSessionDto>.Failure(GeneralErrors.NotFound);
 
-            allowedUsers = allowedUserIds
-                .Select(userId => allowedUsersById.GetValueOrDefault(userId))
-                .Where(user => user is not null)
-                .Select(user => user!.ToDto(profilePhotoUrlResolver))
-                .ToList();
-        }
-
-        var linkedTasks = await linkedTaskRepository.GetLinkedTaskLookupsAsync(callSession.Id, ct);
-
-        return Result<CallSessionDto>.Success(new CallSessionDto(
-            callSession.Id,
-            callSession.BoardId,
-            createdBy,
-            callSession.Title,
-            callSession.Topic,
-            callSession.Visibility,
-            callSession.AcsRoomId,
-            callSession.Status,
-            callSession.StartedAtUtc,
-            allowedUsers,
-            linkedTasks,
-            [],
-            callSession.CurrentPresenterUserId));
+        return Result<CallSessionDto>.Success(sessionState.ToDto(profilePhotoUrlResolver));
     }
 
     // AD-10: every board member if Open; only the allow-list plus Owner/Admin if Restricted.

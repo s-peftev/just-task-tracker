@@ -22,6 +22,4 @@ public interface IUserRepository : IRepository<User, Guid>
         int pageSize,
         TextSearchOptions<UserSearchField>? searchOptions = null,
         CancellationToken ct = default);
-
-    Task<IReadOnlyDictionary<Guid, UserReadModel>> GetUserInfoByIdsAsync(IReadOnlyList<Guid> userIds, CancellationToken ct = default);
 }

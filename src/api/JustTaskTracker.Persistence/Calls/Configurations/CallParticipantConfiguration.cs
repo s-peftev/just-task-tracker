@@ -15,5 +15,15 @@ public class CallParticipantConfiguration : IEntityTypeConfiguration<CallPartici
         builder.HasIndex(p => new { p.CallSessionId, p.UserId })
             .IsUnique()
             .HasFilter("[LeftAtUtc] IS NULL");
+
+        builder.HasOne(p => p.CallSession)
+            .WithMany(s => s.Participants)
+            .HasForeignKey(p => p.CallSessionId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(p => p.User)
+            .WithMany()
+            .HasForeignKey(p => p.UserId)
+            .OnDelete(DeleteBehavior.NoAction);
     }
 }

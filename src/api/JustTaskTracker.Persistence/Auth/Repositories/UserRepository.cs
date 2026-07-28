@@ -68,15 +68,4 @@ public class UserRepository(JustTaskTrackerDbContext context) : Repository<User,
                 pageSize,
                 ct);
     }
-
-    public async Task<IReadOnlyDictionary<Guid, UserReadModel>> GetUserInfoByIdsAsync(IReadOnlyList<Guid> userIds, CancellationToken ct = default)
-    {
-        if (userIds.Count is 0)
-            return new Dictionary<Guid, UserReadModel>();
-
-        return await _dbSet
-            .Where(u => userIds.Contains(u.Id))
-            .Select(u => new UserReadModel(u.Id, u.Email, u.DisplayName, u.ProfilePhotoVersion))
-            .ToDictionaryAsync(u => u.Id, ct);
-    }
 }

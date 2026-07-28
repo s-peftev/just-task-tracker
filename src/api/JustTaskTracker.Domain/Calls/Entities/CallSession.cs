@@ -1,3 +1,4 @@
+using JustTaskTracker.Domain.Auth.Entities;
 using JustTaskTracker.Domain.Calls.Enums;
 using JustTaskTracker.Domain.Common.Entities;
 
@@ -15,4 +16,9 @@ public class CallSession : BaseEntity<Guid>
     public Guid? CurrentPresenterUserId { get; set; }
     public DateTime StartedAtUtc { get; set; }
     public DateTime? EndedAtUtc { get; set; }
+
+    public User? CreatedByUser { get; set; }
+    public ICollection<CallParticipant> Participants { get; set; } = [];
+    public ICollection<CallSessionAllowedParticipant> AllowedParticipants { get; set; } = [];
+    public ICollection<CallSessionLinkedTask> LinkedTasks { get; set; } = [];
 }

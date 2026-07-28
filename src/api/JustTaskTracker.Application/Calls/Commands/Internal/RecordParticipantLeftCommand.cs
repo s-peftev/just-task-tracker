@@ -12,8 +12,6 @@ using Microsoft.Extensions.Logging;
 namespace JustTaskTracker.Application.Calls.Commands.Internal;
 
 // Invoked only from CallsWebhookController on Microsoft.Communication.CallParticipantRemoved (AD-12).
-// Closes the session when this departure leaves zero active participants -- the sole authoritative
-// auto-close path superseding Story 1.1's interim direct-write EndCallCommand.
 public record RecordParticipantLeftCommand(string AcsRoomId, string AcsUserId, DateTime OccurredAtUtc) : IRequest<Result>;
 
 public class RecordParticipantLeftCommandHandler(

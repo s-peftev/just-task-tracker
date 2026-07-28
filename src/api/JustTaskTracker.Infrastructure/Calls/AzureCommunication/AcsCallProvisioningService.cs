@@ -31,6 +31,24 @@ public class AcsCallProvisioningService(
     public async Task DeleteRoomAsync(string acsRoomId, CancellationToken ct = default) =>
         await roomsClient.DeleteRoomAsync(acsRoomId, ct);
 
+    public async Task RemoveParticipantsAsync(string acsRoomId, IReadOnlyList<Guid> userIds, CancellationToken ct = default)
+    {
+        var identifiers = new List<CommunicationIdentifier>();
+
+        foreach (var userId in userIds)
+        {
+            var mapping = await mappingRepository.GetByUserIdAsync(userId, ct);
+
+            if (mapping is not null)
+                identifiers.Add(new CommunicationUserIdentifier(mapping.AcsCommunicationUserId));
+        }
+
+        if (identifiers.Count == 0)
+            return;
+
+        await roomsClient.RemoveParticipantsAsync(acsRoomId, identifiers, ct);
+    }
+
     public async Task<AcsCallToken> IssueJoinTokenAsync(Guid userId, string acsRoomId, CancellationToken ct = default)
     {
         var identifier = await ResolveAcsIdentityAsync(userId, ct);

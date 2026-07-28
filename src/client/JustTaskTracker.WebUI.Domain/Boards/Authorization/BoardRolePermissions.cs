@@ -59,4 +59,11 @@ public static class BoardRolePermissions
     /// </summary>
     public static bool CanBypassCallRestriction(BoardMemberRole role) =>
         role is BoardMemberRole.Owner or BoardMemberRole.Admin;
+
+    /// <summary>
+    /// Owner/Admin may force-end any active call on their own board, in addition to the
+    /// session's own creator (checked separately -- creator is not a role). AD-15.
+    /// </summary>
+    public static bool CanEndCall(BoardMemberRole role) =>
+        role is BoardMemberRole.Owner or BoardMemberRole.Admin;
 }

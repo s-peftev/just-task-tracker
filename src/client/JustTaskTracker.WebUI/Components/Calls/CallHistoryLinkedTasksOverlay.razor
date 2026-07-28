@@ -1,0 +1,71 @@
+@using JustTaskTracker.WebUI.Components.Boards
+@using JustTaskTracker.WebUI.Domain.Boards
+@inject NavigationManager Navigation
+
+<div class="board-members-overlay"
+     role="dialog"
+     aria-modal="true"
+     aria-label="Linked tasks">
+    <button type="button"
+            class="board-members-overlay__backdrop"
+            aria-label="Close linked tasks"
+            @onclick="Close"></button>
+
+    <div class="board-members-overlay__panel"
+         @onclick:stopPropagation="true"
+         @onmousedown:stopPropagation="true">
+        <div class="board-members-overlay__tabs board-members-overlay__tabs--with-close" role="tablist" aria-label="Linked tasks">
+            <div class="board-members-overlay__tab board-members-overlay__tab--active" role="tab" aria-selected="true">
+                Linked tasks
+            </div>
+
+            <button type="button"
+                    class="btn-icon btn-icon--round btn-icon--sm board-members-overlay__close-btn"
+                    aria-label="Close linked tasks"
+                    @onclick="Close">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path d="M18 6L6 18M6 6l12 12"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round" />
+                </svg>
+            </button>
+        </div>
+
+        <div class="board-members-overlay__body">
+            @if (Tasks.Count == 0)
+            {
+                <div class="board-members-overlay__state">
+                    <p class="board-members-overlay__message">No linked tasks.</p>
+                </div>
+            }
+            else
+            {
+                <ul class="board-members-overlay__list">
+                    @foreach (var task in Tasks)
+                    {
+                        <li class="board-members-overlay__item">
+                            <BoardTaskSearchResultItem Task="task" OnClick="OnTaskClickAsync" />
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public Guid BoardId { get; set; }
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<BoardTaskLookupDto> Tasks { get; set; } = [];
+
+    [Parameter, EditorRequired]
+    public EventCallback OnClose { get; set; }
+
+    private void OnTaskClickAsync(BoardTaskLookupDto task) =>
+        Navigation.NavigateTo(BoardTaskRoutes.GetTaskUrl(BoardId, task.ColumnId, task.Id));
+
+    private Task Close() => OnClose.InvokeAsync();
+}

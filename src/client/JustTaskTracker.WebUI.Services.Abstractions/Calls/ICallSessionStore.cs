@@ -1,6 +1,7 @@
 using JustTaskTracker.WebUI.Domain.Calls;
 using JustTaskTracker.WebUI.Domain.Calls.Enums;
 using JustTaskTracker.WebUI.Domain.Calls.Notifications;
+using JustTaskTracker.WebUI.Domain.Common.Pagination;
 
 namespace JustTaskTracker.WebUI.Services.Abstractions.Calls;
 
@@ -15,6 +16,11 @@ public interface ICallSessionStore
     bool IsSidebarOpen { get; }
     bool IsLoadingActiveCalls { get; }
     IReadOnlyList<CallSessionDto> ActiveCalls { get; }
+    bool IsLoadingHistory { get; }
+    bool IsLoadingMoreHistory { get; }
+    IReadOnlyList<CallSessionHistoryDto> History { get; }
+    PaginationMetadata HistoryPagination { get; }
+    bool HasMoreHistory { get; }
     string? ErrorMessage { get; }
     Guid? CurrentCallId { get; }
     JoinCallResponse? CurrentJoinInfo { get; }
@@ -28,6 +34,8 @@ public interface ICallSessionStore
     event Action<Guid>? CallParticipantsChanged;
 
     Task OpenSidebarAsync(Guid boardId, CancellationToken ct = default);
+
+    Task LoadMoreHistoryAsync(CancellationToken ct = default);
 
     void CloseSidebar();
 

@@ -10,6 +10,7 @@
     --jtt-surface-board-column: #18191A;
     --jtt-surface-task-card: color-mix(in srgb, var(--jtt-accent) 10%, color-mix(in srgb, black 28%, #1C2125));
     --jtt-surface-task-card-archive: color-mix(in srgb, var(--jtt-accent-archive) 12%, color-mix(in srgb, black 28%, #1C2125));
+    --jtt-surface-call-history-card: #3A3A3C;
 
     /* Login page only — never overridden by html.light; always dark look */
     --jtt-login-surface: #151617;
@@ -130,6 +131,7 @@ html.light {
     --jtt-surface-board-column: #FFFFFF;
     --jtt-surface-task-card: color-mix(in srgb, var(--jtt-accent) 8%, #FFFFFF);
     --jtt-surface-task-card-archive: color-mix(in srgb, var(--jtt-accent-archive) 22%, #FFF8E1);
+    --jtt-surface-call-history-card: #000000;
 
     /* Brand accent */
     --jtt-accent: #22C55E;

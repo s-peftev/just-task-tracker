@@ -1,0 +1,61 @@
+@using JustTaskTracker.WebUI.Domain.Calls
+@using JustTaskTracker.WebUI.Domain.Calls.Enums
+
+<li class="call-history-card">
+    <div class="call-history-card__body">
+        <span class="call-history-card__title" title="@Session.Title">@Session.Title</span>
+        <span class="call-history-card__topic @(string.IsNullOrWhiteSpace(Session.Topic) ? "call-history-card__topic--empty" : null)"
+              title="@Session.Topic">@(string.IsNullOrWhiteSpace(Session.Topic) ? " " : Session.Topic)</span>
+    </div>
+
+    <div class="call-history-card__meta">
+        <span class="call-history-card__date">@Session.StartedAtUtc.ToLocalTime().ToString("g")</span>
+        <span class="call-history-card__duration">@FormatDuration(Session.EndedAtUtc - Session.StartedAtUtc)</span>
+    </div>
+
+    <footer class="call-history-card__footer">
+        <button type="button"
+                class="call-history-card__count-btn"
+                @onclick="() => OnShowLinkedTasks.InvokeAsync()">
+            Tasks (@Session.LinkedTasks.Count)
+        </button>
+
+        <button type="button"
+                class="call-history-card__count-btn"
+                @onclick="() => OnShowParticipants.InvokeAsync()">
+            Participants (@Session.Participants.Count)
+        </button>
+
+        @if (Session.Visibility == CallVisibility.Restricted && Session.AllowedUsers is { } allowedUsers)
+        {
+            <button type="button"
+                    class="call-history-card__count-btn"
+                    @onclick="() => OnShowAllowedUsers.InvokeAsync()">
+                Allowed (@allowedUsers.Count)
+            </button>
+        }
+        else
+        {
+            <span class="call-history-card__visibility">Open</span>
+        }
+    </footer>
+</li>
+
+@code {
+    [Parameter, EditorRequired]
+    public CallSessionHistoryDto Session { get; set; } = null!;
+
+    [Parameter, EditorRequired]
+    public EventCallback OnShowLinkedTasks { get; set; }
+
+    [Parameter, EditorRequired]
+    public EventCallback OnShowParticipants { get; set; }
+
+    [Parameter, EditorRequired]
+    public EventCallback OnShowAllowedUsers { get; set; }
+
+    private static string FormatDuration(TimeSpan span) =>
+        span.TotalHours >= 1
+            ? $"{(int)span.TotalHours}h {span.Minutes}m"
+            : $"{Math.Max(1, (int)span.TotalMinutes)}m";
+}

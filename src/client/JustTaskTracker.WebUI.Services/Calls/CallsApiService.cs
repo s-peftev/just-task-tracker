@@ -1,5 +1,6 @@
 using JustTaskTracker.WebUI.Domain.Boards;
 using JustTaskTracker.WebUI.Domain.Calls;
+using JustTaskTracker.WebUI.Domain.Common.Pagination;
 using JustTaskTracker.WebUI.Services.Abstractions.Calls;
 using JustTaskTracker.WebUI.Services.Api;
 
@@ -10,6 +11,13 @@ internal class CallsApiService(ICallsApi api) : ICallsApiService
     public async Task<IReadOnlyList<CallSessionDto>> GetActiveCallsAsync(Guid boardId, CancellationToken ct = default)
     {
         var response = await api.GetActiveAsync(boardId, ct);
+
+        return ApiResponseGuard.Unwrap(response);
+    }
+
+    public async Task<PagedList<CallSessionHistoryDto>> GetHistoryAsync(Guid boardId, int pageNumber, int pageSize, CancellationToken ct = default)
+    {
+        var response = await api.GetHistoryAsync(boardId, pageNumber, pageSize, ct);
 
         return ApiResponseGuard.Unwrap(response);
     }

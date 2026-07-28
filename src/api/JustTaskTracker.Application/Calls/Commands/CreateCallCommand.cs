@@ -11,7 +11,7 @@ using JustTaskTracker.Application.Common.Utils;
 using JustTaskTracker.Application.Users.Mappings;
 using JustTaskTracker.Application.Users.ProfilePhotos;
 using JustTaskTracker.Application.Users.ReadModels;
-using JustTaskTracker.Domain.Auth.Entities;
+using JustTaskTracker.Domain.Auth.DTOs;
 using JustTaskTracker.Domain.Boards.Authorization;
 using JustTaskTracker.Domain.Calls.Constants;
 using JustTaskTracker.Domain.Calls.DTOs;
@@ -63,6 +63,12 @@ public class CreateCallCommandHandler(
 
         if (currentUser is null)
             return Result<CallSessionDto>.Failure(GeneralErrors.Unauthorized);
+
+        Func<UserReadModel, string?> profilePhotoUrlResolver = user =>
+            user.ProfilePhotoVersion is null ? null : profilePhotoService.BuildThumbnailUrl(user.Id, user.ProfilePhotoVersion);
+
+        var createdBy = new UserReadModel(currentUser.Id, currentUser.Email, currentUser.DisplayName, currentUser.ProfilePhotoVersion)
+            .ToDto(profilePhotoUrlResolver);
 
         IReadOnlyList<Guid> allowedUserIds = request.Visibility == CallVisibility.Restricted
             ? request.AllowedUserIds ?? []
@@ -135,20 +141,38 @@ public class CreateCallCommandHandler(
             throw;
         }
 
-        await NotifyCallStartedAsync(request, callSession, board.Name, currentUser, allowedUserIds, ct);
+        await NotifyCallStartedAsync(request, callSession, board.Name, createdBy, allowedUserIds, ct);
+
+        // Just-created session: nobody has joined yet (join is a separate action, AD-8) -- no
+        // participants to report.
+        IReadOnlyList<UserDto>? allowedUsers = null;
+
+        if (request.Visibility == CallVisibility.Restricted && allowedUserIds.Count > 0)
+        {
+            var allowedUsersById = await userRepository.GetUserInfoByIdsAsync(allowedUserIds, ct);
+
+            allowedUsers = allowedUserIds
+                .Select(userId => allowedUsersById.GetValueOrDefault(userId))
+                .Where(user => user is not null)
+                .Select(user => user!.ToDto(profilePhotoUrlResolver))
+                .ToList();
+        }
+
+        var linkedTasks = await linkedTaskRepository.GetLinkedTaskLookupsAsync(callSession.Id, ct);
 
         return Result<CallSessionDto>.Success(new CallSessionDto(
             callSession.Id,
             callSession.BoardId,
-            callSession.CreatedByUserId,
+            createdBy,
             callSession.Title,
             callSession.Topic,
             callSession.Visibility,
             callSession.AcsRoomId,
             callSession.Status,
             callSession.StartedAtUtc,
-            request.Visibility == CallVisibility.Restricted ? allowedUserIds : null,
-            linkedTaskIds,
+            allowedUsers,
+            linkedTasks,
+            [],
             callSession.CurrentPresenterUserId));
     }
 
@@ -158,7 +182,7 @@ public class CreateCallCommandHandler(
         CreateCallCommand request,
         CallSession callSession,
         string boardName,
-        User currentUser,
+        UserDto createdBy,
         IReadOnlyList<Guid> allowedUserIds,
         CancellationToken ct)
     {
@@ -169,18 +193,12 @@ public class CreateCallCommandHandler(
             : members;
 
         var recipientAzureAdObjectIds = eligibleMembers
-            .Where(m => m.UserId != currentUser.Id)
+            .Where(m => m.UserId != createdBy.Id)
             .Select(m => m.AzureAdObjectId)
             .ToList();
 
         if (recipientAzureAdObjectIds.Count == 0)
             return;
-
-        Func<UserReadModel, string?> profilePhotoUrlResolver = user =>
-            user.ProfilePhotoVersion is null ? null : profilePhotoService.BuildThumbnailUrl(user.Id, user.ProfilePhotoVersion);
-
-        var createdBy = new UserReadModel(currentUser.Id, currentUser.Email, currentUser.DisplayName, currentUser.ProfilePhotoVersion)
-            .ToDto(profilePhotoUrlResolver);
 
         var alert = new CallStartedAlert(callSession.BoardId, boardName, callSession.Id, callSession.Title, createdBy);
 

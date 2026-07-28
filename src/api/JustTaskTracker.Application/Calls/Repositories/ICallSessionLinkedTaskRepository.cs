@@ -9,5 +9,7 @@ public interface ICallSessionLinkedTaskRepository
 
     Task<IReadOnlyList<BoardTaskLookupDto>> GetLinkedTaskLookupsAsync(Guid callSessionId, CancellationToken ct = default);
 
+    Task<IReadOnlyDictionary<Guid, IReadOnlyList<BoardTaskLookupDto>>> GetLinkedTaskLookupsForSessionsAsync(IReadOnlyList<Guid> callSessionIds, CancellationToken ct = default);
+
     void Add(CallSessionLinkedTask linkedTask);
 }

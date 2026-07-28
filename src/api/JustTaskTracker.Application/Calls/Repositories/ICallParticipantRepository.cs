@@ -11,5 +11,9 @@ public interface ICallParticipantRepository
 
     Task<IReadOnlyList<CallParticipantHistoryReadModel>> GetParticipantHistoryAsync(Guid callSessionId, CancellationToken ct = default);
 
+    Task<IReadOnlyDictionary<Guid, IReadOnlyList<Guid>>> GetActiveParticipantUserIdsForSessionsAsync(IReadOnlyList<Guid> callSessionIds, CancellationToken ct = default);
+
+    Task<IReadOnlyDictionary<Guid, IReadOnlyList<CallParticipantHistoryReadModel>>> GetParticipantHistoryForSessionsAsync(IReadOnlyList<Guid> callSessionIds, CancellationToken ct = default);
+
     void Add(CallParticipant participant);
 }

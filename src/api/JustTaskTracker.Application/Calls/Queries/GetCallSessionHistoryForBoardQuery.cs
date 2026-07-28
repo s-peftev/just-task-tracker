@@ -44,6 +44,23 @@ public class GetCallSessionHistoryForBoardQueryHandler(
             request.PageSize!.Value,
             ct);
 
+        // Batched (keyed by session id) instead of one round trip per session/per user -- same
+        // approach as ListActiveCallSessionsForBoardQueryHandler. The batch repository methods
+        // already short-circuit on an empty id list, so no separate empty-page check is needed.
+        var sessionIds = sessions.Items.Select(s => s.Id).ToList();
+
+        var linkedTasksBySession = await linkedTaskRepository.GetLinkedTaskLookupsForSessionsAsync(sessionIds, ct);
+        var participantHistoryBySession = await callParticipantRepository.GetParticipantHistoryForSessionsAsync(sessionIds, ct);
+        var allowedUserIdsBySession = await allowedParticipantRepository.GetAllowedUserIdsForSessionsAsync(sessionIds, ct);
+
+        var userIds = sessions.Items.Select(s => s.CreatedByUserId)
+            .Concat(participantHistoryBySession.Values.SelectMany(entries => entries.Select(e => e.UserId)))
+            .Concat(allowedUserIdsBySession.Values.SelectMany(ids => ids))
+            .Distinct()
+            .ToList();
+
+        var usersById = await userRepository.GetUserInfoByIdsAsync(userIds, ct);
+
         Func<UserReadModel, string?> profilePhotoUrlResolver = user =>
             user.ProfilePhotoVersion is null ? null : profilePhotoService.BuildThumbnailUrl(user.Id, user.ProfilePhotoVersion);
 
@@ -54,49 +71,35 @@ public class GetCallSessionHistoryForBoardQueryHandler(
             // Defensive, not expected in practice: skip a row rather than fail the whole page if its
             // creator can no longer be resolved (matches the skip-defensively precedent used for
             // participant tiles in GetActiveCallParticipantsQueryHandler).
-            if (await ResolveUserDtoAsync(session.CreatedByUserId, profilePhotoUrlResolver, ct) is not { } createdBy)
+            if (!usersById.TryGetValue(session.CreatedByUserId, out var createdByUser))
                 continue;
 
-            var linkedTasks = await linkedTaskRepository.GetLinkedTaskLookupsAsync(session.Id, ct);
+            var linkedTasks = linkedTasksBySession.GetValueOrDefault(session.Id, []);
 
-            var participantHistory = await callParticipantRepository.GetParticipantHistoryAsync(session.Id, ct);
+            var participantHistory = participantHistoryBySession.GetValueOrDefault(session.Id, []);
             var participants = new List<CallHistoryParticipantDto>(participantHistory.Count);
 
             foreach (var entry in participantHistory)
             {
-                if (await ResolveUserDtoAsync(entry.UserId, profilePhotoUrlResolver, ct) is { } participantUser)
-                    participants.Add(entry.ToDto(participantUser));
+                if (usersById.TryGetValue(entry.UserId, out var participantUser))
+                    participants.Add(entry.ToDto(participantUser.ToDto(profilePhotoUrlResolver)));
             }
 
             IReadOnlyList<UserDto>? allowedUsers = null;
 
             if (session.Visibility == CallVisibility.Restricted)
             {
-                var allowedUserIds = await allowedParticipantRepository.GetAllowedUserIdsAsync(session.Id, ct);
-                var resolvedAllowedUsers = new List<UserDto>(allowedUserIds.Count);
-
-                foreach (var userId in allowedUserIds)
-                {
-                    if (await ResolveUserDtoAsync(userId, profilePhotoUrlResolver, ct) is { } allowedUser)
-                        resolvedAllowedUsers.Add(allowedUser);
-                }
-
-                allowedUsers = resolvedAllowedUsers;
+                allowedUsers = allowedUserIdsBySession.GetValueOrDefault(session.Id, [])
+                    .Select(userId => usersById.GetValueOrDefault(userId))
+                    .Where(user => user is not null)
+                    .Select(user => user!.ToDto(profilePhotoUrlResolver))
+                    .ToList();
             }
 
-            items.Add(session.ToHistoryDto(createdBy, linkedTasks, participants, allowedUsers));
+            items.Add(session.ToHistoryDto(createdByUser.ToDto(profilePhotoUrlResolver), linkedTasks, participants, allowedUsers));
         }
 
         return Result<PagedList<CallSessionHistoryDto>>.Success(new PagedList<CallSessionHistoryDto>(sessions.Metadata, items));
-    }
-
-    private async Task<UserDto?> ResolveUserDtoAsync(Guid userId, Func<UserReadModel, string?> profilePhotoUrlResolver, CancellationToken ct)
-    {
-        var user = await userRepository.GetByIdAsync(userId, ct);
-
-        return user is null
-            ? null
-            : new UserReadModel(user.Id, user.Email, user.DisplayName, user.ProfilePhotoVersion).ToDto(profilePhotoUrlResolver);
     }
 }
 

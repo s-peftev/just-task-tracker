@@ -17,6 +17,21 @@ public class CallSessionAllowedParticipantRepository(JustTaskTrackerDbContext co
             .Select(p => p.UserId)
             .ToListAsync(ct);
 
+    public async Task<IReadOnlyDictionary<Guid, IReadOnlyList<Guid>>> GetAllowedUserIdsForSessionsAsync(IReadOnlyList<Guid> callSessionIds, CancellationToken ct = default)
+    {
+        if (callSessionIds.Count is 0)
+            return new Dictionary<Guid, IReadOnlyList<Guid>>();
+
+        var allowed = await context.CallSessionAllowedParticipants
+            .Where(p => callSessionIds.Contains(p.CallSessionId))
+            .Select(p => new { p.CallSessionId, p.UserId })
+            .ToListAsync(ct);
+
+        return allowed
+            .GroupBy(x => x.CallSessionId)
+            .ToDictionary(g => g.Key, g => (IReadOnlyList<Guid>)g.Select(x => x.UserId).ToList());
+    }
+
     public void Add(CallSessionAllowedParticipant allowedParticipant) =>
         context.CallSessionAllowedParticipants.Add(allowedParticipant);
 }

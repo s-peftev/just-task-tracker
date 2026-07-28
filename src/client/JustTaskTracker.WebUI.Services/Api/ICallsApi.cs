@@ -15,6 +15,9 @@ internal interface ICallsApi
     [Post("/api/calls/{id}/join")]
     Task<IApiResponse<ApiEnvelope<JoinCallResponse>>> JoinAsync(Guid id, CancellationToken ct = default);
 
+    [Get("/api/calls/{id}/participants")]
+    Task<IApiResponse<ApiEnvelope<List<CallParticipantDto>>>> GetParticipantsAsync(Guid id, CancellationToken ct = default);
+
     [Post("/api/calls/{id}/end")]
     Task<IApiResponse<ApiEnvelope<object>>> EndAsync(Guid id, CancellationToken ct = default);
 }

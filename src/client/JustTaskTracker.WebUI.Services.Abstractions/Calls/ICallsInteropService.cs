@@ -11,9 +11,11 @@ public interface ICallsInteropService
 
     /// <summary>
     /// Joins the ACS Room. <paramref name="callbackRef"/>'s target must expose
-    /// [JSInvokable] Task OnTileAdded(string tileId, bool isLocal) and
-    /// [JSInvokable] Task OnTileRemoved(string tileId) -- called whenever a participant
-    /// tile (the local user, tileId "local", or a remote participant) should appear/disappear.
+    /// [JSInvokable] Task OnTileAdded(string tileId, bool isLocal, bool hasVideo),
+    /// [JSInvokable] Task OnTileRemoved(string tileId), and
+    /// [JSInvokable] Task OnTileVideoStateChanged(string tileId, bool hasVideo) -- called whenever a
+    /// participant tile (the local user, tileId "local", or a remote participant) should appear/disappear,
+    /// or a remote participant's camera/video stream availability changes after the tile was added.
     /// </summary>
     Task JoinRoomAsync<T>(string token, string acsRoomId, DotNetObjectReference<T> callbackRef) where T : class;
 

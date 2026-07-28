@@ -12,4 +12,7 @@ public class CallRepository(JustTaskTrackerDbContext context) : Repository<CallS
         await _context.CallSessions
             .Where(s => s.BoardId == boardId && s.Status == CallStatus.Active)
             .ToListAsync(ct);
+
+    public Task<CallSession?> GetByAcsRoomIdAsync(string acsRoomId, CancellationToken ct = default) =>
+        _context.CallSessions.FirstOrDefaultAsync(s => s.AcsRoomId == acsRoomId, ct);
 }

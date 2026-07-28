@@ -12,13 +12,46 @@
     align-items: flex-end;
 }
 
-.call-page__tile-label {
+.call-page__tile-avatar {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ::deep: UserAvatarPlaceholder's own markup lives outside this component's CSS scope,
+   so overriding its size variable through the "Class" param needs the deep combinator. */
+.call-page__tile-avatar ::deep .call-page__tile-avatar-inner {
+    --user-avatar-size: min(40%, 12rem);
+}
+
+.call-page__tile-info {
     position: relative;
     z-index: 1;
     margin: 0.5rem;
     padding: 0.125rem 0.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.05rem;
+    max-width: calc(100% - 1rem);
     background-color: var(--jtt-overlay-neutral-20);
     border-radius: var(--jtt-radius-sm);
     color: var(--jtt-text-on-app);
+}
+
+.call-page__tile-name {
     font-size: 0.8rem;
+    font-weight: var(--jtt-font-weight-strong);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.call-page__tile-email {
+    font-size: 0.7rem;
+    opacity: 0.85;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }

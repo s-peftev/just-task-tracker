@@ -16,3 +16,8 @@ internal static class BoardActionsHubEvents
 {
     public const string BoardChanged = "BoardChanged";
 }
+
+internal static class CallStateHubEvents
+{
+    public const string CallStateChanged = "CallStateChanged";
+}

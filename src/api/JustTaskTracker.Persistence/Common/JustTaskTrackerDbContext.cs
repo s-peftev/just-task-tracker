@@ -28,6 +28,7 @@ public class JustTaskTrackerDbContext(
     public DbSet<Subscription> Subscriptions => Set<Subscription>();
     public DbSet<StripeWebhookEvent> StripeWebhookEvents => Set<StripeWebhookEvent>();
     public DbSet<CallSession> CallSessions => Set<CallSession>();
+    public DbSet<CallParticipant> CallParticipants => Set<CallParticipant>();
     public DbSet<AcsUserIdentityMapping> AcsUserIdentityMappings => Set<AcsUserIdentityMapping>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

@@ -64,6 +64,14 @@ internal static class OptionsModule
         stripeOptions.Validate();
         services.AddSingleton(stripeOptions);
 
+        var acsOptions = configuration
+            .GetSection(ConfigSections.Acs)
+            .Get<AcsOptions>()
+            ?? throw new InvalidOperationException($"{ConfigSections.Acs} section is not configured.");
+
+        acsOptions.Validate();
+        services.AddSingleton(acsOptions);
+
         return services;
     }
 }

@@ -10,6 +10,9 @@ public class AcsUserIdentityMappingRepository(JustTaskTrackerDbContext context) 
     public Task<AcsUserIdentityMapping?> GetByUserIdAsync(Guid userId, CancellationToken ct = default) =>
         context.AcsUserIdentityMappings.FirstOrDefaultAsync(m => m.UserId == userId, ct);
 
+    public Task<AcsUserIdentityMapping?> GetByAcsCommunicationUserIdAsync(string acsCommunicationUserId, CancellationToken ct = default) =>
+        context.AcsUserIdentityMappings.FirstOrDefaultAsync(m => m.AcsCommunicationUserId == acsCommunicationUserId, ct);
+
     public void Add(AcsUserIdentityMapping mapping) =>
         context.AcsUserIdentityMappings.Add(mapping);
 }

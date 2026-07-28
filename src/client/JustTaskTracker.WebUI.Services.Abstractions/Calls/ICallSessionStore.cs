@@ -1,4 +1,5 @@
 using JustTaskTracker.WebUI.Domain.Calls;
+using JustTaskTracker.WebUI.Domain.Calls.Notifications;
 
 namespace JustTaskTracker.WebUI.Services.Abstractions.Calls;
 
@@ -19,6 +20,12 @@ public interface ICallSessionStore
 
     event Action? StateChanged;
 
+    /// <summary>Raised with the closed call's id when a <see cref="CallStateNotificationType.SessionClosed"/> notification arrives.</summary>
+    event Action<Guid>? CallSessionClosed;
+
+    /// <summary>Raised with the call's id when a participant joins or leaves it, so an open CallPage can refresh its roster.</summary>
+    event Action<Guid>? CallParticipantsChanged;
+
     Task OpenSidebarAsync(Guid boardId, CancellationToken ct = default);
 
     void CloseSidebar();
@@ -30,4 +37,6 @@ public interface ICallSessionStore
     Task EndCurrentCallAsync(CancellationToken ct = default);
 
     void LeaveCurrentCall();
+
+    void ApplyCallStateNotification(CallStateNotification notification);
 }

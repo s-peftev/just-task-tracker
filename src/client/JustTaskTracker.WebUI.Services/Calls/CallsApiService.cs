@@ -27,6 +27,13 @@ internal class CallsApiService(ICallsApi api) : ICallsApiService
         return ApiResponseGuard.Unwrap(response);
     }
 
+    public async Task<IReadOnlyList<CallParticipantDto>> GetParticipantsAsync(Guid callSessionId, CancellationToken ct = default)
+    {
+        var response = await api.GetParticipantsAsync(callSessionId, ct);
+
+        return ApiResponseGuard.Unwrap(response);
+    }
+
     public async Task EndCallAsync(Guid callSessionId, CancellationToken ct = default)
     {
         var response = await api.EndAsync(callSessionId, ct);

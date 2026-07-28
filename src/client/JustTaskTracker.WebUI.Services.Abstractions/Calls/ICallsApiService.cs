@@ -10,5 +10,7 @@ public interface ICallsApiService
 
     Task<JoinCallResponse> JoinCallAsync(Guid callSessionId, CancellationToken ct = default);
 
+    Task<IReadOnlyList<CallParticipantDto>> GetParticipantsAsync(Guid callSessionId, CancellationToken ct = default);
+
     Task EndCallAsync(Guid callSessionId, CancellationToken ct = default);
 }

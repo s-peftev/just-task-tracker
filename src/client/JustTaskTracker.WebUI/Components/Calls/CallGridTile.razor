@@ -1,5 +1,22 @@
 <div @ref="_tileRef" class="call-page__tile">
-    <span class="call-page__tile-label">@(IsLocal ? "You" : "Participant")</span>
+    @if (!HasVideo)
+    {
+        <div class="call-page__tile-avatar">
+            <UserAvatarPlaceholder Preset="UserAvatarPlaceholderPreset.Sidebar"
+                                   DisplayName="@DisplayName"
+                                   Email="@Email"
+                                   ProfilePhotoUrl="@ProfilePhotoUrl"
+                                   Class="call-page__tile-avatar-inner" />
+        </div>
+    }
+
+    <div class="call-page__tile-info">
+        <span class="call-page__tile-name">@GetNameLabel()</span>
+        @if (!string.IsNullOrWhiteSpace(Email))
+        {
+            <span class="call-page__tile-email">@Email</span>
+        }
+    </div>
 </div>
 
 @code {
@@ -8,6 +25,18 @@
 
     [Parameter]
     public bool IsLocal { get; set; }
+
+    [Parameter]
+    public bool HasVideo { get; set; }
+
+    [Parameter]
+    public string? DisplayName { get; set; }
+
+    [Parameter]
+    public string? Email { get; set; }
+
+    [Parameter]
+    public string? ProfilePhotoUrl { get; set; }
 
     [Parameter]
     public EventCallback<(string TileId, ElementReference Element)> OnReady { get; set; }
@@ -22,5 +51,15 @@
 
         _reported = true;
         await OnReady.InvokeAsync((TileId, _tileRef));
+    }
+
+    private string GetNameLabel()
+    {
+        var name = UserDisplayFormatting.GetShortName(DisplayName, Email);
+
+        if (string.IsNullOrEmpty(name))
+            return IsLocal ? "You" : "Participant";
+
+        return IsLocal ? $"You ({name})" : name;
     }
 }

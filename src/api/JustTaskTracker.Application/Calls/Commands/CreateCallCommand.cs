@@ -3,16 +3,22 @@ using JustTaskTracker.Application.Auth;
 using JustTaskTracker.Application.Auth.Repositories;
 using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Calls.Abstractions;
+using JustTaskTracker.Application.Calls.Notifiers;
 using JustTaskTracker.Application.Calls.Repositories;
 using JustTaskTracker.Application.Common.Behaviors;
 using JustTaskTracker.Application.Common.Persistence;
 using JustTaskTracker.Application.Common.Utils;
+using JustTaskTracker.Application.Users.Mappings;
+using JustTaskTracker.Application.Users.ProfilePhotos;
+using JustTaskTracker.Application.Users.ReadModels;
+using JustTaskTracker.Domain.Auth.Entities;
 using JustTaskTracker.Domain.Boards.Authorization;
 using JustTaskTracker.Domain.Calls.Constants;
 using JustTaskTracker.Domain.Calls.DTOs;
 using JustTaskTracker.Domain.Calls.Entities;
 using JustTaskTracker.Domain.Calls.Enums;
 using JustTaskTracker.Domain.Calls.Errors;
+using JustTaskTracker.Domain.Calls.Notifications;
 using JustTaskTracker.Domain.Common.Results;
 using JustTaskTracker.Domain.Common.Results.Errors;
 using MediatR;
@@ -37,13 +43,18 @@ public class CreateCallCommandHandler(
     ICallSessionAllowedParticipantRepository allowedParticipantRepository,
     ICallSessionLinkedTaskRepository linkedTaskRepository,
     IAcsCallProvisioningService acsCallProvisioningService,
+    ICallStateNotifier callStateNotifier,
+    IProfilePhotoService profilePhotoService,
     IUnitOfWork unitOfWork,
     IDateTimeProvider dateTimeProvider)
     : IRequestHandler<CreateCallCommand, Result<CallSessionDto>>
 {
     public async Task<Result<CallSessionDto>> Handle(CreateCallCommand request, CancellationToken ct)
     {
-        var userRole = await boardRepository.GetUserRoleAsync(request.BoardId, currentUserAccessor.AzureAdObjectId, ct);
+        var (board, userRole) = await boardRepository.GetBoardWithUserRoleAsync(request.BoardId, currentUserAccessor.AzureAdObjectId, ct);
+
+        if (board is null)
+            return Result<CallSessionDto>.Failure(GeneralErrors.NotFound);
 
         if (userRole is not { } role || !BoardRolePermissions.CanCreateCall(role))
             return Result<CallSessionDto>.Failure(GeneralErrors.Forbidden);
@@ -124,6 +135,8 @@ public class CreateCallCommandHandler(
             throw;
         }
 
+        await NotifyCallStartedAsync(request, callSession, board.Name, currentUser, allowedUserIds, ct);
+
         return Result<CallSessionDto>.Success(new CallSessionDto(
             callSession.Id,
             callSession.BoardId,
@@ -137,6 +150,41 @@ public class CreateCallCommandHandler(
             request.Visibility == CallVisibility.Restricted ? allowedUserIds : null,
             linkedTaskIds,
             callSession.CurrentPresenterUserId));
+    }
+
+    // AD-10: every board member if Open; only the allow-list plus Owner/Admin if Restricted.
+    // The creator is always excluded -- they already know they just started this call.
+    private async Task NotifyCallStartedAsync(
+        CreateCallCommand request,
+        CallSession callSession,
+        string boardName,
+        User currentUser,
+        IReadOnlyList<Guid> allowedUserIds,
+        CancellationToken ct)
+    {
+        var members = await boardRepository.GetMemberIdentitiesAsync(request.BoardId, ct);
+
+        var eligibleMembers = request.Visibility == CallVisibility.Restricted
+            ? members.Where(m => allowedUserIds.Contains(m.UserId) || BoardRolePermissions.CanBypassCallRestriction(m.Role))
+            : members;
+
+        var recipientAzureAdObjectIds = eligibleMembers
+            .Where(m => m.UserId != currentUser.Id)
+            .Select(m => m.AzureAdObjectId)
+            .ToList();
+
+        if (recipientAzureAdObjectIds.Count == 0)
+            return;
+
+        Func<UserReadModel, string?> profilePhotoUrlResolver = user =>
+            user.ProfilePhotoVersion is null ? null : profilePhotoService.BuildThumbnailUrl(user.Id, user.ProfilePhotoVersion);
+
+        var createdBy = new UserReadModel(currentUser.Id, currentUser.Email, currentUser.DisplayName, currentUser.ProfilePhotoVersion)
+            .ToDto(profilePhotoUrlResolver);
+
+        var alert = new CallStartedAlert(callSession.BoardId, boardName, callSession.Id, callSession.Title, createdBy);
+
+        await callStateNotifier.NotifyCallStartedAsync(alert, recipientAzureAdObjectIds, ct);
     }
 }
 

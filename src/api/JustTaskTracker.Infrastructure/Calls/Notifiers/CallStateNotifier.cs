@@ -14,4 +14,13 @@ public class CallStateNotifier(IHubContext<BoardActionsHub> hubContext) : ICallS
         hubContext.Clients
             .Group(HubGroupNames.BoardActions.Get(notification.BoardId))
             .SendAsync(CallStateHubEvents.CallStateChanged, notification, ct);
+
+    public Task NotifyCallStartedAsync(CallStartedAlert alert, IReadOnlyList<Guid> recipientAzureAdObjectIds, CancellationToken ct)
+    {
+        var userIds = recipientAzureAdObjectIds.Select(id => id.ToString()).ToList();
+
+        return hubContext.Clients
+            .Users(userIds)
+            .SendAsync(CallAlertHubEvents.CallStarted, alert, ct);
+    }
 }

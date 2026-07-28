@@ -1,7 +1,9 @@
 ﻿using JustTaskTracker.Application.Auth;
 using JustTaskTracker.Application.Boards.Commands.Hubs;
+using JustTaskTracker.Application.Common.Constants;
 using JustTaskTracker.Infrastructure.Common.Constants.Hubs;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
 
@@ -12,6 +14,7 @@ public static class BoardActionsHubEvents
     public const string BoardChanged = "BoardChanged";
 }
 
+[Authorize(Policy = AuthorizationPolicies.IsAppMember)]
 public class BoardActionsHub(
     ISender sender,
     ICurrentUserContext currentUserContext,

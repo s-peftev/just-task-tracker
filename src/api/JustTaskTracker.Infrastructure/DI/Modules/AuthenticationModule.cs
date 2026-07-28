@@ -3,9 +3,11 @@ using JustTaskTracker.Application.Common.Constants;
 using JustTaskTracker.Domain.Auth.Constants;
 using JustTaskTracker.Infrastructure.Auth;
 using JustTaskTracker.Infrastructure.Auth.Constants;
+using JustTaskTracker.Infrastructure.Calls.Auth;
 using JustTaskTracker.Infrastructure.Common.Constants.Hubs;
 using JustTaskTracker.Infrastructure.Common.Options;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Identity.Web;
@@ -21,6 +23,13 @@ internal static class AuthenticationModule
 
         services.AddScoped<ICurrentUserContext, CurrentUserContext>();
         services.AddScoped<ICurrentUserAccessor, CurrentUserAccessor>();
+
+        // AD-10: SignalR's own user-targeting (Clients.User(...)) needs to know how to read a
+        // connection's identity -- same "oid" claim as ICurrentUserAccessor below, just SignalR's
+        // side of it. Registered here (not in AzureModule) because this is an identity-claims
+        // concern, not an Azure-resource-wiring one; still runs before AddSignalR() either way,
+        // since AddAuthenticationModule is called before AddAzureModule in AddInfrastructure.
+        services.AddSingleton<IUserIdProvider, AzureAdObjectIdUserIdProvider>();
 
         JwtSecurityTokenHandler.DefaultMapInboundClaims = false;
 

@@ -60,4 +60,10 @@ public interface IBoardRepository : IRepository<Board, Guid>
         int pageSize,
         TextSearchOptions<BoardMemberSearchField>? searchOptions = null,
         CancellationToken ct = default);
+
+    /// <summary>
+    /// All of a board's members with their role and AzureAdObjectId (AD-10) -- the full,
+    /// unpaginated list needed to resolve who's eligible for a cross-page "call started" alert.
+    /// </summary>
+    Task<IReadOnlyList<BoardMemberIdentity>> GetMemberIdentitiesAsync(Guid boardId, CancellationToken ct = default);
 }

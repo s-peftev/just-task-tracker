@@ -236,6 +236,12 @@ public class BoardRepository(JustTaskTrackerDbContext context)
                 ct);
     }
 
+    public async Task<IReadOnlyList<BoardMemberIdentity>> GetMemberIdentitiesAsync(Guid boardId, CancellationToken ct = default) =>
+        await _context.BoardMembers
+            .Where(member => member.BoardId == boardId)
+            .Select(member => new BoardMemberIdentity(member.UserId, member.User!.AzureAdObjectId, member.Role))
+            .ToListAsync(ct);
+
     public async Task<BoardExportRawData?> GetBoardExportRawDataAsync(Guid boardId, BoardExportOptions options, CancellationToken ct = default)
     {
         var board = await _dbSet

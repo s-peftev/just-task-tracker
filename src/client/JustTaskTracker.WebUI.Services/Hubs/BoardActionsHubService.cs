@@ -18,6 +18,7 @@ internal sealed class BoardActionsHubService(
     IOptions<ApiClientOptions> options,
     IBoardDetailsStore boardDetailsStore,
     ICallSessionStore callSessionStore,
+    IActiveCallAlertStore activeCallAlertStore,
     IProfileStore profileStore,
     ILogger<BoardActionsHubService> logger)
     : IBoardActionsHubService, IAsyncDisposable
@@ -33,6 +34,8 @@ internal sealed class BoardActionsHubService(
     private readonly Dictionary<Guid, int> _subscriptionRefCounts = [];
     private readonly SemaphoreSlim _hubGate = new(1, 1);
     private HubConnection? _connection;
+
+    public Task ConnectAsync(CancellationToken ct = default) => EnsureConnectedAsync(ct);
 
     public async Task JoinBoardAsync(Guid boardId, CancellationToken ct = default)
     {
@@ -240,6 +243,10 @@ internal sealed class BoardActionsHubService(
         _connection.On<CallStateNotification>(
             CallStateHubEvents.CallStateChanged,
             callSessionStore.ApplyCallStateNotification);
+
+        _connection.On<CallStartedAlert>(
+            CallAlertHubEvents.CallStarted,
+            activeCallAlertStore.ApplyCallStartedAlert);
 
         _connection.Reconnected += OnReconnectedAsync;
 

@@ -21,3 +21,8 @@ internal static class CallStateHubEvents
 {
     public const string CallStateChanged = "CallStateChanged";
 }
+
+internal static class CallAlertHubEvents
+{
+    public const string CallStarted = "CallStarted";
+}

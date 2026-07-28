@@ -2,15 +2,21 @@
 @implements IDisposable
 @using Microsoft.AspNetCore.Components.Authorization
 @using JustTaskTracker.WebUI.Components.Calls
+@using JustTaskTracker.WebUI.Domain.Calls.Notifications
 @using JustTaskTracker.WebUI.Infrastructure
 @using JustTaskTracker.WebUI.Services.Abstractions.Billing
 @using JustTaskTracker.WebUI.Services.Abstractions.Boards
+@using JustTaskTracker.WebUI.Services.Abstractions.Calls
+@using JustTaskTracker.WebUI.Services.Abstractions.Hubs
 @using JustTaskTracker.WebUI.Services.Abstractions.Theme
 @inject IThemeService ThemeService
 @inject IProfileStore ProfileStore
 @inject IEntitlementsStore EntitlementsStore
 @inject IBoardStore BoardStore
 @inject IBoardDetailsStore BoardDetailsStore
+@inject IBoardActionsHubService BoardActionsHubService
+@inject IActiveCallAlertStore ActiveCallAlertStore
+@inject ISnackbar Snackbar
 @inject AuthenticationStateProvider AuthState
 @inject NavigationManager Navigation
 @inject IJSRuntime Js
@@ -98,6 +104,7 @@
         BoardDetailsStore.StateChanged += OnStoreStateChanged;
         ThemeService.ThemeChanged += OnThemeChanged;
         Navigation.LocationChanged += OnLocationChanged;
+        ActiveCallAlertStore.CallStarted += OnCallStarted;
     }
 
     protected override async Task OnInitializedAsync()
@@ -119,7 +126,15 @@
         await EnsureProfileAndEntitlementsAsync(useLogin);
 
         if (ProfileStore.RequiresLogin)
+        {
             Navigation.NavigateTo("/login");
+            return;
+        }
+
+        // AD-10: connect the hub as soon as the user is authenticated, independent of ever
+        // opening a board -- otherwise a "call started" alert couldn't reach them here.
+        if (ProfileStore.Profile is not null)
+            await BoardActionsHubService.ConnectAsync();
     }
 
     public void Dispose()
@@ -129,7 +144,13 @@
         BoardDetailsStore.StateChanged -= OnStoreStateChanged;
         ThemeService.ThemeChanged -= OnThemeChanged;
         Navigation.LocationChanged -= OnLocationChanged;
+        ActiveCallAlertStore.CallStarted -= OnCallStarted;
     }
+
+    private void OnCallStarted(CallStartedAlert alert) =>
+        InvokeAsync(() => Snackbar.Add<CallStartedSnackbarContent>(
+            new Dictionary<string, object> { [nameof(CallStartedSnackbarContent.Alert)] = alert },
+            Severity.Info));
 
     private void OnStoreStateChanged() => InvokeAsync(StateHasChanged);
 

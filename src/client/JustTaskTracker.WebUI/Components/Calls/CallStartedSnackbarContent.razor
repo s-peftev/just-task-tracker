@@ -1,0 +1,24 @@
+@using JustTaskTracker.WebUI.Components.Shared
+@using JustTaskTracker.WebUI.Domain.Auth
+@using JustTaskTracker.WebUI.Domain.Calls.Notifications
+
+<div class="call-started-snackbar">
+    <UserAvatarPlaceholder Class="call-started-snackbar__avatar"
+                           Preset="UserAvatarPlaceholderPreset.Member"
+                           DisplayName="@Alert.CreatedBy.DisplayName"
+                           Email="@Alert.CreatedBy.Email"
+                           ProfilePhotoUrl="@Alert.CreatedBy.ProfilePhotoUrl"
+                           Title="@Alert.CreatedBy.Email" />
+
+    <div class="call-started-snackbar__text">
+        <span class="call-started-snackbar__title">@GetCreatorName() started a call</span>
+        <span class="call-started-snackbar__detail">@Alert.Title · @Alert.BoardName</span>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public CallStartedAlert Alert { get; set; } = null!;
+
+    private string GetCreatorName() => UserDisplayFormatting.GetShortName(Alert.CreatedBy);
+}

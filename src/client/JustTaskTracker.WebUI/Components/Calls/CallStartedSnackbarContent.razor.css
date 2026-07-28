@@ -1,0 +1,31 @@
+.call-started-snackbar {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+}
+
+.call-started-snackbar__avatar {
+    flex-shrink: 0;
+}
+
+.call-started-snackbar__text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    min-width: 0;
+}
+
+.call-started-snackbar__title {
+    font-weight: var(--jtt-font-weight-strong);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.call-started-snackbar__detail {
+    font-size: 0.85rem;
+    opacity: 0.85;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}

@@ -150,7 +150,13 @@
     private void OnCallStarted(CallStartedAlert alert) =>
         InvokeAsync(() => Snackbar.Add<CallStartedSnackbarContent>(
             new Dictionary<string, object> { [nameof(CallStartedSnackbarContent.Alert)] = alert },
-            Severity.Info));
+            Severity.Info,
+            configure: options =>
+            {
+                options.SnackbarTypeClass = "call-started-snackbar-host";
+                options.HideIcon = true;
+                options.CloseAfterNavigation = true;
+            }));
 
     private void OnStoreStateChanged() => InvokeAsync(StateHasChanged);
 

@@ -60,6 +60,7 @@ public class ListActiveCallSessionsForBoardQueryHandler(
             session.Status,
             session.StartedAtUtc,
             allowedUserIds,
-            linkedTaskIds);
+            linkedTaskIds,
+            session.CurrentPresenterUserId);
     }
 }

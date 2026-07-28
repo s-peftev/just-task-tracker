@@ -67,10 +67,13 @@ let activeStageView = null;
 // view.target ships with no intrinsic size or aspect-ratio handling -- style it directly
 // rather than relying on CSS to reach into an element Blazor's scoped-CSS isolation doesn't
 // know about (it's appended via plain DOM APIs, not rendered by Blazor, so scoped selectors
-// don't reliably reach it). object-fit: cover goes on the actual <video>/<canvas> (which may
-// be view.target itself, or nested inside it depending on the SDK's internal DOM shape) so
-// the feed fills the tile without stretching/distorting.
-function styleView(viewTarget) {
+// don't reliably reach it). object-fit goes on the actual <video>/<canvas> (which may be
+// view.target itself, or nested inside it depending on the SDK's internal DOM shape).
+// "cover" (camera tiles, the default) fills the tile without distorting, cropping whatever
+// doesn't fit -- fine for a face. "contain" (the screen-share stage) never crops, showing the
+// whole shared screen even if that leaves letterbox/pillarbox space -- cropping a presentation
+// could hide the exact content someone's trying to show.
+function styleView(viewTarget, objectFit = "cover") {
     viewTarget.style.position = "absolute";
     viewTarget.style.inset = "0";
     viewTarget.style.width = "100%";
@@ -83,7 +86,7 @@ function styleView(viewTarget) {
     for (const media of mediaElements) {
         media.style.width = "100%";
         media.style.height = "100%";
-        media.style.objectFit = "cover";
+        media.style.objectFit = objectFit;
     }
 }
 
@@ -150,16 +153,14 @@ function disposeRemoteRenderer(tileId) {
 }
 
 function attachStageView(viewTarget) {
-    styleView(viewTarget);
+    styleView(viewTarget, "contain");
     detachStageView();
 
     if (stageElement) {
         stageElement.appendChild(viewTarget);
         activeStageView = viewTarget;
-        console.log("calls.js: stage view attached to registered element", viewTarget);
     } else {
         pendingStageView = viewTarget;
-        console.log("calls.js: stage view rendered before stage element existed -- queued as pending", viewTarget);
     }
 }
 
@@ -172,15 +173,12 @@ function detachStageView() {
 }
 
 async function renderStageStream(stream) {
-    console.log("calls.js: renderStageStream called", { mediaStreamType: stream.mediaStreamType, isAvailable: stream.isAvailable, alreadyRendering: !!stageRenderer });
-
     if (stageRenderer)
         return;
 
     try {
         stageRenderer = new VideoStreamRenderer(stream);
         const view = await stageRenderer.createView();
-        console.log("calls.js: stage renderer.createView() succeeded", view.target);
         attachStageView(view.target);
     } catch (error) {
         console.error("calls.js failed to render stage video:", error);
@@ -202,12 +200,6 @@ function disposeStageRenderer() {
 // so whichever one shows up is the stage's content.
 async function syncParticipantScreenShare(participant, tileId) {
     const screenStream = findAvailableStream(participant, "ScreenSharing");
-
-    console.log("calls.js: syncParticipantScreenShare", {
-        tileId,
-        found: !!screenStream,
-        allStreamTypes: participant.videoStreams.map((s) => ({ type: s.mediaStreamType, isAvailable: s.isAvailable }))
-    });
 
     if (screenStream) {
         stagePresenterTileId = tileId;
@@ -309,11 +301,6 @@ export async function join(token, roomId, dotNetRef) {
         await syncParticipantScreenShare(participant, tileId);
 
         participant.on("videoStreamsUpdated", (e) => {
-            console.log("calls.js: videoStreamsUpdated for", tileId, {
-                added: e.added.map((s) => s.mediaStreamType),
-                removed: e.removed.map((s) => s.mediaStreamType)
-            });
-
             for (const stream of e.added)
                 watchParticipantStream(participant, tileId, stream);
 
@@ -372,7 +359,6 @@ export function unregisterTileElement(tileId) {
 }
 
 export function registerStageElement(element) {
-    console.log("calls.js: registerStageElement called", { hasPendingView: !!pendingStageView, element });
     stageElement = element;
 
     if (pendingStageView) {

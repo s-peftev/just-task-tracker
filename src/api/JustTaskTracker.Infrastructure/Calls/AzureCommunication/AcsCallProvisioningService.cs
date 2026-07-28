@@ -53,7 +53,14 @@ public class AcsCallProvisioningService(
     {
         var identifier = await ResolveAcsIdentityAsync(userId, ct);
 
-        await roomsClient.AddOrUpdateParticipantsAsync(acsRoomId, [new RoomParticipant(identifier)], ct);
+        // ACS Rooms gate capabilities by native participant role, independently of our own
+        // AD-9 presenter lock -- the default role (Attendee) cannot negotiate a screen-share
+        // media stream at all (ACS itself rejects it, separately from who our app currently
+        // allows to hold the lock), so every joiner needs Presenter here for screen share
+        // (Story 2.1) to be possible for anyone.
+        var participant = new RoomParticipant(identifier) { Role = ParticipantRole.Presenter };
+
+        await roomsClient.AddOrUpdateParticipantsAsync(acsRoomId, [participant], ct);
 
         var tokenResponse = await identityClient.GetTokenAsync(identifier, [CommunicationTokenScope.VoIP], TokenValidity, ct);
 

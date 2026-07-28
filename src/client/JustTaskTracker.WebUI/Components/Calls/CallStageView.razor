@@ -1,0 +1,18 @@
+<div @ref="_stageRef" class="call-page__stage-surface"></div>
+
+@code {
+    [Parameter, EditorRequired]
+    public EventCallback<ElementReference> OnReady { get; set; }
+
+    private ElementReference _stageRef;
+    private bool _reported;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || _reported)
+            return;
+
+        _reported = true;
+        await OnReady.InvokeAsync(_stageRef);
+    }
+}

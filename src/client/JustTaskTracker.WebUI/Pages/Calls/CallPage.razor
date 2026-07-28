@@ -38,8 +38,24 @@
     }
     else
     {
-        <div class="call-page__body">
-            <div class="call-page__grid" style="--call-grid-columns: @GridColumns;">
+        <div class="call-page__body @(IsPresentationActive ? "call-page__body--presenting" : null)">
+            @if (IsPresentationActive)
+            {
+                <div class="call-page__stage">
+                    @if (IsLocalUserPresenting)
+                    {
+                        <div class="call-page__stage-placeholder">
+                            <span>You are presenting your screen</span>
+                        </div>
+                    }
+                    else
+                    {
+                        <CallStageView OnReady="OnStageElementReadyAsync" />
+                    }
+                </div>
+            }
+
+            <div class="call-page__grid @(IsPresentationActive ? "call-page__grid--filmstrip" : null)" style="--call-grid-columns: @GridColumns;">
                 @foreach (var tile in _tiles)
                 {
                     var identity = GetTileIdentity(tile);
@@ -156,6 +172,67 @@
                 }
             </button>
             <button type="button"
+                    class="btn-glass call-page__control-btn @(IsLocalUserPresenting ? "call-page__control-btn--active" : null)"
+                    aria-label="@(IsLocalUserPresenting ? "Stop sharing your screen" : "Share your screen")"
+                    aria-pressed="@IsLocalUserPresenting"
+                    disabled="@(_currentPresenterUserId.HasValue && !IsLocalUserPresenting)"
+                    title="@GetScreenShareTitle()"
+                    @onclick="ToggleScreenShareAsync">
+                @if (IsLocalUserPresenting)
+                {
+                    <svg class="call-page__control-icon"
+                         viewBox="0 0 24 24"
+                         aria-hidden="true"
+                         focusable="false">
+                        <rect fill="none"
+                              stroke="currentColor"
+                              stroke-width="2"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              x="2"
+                              y="4"
+                              width="20"
+                              height="14"
+                              rx="2"
+                              ry="2" />
+                        <line stroke="currentColor" stroke-width="2" stroke-linecap="round" x1="8" y1="21" x2="16" y2="21" />
+                        <path fill="none"
+                              stroke="currentColor"
+                              stroke-width="2"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              d="M12 15V8m-3 3 3-3 3 3" />
+                    </svg>
+                }
+                else
+                {
+                    <svg class="call-page__control-icon"
+                         viewBox="0 0 24 24"
+                         aria-hidden="true"
+                         focusable="false">
+                        <rect fill="none"
+                              stroke="currentColor"
+                              stroke-width="2"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              x="2"
+                              y="4"
+                              width="20"
+                              height="14"
+                              rx="2"
+                              ry="2" />
+                        <line stroke="currentColor" stroke-width="2" stroke-linecap="round" x1="8" y1="21" x2="16" y2="21" />
+                        <path fill="none"
+                              stroke="currentColor"
+                              stroke-width="2"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              d="M12 15V8m-3 3 3-3 3 3" />
+                        <line stroke="currentColor" stroke-width="2" stroke-linecap="round" x1="1" y1="1" x2="23" y2="23" />
+                    </svg>
+                }
+            </button>
+            <button type="button"
                     class="btn-glass call-page__control-btn @(_isMeetBoardOpen ? "call-page__control-btn--active" : null)"
                     aria-label="@(_isMeetBoardOpen ? "Close meeting board" : "Open meeting board")"
                     aria-pressed="@_isMeetBoardOpen"
@@ -246,13 +323,25 @@
 
     // Zoom-like layout: as few columns as possible while fitting everyone, so 1-2
     // participants fill nearly the whole area and the grid subdivides as more join.
-    private int GridColumns => _tiles.Count <= 1 ? 1 : (int)Math.Ceiling(Math.Sqrt(_tiles.Count));
+    // While someone is presenting, the grid becomes a single-column filmstrip instead
+    // (see call-page__grid--filmstrip) -- the big stage takes the rest of the space.
+    private int GridColumns => IsPresentationActive
+        ? 1
+        : (_tiles.Count <= 1 ? 1 : (int)Math.Ceiling(Math.Sqrt(_tiles.Count)));
+
+    private bool IsPresentationActive => _currentPresenterUserId.HasValue;
+
+    private bool IsLocalUserPresenting =>
+        _currentPresenterUserId.HasValue
+        && ProfileStore.Profile is { } profile
+        && _currentPresenterUserId == profile.Id;
 
     private bool _isJoining = true;
     private string? _joinError;
     private bool _micOn = true;
     private bool _cameraOn;
     private bool _canEndCall;
+    private Guid? _currentPresenterUserId;
     private bool _hasLeft;
     private bool _joinedBoardGroup;
     private bool _isMeetBoardOpen;
@@ -271,8 +360,11 @@
 
         CallSessionStore.CallSessionClosed += OnCallSessionClosed;
         CallSessionStore.CallParticipantsChanged += OnCallParticipantsChanged;
+        CallSessionStore.CallPresenterChanged += OnCallPresenterChanged;
 
-        var isCreator = CallSessionStore.ActiveCalls.FirstOrDefault(c => c.Id == CallId) is { } call
+        var activeCall = CallSessionStore.ActiveCalls.FirstOrDefault(c => c.Id == CallId);
+
+        var isCreator = activeCall is { } call
             && ProfileStore.Profile is { } profile
             && call.CreatedByUserId == profile.Id;
 
@@ -281,6 +373,7 @@
             && BoardRolePermissions.CanEndCall(board.UserRole);
 
         _canEndCall = isCreator || canEndAsRole;
+        _currentPresenterUserId = activeCall?.CurrentPresenterUserId;
 
         var environment = await CallsInteropService.CheckEnvironmentAsync();
 
@@ -418,6 +511,15 @@
         InvokeAsync(RefreshParticipantsAsync);
     }
 
+    private void OnCallPresenterChanged(Guid callSessionId, Guid? presenterUserId)
+    {
+        if (callSessionId != CallId)
+            return;
+
+        _currentPresenterUserId = presenterUserId;
+        InvokeAsync(StateHasChanged);
+    }
+
     private void OnCallSessionClosed(Guid callSessionId)
     {
         if (callSessionId != CallId)
@@ -453,8 +555,82 @@
         });
     }
 
+    /// <summary>
+    /// Fires when calls.js observes the local screen share stop through a means other than our
+    /// own ToggleScreenShareAsync (e.g. the browser's native "Stop sharing" control). Releases the
+    /// presenter lock (AD-9) so it doesn't stay stuck server-side once the share has already ended.
+    /// No-ops if we're not the presenter -- either ToggleScreenShareAsync already released it, or
+    /// we never held it.
+    /// </summary>
+    [JSInvokable]
+    public Task OnLocalScreenShareStopped()
+    {
+        if (!IsLocalUserPresenting)
+            return Task.CompletedTask;
+
+        return InvokeAsync(async () =>
+        {
+            await CallSessionStore.StopScreenShareAsync();
+            _currentPresenterUserId = null;
+            StateHasChanged();
+        });
+    }
+
     private async Task OnTileElementReadyAsync((string TileId, ElementReference Element) args) =>
         await CallsInteropService.RegisterTileElementAsync(args.TileId, args.Element);
+
+    private Task OnStageElementReadyAsync(ElementReference element) =>
+        CallsInteropService.RegisterStageElementAsync(element);
+
+    private string GetScreenShareTitle()
+    {
+        if (IsLocalUserPresenting)
+            return "Stop sharing";
+
+        return _currentPresenterUserId.HasValue
+            ? "Someone else is presenting"
+            : "Share screen";
+    }
+
+    private async Task ToggleScreenShareAsync()
+    {
+        if (IsLocalUserPresenting)
+        {
+            var released = await CallSessionStore.StopScreenShareAsync();
+
+            if (!released)
+                return;
+
+            _currentPresenterUserId = null;
+            await CallsInteropService.StopScreenShareAsync();
+
+            return;
+        }
+
+        if (_currentPresenterUserId.HasValue)
+            return;
+
+        var granted = await CallSessionStore.RequestScreenShareAsync();
+
+        if (!granted)
+        {
+            Snackbar.Add(CallSessionStore.ErrorMessage ?? "Someone else is presenting.", Severity.Warning);
+            return;
+        }
+
+        try
+        {
+            await CallsInteropService.StartScreenShareAsync();
+            _currentPresenterUserId = ProfileStore.Profile?.Id;
+        }
+        catch (Exception)
+        {
+            // The server granted the lock but the local share never actually started (e.g. the
+            // browser's screen picker was cancelled) -- release it so it doesn't get stuck (Epic 2).
+            await CallSessionStore.StopScreenShareAsync();
+            Snackbar.Add("Could not start screen sharing.", Severity.Error);
+        }
+    }
 
     private async Task ToggleMicAsync() =>
         _micOn = await CallsInteropService.ToggleMicAsync();
@@ -498,6 +674,7 @@
     {
         CallSessionStore.CallSessionClosed -= OnCallSessionClosed;
         CallSessionStore.CallParticipantsChanged -= OnCallParticipantsChanged;
+        CallSessionStore.CallPresenterChanged -= OnCallPresenterChanged;
 
         await EndLocalConnectionAsync();
         _selfRef?.Dispose();

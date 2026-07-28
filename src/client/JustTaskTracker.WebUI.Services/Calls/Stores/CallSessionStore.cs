@@ -1,6 +1,7 @@
 using JustTaskTracker.WebUI.Domain.Calls;
 using JustTaskTracker.WebUI.Domain.Calls.Enums;
 using JustTaskTracker.WebUI.Domain.Calls.Notifications;
+using JustTaskTracker.WebUI.Domain.Calls.Notifications.Payloads;
 using JustTaskTracker.WebUI.Domain.Common.Pagination;
 using JustTaskTracker.WebUI.Services.Abstractions.Calls;
 using JustTaskTracker.WebUI.Services.Exceptions;
@@ -31,6 +32,7 @@ internal sealed class CallSessionStore(ICallsApiService callsApiService) : ICall
     public event Action? StateChanged;
     public event Action<Guid>? CallSessionClosed;
     public event Action<Guid>? CallParticipantsChanged;
+    public event Action<Guid, Guid?>? CallPresenterChanged;
 
     public async Task OpenSidebarAsync(Guid boardId, CancellationToken ct = default)
     {
@@ -183,6 +185,50 @@ internal sealed class CallSessionStore(ICallsApiService callsApiService) : ICall
         }
     }
 
+    public async Task<bool> RequestScreenShareAsync(CancellationToken ct = default)
+    {
+        if (CurrentCallId is not { } callId)
+            return false;
+
+        ErrorMessage = null;
+
+        try
+        {
+            await callsApiService.RequestScreenShareAsync(callId, ct);
+
+            return true;
+        }
+        catch (ApiServiceException ex)
+        {
+            ErrorMessage = ex.Error?.Details is { Count: > 0 } details ? string.Join(" ", details) : ex.Message;
+            NotifyStateChanged();
+
+            return false;
+        }
+    }
+
+    public async Task<bool> StopScreenShareAsync(CancellationToken ct = default)
+    {
+        if (CurrentCallId is not { } callId)
+            return false;
+
+        ErrorMessage = null;
+
+        try
+        {
+            await callsApiService.StopScreenShareAsync(callId, ct);
+
+            return true;
+        }
+        catch (ApiServiceException ex)
+        {
+            ErrorMessage = ex.Error?.Details is { Count: > 0 } details ? string.Join(" ", details) : ex.Message;
+            NotifyStateChanged();
+
+            return false;
+        }
+    }
+
     public void LeaveCurrentCall()
     {
         CurrentCallId = null;
@@ -211,7 +257,25 @@ internal sealed class CallSessionStore(ICallsApiService callsApiService) : ICall
             case CallStateNotificationType.ParticipantLeft:
                 CallParticipantsChanged?.Invoke(notification.CallSessionId);
                 break;
+
+            case CallStateNotificationType.PresenterChanged:
+                if (notification.Payload is PresenterChangedPayload presenterChanged)
+                {
+                    UpdatePresenter(notification.CallSessionId, presenterChanged.PresenterUserId);
+                    NotifyStateChanged();
+                    CallPresenterChanged?.Invoke(notification.CallSessionId, presenterChanged.PresenterUserId);
+                }
+
+                break;
         }
+    }
+
+    private void UpdatePresenter(Guid callSessionId, Guid? presenterUserId)
+    {
+        var index = _activeCalls.FindIndex(c => c.Id == callSessionId);
+
+        if (index >= 0)
+            _activeCalls[index] = _activeCalls[index] with { CurrentPresenterUserId = presenterUserId };
     }
 
     private void NotifyStateChanged() => StateChanged?.Invoke();

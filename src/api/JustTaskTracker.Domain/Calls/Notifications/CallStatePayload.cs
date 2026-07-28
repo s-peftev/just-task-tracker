@@ -7,4 +7,5 @@ namespace JustTaskTracker.Domain.Calls.Notifications;
 [JsonDerivedType(typeof(ParticipantJoinedPayload), "participantJoined")]
 [JsonDerivedType(typeof(ParticipantLeftPayload), "participantLeft")]
 [JsonDerivedType(typeof(SessionClosedPayload), "sessionClosed")]
+[JsonDerivedType(typeof(PresenterChangedPayload), "presenterChanged")]
 public abstract record CallStatePayload;

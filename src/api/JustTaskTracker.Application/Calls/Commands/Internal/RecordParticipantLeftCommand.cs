@@ -51,8 +51,11 @@ public class RecordParticipantLeftCommandHandler(
 
         participant.LeftAtUtc = request.OccurredAtUtc;
 
-        if (callSession.CurrentPresenterUserId == mapping.UserId)
-            callSession.CurrentPresenterUserId = null; // AD-9: a departure releases the presenter lock same as an explicit stop-share
+        // AD-9: a departure releases the presenter lock same as an explicit stop-share.
+        var presenterCleared = callSession.CurrentPresenterUserId == mapping.UserId;
+
+        if (presenterCleared)
+            callSession.CurrentPresenterUserId = null;
 
         var remainingActiveCount = activeParticipants.Count(p => p.Id != participant.Id);
         var sessionClosed = false;
@@ -71,6 +74,15 @@ public class RecordParticipantLeftCommandHandler(
             callSession.Id,
             CallStateNotificationType.ParticipantLeft,
             new ParticipantLeftPayload(mapping.UserId, request.OccurredAtUtc)), ct);
+
+        if (presenterCleared)
+        {
+            await callStateNotifier.NotifyAsync(new CallStateNotification(
+                callSession.BoardId,
+                callSession.Id,
+                CallStateNotificationType.PresenterChanged,
+                new PresenterChangedPayload(null)), ct);
+        }
 
         if (sessionClosed)
         {

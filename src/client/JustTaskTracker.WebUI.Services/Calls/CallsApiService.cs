@@ -56,4 +56,18 @@ internal class CallsApiService(ICallsApi api) : ICallsApiService
 
         ApiResponseGuard.EnsureSuccess(response);
     }
+
+    public async Task RequestScreenShareAsync(Guid callSessionId, CancellationToken ct = default)
+    {
+        var response = await api.StartScreenShareAsync(callSessionId, ct);
+
+        ApiResponseGuard.EnsureSuccess(response);
+    }
+
+    public async Task StopScreenShareAsync(Guid callSessionId, CancellationToken ct = default)
+    {
+        var response = await api.StopScreenShareAsync(callSessionId, ct);
+
+        ApiResponseGuard.EnsureSuccess(response);
+    }
 }

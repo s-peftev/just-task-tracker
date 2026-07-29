@@ -79,8 +79,10 @@
                                     Title="@GetCallTitle()"
                                     Topic="@GetCallTopic()"
                                     Tasks="_linkedTasks"
+                                    Columns="@(BoardDetailsStore.Board?.Columns ?? [])"
                                     IsLoading="_isLoadingLinkedTasks"
-                                    OnClose="CloseMeetBoard" />
+                                    OnClose="CloseMeetBoard"
+                                    OnTaskChanged="OnLinkedTaskChanged" />
             }
         </div>
 
@@ -501,6 +503,15 @@
         }
     }
 
+    // Mirrors the live-sync patch path (below): an edit made from this page's own linked-task
+    // accordion is applied the same way an incoming BoardChanged event for it would be, so both
+    // paths stay consistent and the eventual SignalR echo of our own save is a harmless no-op.
+    private void OnLinkedTaskChanged(BoardTaskDetailsDto updatedTask)
+    {
+        if (UpdateLinkedTask(updatedTask.Id, _ => updatedTask))
+            StateHasChanged();
+    }
+
     private void OnBoardActionReceived(BoardActionNotification notification)
     {
         if (notification.BoardId != BoardId)
@@ -526,11 +537,16 @@
             TaskAssigneeChangedPayload payload =>
                 UpdateLinkedTask(payload.BoardTaskId, task => task with { Assignee = payload.Assignee }),
 
+            // Every other case here is a plain field overwrite -- reapplying the same value is
+            // naturally a no-op, which is what makes the echo of our own edit (Story 4.2) safe to
+            // ignore without a sync guard. Append is not naturally idempotent the same way: the
+            // actor's own optimistic append (CallMeetBoardLinkedTaskItem.OpenAddAttachmentDialogAsync)
+            // plus this same event echoing back would otherwise double the attachment for them
+            // specifically -- guarded explicitly here instead.
             TaskAttachmentAddedPayload payload =>
-                UpdateLinkedTask(payload.BoardTaskId, task => task with
-                {
-                    Attachments = task.Attachments.Append(payload.Attachment).ToList(),
-                }),
+                UpdateLinkedTask(payload.BoardTaskId, task => task.Attachments.Any(a => a.Id == payload.Attachment.Id)
+                    ? task
+                    : task with { Attachments = task.Attachments.Append(payload.Attachment).ToList() }),
 
             TaskAttachmentRemovedPayload payload =>
                 UpdateLinkedTask(payload.BoardTaskId, task => task with

@@ -1,4 +1,12 @@
 @using JustTaskTracker.WebUI.Domain.Boards
+@using JustTaskTracker.WebUI.Infrastructure
+@using JustTaskTracker.WebUI.Services.Abstractions.Boards
+@using JustTaskTracker.WebUI.Services.Exceptions
+@implements IDisposable
+@inject IBoardTaskAssigneePickerStore AssigneePickerStore
+@inject IDialogService DialogService
+@inject IBoardApiService BoardApiService
+@inject ISnackbar Snackbar
 
 <aside class="call-meet-board-panel" aria-label="Meeting board">
     <header class="call-meet-board-panel__header">
@@ -42,12 +50,21 @@
             <ul class="call-meet-board-panel__list">
                 @foreach (var task in Tasks)
                 {
-                    <CallMeetBoardLinkedTaskItem @key="task.Id" BoardId="BoardId" Task="task" />
+                    <CallMeetBoardLinkedTaskItem @key="task.Id"
+                                                 BoardId="BoardId"
+                                                 Task="task"
+                                                 Columns="Columns"
+                                                 OnTaskChanged="OnTaskChanged"
+                                                 OnOpenAssigneePicker="OpenAssigneePickerAsync" />
                 }
             </ul>
         }
     </section>
 </aside>
+
+<BoardTaskAssigneePickerOverlay IsSelectingMember="_isSavingAssignee"
+                               OnMemberSelected="AssignMemberAsync"
+                               OnUnassignRequested="UnassignAsync" />
 
 @code {
     [Parameter, EditorRequired]
@@ -62,9 +79,126 @@
     [Parameter, EditorRequired]
     public IReadOnlyList<BoardTaskDetailsDto> Tasks { get; set; } = [];
 
+    [Parameter, EditorRequired]
+    public IReadOnlyList<ColumnDto> Columns { get; set; } = [];
+
     [Parameter]
     public bool IsLoading { get; set; }
 
     [Parameter, EditorRequired]
     public EventCallback OnClose { get; set; }
+
+    [Parameter, EditorRequired]
+    public EventCallback<BoardTaskDetailsDto> OnTaskChanged { get; set; }
+
+    private bool _isSavingAssignee;
+    private BoardTaskDetailsDto? _assigneePickerTarget;
+
+    // IBoardTaskAssigneePickerStore is a single shared "picker open" state -- rendering the
+    // overlay once here (not per linked-task item) avoids every expanded card popping its own
+    // copy open simultaneously when any one of them calls OpenAsync.
+    private async Task OpenAssigneePickerAsync(BoardTaskDetailsDto task)
+    {
+        _assigneePickerTarget = task;
+
+        try
+        {
+            await AssigneePickerStore.OpenAsync(BoardId);
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+    }
+
+    private async Task AssignMemberAsync(BoardMemberDto member)
+    {
+        if (_assigneePickerTarget is not { } task || _isSavingAssignee)
+            return;
+
+        if (task.Assignee?.Id == member.User.Id)
+        {
+            AssigneePickerStore.Close();
+            return;
+        }
+
+        var displayName = UserDisplayFormatting.GetShortName(member.User);
+        var message = $"Assign {displayName} to this task?";
+
+        var dialog = await DialogService.ShowConfirmResourceAsync(
+            "Assign task",
+            message,
+            confirmLabel: "Confirm",
+            submitButtonClass: "btn-dialog-warning btn-dialog-action");
+
+        var result = await dialog.Result;
+
+        if (result is not { Canceled: false, Data: true })
+            return;
+
+        _isSavingAssignee = true;
+
+        try
+        {
+            await BoardApiService.UpdateBoardTaskAssigneeAsync(BoardId, task.ColumnId, task.Id, member.User.Id);
+
+            AssigneePickerStore.Close();
+            await OnTaskChanged.InvokeAsync(task with { Assignee = member.User });
+            Snackbar.Add($"{displayName} assigned to this task.", Severity.Success);
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+        finally
+        {
+            _isSavingAssignee = false;
+        }
+    }
+
+    private async Task UnassignAsync()
+    {
+        if (_assigneePickerTarget is not { } task || _isSavingAssignee)
+            return;
+
+        if (task.Assignee is null)
+        {
+            AssigneePickerStore.Close();
+            return;
+        }
+
+        var message = "Remove assignee from this task?";
+
+        var dialog = await DialogService.ShowConfirmResourceAsync(
+            "Unassign task",
+            message,
+            confirmLabel: "Confirm",
+            submitButtonClass: "btn-dialog-warning btn-dialog-action");
+
+        var result = await dialog.Result;
+
+        if (result is not { Canceled: false, Data: true })
+            return;
+
+        _isSavingAssignee = true;
+
+        try
+        {
+            await BoardApiService.UpdateBoardTaskAssigneeAsync(BoardId, task.ColumnId, task.Id, assigneeId: null);
+
+            AssigneePickerStore.Close();
+            await OnTaskChanged.InvokeAsync(task with { Assignee = null });
+            Snackbar.Add("Assignee removed from this task.", Severity.Success);
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+        finally
+        {
+            _isSavingAssignee = false;
+        }
+    }
+
+    public void Dispose() => AssigneePickerStore.Close();
 }

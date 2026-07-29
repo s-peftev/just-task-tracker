@@ -56,7 +56,9 @@
                                                 OnShowAllowedUsers="ShowSelectedAllowedUsers" />
                             break;
                         case MeetingBodyPane.Ended:
-                            <EndedMeetingPanel Session="_selectedHistorySession" />
+                            <EndedMeetingPanel BoardId="BoardId"
+                                               Session="_selectedHistorySession"
+                                               OnShowAllowedUsers="ShowSelectedHistoryAllowedUsers" />
                             break;
                         default:
                             <CreateMeetingPanel BoardId="BoardId" />
@@ -143,6 +145,10 @@ else if (_activeOverlayKind == ActiveCallOverlayKind.AllowedUsers && ActiveOverl
 {
     <CallAllowedUsersOverlay Users="activeAllowedUsers" OnClose="CloseActiveOverlay" />
 }
+else if (_showHistoryAllowedUsers && _selectedHistorySession?.AllowedUsers is { } historyAllowedUsers)
+{
+    <CallAllowedUsersOverlay Users="historyAllowedUsers" OnClose="CloseHistoryAllowedUsers" />
+}
 
 @code {
     private enum MeetingBodyPane
@@ -170,6 +176,7 @@ else if (_activeOverlayKind == ActiveCallOverlayKind.AllowedUsers && ActiveOverl
 
     private Guid? _activeOverlayCallId;
     private ActiveCallOverlayKind _activeOverlayKind = ActiveCallOverlayKind.None;
+    private bool _showHistoryAllowedUsers;
 
     // Resolved live from the store rather than captured at click-time -- ApplyCallStateNotification
     // (Story 3.2) replaces the whole ActiveCalls list on every participant/presenter event, so a
@@ -199,6 +206,7 @@ else if (_activeOverlayKind == ActiveCallOverlayKind.AllowedUsers && ActiveOverl
         _bodyPane = MeetingBodyPane.Create;
         _selectedActiveCallId = null;
         _selectedHistorySession = null;
+        _showHistoryAllowedUsers = false;
     }
 
     private void SelectActiveMeeting(Guid callId)
@@ -206,6 +214,7 @@ else if (_activeOverlayKind == ActiveCallOverlayKind.AllowedUsers && ActiveOverl
         _bodyPane = MeetingBodyPane.Active;
         _selectedActiveCallId = callId;
         _selectedHistorySession = null;
+        _showHistoryAllowedUsers = false;
     }
 
     private void SelectEndedMeeting(CallSessionHistoryDto session)
@@ -213,6 +222,8 @@ else if (_activeOverlayKind == ActiveCallOverlayKind.AllowedUsers && ActiveOverl
         _bodyPane = MeetingBodyPane.Ended;
         _selectedHistorySession = session;
         _selectedActiveCallId = null;
+        _showHistoryAllowedUsers = false;
+        CloseActiveOverlay();
     }
 
     private string? GetCreateMeetingButtonClass() =>
@@ -220,6 +231,7 @@ else if (_activeOverlayKind == ActiveCallOverlayKind.AllowedUsers && ActiveOverl
 
     private void ShowActiveOverlay(Guid callId, ActiveCallOverlayKind kind)
     {
+        _showHistoryAllowedUsers = false;
         _activeOverlayCallId = callId;
         _activeOverlayKind = kind;
     }
@@ -229,8 +241,21 @@ else if (_activeOverlayKind == ActiveCallOverlayKind.AllowedUsers && ActiveOverl
         if (_selectedActiveCallId is not { } callId)
             return;
 
+        _showHistoryAllowedUsers = false;
         ShowActiveOverlay(callId, ActiveCallOverlayKind.AllowedUsers);
     }
+
+    private void ShowSelectedHistoryAllowedUsers()
+    {
+        if (_selectedHistorySession?.AllowedUsers is null)
+            return;
+
+        CloseActiveOverlay();
+        _showHistoryAllowedUsers = true;
+    }
+
+    private void CloseHistoryAllowedUsers() =>
+        _showHistoryAllowedUsers = false;
 
     private void CloseActiveOverlay()
     {

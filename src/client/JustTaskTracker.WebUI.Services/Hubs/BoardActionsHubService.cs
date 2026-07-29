@@ -246,7 +246,7 @@ internal sealed class BoardActionsHubService(
 
         _connection.On<CallStartedAlert>(
             CallAlertHubEvents.CallStarted,
-            activeCallAlertStore.ApplyCallStartedAlert);
+            OnCallStartedAlert);
 
         _connection.Reconnected += OnReconnectedAsync;
 
@@ -257,6 +257,18 @@ internal sealed class BoardActionsHubService(
 
             return Task.CompletedTask;
         };
+    }
+
+    private Task OnCallStartedAlert(CallStartedAlert alert)
+    {
+        activeCallAlertStore.ApplyCallStartedAlert(alert);
+
+        // FR8/Story 3.2: if this alert is for the board the local user is currently viewing, refresh
+        // its active-calls list too -- otherwise the new session wouldn't show up (or bump the
+        // header badge) until the board is reloaded, even though we already know it just started.
+        return alert.BoardId == callSessionStore.CurrentBoardId
+            ? callSessionStore.EnsureActiveCallsLoadedAsync(alert.BoardId)
+            : Task.CompletedTask;
     }
 
     private void OnBoardChanged(BoardActionNotificationWireDto wire)

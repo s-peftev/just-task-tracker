@@ -25,6 +25,9 @@ public interface ICallSessionStore
     Guid? CurrentCallId { get; }
     JoinCallResponse? CurrentJoinInfo { get; }
 
+    /// <summary>The board whose active calls are currently loaded (<see cref="Guid.Empty"/> if none yet).</summary>
+    Guid CurrentBoardId { get; }
+
     event Action? StateChanged;
 
     /// <summary>Raised with the closed call's id when a <see cref="CallStateNotificationType.SessionClosed"/> notification arrives.</summary>
@@ -35,6 +38,13 @@ public interface ICallSessionStore
 
     /// <summary>Raised with the call's id and the new presenter (null if the slot was freed) on a <see cref="CallStateNotificationType.PresenterChanged"/> notification.</summary>
     event Action<Guid, Guid?>? CallPresenterChanged;
+
+    /// <summary>
+    /// Loads (or reloads) a board's active calls only -- cheap enough (a handful of batched
+    /// queries server-side) to call eagerly on board load for the header badge, and again on every
+    /// relevant live-state notification, without waiting for the sidebar to be opened.
+    /// </summary>
+    Task EnsureActiveCallsLoadedAsync(Guid boardId, CancellationToken ct = default);
 
     Task OpenSidebarAsync(Guid boardId, CancellationToken ct = default);
 
@@ -66,5 +76,5 @@ public interface ICallSessionStore
 
     void LeaveCurrentCall();
 
-    void ApplyCallStateNotification(CallStateNotification notification);
+    Task ApplyCallStateNotification(CallStateNotification notification);
 }

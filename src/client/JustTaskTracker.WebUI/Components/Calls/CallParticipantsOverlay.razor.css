@@ -1,0 +1,10 @@
+.call-participants-overlay__caption {
+    grid-column: 2;
+    grid-row: 3;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.75rem;
+    color: var(--jtt-text-muted);
+}

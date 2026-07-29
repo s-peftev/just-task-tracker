@@ -7,6 +7,7 @@
 @using JustTaskTracker.WebUI.Services.Abstractions.Boards
 @using JustTaskTracker.WebUI.Services.Exceptions
 @using BlazorSortable
+@using JustTaskTracker.WebUI.Services.Abstractions.Calls
 @using JustTaskTracker.WebUI.Services.Abstractions.Hubs
 @inject IBoardPanScrollService BoardPanScroll
 @inject IBoardTrayOverlapService BoardTrayOverlap
@@ -16,6 +17,7 @@
 @inject IBoardMembersStore BoardMembersStore
 @inject IBoardExportStatusHubService HubService
 @inject IBoardActionsHubService ActionsHubService
+@inject ICallSessionStore CallSessionStore
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
@@ -330,7 +332,13 @@
         _actionsHubBoardId = targetBoardId;
 
         if (targetBoardId != Guid.Empty)
+        {
             await ActionsHubService.JoinBoardAsync(targetBoardId);
+
+            // Eager, independent of whether the calls sidebar has ever been opened -- the header
+            // badge (Story 3.2) needs a count before the user opens it.
+            await CallSessionStore.EnsureActiveCallsLoadedAsync(targetBoardId);
+        }
     }
 
     private async Task SyncHubSubscriptionAsync()

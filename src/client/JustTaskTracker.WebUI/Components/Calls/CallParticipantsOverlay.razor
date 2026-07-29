@@ -1,0 +1,86 @@
+@using JustTaskTracker.WebUI.Components.Shared
+@using JustTaskTracker.WebUI.Domain.Auth
+
+<div class="board-members-overlay"
+     role="dialog"
+     aria-modal="true"
+     aria-label="Call participants">
+    <button type="button"
+            class="board-members-overlay__backdrop"
+            aria-label="Close participants"
+            @onclick="Close"></button>
+
+    <div class="board-members-overlay__panel"
+         @onclick:stopPropagation="true"
+         @onmousedown:stopPropagation="true">
+        <div class="board-members-overlay__tabs board-members-overlay__tabs--with-close" role="tablist" aria-label="Call participants">
+            <div class="board-members-overlay__tab board-members-overlay__tab--active" role="tab" aria-selected="true">
+                Participants
+            </div>
+
+            <button type="button"
+                    class="btn-icon btn-icon--round btn-icon--sm board-members-overlay__close-btn"
+                    aria-label="Close participants"
+                    @onclick="Close">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path d="M18 6L6 18M6 6l12 12"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round" />
+                </svg>
+            </button>
+        </div>
+
+        <div class="board-members-overlay__body">
+            @if (Participants.Count == 0)
+            {
+                <div class="board-members-overlay__state">
+                    <p class="board-members-overlay__message">@EmptyMessage</p>
+                </div>
+            }
+            else
+            {
+                <ul class="board-members-overlay__list">
+                    @foreach (var entry in Participants)
+                    {
+                        <li @key="entry.User.Id" class="board-members-overlay__item">
+                            <div class="board-members-overlay__member">
+                                <div class="board-members-overlay__member-avatar-wrap">
+                                    <UserAvatarPlaceholder Class="board-members-overlay__member-avatar"
+                                                           Preset="UserAvatarPlaceholderPreset.Member"
+                                                           DisplayName="@entry.User.DisplayName"
+                                                           Email="@entry.User.Email"
+                                                           ProfilePhotoUrl="@entry.User.ProfilePhotoUrl"
+                                                           Title="@entry.User.Email" />
+                                </div>
+                                <span class="board-members-overlay__member-name">@UserDisplayFormatting.GetShortName(entry.User)</span>
+                                <span class="board-members-overlay__member-email">@entry.User.Email</span>
+                                @if (entry.Caption is { } caption)
+                                {
+                                    <span class="call-participants-overlay__caption">@caption</span>
+                                }
+                            </div>
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    // Caption is the optional per-participant line under the name/email -- history passes
+    // "Joined ..., left ..." (CallsSidebar.razor), a live call passes none (ActiveCallsTab.razor).
+    public record Entry(UserDto User, string? Caption = null);
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<Entry> Participants { get; set; } = [];
+
+    [Parameter]
+    public string EmptyMessage { get; set; } = "No participants recorded.";
+
+    [Parameter, EditorRequired]
+    public EventCallback OnClose { get; set; }
+
+    private Task Close() => OnClose.InvokeAsync();
+}

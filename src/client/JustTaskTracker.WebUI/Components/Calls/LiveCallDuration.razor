@@ -1,0 +1,47 @@
+@implements IDisposable
+
+<span class="live-call-duration @Class">@FormatElapsed(DateTime.UtcNow - StartedAtUtc)</span>
+
+@code {
+    [Parameter, EditorRequired]
+    public DateTime StartedAtUtc { get; set; }
+
+    [Parameter]
+    public string? Class { get; set; }
+
+    private readonly PeriodicTimer _timer = new(TimeSpan.FromSeconds(1));
+    private readonly CancellationTokenSource _cts = new();
+
+    protected override void OnInitialized() =>
+        _ = TickAsync();
+
+    private async Task TickAsync()
+    {
+        try
+        {
+            while (await _timer.WaitForNextTickAsync(_cts.Token))
+                await InvokeAsync(StateHasChanged);
+        }
+        catch (OperationCanceledException)
+        {
+            // Expected on Dispose -- the component is going away, not an error.
+        }
+    }
+
+    private static string FormatElapsed(TimeSpan span)
+    {
+        if (span < TimeSpan.Zero)
+            span = TimeSpan.Zero;
+
+        return span.TotalHours >= 1
+            ? $"{(int)span.TotalHours}:{span.Minutes:D2}:{span.Seconds:D2}"
+            : $"{span.Minutes}:{span.Seconds:D2}";
+    }
+
+    public void Dispose()
+    {
+        _cts.Cancel();
+        _cts.Dispose();
+        _timer.Dispose();
+    }
+}

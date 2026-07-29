@@ -1,94 +1,22 @@
 @using JustTaskTracker.WebUI.Components.Shared
-@using JustTaskTracker.WebUI.Domain.Boards.Authorization
 @using JustTaskTracker.WebUI.Domain.Calls
-@using JustTaskTracker.WebUI.Domain.Calls.Enums
 @using JustTaskTracker.WebUI.Infrastructure
-@using JustTaskTracker.WebUI.Services.Abstractions.Auth
 @using JustTaskTracker.WebUI.Services.Abstractions.Boards
 @using JustTaskTracker.WebUI.Services.Abstractions.Calls
 @using JustTaskTracker.WebUI.Services.Exceptions
-@using JustTaskTracker.WebUI.Validation
 @implements IDisposable
 @inject ICallSessionStore CallSessionStore
-@inject ICallsInteropService CallsInteropService
 @inject IBoardDetailsStore BoardDetailsStore
-@inject IProfileStore ProfileStore
-@inject IDialogService DialogService
 @inject ISnackbar Snackbar
-@inject NavigationManager Navigation
 
 <aside class="calls-sidebar @(CallSessionStore.IsSidebarOpen ? "calls-sidebar--open" : null)" aria-hidden="@(!CallSessionStore.IsSidebarOpen)">
     <div class="calls-sidebar__panel">
         @if (BoardDetailsStore.Board is not { IsArchived: true })
         {
-            <section class="calls-sidebar__section calls-sidebar__section--active" aria-label="Active video calls">
-                <header class="calls-sidebar__header">
-                    <h2 class="calls-sidebar__title">Active video calls</h2>
-                    <button type="button"
-                            class="calls-sidebar__create-btn"
-                            @onclick="CreateCallAsync">
-                        create call
-                    </button>
-                </header>
-
-                <div class="calls-sidebar__section-body">
-                    @if (CallSessionStore.IsLoadingActiveCalls)
-                    {
-                        <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Small" />
-                    }
-                    else if (CallSessionStore.ActiveCalls.Count == 0)
-                    {
-                        <p class="calls-sidebar__empty">No active calls on this board.</p>
-                    }
-                    else
-                    {
-                        <ul class="calls-sidebar__list">
-                            @foreach (var call in CallSessionStore.ActiveCalls)
-                            {
-                                <li class="calls-sidebar__call-card">
-                                    <div class="calls-sidebar__call-body">
-                                        <span class="calls-sidebar__call-title"
-                                              title="@call.Title">@call.Title</span>
-                                        <span class="calls-sidebar__call-topic @(string.IsNullOrWhiteSpace(call.Topic) ? "calls-sidebar__call-topic--empty" : null)"
-                                              title="@call.Topic">@(string.IsNullOrWhiteSpace(call.Topic) ? "\u00a0" : call.Topic)</span>
-                                    </div>
-
-                                    <footer class="calls-sidebar__call-footer">
-                                        <span class="calls-sidebar__call-visibility">
-                                            @(call.Visibility == CallVisibility.Restricted ? "Restricted" : "Open")
-                                        </span>
-
-                                        @if (CallSessionStore.CurrentCallId == call.Id)
-                                        {
-                                            <span class="calls-sidebar__in-call-label">In call</span>
-                                        }
-                                        else
-                                        {
-                                            <button type="button"
-                                                    class="calls-sidebar__join-btn"
-                                                    aria-label="Join call"
-                                                    disabled="@(!CanJoin(call))"
-                                                    title="@(CanJoin(call) ? "Join call" : "You're not on this restricted call's allow-list.")"
-                                                    @onclick="() => JoinCallAsync(call)">
-                                                <svg viewBox="0 0 24 24"
-                                                     aria-hidden="true"
-                                                     focusable="false">
-                                                    <path fill="none"
-                                                          stroke="currentColor"
-                                                          stroke-width="2"
-                                                          stroke-linecap="round"
-                                                          stroke-linejoin="round"
-                                                          d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3" />
-                                                </svg>
-                                            </button>
-                                        }
-                                    </footer>
-                                </li>
-                            }
-                        </ul>
-                    }
-                </div>
-            </section>
+            <ActiveCallsTab BoardId="BoardId"
+                            OnShowLinkedTasks="callId => ShowActiveOverlay(callId, ActiveCallOverlayKind.LinkedTasks)"
+                            OnShowParticipants="callId => ShowActiveOverlay(callId, ActiveCallOverlayKind.Participants)"
+                            OnShowAllowedUsers="callId => ShowActiveOverlay(callId, ActiveCallOverlayKind.AllowedUsers)" />
         }
 
         <section class="calls-sidebar__section calls-sidebar__section--history @GetHistorySectionClass()"
@@ -138,21 +66,48 @@
     </div>
 </aside>
 
-@if (_historyOverlayKind == HistoryOverlayKind.LinkedTasks && _historyOverlaySession is { } tasksSession)
+@* Overlays render here, as siblings of <aside>, deliberately outside calls-sidebar__panel: that
+   element has `transform`/`overflow: hidden` (for the slide-in animation), which would otherwise
+   clip a `position: fixed` overlay to the sidebar's own bounds instead of covering the viewport. *@
+@if (_activeOverlayKind == ActiveCallOverlayKind.LinkedTasks && ActiveOverlaySession is { } activeTasksSession)
 {
-    <CallHistoryLinkedTasksOverlay BoardId="BoardId" Tasks="tasksSession.LinkedTasks" OnClose="CloseHistoryOverlay" />
+    <CallLinkedTasksOverlay BoardId="BoardId" Tasks="activeTasksSession.LinkedTasks" OnClose="CloseActiveOverlay" />
+}
+else if (_activeOverlayKind == ActiveCallOverlayKind.Participants && ActiveOverlaySession is { } activeParticipantsSession)
+{
+    <CallParticipantsOverlay Participants="GetActiveParticipantEntries(activeParticipantsSession)"
+                             EmptyMessage="No one is in this call yet."
+                             OnClose="CloseActiveOverlay" />
+}
+else if (_activeOverlayKind == ActiveCallOverlayKind.AllowedUsers && ActiveOverlaySession?.AllowedUsers is { } activeAllowedUsers)
+{
+    <CallAllowedUsersOverlay Users="activeAllowedUsers" OnClose="CloseActiveOverlay" />
+}
+else if (_historyOverlayKind == HistoryOverlayKind.LinkedTasks && _historyOverlaySession is { } tasksSession)
+{
+    <CallLinkedTasksOverlay BoardId="BoardId" Tasks="tasksSession.LinkedTasks" OnClose="CloseHistoryOverlay" />
 }
 else if (_historyOverlayKind == HistoryOverlayKind.Participants && _historyOverlaySession is { } participantsSession)
 {
-    <CallHistoryParticipantsOverlay Participants="participantsSession.Participants" OnClose="CloseHistoryOverlay" />
+    <CallParticipantsOverlay Participants="GetHistoryParticipantEntries(participantsSession.Participants)"
+                             EmptyMessage="No participants recorded."
+                             OnClose="CloseHistoryOverlay" />
 }
 else if (_historyOverlayKind == HistoryOverlayKind.AllowedUsers && _historyOverlaySession?.AllowedUsers is { } allowedUsers)
 {
-    <CallHistoryAllowedUsersOverlay Users="allowedUsers" OnClose="CloseHistoryOverlay" />
+    <CallAllowedUsersOverlay Users="allowedUsers" OnClose="CloseHistoryOverlay" />
 }
 
 @code {
     private enum HistoryOverlayKind
+    {
+        None,
+        LinkedTasks,
+        Participants,
+        AllowedUsers,
+    }
+
+    private enum ActiveCallOverlayKind
     {
         None,
         LinkedTasks,
@@ -166,6 +121,17 @@ else if (_historyOverlayKind == HistoryOverlayKind.AllowedUsers && _historyOverl
     private bool _isHistoryExpanded = true;
     private HistoryOverlayKind _historyOverlayKind = HistoryOverlayKind.None;
     private CallSessionHistoryDto? _historyOverlaySession;
+
+    private Guid? _activeOverlayCallId;
+    private ActiveCallOverlayKind _activeOverlayKind = ActiveCallOverlayKind.None;
+
+    // Resolved live from the store rather than captured at click-time -- ApplyCallStateNotification
+    // (Story 3.2) replaces the whole ActiveCalls list on every participant/presenter event, so a
+    // captured CallSessionDto reference would otherwise go stale while an overlay is open.
+    private CallSessionDto? ActiveOverlaySession =>
+        _activeOverlayCallId is { } callId
+            ? CallSessionStore.ActiveCalls.FirstOrDefault(c => c.Id == callId)
+            : null;
 
     protected override void OnInitialized()
     {
@@ -191,6 +157,18 @@ else if (_historyOverlayKind == HistoryOverlayKind.AllowedUsers && _historyOverl
         _historyOverlayKind = HistoryOverlayKind.None;
     }
 
+    private void ShowActiveOverlay(Guid callId, ActiveCallOverlayKind kind)
+    {
+        _activeOverlayCallId = callId;
+        _activeOverlayKind = kind;
+    }
+
+    private void CloseActiveOverlay()
+    {
+        _activeOverlayCallId = null;
+        _activeOverlayKind = ActiveCallOverlayKind.None;
+    }
+
     private async Task LoadMoreHistoryAsync()
     {
         try
@@ -203,70 +181,21 @@ else if (_historyOverlayKind == HistoryOverlayKind.AllowedUsers && _historyOverl
         }
     }
 
-    private bool CanJoin(CallSessionDto call)
-    {
-        if (call.Visibility != CallVisibility.Restricted)
-            return true;
-
-        if (ProfileStore.Profile is { } profile && call.CreatedByUserId == profile.Id)
-            return true;
-
-        if (BoardDetailsStore.Board is { } board && BoardRolePermissions.CanBypassCallRestriction(board.UserRole))
-            return true;
-
-        return ProfileStore.Profile is { } currentUser
-            && (call.AllowedUserIds?.Contains(currentUser.Id) ?? false);
-    }
-
-    private async Task CreateCallAsync()
-    {
-        var submitState = new ResourceFormDialogState();
-
-        var dialog = await DialogService.ShowResourceFormAsync(
-            "Create video call",
-            "Create",
-            CreateCallForm.FormId,
-            CreateCallForm.Render(BoardId, submitState),
-            submitState: submitState);
-
-        var result = await dialog.Result;
-
-        if (result is not { Canceled: false, Data: CreateCallResult callResult })
-            return;
-
-        var session = await CallSessionStore.CreateCallAsync(
-            BoardId,
-            callResult.Title,
-            callResult.Topic,
-            callResult.Visibility,
-            callResult.AllowedUserIds,
-            callResult.LinkedTaskIds);
-
-        if (session is null)
-        {
-            if (CallSessionStore.ErrorMessage is { } error)
-                Snackbar.Add(error, Severity.Error);
-
-            return;
-        }
-
-        await JoinCallAsync(session);
-    }
-
-    private async Task JoinCallAsync(CallSessionDto call)
-    {
-        var environment = await CallsInteropService.CheckEnvironmentAsync();
-
-        if (!environment.IsSupported)
-        {
-            Snackbar.Add(environment.Reason ?? "This browser doesn't support video calls.", Severity.Error);
-            return;
-        }
-
-        Navigation.NavigateTo($"/boards/{BoardId}/calls/{call.Id}");
-    }
-
     private void OnStoreStateChanged() => InvokeAsync(StateHasChanged);
+
+    private static IReadOnlyList<CallParticipantsOverlay.Entry> GetActiveParticipantEntries(CallSessionDto call) =>
+        call.Participants.Select(u => new CallParticipantsOverlay.Entry(u)).ToList();
+
+    private static IReadOnlyList<CallParticipantsOverlay.Entry> GetHistoryParticipantEntries(IReadOnlyList<CallHistoryParticipantDto> participants) =>
+        participants.Select(p => new CallParticipantsOverlay.Entry(p.User, GetTimesCaption(p))).ToList();
+
+    private static string GetTimesCaption(CallHistoryParticipantDto participant)
+    {
+        var joined = participant.FirstJoinedAtUtc.ToLocalTime().ToString("g");
+        var left = participant.LastLeftAtUtc is { } lastLeftAtUtc ? lastLeftAtUtc.ToLocalTime().ToString("g") : "—";
+
+        return $"Joined {joined}, left {left}";
+    }
 
     public void Dispose()
     {

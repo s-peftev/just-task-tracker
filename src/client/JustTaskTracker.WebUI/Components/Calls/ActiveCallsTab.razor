@@ -1,0 +1,221 @@
+@using JustTaskTracker.WebUI.Domain.Auth
+@using JustTaskTracker.WebUI.Domain.Boards.Authorization
+@using JustTaskTracker.WebUI.Domain.Calls
+@using JustTaskTracker.WebUI.Domain.Calls.Enums
+@using JustTaskTracker.WebUI.Infrastructure
+@using JustTaskTracker.WebUI.Services.Abstractions.Auth
+@using JustTaskTracker.WebUI.Services.Abstractions.Boards
+@using JustTaskTracker.WebUI.Services.Abstractions.Calls
+@using JustTaskTracker.WebUI.Services.Exceptions
+@using JustTaskTracker.WebUI.Validation
+@implements IDisposable
+@inject ICallSessionStore CallSessionStore
+@inject ICallsInteropService CallsInteropService
+@inject IBoardDetailsStore BoardDetailsStore
+@inject IProfileStore ProfileStore
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+
+<section class="calls-sidebar__section calls-sidebar__section--active" aria-label="Active video calls">
+    <header class="calls-sidebar__header">
+        <h2 class="calls-sidebar__title">Active video calls</h2>
+        <button type="button"
+                class="calls-sidebar__create-btn"
+                @onclick="CreateCallAsync">
+            create call
+        </button>
+    </header>
+
+    <div class="calls-sidebar__section-body">
+        @if (CallSessionStore.IsLoadingActiveCalls)
+        {
+            <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Small" />
+        }
+        else if (CallSessionStore.ActiveCalls.Count == 0)
+        {
+            <p class="calls-sidebar__empty">No active calls on this board.</p>
+        }
+        else
+        {
+            <ul class="calls-sidebar__list">
+                @foreach (var call in CallSessionStore.ActiveCalls)
+                {
+                    <li @key="call.Id" class="calls-sidebar__call-card">
+                        <div class="calls-sidebar__call-body">
+                            <span class="calls-sidebar__call-title"
+                                  title="@call.Title">@call.Title</span>
+                            <span class="calls-sidebar__call-topic @(string.IsNullOrWhiteSpace(call.Topic) ? "calls-sidebar__call-topic--empty" : null)"
+                                  title="@call.Topic">@(string.IsNullOrWhiteSpace(call.Topic) ? " " : call.Topic)</span>
+                        </div>
+
+                        <div class="calls-sidebar__call-live">
+                            <LiveCallDuration Class="calls-sidebar__call-duration" StartedAtUtc="call.StartedAtUtc" />
+
+                            @if (GetPresenterName(call) is { } presenterName)
+                            {
+                                <span class="calls-sidebar__call-presenter" title="Currently presenting">
+                                    @presenterName presenting
+                                </span>
+                            }
+                        </div>
+
+                        <footer class="calls-sidebar__call-counts">
+                            <button type="button"
+                                    class="calls-sidebar__call-count-btn"
+                                    @onclick="() => OnShowLinkedTasks.InvokeAsync(call.Id)">
+                                Tasks (@call.LinkedTasks.Count)
+                            </button>
+
+                            <button type="button"
+                                    class="calls-sidebar__call-count-btn"
+                                    @onclick="() => OnShowParticipants.InvokeAsync(call.Id)">
+                                Participants (@call.Participants.Count)
+                            </button>
+
+                            @if (call.Visibility == CallVisibility.Restricted && call.AllowedUsers is { } allowedUsers)
+                            {
+                                <button type="button"
+                                        class="calls-sidebar__call-count-btn"
+                                        @onclick="() => OnShowAllowedUsers.InvokeAsync(call.Id)">
+                                    Allowed (@allowedUsers.Count)
+                                </button>
+                            }
+                            else
+                            {
+                                <span class="calls-sidebar__call-visibility">Open</span>
+                            }
+                        </footer>
+
+                        <footer class="calls-sidebar__call-footer">
+                            @if (CallSessionStore.CurrentCallId == call.Id)
+                            {
+                                <span class="calls-sidebar__in-call-label">In call</span>
+                            }
+                            else
+                            {
+                                <button type="button"
+                                        class="calls-sidebar__join-btn"
+                                        aria-label="Join call"
+                                        disabled="@(!CanJoin(call))"
+                                        title="@(CanJoin(call) ? "Join call" : "You're not on this restricted call's allow-list.")"
+                                        @onclick="() => JoinCallAsync(call)">
+                                    <svg viewBox="0 0 24 24"
+                                         aria-hidden="true"
+                                         focusable="false">
+                                        <path fill="none"
+                                              stroke="currentColor"
+                                              stroke-width="2"
+                                              stroke-linecap="round"
+                                              stroke-linejoin="round"
+                                              d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3" />
+                                    </svg>
+                                </button>
+                            }
+                        </footer>
+                    </li>
+                }
+            </ul>
+        }
+    </div>
+</section>
+
+@code {
+    [Parameter, EditorRequired]
+    public Guid BoardId { get; set; }
+
+    // The overlays themselves are hosted by CallsSidebar, not here -- this section renders inside
+    // calls-sidebar__panel, which has `transform`/`overflow: hidden` for its slide-in animation and
+    // would clip a `position: fixed` overlay to the sidebar's bounds instead of the viewport.
+    [Parameter, EditorRequired]
+    public EventCallback<Guid> OnShowLinkedTasks { get; set; }
+
+    [Parameter, EditorRequired]
+    public EventCallback<Guid> OnShowParticipants { get; set; }
+
+    [Parameter, EditorRequired]
+    public EventCallback<Guid> OnShowAllowedUsers { get; set; }
+
+    protected override void OnInitialized()
+    {
+        CallSessionStore.StateChanged += OnStoreStateChanged;
+        BoardDetailsStore.StateChanged += OnStoreStateChanged;
+    }
+
+    private static string? GetPresenterName(CallSessionDto call) =>
+        call.CurrentPresenterUserId is { } presenterId
+            && call.Participants.FirstOrDefault(p => p.Id == presenterId) is { } presenter
+                ? UserDisplayFormatting.GetShortName(presenter)
+                : null;
+
+    private bool CanJoin(CallSessionDto call)
+    {
+        if (call.Visibility != CallVisibility.Restricted)
+            return true;
+
+        if (ProfileStore.Profile is { } profile && call.CreatedBy.Id == profile.Id)
+            return true;
+
+        if (BoardDetailsStore.Board is { } board && BoardRolePermissions.CanBypassCallRestriction(board.UserRole))
+            return true;
+
+        return ProfileStore.Profile is { } currentUser
+            && (call.AllowedUsers?.Any(u => u.Id == currentUser.Id) ?? false);
+    }
+
+    private async Task CreateCallAsync()
+    {
+        var submitState = new ResourceFormDialogState();
+
+        var dialog = await DialogService.ShowResourceFormAsync(
+            "Create video call",
+            "Create",
+            CreateCallForm.FormId,
+            CreateCallForm.Render(BoardId, submitState),
+            submitState: submitState);
+
+        var result = await dialog.Result;
+
+        if (result is not { Canceled: false, Data: CreateCallResult callResult })
+            return;
+
+        var session = await CallSessionStore.CreateCallAsync(
+            BoardId,
+            callResult.Title,
+            callResult.Topic,
+            callResult.Visibility,
+            callResult.AllowedUserIds,
+            callResult.LinkedTaskIds);
+
+        if (session is null)
+        {
+            if (CallSessionStore.ErrorMessage is { } error)
+                Snackbar.Add(error, Severity.Error);
+
+            return;
+        }
+
+        await JoinCallAsync(session);
+    }
+
+    private async Task JoinCallAsync(CallSessionDto call)
+    {
+        var environment = await CallsInteropService.CheckEnvironmentAsync();
+
+        if (!environment.IsSupported)
+        {
+            Snackbar.Add(environment.Reason ?? "This browser doesn't support video calls.", Severity.Error);
+            return;
+        }
+
+        Navigation.NavigateTo($"/boards/{BoardId}/calls/{call.Id}");
+    }
+
+    private void OnStoreStateChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        CallSessionStore.StateChanged -= OnStoreStateChanged;
+        BoardDetailsStore.StateChanged -= OnStoreStateChanged;
+    }
+}

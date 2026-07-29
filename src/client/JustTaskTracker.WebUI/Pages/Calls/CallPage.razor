@@ -366,7 +366,7 @@
 
         var isCreator = activeCall is { } call
             && ProfileStore.Profile is { } profile
-            && call.CreatedByUserId == profile.Id;
+            && call.CreatedBy.Id == profile.Id;
 
         var canEndAsRole = BoardDetailsStore.Board is { } board
             && board.Id == BoardId

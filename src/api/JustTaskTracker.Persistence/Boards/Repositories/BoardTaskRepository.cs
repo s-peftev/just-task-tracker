@@ -47,6 +47,11 @@ public class BoardTaskRepository(JustTaskTrackerDbContext context)
     public Task<bool> ExistsInBoardAsync(Guid boardTaskId, Guid boardId, CancellationToken ct = default) =>
         _dbSet.AnyAsync(t => t.Id == boardTaskId && t.Column!.BoardId == boardId, ct);
 
+    public Task<int> CountExistingInBoardAsync(Guid boardId, IReadOnlyList<Guid> boardTaskIds, CancellationToken ct = default) =>
+        boardTaskIds.Count is 0
+            ? Task.FromResult(0)
+            : _dbSet.CountAsync(t => boardTaskIds.Contains(t.Id) && t.Column!.BoardId == boardId, ct);
+
     public async Task<BoardTaskDetailsReadModel?> GetBoardTaskDetailsAsync(Guid boardTaskId, CancellationToken ct = default) =>
         await _dbSet
             .Where(task => task.Id == boardTaskId)

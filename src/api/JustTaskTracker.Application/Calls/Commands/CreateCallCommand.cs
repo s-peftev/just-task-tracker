@@ -23,6 +23,7 @@ using JustTaskTracker.Domain.Calls.Notifications;
 using JustTaskTracker.Domain.Common.Results;
 using JustTaskTracker.Domain.Common.Results.Errors;
 using MediatR;
+using Microsoft.Extensions.Logging;
 
 namespace JustTaskTracker.Application.Calls.Commands;
 
@@ -47,7 +48,8 @@ public class CreateCallCommandHandler(
     ICallStateNotifier callStateNotifier,
     IProfilePhotoService profilePhotoService,
     IUnitOfWork unitOfWork,
-    IDateTimeProvider dateTimeProvider)
+    IDateTimeProvider dateTimeProvider,
+    ILogger<CreateCallCommandHandler> logger)
     : IRequestHandler<CreateCallCommand, Result<CallSessionDto>>
 {
     public async Task<Result<CallSessionDto>> Handle(CreateCallCommand request, CancellationToken ct)
@@ -71,31 +73,30 @@ public class CreateCallCommandHandler(
         var createdBy = new UserReadModel(currentUser.Id, currentUser.Email, currentUser.DisplayName, currentUser.ProfilePhotoVersion)
             .ToDto(profilePhotoUrlResolver);
 
-        IReadOnlyList<Guid> allowedUserIds = request.Visibility == CallVisibility.Restricted
-            ? request.AllowedUserIds ?? []
+        IReadOnlyList<Guid> allowedUserIds = request.Visibility == CallVisibility.Restricted && request.AllowedUserIds is { Count: > 0 }
+            ? request.AllowedUserIds.Distinct().ToList()
             : [];
 
-        // AD-4/AD-8: an allow-list entry only makes sense for someone who can actually be a call
-        // participant at all -- reject up front rather than persisting a dangling/meaningless entry.
-        foreach (var allowedUserId in allowedUserIds)
+        if (allowedUserIds.Count > 0)
         {
-            if (!await boardRepository.IsBoardMemberAsync(request.BoardId, allowedUserId, ct))
+            var memberCount = await boardRepository.CountBoardMembersAsync(request.BoardId, allowedUserIds, ct);
+
+            if (memberCount != allowedUserIds.Count)
                 return Result<CallSessionDto>.Failure(CallSessionsErrors.AllowedParticipantNotBoardMember);
         }
 
-        // AD-13: linking is optional and not gated by Visibility; a task may already be linked to
-        // other call sessions, so only de-dupe within this request, not across sessions.
         IReadOnlyList<Guid> linkedTaskIds = request.LinkedTaskIds is { Count: > 0 }
             ? request.LinkedTaskIds.Distinct().ToList()
             : [];
 
-        foreach (var taskId in linkedTaskIds)
+        if (linkedTaskIds.Count > 0)
         {
-            if (!await boardTaskRepository.ExistsInBoardAsync(taskId, request.BoardId, ct))
+            var existingCount = await boardTaskRepository.CountExistingInBoardAsync(request.BoardId, linkedTaskIds, ct);
+
+            if (existingCount != linkedTaskIds.Count)
                 return Result<CallSessionDto>.Failure(CallSessionsErrors.LinkedTaskNotOnBoard);
         }
 
-        // AD-14: provision the ACS Room first; only persist once it exists.
         var acsRoomId = await acsCallProvisioningService.CreateRoomAsync(ct);
 
         var callSession = new CallSession
@@ -144,12 +145,14 @@ public class CreateCallCommandHandler(
 
         await NotifyCallStartedAsync(request, callSession, board.Name, createdBy, allowedUserIds, ct);
 
-        // Same navigation-property projection the list/history queries use (CallRepository),
-        // instead of separately resolving allowed users/linked tasks here.
         var sessionState = await callRepository.GetSessionWithStateAsync(callSession.Id, ct);
 
         if (sessionState is null)
-            return Result<CallSessionDto>.Failure(GeneralErrors.NotFound);
+        {
+            logger.LogError("Just-created call session {CallSessionId} could not be reloaded with its state.", callSession.Id);
+
+            return Result<CallSessionDto>.Failure(GeneralErrors.InternalServerError);
+        }
 
         return Result<CallSessionDto>.Success(sessionState.ToDto(profilePhotoUrlResolver));
     }

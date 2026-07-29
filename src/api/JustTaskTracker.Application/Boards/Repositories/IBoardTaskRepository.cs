@@ -17,6 +17,13 @@ public interface IBoardTaskRepository : IRepository<BoardTask, Guid>
 
     Task<bool> ExistsInBoardAsync(Guid boardTaskId, Guid boardId, CancellationToken ct = default);
 
+    /// <summary>
+    /// How many of <paramref name="boardTaskIds"/> exist on the board -- lets a caller validate an
+    /// entire id list in one round trip (compare against the distinct id count) instead of one
+    /// <see cref="ExistsInBoardAsync"/> call per id.
+    /// </summary>
+    Task<int> CountExistingInBoardAsync(Guid boardId, IReadOnlyList<Guid> boardTaskIds, CancellationToken ct = default);
+
     Task<BoardTaskDetailsReadModel?> GetBoardTaskDetailsAsync(Guid boardTaskId, CancellationToken ct = default);
 
     Task<PagedList<BoardTaskLookupDto>> GetBoardTaskLookupListAsync(Guid boardId, int pageNumber, int pageSize, TextSearchOptions<BoardTaskSearchField>? searchOptions = null, CancellationToken ct = default);

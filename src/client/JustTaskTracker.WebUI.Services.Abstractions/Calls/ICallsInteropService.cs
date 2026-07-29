@@ -7,7 +7,11 @@ public record CallEnvironmentCheckResult(bool IsSupported, string? Reason);
 
 public interface ICallsInteropService
 {
+    CallPreJoinMediaPreferences PreJoin { get; }
+
     Task<CallEnvironmentCheckResult> CheckEnvironmentAsync();
+
+    Task<CallPreJoinDevicesResult> GetPreJoinDevicesAsync();
 
     /// <summary>
     /// Joins the ACS Room. <paramref name="callbackRef"/>'s target must expose

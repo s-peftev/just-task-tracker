@@ -407,6 +407,7 @@
 
         _selfRef = DotNetObjectReference.Create(this);
         await CallsInteropService.JoinRoomAsync(joinInfo.Token, joinInfo.AcsRoomId, _selfRef);
+        _micOn = CallsInteropService.PreJoin.MicEnabled;
         _isJoining = false;
 
         await RefreshParticipantsAsync();

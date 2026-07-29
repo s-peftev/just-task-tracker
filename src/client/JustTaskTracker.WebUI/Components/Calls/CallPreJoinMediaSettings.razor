@@ -1,0 +1,201 @@
+@using JustTaskTracker.WebUI.Services.Abstractions.Calls
+@using Microsoft.JSInterop
+@inject ICallsInteropService CallsInteropService
+
+<section class="call-prejoin-media" aria-label="Pre-join media settings">
+    <div class="call-prejoin-media__field">
+        <span class="call-prejoin-media__label" id="@($"{IdPrefix}-mic-label")">Microphone</span>
+        <div class="call-prejoin-media__row">
+            <select class="call-prejoin-media__select"
+                    aria-labelledby="@($"{IdPrefix}-mic-label")"
+                    disabled="@(_isLoadingDevices || _microphones.Count == 0)"
+                    value="@(CallsInteropService.PreJoin.MicrophoneDeviceId ?? string.Empty)"
+                    @onchange="OnMicrophoneChanged">
+                @if (_isLoadingDevices)
+                {
+                    <option value="">Loading devices…</option>
+                }
+                else if (_microphones.Count == 0)
+                {
+                    <option value="">No microphone found</option>
+                }
+                else
+                {
+                    @foreach (var mic in _microphones)
+                    {
+                        <option value="@mic.Id">@mic.Name</option>
+                    }
+                }
+            </select>
+
+            <button type="button"
+                    class="call-prejoin-media__toggle @(CallsInteropService.PreJoin.MicEnabled ? null : "call-prejoin-media__toggle--off")"
+                    aria-label="@(CallsInteropService.PreJoin.MicEnabled ? "Mute microphone on join" : "Unmute microphone on join")"
+                    aria-pressed="@(!CallsInteropService.PreJoin.MicEnabled)"
+                    title="@(CallsInteropService.PreJoin.MicEnabled ? "Microphone on" : "Microphone off")"
+                    @onclick="ToggleMic">
+                @if (CallsInteropService.PreJoin.MicEnabled)
+                {
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path fill="none"
+                              stroke="currentColor"
+                              stroke-width="2"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              d="M12 19v3M8 23h8M19 10v1a7 7 0 0 1-14 0v-1M12 15a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v6a3 3 0 0 0 3 3z" />
+                    </svg>
+                }
+                else
+                {
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path fill="none"
+                              stroke="currentColor"
+                              stroke-width="2"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              d="M12 19v3M8 23h8M1 1l22 22M9 9v3a3 3 0 0 0 5.12 2.12M15 9.88V6a3 3 0 0 0-5.12-2.12M19 10v1a7 7 0 0 1-2.16 4.56" />
+                    </svg>
+                }
+            </button>
+        </div>
+    </div>
+
+    <div class="call-prejoin-media__field">
+        <span class="call-prejoin-media__label" id="@($"{IdPrefix}-camera-label")">Camera</span>
+        <div class="call-prejoin-media__row">
+            <select class="call-prejoin-media__select"
+                    aria-labelledby="@($"{IdPrefix}-camera-label")"
+                    disabled="@(_isLoadingDevices || _cameras.Count == 0)"
+                    value="@(CallsInteropService.PreJoin.CameraDeviceId ?? string.Empty)"
+                    @onchange="OnCameraChanged">
+                @if (_isLoadingDevices)
+                {
+                    <option value="">Loading devices…</option>
+                }
+                else if (_cameras.Count == 0)
+                {
+                    <option value="">No camera found</option>
+                }
+                else
+                {
+                    @foreach (var camera in _cameras)
+                    {
+                        <option value="@camera.Id">@camera.Name</option>
+                    }
+                }
+            </select>
+
+            <button type="button"
+                    class="call-prejoin-media__toggle @(CallsInteropService.PreJoin.CameraEnabled ? null : "call-prejoin-media__toggle--off")"
+                    aria-label="@(CallsInteropService.PreJoin.CameraEnabled ? "Turn camera off on join" : "Turn camera on on join")"
+                    aria-pressed="@(!CallsInteropService.PreJoin.CameraEnabled)"
+                    title="@(CallsInteropService.PreJoin.CameraEnabled ? "Camera on" : "Camera off")"
+                    @onclick="ToggleCamera">
+                @if (CallsInteropService.PreJoin.CameraEnabled)
+                {
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path fill="none"
+                              stroke="currentColor"
+                              stroke-width="2"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              d="M23 7l-7 5 7 5V7z" />
+                        <rect fill="none"
+                              stroke="currentColor"
+                              stroke-width="2"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              x="1"
+                              y="5"
+                              width="15"
+                              height="14"
+                              rx="2"
+                              ry="2" />
+                    </svg>
+                }
+                else
+                {
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path fill="none"
+                              stroke="currentColor"
+                              stroke-width="2"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              d="M1 1l22 22M15 9.9V6a3 3 0 0 0-5.12-2.12M21 15.5V17a2 2 0 0 1-2 2H7.5M9 5H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h.5" />
+                        <path fill="none"
+                              stroke="currentColor"
+                              stroke-width="2"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              d="M23 7l-7 5 2.1 1.5" />
+                    </svg>
+                }
+            </button>
+        </div>
+    </div>
+
+    @if (_devicesError is { } devicesError)
+    {
+        <p class="call-prejoin-media__error">@devicesError</p>
+    }
+</section>
+
+@code {
+    [Parameter]
+    public string IdPrefix { get; set; } = "prejoin";
+
+    private bool _isLoadingDevices = true;
+    private bool _devicesLoaded;
+    private string? _devicesError;
+    private IReadOnlyList<CallMediaDeviceDto> _cameras = [];
+    private IReadOnlyList<CallMediaDeviceDto> _microphones = [];
+
+    protected override async Task OnInitializedAsync() =>
+        await LoadDevicesAsync();
+
+    private async Task LoadDevicesAsync()
+    {
+        if (_devicesLoaded)
+            return;
+
+        _isLoadingDevices = true;
+        _devicesError = null;
+
+        try
+        {
+            var result = await CallsInteropService.GetPreJoinDevicesAsync();
+            _cameras = result.Cameras;
+            _microphones = result.Microphones;
+            _devicesLoaded = true;
+
+            if (_cameras.Count == 0 && _microphones.Count == 0)
+                _devicesError = "Could not access camera or microphone. Check browser permissions.";
+        }
+        catch (JSException)
+        {
+            _cameras = [];
+            _microphones = [];
+            _devicesError = "Could not load media devices.";
+        }
+        finally
+        {
+            _isLoadingDevices = false;
+        }
+    }
+
+    private void ToggleMic() =>
+        CallsInteropService.PreJoin.MicEnabled = !CallsInteropService.PreJoin.MicEnabled;
+
+    private void ToggleCamera() =>
+        CallsInteropService.PreJoin.CameraEnabled = !CallsInteropService.PreJoin.CameraEnabled;
+
+    private void OnMicrophoneChanged(ChangeEventArgs e) =>
+        CallsInteropService.PreJoin.MicrophoneDeviceId = string.IsNullOrWhiteSpace(e.Value?.ToString())
+            ? null
+            : e.Value!.ToString();
+
+    private void OnCameraChanged(ChangeEventArgs e) =>
+        CallsInteropService.PreJoin.CameraDeviceId = string.IsNullOrWhiteSpace(e.Value?.ToString())
+            ? null
+            : e.Value!.ToString();
+}

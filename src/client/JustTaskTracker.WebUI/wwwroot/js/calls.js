@@ -54,6 +54,54 @@ const pendingViews = new Map();
 // pile of stale, disconnected media elements behind in the tile.
 const activeViewElements = new Map();
 
+function mapDevice(device) {
+    return {
+        id: device.id,
+        name: device.name || device.id
+    };
+}
+
+function pickDevice(devices, preferredId) {
+    if (!devices?.length)
+        return null;
+
+    if (preferredId) {
+        const match = devices.find((device) => device.id === preferredId);
+        if (match)
+            return match;
+    }
+
+    return devices[0];
+}
+
+export async function getPreJoinDevices() {
+    try {
+        const callClient = new CallClient();
+        const deviceManager = await callClient.getDeviceManager();
+        await deviceManager.askDevicePermission({ video: true, audio: true });
+
+        const cameras = (await deviceManager.getCameras()).map(mapDevice);
+        const microphones = (await deviceManager.getMicrophones()).map(mapDevice);
+        const selectedCamera = deviceManager.selectedCamera;
+        const selectedMicrophone = deviceManager.selectedMicrophone;
+
+        return {
+            cameras,
+            microphones,
+            selectedCameraId: selectedCamera?.id ?? cameras[0]?.id ?? null,
+            selectedMicrophoneId: selectedMicrophone?.id ?? microphones[0]?.id ?? null
+        };
+    } catch (error) {
+        console.error("calls.js getPreJoinDevices failed:", error);
+        return {
+            cameras: [],
+            microphones: [],
+            selectedCameraId: null,
+            selectedMicrophoneId: null
+        };
+    }
+}
+
 // The "stage" is a single dedicated surface for whichever remote participant is currently
 // screen-sharing (AD-9 guarantees at most one at a time) -- separate from the tile grid/Map
 // above, since it isn't keyed per-participant and only ever renders a 'ScreenSharing' stream,
@@ -213,28 +261,39 @@ async function syncParticipantScreenShare(participant, tileId) {
 // Creates a fresh CallClient/CallAgent and joins the Room -- split out of join() so the retry
 // below can attempt it twice from a clean CallClient rather than reusing one that may have just
 // failed to initialize.
-async function createAgentAndJoin(tokenCredential, roomId) {
+async function createAgentAndJoin(tokenCredential, roomId, mediaOptions) {
     const callClient = new CallClient();
     const callAgent = await callClient.createCallAgent(tokenCredential);
+    const startWithCamera = mediaOptions?.cameraEnabled !== false;
+    const preferredCameraId = mediaOptions?.cameraDeviceId ?? null;
+    const preferredMicrophoneId = mediaOptions?.microphoneDeviceId ?? null;
 
     try {
         const deviceManager = await callClient.getDeviceManager();
         await deviceManager.askDevicePermission({ video: true, audio: true });
-        const cameras = await deviceManager.getCameras();
 
-        if (cameras.length > 0)
-            localVideoStream = new LocalVideoStream(cameras[0]);
+        const microphones = await deviceManager.getMicrophones();
+        const selectedMicrophone = pickDevice(microphones, preferredMicrophoneId);
+        if (selectedMicrophone)
+            await deviceManager.selectMicrophone(selectedMicrophone);
+
+        // Always build a LocalVideoStream when a camera exists so the in-call toggle can
+        // startVideo later even if the user joined with camera off. DeviceManager has no
+        // selectCamera -- the chosen VideoDeviceInfo is applied by constructing the stream.
+        const cameras = await deviceManager.getCameras();
+        const selectedCamera = pickDevice(cameras, preferredCameraId);
+        localVideoStream = selectedCamera ? new LocalVideoStream(selectedCamera) : null;
     } catch (error) {
         // No camera / permission denied -- proceed audio-only, but don't hide *why*.
         console.error("calls.js camera setup failed, proceeding audio-only:", error);
         localVideoStream = null;
     }
 
-    const callOptions = localVideoStream
+    const callOptions = (startWithCamera && localVideoStream)
         ? { videoOptions: { localVideoStreams: [localVideoStream] } }
         : {};
 
-    return callAgent.join({ roomId }, callOptions);
+    return { joinedCall: callAgent.join({ roomId }, callOptions), startWithCamera };
 }
 
 // Zoom-like grid: Blazor owns one <div> tile per participant (local + each remote) and reports
@@ -242,11 +301,14 @@ async function createAgentAndJoin(tokenCredential, roomId) {
 // only tells Blazor (via dotNetRef) when a tile should exist/stop existing -- rendering the actual
 // <video> into a tile is always driven from here, since only this module knows when a stream
 // becomes available, independent of Blazor's render cycle.
-export async function join(token, roomId, dotNetRef) {
+export async function join(token, roomId, dotNetRef, mediaOptions) {
     const tokenCredential = new AzureCommunicationTokenCredential(token);
+    let startWithCamera = mediaOptions?.cameraEnabled !== false;
 
     try {
-        call = await createAgentAndJoin(tokenCredential, roomId);
+        const result = await createAgentAndJoin(tokenCredential, roomId, mediaOptions);
+        call = result.joinedCall;
+        startWithCamera = result.startWithCamera;
     } catch (error) {
         // Microsoft's own troubleshooting guide categorizes createCallAgent/join init-timing
         // failures (e.g. "call stack did not initialize") as UnexpectedClientError and states a
@@ -256,7 +318,16 @@ export async function join(token, roomId, dotNetRef) {
         // one (that retry is allowed to throw and reach the caller as before).
         console.error("calls.js join failed, retrying once:", error);
         await new Promise((resolve) => setTimeout(resolve, 1000));
-        call = await createAgentAndJoin(tokenCredential, roomId);
+        const result = await createAgentAndJoin(tokenCredential, roomId, mediaOptions);
+        call = result.joinedCall;
+        startWithCamera = result.startWithCamera;
+    }
+
+    // Apply pre-join mute preference after the Room join succeeds -- mute() requires an active call.
+    micOn = true;
+    if (mediaOptions?.micEnabled === false) {
+        await call.mute();
+        micOn = false;
     }
 
     // A force-end (AD-15) removes this participant from the Room, which disconnects their local
@@ -280,12 +351,11 @@ export async function join(token, roomId, dotNetRef) {
             dotNetRef.invokeMethodAsync("OnLocalScreenShareStopped");
     });
 
-    await dotNetRef.invokeMethodAsync("OnTileAdded", "local", true, !!localVideoStream);
+    cameraOn = !!(startWithCamera && localVideoStream);
+    await dotNetRef.invokeMethodAsync("OnTileAdded", "local", true, cameraOn);
 
-    if (localVideoStream) {
-        cameraOn = true;
+    if (cameraOn)
         await renderLocalVideo();
-    }
 
     // Handles both "a new video stream showed up" (participant.videoStreams changed) and "an
     // existing stream's camera was turned back on/off" (same stream object, isAvailable flips) --

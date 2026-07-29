@@ -310,6 +310,10 @@
     display: block;
 }
 
+.create-call-form--inline .create-call-form__section--media {
+    gap: 0.625rem;
+}
+
 .create-call-form--inline .create-call-form__submit {
     width: 100%;
     margin: 0;

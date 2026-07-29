@@ -10,6 +10,8 @@ internal sealed class CallsInteropService(IJSRuntime js) : ICallsInteropService,
 
     private IJSObjectReference? _module;
 
+    public CallPreJoinMediaPreferences PreJoin { get; } = new();
+
     public async Task<CallEnvironmentCheckResult> CheckEnvironmentAsync()
     {
         var module = await EnsureModuleAsync();
@@ -17,11 +19,42 @@ internal sealed class CallsInteropService(IJSRuntime js) : ICallsInteropService,
         return await module.InvokeAsync<CallEnvironmentCheckResult>("checkEnvironment");
     }
 
+    public async Task<CallPreJoinDevicesResult> GetPreJoinDevicesAsync()
+    {
+        var module = await EnsureModuleAsync();
+        var result = await module.InvokeAsync<CallPreJoinDevicesResult>("getPreJoinDevices");
+
+        if (string.IsNullOrWhiteSpace(PreJoin.CameraDeviceId)
+            && !string.IsNullOrWhiteSpace(result.SelectedCameraId))
+            PreJoin.CameraDeviceId = result.SelectedCameraId;
+
+        if (string.IsNullOrWhiteSpace(PreJoin.MicrophoneDeviceId)
+            && !string.IsNullOrWhiteSpace(result.SelectedMicrophoneId))
+            PreJoin.MicrophoneDeviceId = result.SelectedMicrophoneId;
+
+        return result with
+        {
+            SelectedCameraId = PreJoin.CameraDeviceId ?? result.SelectedCameraId,
+            SelectedMicrophoneId = PreJoin.MicrophoneDeviceId ?? result.SelectedMicrophoneId,
+        };
+    }
+
     public async Task JoinRoomAsync<T>(string token, string acsRoomId, DotNetObjectReference<T> callbackRef) where T : class
     {
         var module = await EnsureModuleAsync();
 
-        await module.InvokeVoidAsync("join", token, acsRoomId, callbackRef);
+        await module.InvokeVoidAsync(
+            "join",
+            token,
+            acsRoomId,
+            callbackRef,
+            new
+            {
+                micEnabled = PreJoin.MicEnabled,
+                cameraEnabled = PreJoin.CameraEnabled,
+                microphoneDeviceId = PreJoin.MicrophoneDeviceId,
+                cameraDeviceId = PreJoin.CameraDeviceId,
+            });
     }
 
     public async Task RegisterTileElementAsync(string tileId, ElementReference element)
@@ -82,8 +115,24 @@ internal sealed class CallsInteropService(IJSRuntime js) : ICallsInteropService,
         await _module.InvokeVoidAsync("disposeCall");
     }
 
-    private async Task<IJSObjectReference> EnsureModuleAsync() =>
-        _module ??= await js.InvokeAsync<IJSObjectReference>("import", ModulePath);
+    private async Task<IJSObjectReference> EnsureModuleAsync()
+    {
+        if (_module is not null)
+            return _module;
+
+        try
+        {
+            _module = await js.InvokeAsync<IJSObjectReference>("import", ModulePath);
+            return _module;
+        }
+        catch
+        {
+            // Drop any partial reference so the next attempt can re-import after a page refresh
+            // replaces a stale fingerprinted asset URL.
+            _module = null;
+            throw;
+        }
+    }
 
     public async ValueTask DisposeAsync()
     {

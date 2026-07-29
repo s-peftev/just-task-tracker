@@ -51,7 +51,9 @@
                     @switch (_bodyPane)
                     {
                         case MeetingBodyPane.Active:
-                            <ActiveMeetingPanel Call="SelectedActiveCall" />
+                            <ActiveMeetingPanel BoardId="BoardId"
+                                                Call="SelectedActiveCall"
+                                                OnShowAllowedUsers="ShowSelectedAllowedUsers" />
                             break;
                         case MeetingBodyPane.Ended:
                             <EndedMeetingPanel Session="_selectedHistorySession" />
@@ -220,6 +222,14 @@ else if (_activeOverlayKind == ActiveCallOverlayKind.AllowedUsers && ActiveOverl
     {
         _activeOverlayCallId = callId;
         _activeOverlayKind = kind;
+    }
+
+    private void ShowSelectedAllowedUsers()
+    {
+        if (_selectedActiveCallId is not { } callId)
+            return;
+
+        ShowActiveOverlay(callId, ActiveCallOverlayKind.AllowedUsers);
     }
 
     private void CloseActiveOverlay()

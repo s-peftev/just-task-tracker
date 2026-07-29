@@ -1,0 +1,105 @@
+.call-prejoin-media {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+    min-width: 0;
+    font-family: "JttRoboto", sans-serif;
+}
+
+.call-prejoin-media__field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 0;
+}
+
+.call-prejoin-media__label {
+    font-size: 0.75rem;
+    font-weight: 400;
+    line-height: 1.3;
+    color: var(--jtt-text-muted);
+}
+
+.call-prejoin-media__row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+}
+
+.call-prejoin-media__select {
+    flex: 1 1 auto;
+    min-width: 0;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0.5rem 0.625rem;
+    border: 1px solid var(--jtt-stroke-default);
+    border-radius: var(--jtt-radius-sm);
+    background: color-mix(in srgb, var(--jtt-surface-board-column) 70%, black);
+    color: var(--jtt-text-primary);
+    font: inherit;
+    font-size: 0.8125rem;
+    line-height: 1.35;
+    outline: none;
+}
+
+.call-prejoin-media__select:hover:not(:disabled) {
+    border-color: var(--jtt-stroke-strong);
+}
+
+.call-prejoin-media__select:focus {
+    border-color: var(--jtt-accent);
+}
+
+.call-prejoin-media__select:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.call-prejoin-media__toggle {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    margin: 0;
+    padding: 0;
+    border: 1px solid var(--jtt-stroke-default);
+    border-radius: var(--jtt-radius-sm);
+    background: color-mix(in srgb, var(--jtt-accent) 16%, transparent);
+    color: var(--jtt-accent);
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.call-prejoin-media__toggle svg {
+    display: block;
+    width: 1.0625rem;
+    height: 1.0625rem;
+}
+
+.call-prejoin-media__toggle:hover,
+.call-prejoin-media__toggle:focus-visible {
+    background: color-mix(in srgb, var(--jtt-accent) 24%, transparent);
+    outline: none;
+}
+
+.call-prejoin-media__toggle--off {
+    background: transparent;
+    border-color: var(--jtt-stroke-subtle);
+    color: var(--jtt-text-muted);
+}
+
+.call-prejoin-media__toggle--off:hover,
+.call-prejoin-media__toggle--off:focus-visible {
+    background: var(--jtt-overlay-white-10);
+    color: var(--jtt-text-primary);
+}
+
+.call-prejoin-media__error {
+    margin: 0;
+    font-size: 0.75rem;
+    line-height: 1.35;
+    color: var(--jtt-text-muted);
+}

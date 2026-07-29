@@ -159,6 +159,7 @@
     border-radius: var(--jtt-radius-sm);
 }
 
+.board-page-header__calls-btn--active,
 .board-page-header__calls-btn:hover,
 .board-page-header__calls-btn:focus-visible {
     color: var(--jtt-accent);

@@ -1,74 +1,118 @@
 @using JustTaskTracker.WebUI.Components.Shared
+@using JustTaskTracker.WebUI.Components.Shared.Forms
 @using JustTaskTracker.WebUI.Domain.Calls
 @using JustTaskTracker.WebUI.Infrastructure
 @using JustTaskTracker.WebUI.Services.Abstractions.Boards
 @using JustTaskTracker.WebUI.Services.Abstractions.Calls
 @using JustTaskTracker.WebUI.Services.Exceptions
+@using JustTaskTracker.WebUI.Validation
 @implements IDisposable
 @inject ICallSessionStore CallSessionStore
 @inject IBoardDetailsStore BoardDetailsStore
+@inject ICallsInteropService CallsInteropService
+@inject IDialogService DialogService
 @inject ISnackbar Snackbar
+@inject NavigationManager Navigation
 
 <aside class="calls-sidebar @(CallSessionStore.IsSidebarOpen ? "calls-sidebar--open" : null)" aria-hidden="@(!CallSessionStore.IsSidebarOpen)">
-    <div class="calls-sidebar__panel">
-        @if (BoardDetailsStore.Board is not { IsArchived: true })
-        {
-            <ActiveCallsTab BoardId="BoardId"
-                            OnShowLinkedTasks="callId => ShowActiveOverlay(callId, ActiveCallOverlayKind.LinkedTasks)"
-                            OnShowParticipants="callId => ShowActiveOverlay(callId, ActiveCallOverlayKind.Participants)"
-                            OnShowAllowedUsers="callId => ShowActiveOverlay(callId, ActiveCallOverlayKind.AllowedUsers)" />
-        }
+    <div class="calls-sidebar__scrim" aria-hidden="true"></div>
+    <div class="calls-sidebar__drawer">
+        <div class="calls-sidebar__edge" aria-hidden="true"></div>
+        <div class="calls-sidebar__panel">
+            <header class="calls-sidebar__hub-header">
+                <h2 class="calls-sidebar__hub-title">Board Meetings Hub</h2>
 
-        <section class="calls-sidebar__section calls-sidebar__section--history @GetHistorySectionClass()"
-                 aria-label="Video calls history">
-            <header class="calls-sidebar__header">
-                <button type="button"
-                        class="calls-sidebar__history-toggle"
-                        aria-expanded="@_isHistoryExpanded"
-                        @onclick="ToggleHistorySection">
-                    <span class="calls-sidebar__title">Video calls history</span>
-                </button>
+                <div class="calls-sidebar__hub-actions">
+                    @if (BoardDetailsStore.Board is not { IsArchived: true })
+                    {
+                        <button type="button"
+                                class="calls-sidebar__create-meeting-btn"
+                                @onclick="CreateCallAsync">
+                            Create new meeting
+                        </button>
+                    }
+
+                    <button type="button"
+                            class="calls-sidebar__close btn-icon btn-icon--sm"
+                            aria-label="Close video calls"
+                            title="Close"
+                            @onclick="CloseSidebar">
+                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <path fill="none"
+                                  stroke="currentColor"
+                                  stroke-width="2"
+                                  stroke-linecap="round"
+                                  d="M18 6L6 18M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
             </header>
 
-            <div class="calls-sidebar__section-body calls-sidebar__section-body--history">
-                @if (CallSessionStore.IsLoadingHistory && CallSessionStore.History.Count == 0)
-                {
-                    <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Small" />
-                }
-                else if (CallSessionStore.History.Count == 0)
-                {
-                    <p class="calls-sidebar__empty">No call history on this board.</p>
-                }
-                else
-                {
-                    <ul class="calls-sidebar__list">
-                        @foreach (var session in CallSessionStore.History)
-                        {
-                            <CallHistoryCard Session="session"
-                                             OnShowLinkedTasks="() => ShowHistoryOverlay(session, HistoryOverlayKind.LinkedTasks)"
-                                             OnShowParticipants="() => ShowHistoryOverlay(session, HistoryOverlayKind.Participants)"
-                                             OnShowAllowedUsers="() => ShowHistoryOverlay(session, HistoryOverlayKind.AllowedUsers)" />
-                        }
+            <div class="calls-sidebar__body">
+                <section class="calls-sidebar__main" aria-label="Meeting details">
+                </section>
 
-                        @if (CallSessionStore.HasMoreHistory)
-                        {
-                            <li>
-                                <ExpandableActionButton Text="Show more"
-                                                        Icon="ExpandableActionButtonIcon.ChevronDown"
-                                                        Disabled="@CallSessionStore.IsLoadingMoreHistory"
-                                                        OnClick="LoadMoreHistoryAsync" />
-                            </li>
-                        }
-                    </ul>
-                }
+                <div class="calls-sidebar__rail">
+                    @if (BoardDetailsStore.Board is not { IsArchived: true })
+                    {
+                        <ActiveCallsTab BoardId="BoardId"
+                                        OnShowLinkedTasks="callId => ShowActiveOverlay(callId, ActiveCallOverlayKind.LinkedTasks)"
+                                        OnShowParticipants="callId => ShowActiveOverlay(callId, ActiveCallOverlayKind.Participants)"
+                                        OnShowAllowedUsers="callId => ShowActiveOverlay(callId, ActiveCallOverlayKind.AllowedUsers)" />
+                    }
+
+                    <section class="calls-sidebar__section calls-sidebar__section--history"
+                             aria-label="Recently ended">
+                        <header class="calls-sidebar__header calls-sidebar__header--recent">
+                            <h2 class="calls-sidebar__title calls-sidebar__title--recent">RECENTLY ENDED</h2>
+                        </header>
+
+                        <div class="calls-sidebar__section-body">
+                            @if (CallSessionStore.IsLoadingHistory && CallSessionStore.History.Count == 0)
+                            {
+                                <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Small" />
+                            }
+                            else if (CallSessionStore.History.Count == 0)
+                            {
+                                <p class="calls-sidebar__empty">No call history on this board.</p>
+                            }
+                            else
+                            {
+                                <table class="calls-history-table">
+                                    <thead>
+                                        <tr>
+                                            <th scope="col" class="calls-history-table__name">Title</th>
+                                            <th scope="col" class="calls-history-table__date">Date</th>
+                                            <th scope="col" class="calls-history-table__duration">Duration</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var session in CallSessionStore.History)
+                                        {
+                                            <CallHistoryCard Session="session" />
+                                        }
+                                    </tbody>
+                                </table>
+
+                                @if (CallSessionStore.HasMoreHistory)
+                                {
+                                    <ExpandableActionButton Text="Show more"
+                                                            Icon="ExpandableActionButtonIcon.ChevronDown"
+                                                            Disabled="@CallSessionStore.IsLoadingMoreHistory"
+                                                            OnClick="LoadMoreHistoryAsync" />
+                                }
+                            }
+                        </div>
+                    </section>
+                </div>
             </div>
-        </section>
+        </div>
     </div>
 </aside>
 
-@* Overlays render here, as siblings of <aside>, deliberately outside calls-sidebar__panel: that
-   element has `transform`/`overflow: hidden` (for the slide-in animation), which would otherwise
-   clip a `position: fixed` overlay to the sidebar's own bounds instead of covering the viewport. *@
+@* Overlays render here, as siblings of <aside>, deliberately outside calls-sidebar__drawer: that
+   element has `transform` (for the slide-in animation), which would otherwise clip a
+   `position: fixed` overlay to the sidebar's own bounds instead of covering the viewport. *@
 @if (_activeOverlayKind == ActiveCallOverlayKind.LinkedTasks && ActiveOverlaySession is { } activeTasksSession)
 {
     <CallLinkedTasksOverlay BoardId="BoardId" Tasks="activeTasksSession.LinkedTasks" OnClose="CloseActiveOverlay" />
@@ -83,30 +127,8 @@ else if (_activeOverlayKind == ActiveCallOverlayKind.AllowedUsers && ActiveOverl
 {
     <CallAllowedUsersOverlay Users="activeAllowedUsers" OnClose="CloseActiveOverlay" />
 }
-else if (_historyOverlayKind == HistoryOverlayKind.LinkedTasks && _historyOverlaySession is { } tasksSession)
-{
-    <CallLinkedTasksOverlay BoardId="BoardId" Tasks="tasksSession.LinkedTasks" OnClose="CloseHistoryOverlay" />
-}
-else if (_historyOverlayKind == HistoryOverlayKind.Participants && _historyOverlaySession is { } participantsSession)
-{
-    <CallParticipantsOverlay Participants="GetHistoryParticipantEntries(participantsSession.Participants)"
-                             EmptyMessage="No participants recorded."
-                             OnClose="CloseHistoryOverlay" />
-}
-else if (_historyOverlayKind == HistoryOverlayKind.AllowedUsers && _historyOverlaySession?.AllowedUsers is { } allowedUsers)
-{
-    <CallAllowedUsersOverlay Users="allowedUsers" OnClose="CloseHistoryOverlay" />
-}
 
 @code {
-    private enum HistoryOverlayKind
-    {
-        None,
-        LinkedTasks,
-        Participants,
-        AllowedUsers,
-    }
-
     private enum ActiveCallOverlayKind
     {
         None,
@@ -117,10 +139,6 @@ else if (_historyOverlayKind == HistoryOverlayKind.AllowedUsers && _historyOverl
 
     [Parameter, EditorRequired]
     public Guid BoardId { get; set; }
-
-    private bool _isHistoryExpanded = true;
-    private HistoryOverlayKind _historyOverlayKind = HistoryOverlayKind.None;
-    private CallSessionHistoryDto? _historyOverlaySession;
 
     private Guid? _activeOverlayCallId;
     private ActiveCallOverlayKind _activeOverlayKind = ActiveCallOverlayKind.None;
@@ -139,22 +157,55 @@ else if (_historyOverlayKind == HistoryOverlayKind.AllowedUsers && _historyOverl
         BoardDetailsStore.StateChanged += OnStoreStateChanged;
     }
 
-    private void ToggleHistorySection() =>
-        _isHistoryExpanded = !_isHistoryExpanded;
+    private void CloseSidebar() =>
+        CallSessionStore.CloseSidebar();
 
-    private string? GetHistorySectionClass() =>
-        _isHistoryExpanded ? null : "calls-sidebar__section--history-collapsed";
-
-    private void ShowHistoryOverlay(CallSessionHistoryDto session, HistoryOverlayKind kind)
+    private async Task CreateCallAsync()
     {
-        _historyOverlaySession = session;
-        _historyOverlayKind = kind;
+        var submitState = new ResourceFormDialogState();
+
+        var dialog = await DialogService.ShowResourceFormAsync(
+            "Create video call",
+            "Create",
+            CreateCallForm.FormId,
+            CreateCallForm.Render(BoardId, submitState),
+            submitState: submitState);
+
+        var result = await dialog.Result;
+
+        if (result is not { Canceled: false, Data: CreateCallResult callResult })
+            return;
+
+        var session = await CallSessionStore.CreateCallAsync(
+            BoardId,
+            callResult.Title,
+            callResult.Topic,
+            callResult.Visibility,
+            callResult.AllowedUserIds,
+            callResult.LinkedTaskIds);
+
+        if (session is null)
+        {
+            if (CallSessionStore.ErrorMessage is { } error)
+                Snackbar.Add(error, Severity.Error);
+
+            return;
+        }
+
+        await JoinCallAsync(session);
     }
 
-    private void CloseHistoryOverlay()
+    private async Task JoinCallAsync(CallSessionDto call)
     {
-        _historyOverlaySession = null;
-        _historyOverlayKind = HistoryOverlayKind.None;
+        var environment = await CallsInteropService.CheckEnvironmentAsync();
+
+        if (!environment.IsSupported)
+        {
+            Snackbar.Add(environment.Reason ?? "This browser doesn't support video calls.", Severity.Error);
+            return;
+        }
+
+        Navigation.NavigateTo($"/boards/{BoardId}/calls/{call.Id}");
     }
 
     private void ShowActiveOverlay(Guid callId, ActiveCallOverlayKind kind)
@@ -185,17 +236,6 @@ else if (_historyOverlayKind == HistoryOverlayKind.AllowedUsers && _historyOverl
 
     private static IReadOnlyList<CallParticipantsOverlay.Entry> GetActiveParticipantEntries(CallSessionDto call) =>
         call.Participants.Select(u => new CallParticipantsOverlay.Entry(u)).ToList();
-
-    private static IReadOnlyList<CallParticipantsOverlay.Entry> GetHistoryParticipantEntries(IReadOnlyList<CallHistoryParticipantDto> participants) =>
-        participants.Select(p => new CallParticipantsOverlay.Entry(p.User, GetTimesCaption(p))).ToList();
-
-    private static string GetTimesCaption(CallHistoryParticipantDto participant)
-    {
-        var joined = participant.FirstJoinedAtUtc.ToLocalTime().ToString("g");
-        var left = participant.LastLeftAtUtc is { } lastLeftAtUtc ? lastLeftAtUtc.ToLocalTime().ToString("g") : "—";
-
-        return $"Joined {joined}, left {left}";
-    }
 
     public void Dispose()
     {

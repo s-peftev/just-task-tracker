@@ -7,24 +7,17 @@
 @using JustTaskTracker.WebUI.Services.Abstractions.Boards
 @using JustTaskTracker.WebUI.Services.Abstractions.Calls
 @using JustTaskTracker.WebUI.Services.Exceptions
-@using JustTaskTracker.WebUI.Validation
 @implements IDisposable
 @inject ICallSessionStore CallSessionStore
 @inject ICallsInteropService CallsInteropService
 @inject IBoardDetailsStore BoardDetailsStore
 @inject IProfileStore ProfileStore
-@inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
 
 <section class="calls-sidebar__section calls-sidebar__section--active" aria-label="Active video calls">
     <header class="calls-sidebar__header">
         <h2 class="calls-sidebar__title">Active video calls</h2>
-        <button type="button"
-                class="calls-sidebar__create-btn"
-                @onclick="CreateCallAsync">
-            create call
-        </button>
     </header>
 
     <div class="calls-sidebar__section-body">
@@ -161,41 +154,6 @@
 
         return ProfileStore.Profile is { } currentUser
             && (call.AllowedUsers?.Any(u => u.Id == currentUser.Id) ?? false);
-    }
-
-    private async Task CreateCallAsync()
-    {
-        var submitState = new ResourceFormDialogState();
-
-        var dialog = await DialogService.ShowResourceFormAsync(
-            "Create video call",
-            "Create",
-            CreateCallForm.FormId,
-            CreateCallForm.Render(BoardId, submitState),
-            submitState: submitState);
-
-        var result = await dialog.Result;
-
-        if (result is not { Canceled: false, Data: CreateCallResult callResult })
-            return;
-
-        var session = await CallSessionStore.CreateCallAsync(
-            BoardId,
-            callResult.Title,
-            callResult.Topic,
-            callResult.Visibility,
-            callResult.AllowedUserIds,
-            callResult.LinkedTaskIds);
-
-        if (session is null)
-        {
-            if (CallSessionStore.ErrorMessage is { } error)
-                Snackbar.Add(error, Severity.Error);
-
-            return;
-        }
-
-        await JoinCallAsync(session);
     }
 
     private async Task JoinCallAsync(CallSessionDto call)

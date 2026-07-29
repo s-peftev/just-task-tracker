@@ -965,6 +965,25 @@ html, body {
     border-color: var(--jtt-accent-tertiary);
 }
 
+/* ─── Calls sidebar typography (faces live in css/jtt-roboto.css, base64 inlined) ─── */
+.calls-sidebar,
+.calls-sidebar__panel {
+    --calls-sidebar-font-family: "JttRoboto", sans-serif;
+    font-family: var(--calls-sidebar-font-family);
+}
+
+.calls-sidebar__panel,
+.calls-sidebar__panel * {
+    font-family: var(--calls-sidebar-font-family);
+}
+
+.calls-sidebar__hub-title {
+    font-family: "JttRoboto", sans-serif !important;
+    font-weight: 500 !important;
+    font-size: 1.25rem !important;
+    letter-spacing: 0.01em;
+}
+
 /* ─── MudBlazor overrides ─── */
 .mud-layout,
 .mud-main-content {

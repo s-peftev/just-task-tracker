@@ -4,6 +4,8 @@ inputDocuments:
   - '_bmad-output/planning-artifacts/architecture/architecture-just-task-tracker-2026-07-23/ARCHITECTURE-SPINE.md'
   - '_bmad-output/planning-artifacts/architecture/architecture-just-task-tracker-2026-07-23/.memlog.md'
   - '_bmad-output/planning-artifacts/research/technical-webrtc-group-calls-signalr-vs-acs-research-2026-07-23.md'
+  - '_bmad-output/planning-artifacts/architecture/architecture-just-task-tracker-2026-07-29/ARCHITECTURE-SPINE.md'
+  - '_bmad-output/planning-artifacts/architecture/architecture-just-task-tracker-2026-07-29/.memlog.md'
 ---
 
 # JustTaskTracker - Epic Breakdown
@@ -11,6 +13,8 @@ inputDocuments:
 ## Overview
 
 This document provides the epic and story breakdown for the **Video Calls (ACS)** feature in JustTaskTracker. No PRD or UX design contract exists for this feature — both were deliberately skipped; the finalized Architecture Spine (`AD-1`..`AD-15`) is the requirements source, since it already encodes the confirmed product decisions (from the BA research handoff + the user's own requirements revision) as enforceable invariants. Every FR/NFR below cites the `AD-n` it derives from for traceability back to the architecture.
+
+**Extended 2026-07-29** with **Scheduled Video Calls** (one-time future scheduling; recurrence was considered and explicitly dropped) — a child feature built on top of the Video Calls (ACS) feature above. Same precedent: no PRD/UX contract, the child Architecture Spine (`architecture-just-task-tracker-2026-07-29`, local `AD-1`..`AD-7`, inheriting `AD-4/8/9/10/12/14/15` from the parent spine above) is the requirements source. FR14 onward and NFR7 onward below derive from it.
 
 ## Requirements Inventory
 
@@ -30,6 +34,16 @@ FR11: The session's creator, or a board member with the Owner or Admin role, can
 FR12: Before a user can create or join a session, the client checks browser support (`isSupportedBrowser`) and runs pre-call diagnostics, surfacing a clear message rather than a silent failure if unsupported. `[Consistency Conventions — Client join UX]`
 FR13: A board member can retrieve the current list of active call sessions on a board as a point-in-time read (independent of any real-time push), so another member can discover and join a call simply by loading/refreshing the board page. `[AD-8]`
 
+FR14: When creating a call, the creator can choose to schedule it for a future date and time (year/month/day/hour/minute) instead of starting it immediately, using the same Title/Topic/Visibility/linked-tasks fields as an immediate call. `[2026-07-29 AD-1, inherited AD-8/AD-14]`
+FR15: A board member cannot join a scheduled call until at most one minute before its scheduled start time. `[2026-07-29 AD-4]`
+FR16: All eligible recipients (the same Open/Restricted+allow-list eligibility rules as FR8) receive a notification the moment a call is scheduled. `[2026-07-29 AD-6, inherited AD-10]`
+FR17: All eligible recipients receive a reminder notification one minute before a scheduled call's start time. `[2026-07-29 AD-2, AD-6]`
+FR18: All eligible recipients receive the existing "call started" notification (FR8) at the moment a scheduled call actually activates — whether activation is triggered by the clock or by the first participant joining early. `[2026-07-29 AD-4, AD-6]`
+FR19: The call's creator, or a board member with the Owner or Admin role, can change a scheduled call's planned start date and time after creation; doing so sends a new notification to all eligible recipients and resets the one-minute reminder. `[2026-07-29 AD-4, inherited AD-15]`
+FR20: A board member can discover scheduled calls on a board the same point-in-time way FR13 already covers for active ones — no live push required. `[2026-07-29 AD-5]`
+FR21: The call's creator, or a board Owner/Admin, can cancel a scheduled call before it ever activates; it closes immediately without needing anyone to have joined it. `[2026-07-29 AD-3]`
+FR22: A scheduled call that activates but that nobody joins within five minutes of its actual start closes itself automatically, without needing anyone to act. `[2026-07-29 AD-7]`
+
 ### NonFunctional Requirements
 
 NFR1: All call audio/video/screen-share media and signaling flows exclusively through Azure Communication Services — no self-hosted WebRTC signaling path is introduced alongside it. `[AD-1]`
@@ -39,6 +53,10 @@ NFR4: The Event Grid webhook endpoint is unauthenticated at the ASP.NET auth-pol
 NFR5: ACS connection-string configuration is environment-level config (Key Vault/appsettings), never an Aspire-hosted resource — consistent with how Azure SignalR Service is already wired in this project. `[AD-7]`
 NFR6: User-to-ACS-identity mapping uses a self-owned mapping table (`AcsUserIdentityMapping`), not ACS's preview-only Custom ID feature, to avoid depending on a non-stable SDK/API surface. `[AD-6]`
 
+NFR7: Scheduled-call activation and reminder notifications carry no acting user and cannot depend on an authenticated request/hub context, since they are triggered by a clock, not a person. `[2026-07-29 AD-2]`
+NFR8: The Scheduled→Active transition, the Scheduled-cancel close, and the no-show auto-close are each a single atomic conditional database write guarded by the session's current status (and, for no-show, its participant count) — never a read-then-write — so two triggers racing on the same session can't corrupt its state. `[2026-07-29 AD-3, AD-4, AD-7, inherited AD-9]`
+NFR9: Scheduled-call polling reuses the existing Hangfire infrastructure already running in the API host, at the same one-minute cadence as the existing board-export jobs — no new scheduling technology is introduced. `[2026-07-29 Stack]`
+
 ### Additional Requirements (from Architecture)
 
 - New Calls feature module mirrors the existing layered/CQRS structure exactly: `Domain/Application/Infrastructure/Persistence/API`, mirrored client-side, one file per command/query (record + handler + validator co-located). `[AD-3]`
@@ -47,10 +65,19 @@ NFR6: User-to-ACS-identity mapping uses a self-owned mapping table (`AcsUserIden
 - ACS Room is created before the `CallSession` DB row is persisted; on DB-persist failure, the orphaned Room is deleted (best-effort compensation). `[AD-14]`
 - Pinned stack: `@azure/communication-calling` 1.43.1, `Azure.Communication.Identity` 1.3.1, `Azure.Communication.Rooms` 1.2.0, `Azure.Messaging.EventGrid` 5.0.0. `[Stack]`
 - No infrastructure-as-code / starter template applies — this is a brownfield feature slice added to the existing solution, not a new project scaffold.
+- **2026-07-29:** `CallSession` gains `ScheduledStartUtc`/`StartingSoonNotifiedAtUtc` (nullable `DateTime`); `StartedAtUtc` becomes nullable (null while `Scheduled`, and permanently null for a cancelled-before-start or no-show-closed session). `CallStatus` gains `Scheduled = 3`. `CallSessionHistoryDto.StartedAtUtc` (server + client) becomes nullable to match. `[2026-07-29 AD-1]`
+- **2026-07-29:** New `ICallRepository` methods, all atomic guarded `ExecuteUpdate`s mirroring the existing `TryAcquirePresenterAsync` pattern, never load-then-`SaveChanges`: `TryActivateScheduledCallAsync`, `TryCloseScheduledCallAsync`, `TryCloseNoShowCallAsync`, plus board-agnostic `GetDueScheduledSessionsAsync`/`GetDueNoShowSessionsAsync` for the poller. `[2026-07-29 AD-3, AD-4, AD-7, inherited AD-9]`
+- **2026-07-29:** New Hangfire recurring job (`ScheduledCallPollerJob`, `"* * * * *"`, `[DisableConcurrentExecution]`) mirroring the existing `BoardExportSchedulerJob` convention exactly. `[2026-07-29 AD-2, AD-4, AD-7]`
+- **2026-07-29:** `RecordParticipantJoinedCommand` (the existing AD-12 Event-Grid webhook handler) is extended to call the same guarded activation write before recording a join, when the event lands for a session still `Scheduled` inside the join window. `[2026-07-29 AD-4]`
+- **2026-07-29:** `EndCallCommand`'s existing `Active` branch also tries the no-show guarded close first, falling through to the unchanged ACS-remove-participants path only if real participants exist — fixes a related latent gap (ending a truly-empty `Active` call closed nothing today) as a side effect of the same mechanism. `[2026-07-29 AD-7]`
+- **2026-07-29:** New shared eligibility helper (`CallAlertEligibility`) for alert recipients computed from persisted state (`CallSessionAllowedParticipant` + board membership) rather than a request payload — used by the reminder, activation, and reschedule alerts; `CreateCallCommand`'s existing from-request computation is unchanged. `[2026-07-29 AD-6]`
+- **2026-07-29:** `ListActiveCallSessionsForBoardQuery` is renamed `ListActiveOrScheduledCallSessionsForBoardQuery` and now also returns `Scheduled` sessions. `[2026-07-29 AD-5]`
 
 ### UX Design Requirements
 
 No UX design contract exists for this feature (no `bmad-ux` run was performed). Per the Architecture Spine's Structural Seed, the call UI is a set of new Blazor components embedded into the existing `Pages/Boards/BoardPage.razor` (session list, create/join/screen-share controls) plus a small addition to `Layout/MainLayout.razor` (the app-wide "call started" alert). No separate design tokens, component library, or accessibility audit work is in scope beyond following the existing UI's established look and components.
+
+**2026-07-29:** same precedent, no separate UX contract for Scheduled Video Calls. The date/time picker, allow-list, and linked-task fields are additions to the existing create-call UI, not a new surface; the scheduled/starting-soon/rescheduled alerts reuse the existing app-wide alert component `MainLayout.razor` already renders for `CallStarted`.
 
 ### FR Coverage Map
 
@@ -63,6 +90,10 @@ No UX design contract exists for this feature (no `bmad-ux` run was performed). 
 | FR10, FR11 | Epic 1 |
 | FR12 | Epic 1 |
 | FR13 | Epic 1 |
+| FR14, FR20, FR21 | Epic 4 |
+| FR15, FR22 | Epic 4 |
+| FR16, FR17, FR18, FR19 | Epic 4 |
+| NFR7–NFR9 | cross-cutting, enforced across Epic 4 |
 | NFR1–NFR6 | cross-cutting, enforced across Epics 1–3 |
 
 ## Epic List
@@ -80,6 +111,11 @@ Any participant already in a call (per Epic 1) can share their screen, with the 
 Board members find out a call has started even when they're not looking at that board — every board member if the call is Open, only the creator's chosen list if it's Restricted — and, on the board page itself, see the call's live state (who's currently in it, how long it's been running, when it ends) update in real time, without refreshing.
 **FRs covered:** FR8, FR9
 **NFRs covered:** NFR2
+
+### Epic 4: Schedule a Board Video Call for the Future
+*(Added 2026-07-29, extends the Video Calls (ACS) feature above — not part of the original three epics.)* Board members can schedule a video call for a future date/time instead of starting it immediately — with the same Title/Topic/Visibility/linked-tasks options as an immediate call — discover it on the board the same way they discover active calls, get notified when it's created and again one minute before it starts, join it starting one minute before its scheduled time, have it activate and notify automatically (from either the clock or an early joiner), have it close itself if nobody shows up within 5 minutes, and be reschedulable or cancellable by its creator or a board Owner/Admin before it ever starts. This is the complete, standalone core of the capability for the same reason Epic 1 bundled discovery and closability with creation: a scheduled call nobody could find, cancel, or that could get stuck forever would not be usable end-to-end.
+**FRs covered:** FR14, FR15, FR16, FR17, FR18, FR19, FR20, FR21, FR22
+**NFRs covered:** NFR7, NFR8, NFR9
 
 ## Epic 1: Start and Join Board Video Calls
 
@@ -301,3 +337,137 @@ So that I know what's happening without needing to join or refresh the page.
 **Given** I navigate away from the board page
 **When** the call's state continues to change
 **Then** I stop receiving those live updates (they're board-scoped, not app-wide — app-wide awareness is covered by Story 3.1)
+
+## Epic 4: Schedule a Board Video Call for the Future
+
+*(Added 2026-07-29, extends the Video Calls (ACS) feature above.)* Board members can schedule a video call for a future date/time instead of starting it immediately — with the same Title/Topic/Visibility/linked-tasks options as an immediate call — discover it on the board the same way they discover active calls, get notified when it's created and again one minute before it starts, join it starting one minute before its scheduled time, have it activate and notify automatically (from either the clock or an early joiner), have it close itself if nobody shows up within 5 minutes, and be reschedulable or cancellable by its creator or a board Owner/Admin before it ever starts.
+
+> **Sequencing note:** mirroring Epic 1's own corrected lesson (a call nobody can find or ever close isn't usable end-to-end), Story 4.1 bundles discovery, join-gating, *and* the clock-driven activation path together with scheduling itself — without activation, a scheduled call's `Status` would never correctly flip to `Active` even after real participants joined, leaving the board's own "active calls" badge and live-state UI silently wrong. Reschedule (4.3) and the one-minute reminder (4.4) are refinements layered on an already-complete core, not prerequisites for one. Recurring calls were explicitly considered and dropped for this iteration (see the architecture spine's Deferred section) — every story below is one-time scheduling only.
+
+### Story 4.1: Schedule, discover, join, and cancel a video call for the future
+
+As a board member,
+I want to schedule a video call for a future date and time instead of starting it immediately, have other members discover it and be able to join it once it's about to start, and be able to cancel it before it ever starts,
+So that I can plan calls in advance without either leaving them undiscoverable or stuck forever if my plans change.
+
+**Acceptance Criteria:**
+
+**Given** I am creating a call
+**When** I provide a future `ScheduledStartUtc` alongside the existing Title/Topic/Visibility/linked-tasks fields
+**Then** the session is persisted with `Status = Scheduled` and `StartedAtUtc = null`, and its Azure Communication Services Room is still created immediately, exactly as for an immediate call (`AD-14` unchanged)
+
+**Given** I am creating a call
+**When** I omit `ScheduledStartUtc` entirely
+**Then** the call starts immediately exactly as it does today — `Status = Active`, `StartedAtUtc` set to now — with no change in behavior
+
+**Given** a board has one or more `Scheduled` or `Active` sessions
+**When** any board member loads or refreshes the board page
+**Then** they see both kinds together in one list, visually distinguished by status, as a point-in-time read — no live push required
+
+**Given** an authorized `Scheduled` session I want to join
+**When** I try to join it more than one minute before its `ScheduledStartUtc`
+**Then** I am denied with a clear "not started yet" error and receive no token
+
+**Given** the same session
+**When** I try to join it at or after `ScheduledStartUtc - 1 minute`
+**Then** I receive a valid Azure Communication Services join token exactly as I would for an `Active` call, whether or not its `Status` has flipped to `Active` yet
+
+**Given** the Hangfire-based poller ticks once a minute
+**When** a `Scheduled` session's `ScheduledStartUtc` has passed
+**Then** it flips to `Status = Active` with `StartedAtUtc` set to that moment, and the existing "call started" alert fires to eligible recipients exactly as it does for an immediate call today
+
+**Given** I am the creator of a `Scheduled` session, or I hold the Owner or Admin role on its board
+**When** I cancel it before it has ever activated
+**Then** it closes immediately (`Status = Closed`, `EndedAtUtc = now`) and its Azure Communication Services Room is deleted, even though nobody ever joined it
+
+**Given** a `Scheduled` session that a concurrent poller tick or an early joiner has already activated
+**When** my cancel request for it lands right afterward
+**Then** it safely falls back to ending it the normal way an `Active` call is ended, instead of deleting a Room someone is now connected to
+
+**Given** a `Closed` session that was cancelled before it ever activated
+**When** its history is later viewed
+**Then** it appears with no `StartedAtUtc` and no participants, rather than causing an error
+
+### Story 4.2: Reliable activation from an early joiner, and self-closing a call nobody ever joins
+
+As a board member,
+I want a scheduled call to activate the instant someone joins early, and to close itself automatically if nobody ever shows up,
+So that joining early always works correctly and a forgotten scheduled call doesn't sit open forever.
+
+**Acceptance Criteria:**
+
+**Given** a `Scheduled` session within its one-minute join window
+**When** a participant actually joins through Azure Communication Services before the next poller tick
+**Then** the session activates (`Status = Active`, `StartedAtUtc` set) at that same moment, not just on the next tick
+
+**Given** that same participant then leaves without anyone else having joined
+**When** their departure is processed
+**Then** the session closes normally through the existing participant-departure pipeline, exactly as it would for an immediate call
+
+**Given** a `Scheduled` session that activates, by either trigger, and nobody ever joins it
+**When** 5 minutes pass since it activated
+**Then** it closes itself automatically (`Status = Closed`, `EndedAtUtc` set), sends no notification, and appears in call history with zero participants
+
+**Given** an `Active` session with zero participants ever recorded
+**When** its creator or a board Owner/Admin manually chooses to end it before the 5-minute timeout fires
+**Then** it closes immediately through the same mechanism, rather than the existing manual-end action silently doing nothing as it would today
+
+**Given** an immediate (non-scheduled) call that nobody ever joins
+**When** time passes
+**Then** it is unaffected by the 5-minute no-show timeout — that stays scoped to calls that were originally scheduled
+
+### Story 4.3: Get notified when a scheduled call is created or its time changes
+
+As a board member,
+I want to be alerted when a call is scheduled on a board I have access to, and again if its time changes,
+So that I know about it and don't plan around a stale time.
+
+**Acceptance Criteria:**
+
+**Given** I am an eligible board member (the same Open/Restricted+allow-list rules as today's call-started alert)
+**When** someone schedules a call
+**Then** I receive a real-time "call scheduled" alert naming the board, the call, and its planned start time, regardless of which page I'm on — except the creator, who isn't told about their own action
+
+**Given** a Restricted scheduled call, and I am neither on its allow-list nor an Owner/Admin of that board
+**When** it is scheduled
+**Then** I do **not** receive an alert for it
+
+**Given** I am the creator of a `Scheduled` session, or I hold the Owner or Admin role on its board
+**When** I change its planned start date/time to a new value more than one minute in the future
+**Then** the change is saved, its title/topic/visibility/allow-list/linked tasks are left untouched, and every eligible recipient receives a "call rescheduled" alert naming the new time
+
+**Given** I try to reschedule to a time less than one minute in the future, or in the past
+**When** I submit the change
+**Then** it is rejected with a clear validation error and nothing is saved
+
+**Given** I try to reschedule a session that has already activated or already closed
+**When** I submit the change
+**Then** it is rejected rather than silently doing nothing
+
+**Given** a session's start time is changed
+**When** the change is saved
+**Then** any previously-scheduled "starting soon" reminder for the old time is cancelled, so it can't fire late for a time that's no longer correct
+
+### Story 4.4: Get reminded one minute before a scheduled call starts
+
+As a board member,
+I want a reminder shortly before a scheduled call I have access to actually begins,
+So that I don't miss it even if I didn't note the exact time.
+
+**Acceptance Criteria:**
+
+**Given** an eligible board member for a `Scheduled` session (the same Open/Restricted+allow-list rules)
+**When** the session's `ScheduledStartUtc` is one minute away
+**Then** they receive a real-time "starting soon" alert, regardless of which page they're on
+
+**Given** that reminder has already been sent for a session
+**When** the next poller tick runs
+**Then** it is not sent again for that same occurrence
+
+**Given** a session was rescheduled (Story 4.3) after its reminder had already been sent for the old time
+**When** its new time comes due
+**Then** a fresh reminder is sent for the new time — the earlier send does not suppress it
+
+**Given** a session's `ScheduledStartUtc` is less than one minute away at the moment it is created or rescheduled
+**When** the very next poller tick runs
+**Then** the reminder still fires correctly despite the narrow window, and does not fire a second time once the session activates moments later

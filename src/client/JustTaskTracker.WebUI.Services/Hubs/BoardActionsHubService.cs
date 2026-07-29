@@ -35,6 +35,8 @@ internal sealed class BoardActionsHubService(
     private readonly SemaphoreSlim _hubGate = new(1, 1);
     private HubConnection? _connection;
 
+    public event Action<BoardActionNotification>? BoardActionReceived;
+
     public Task ConnectAsync(CancellationToken ct = default) => EnsureConnectedAsync(ct);
 
     public async Task JoinBoardAsync(Guid boardId, CancellationToken ct = default)
@@ -298,6 +300,7 @@ internal sealed class BoardActionsHubService(
 
         var currentUserId = profileStore.Profile?.Id ?? Guid.Empty;
         boardDetailsStore.ApplyBoardActionNotification(notification, currentUserId);
+        BoardActionReceived?.Invoke(notification);
     }
 
     private async Task OnReconnectedAsync(string? connectionId)

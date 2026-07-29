@@ -3,6 +3,8 @@
 @implements IAsyncDisposable
 @using JustTaskTracker.WebUI.Domain.Boards
 @using JustTaskTracker.WebUI.Domain.Boards.Authorization
+@using JustTaskTracker.WebUI.Domain.Boards.Notifications.BoardActions
+@using JustTaskTracker.WebUI.Domain.Boards.Notifications.BoardActions.Payloads
 @using JustTaskTracker.WebUI.Domain.Calls
 @using JustTaskTracker.WebUI.Services.Abstractions.Auth
 @using JustTaskTracker.WebUI.Services.Abstractions.Boards
@@ -361,6 +363,7 @@
         CallSessionStore.CallSessionClosed += OnCallSessionClosed;
         CallSessionStore.CallParticipantsChanged += OnCallParticipantsChanged;
         CallSessionStore.CallPresenterChanged += OnCallPresenterChanged;
+        ActionsHubService.BoardActionReceived += OnBoardActionReceived;
 
         // Both stores are read below assuming BoardPage already populated them -- true when
         // navigating here from the board, false on a direct link/hard refresh. Load them ourselves
@@ -497,6 +500,84 @@
             StateHasChanged();
         }
     }
+
+    private void OnBoardActionReceived(BoardActionNotification notification)
+    {
+        if (notification.BoardId != BoardId)
+            return;
+
+        InvokeAsync(() => ApplyLinkedTaskChange(notification));
+    }
+
+    // Board-task changes made elsewhere (the board page, or another call participant once the
+    // call page can edit tasks too) are applied straight from the pushed payload -- every field a
+    // linked-task card shows (title, column, assignee, description, attachments) is carried on the
+    // wire, so this never needs a follow-up API call.
+    private void ApplyLinkedTaskChange(BoardActionNotification notification)
+    {
+        var applied = notification.Payload switch
+        {
+            TaskUpdatedPayload payload =>
+                UpdateLinkedTask(payload.BoardTaskId, task => task with { Title = payload.Title }),
+
+            TaskDescriptionChangedPayload payload =>
+                UpdateLinkedTask(payload.BoardTaskId, task => task with { Description = payload.Description }),
+
+            TaskAssigneeChangedPayload payload =>
+                UpdateLinkedTask(payload.BoardTaskId, task => task with { Assignee = payload.Assignee }),
+
+            TaskAttachmentAddedPayload payload =>
+                UpdateLinkedTask(payload.BoardTaskId, task => task with
+                {
+                    Attachments = task.Attachments.Append(payload.Attachment).ToList(),
+                }),
+
+            TaskAttachmentRemovedPayload payload =>
+                UpdateLinkedTask(payload.BoardTaskId, task => task with
+                {
+                    Attachments = task.Attachments.Where(a => a.Id != payload.AttachmentId).ToList(),
+                }),
+
+            TasksReorderedPayload payload =>
+                UpdateLinkedTask(payload.BoardTaskId, task => task with
+                {
+                    ColumnId = payload.TargetColumnId,
+                    ColumnName = ResolveColumnName(payload.TargetColumnId) ?? task.ColumnName,
+                    Position = payload.Position,
+                }),
+
+            TaskDeletedPayload payload => RemoveLinkedTask(payload.BoardTaskId),
+
+            _ => false,
+        };
+
+        if (applied)
+            StateHasChanged();
+    }
+
+    private bool UpdateLinkedTask(Guid taskId, Func<BoardTaskDetailsDto, BoardTaskDetailsDto> update)
+    {
+        if (_linkedTasks.All(task => task.Id != taskId))
+            return false;
+
+        _linkedTasks = _linkedTasks.Select(task => task.Id == taskId ? update(task) : task).ToList();
+        return true;
+    }
+
+    private bool RemoveLinkedTask(Guid taskId)
+    {
+        if (_linkedTasks.All(task => task.Id != taskId))
+            return false;
+
+        _linkedTasks = _linkedTasks.Where(task => task.Id != taskId).ToList();
+        return true;
+    }
+
+    // TasksReordered only carries the target column's id, not its name (AD-2/AD-10: SignalR
+    // relays board state, not a lookup service) -- resolved locally against the board's own
+    // column list, already loaded by this page (see OnInitializedAsync) rather than fetched again.
+    private string? ResolveColumnName(Guid columnId) =>
+        BoardDetailsStore.Board?.Columns.FirstOrDefault(column => column.Id == columnId)?.Name;
 
     private string GetCallTitle() =>
         CallSessionStore.ActiveCalls.FirstOrDefault(c => c.Id == CallId)?.Title ?? string.Empty;
@@ -682,6 +763,7 @@
         CallSessionStore.CallSessionClosed -= OnCallSessionClosed;
         CallSessionStore.CallParticipantsChanged -= OnCallParticipantsChanged;
         CallSessionStore.CallPresenterChanged -= OnCallPresenterChanged;
+        ActionsHubService.BoardActionReceived -= OnBoardActionReceived;
 
         await EndLocalConnectionAsync();
         _selfRef?.Dispose();

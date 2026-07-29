@@ -69,11 +69,21 @@
     flex-direction: column;
     gap: 0.5rem;
     padding: 0.875rem;
-    border: none;
+    border: 1px solid transparent;
     border-radius: var(--jtt-radius-md);
     background-color: var(--jtt-surface-task-card);
     box-shadow: 0 1px 0 var(--jtt-stroke-subtle);
     font-family: "JttRoboto", sans-serif;
+    cursor: pointer;
+}
+
+.active-meeting-card--selected {
+    border-color: var(--jtt-accent-tertiary);
+}
+
+.active-meeting-card:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--jtt-overlay-accent-15);
 }
 
 .active-meeting-card__top {

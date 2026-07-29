@@ -1,9 +1,15 @@
 .call-history-row {
     border-bottom: 1px solid var(--jtt-stroke-subtle);
+    cursor: pointer;
 }
 
 .call-history-row:last-child {
     border-bottom: none;
+}
+
+.call-history-row:focus-visible {
+    outline: none;
+    background-color: var(--jtt-overlay-accent-10);
 }
 
 .call-history-row td {
@@ -14,6 +20,15 @@
     font-weight: 400;
     line-height: 1.35;
     color: var(--jtt-text-primary);
+    transition: color 0.15s;
+}
+
+.call-history-row--selected td {
+    color: var(--jtt-accent);
+}
+
+.call-history-row--selected .call-history-row__title {
+    color: var(--jtt-accent);
 }
 
 .call-history-row td.call-history-row__name {

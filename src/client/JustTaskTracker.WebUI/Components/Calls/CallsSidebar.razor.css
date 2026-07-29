@@ -10,7 +10,16 @@
     padding: 0;
     background: transparent;
     overflow: hidden;
+    visibility: hidden;
     pointer-events: none;
+    /* Hide only after the drawer finishes sliding out. */
+    transition: visibility 0s linear 0.2s;
+}
+
+.calls-sidebar.calls-sidebar--open {
+    visibility: visible;
+    pointer-events: auto;
+    transition: visibility 0s linear 0s;
 }
 
 .calls-sidebar__scrim {
@@ -20,10 +29,12 @@
     opacity: 0;
     transition: opacity 0.2s ease-in-out;
     pointer-events: none;
+    cursor: pointer;
 }
 
-.calls-sidebar--open .calls-sidebar__scrim {
+.calls-sidebar.calls-sidebar--open .calls-sidebar__scrim {
     opacity: 1;
+    pointer-events: auto;
 }
 
 .calls-sidebar__drawer {
@@ -39,7 +50,7 @@
     will-change: transform;
 }
 
-.calls-sidebar--open .calls-sidebar__drawer {
+.calls-sidebar.calls-sidebar--open .calls-sidebar__drawer {
     pointer-events: auto;
     transform: translateX(0);
 }
@@ -112,17 +123,17 @@
     flex-shrink: 0;
     margin: 0;
     padding: 0.5rem 1rem;
-    border: none;
+    border: 1px solid var(--jtt-accent-secondary);
     border-radius: var(--jtt-radius-sm);
     background: var(--jtt-accent-secondary);
     color: #ffffff;
     font-family: "JttRoboto", sans-serif;
     font-size: 0.875rem;
-    font-weight: 500;
+    font-weight: 400;
     line-height: 1.2;
     white-space: nowrap;
     cursor: pointer;
-    transition: opacity 0.15s, background-color 0.15s;
+    transition: opacity 0.15s, background-color 0.15s, color 0.15s;
 }
 
 .calls-sidebar__create-meeting-btn:hover:not(:disabled),
@@ -133,6 +144,17 @@
 
 .calls-sidebar__create-meeting-btn:active:not(:disabled) {
     opacity: 0.8;
+}
+
+.calls-sidebar__create-meeting-btn--outline {
+    background: transparent;
+    color: var(--jtt-accent-secondary);
+}
+
+.calls-sidebar__create-meeting-btn--outline:hover:not(:disabled),
+.calls-sidebar__create-meeting-btn--outline:focus-visible {
+    background: color-mix(in srgb, var(--jtt-accent-secondary) 12%, transparent);
+    opacity: 1;
 }
 
 .calls-sidebar__close {
@@ -164,6 +186,7 @@
     min-height: 0;
     box-sizing: border-box;
     border-right: 1px solid var(--jtt-accent-tertiary);
+    overflow: hidden;
 }
 
 .calls-sidebar__rail {

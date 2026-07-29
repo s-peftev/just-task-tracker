@@ -1,6 +1,10 @@
 @using JustTaskTracker.WebUI.Domain.Calls
 
-<tr class="call-history-row">
+<tr class="call-history-row @(Selected ? "call-history-row--selected" : null)"
+    role="button"
+    tabindex="0"
+    @onclick="() => OnSelect.InvokeAsync(Session)"
+    @onkeydown="OnKeyDown">
     <td class="call-history-row__name">
         <span class="call-history-row__title" title="@Session.Title">@Session.Title</span>
     </td>
@@ -11,6 +15,18 @@
 @code {
     [Parameter, EditorRequired]
     public CallSessionHistoryDto Session { get; set; } = null!;
+
+    [Parameter]
+    public bool Selected { get; set; }
+
+    [Parameter, EditorRequired]
+    public EventCallback<CallSessionHistoryDto> OnSelect { get; set; }
+
+    private async Task OnKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key is "Enter" or " ")
+            await OnSelect.InvokeAsync(Session);
+    }
 
     private static string FormatDuration(TimeSpan span) =>
         span.TotalHours >= 1

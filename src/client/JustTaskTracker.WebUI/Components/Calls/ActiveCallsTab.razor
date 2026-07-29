@@ -28,7 +28,12 @@
             <ul class="calls-sidebar__list">
                 @foreach (var call in CallSessionStore.ActiveCalls)
                 {
-                    <li @key="call.Id" class="active-meeting-card">
+                    <li @key="call.Id"
+                        class="active-meeting-card @(SelectedCallId == call.Id ? "active-meeting-card--selected" : null)"
+                        role="button"
+                        tabindex="0"
+                        @onclick="() => OnSelectCall.InvokeAsync(call.Id)"
+                        @onkeydown="e => OnCardKeyDown(e, call.Id)">
                         <div class="active-meeting-card__top">
                             <span class="active-meeting-card__title" title="@call.Title">@call.Title</span>
 
@@ -37,7 +42,8 @@
                                 <button type="button"
                                         class="active-meeting-card__visibility active-meeting-card__visibility--restricted"
                                         title="Restricted"
-                                        @onclick="() => OnShowAllowedUsers.InvokeAsync(call.Id)">
+                                        @onclick="() => OnShowAllowedUsers.InvokeAsync(call.Id)"
+                                        @onclick:stopPropagation="true">
                                     <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                         <path fill="none"
                                               stroke="currentColor"
@@ -96,7 +102,8 @@
                                     <button type="button"
                                             class="active-meeting-card__stat"
                                             title="Linked tasks"
-                                            @onclick="() => OnShowLinkedTasks.InvokeAsync(call.Id)">
+                                            @onclick="() => OnShowLinkedTasks.InvokeAsync(call.Id)"
+                                            @onclick:stopPropagation="true">
                                         <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                             <path fill="none"
                                                   stroke="currentColor"
@@ -110,7 +117,8 @@
                                     <button type="button"
                                             class="active-meeting-card__stat"
                                             title="Participants"
-                                            @onclick="() => OnShowParticipants.InvokeAsync(call.Id)">
+                                            @onclick="() => OnShowParticipants.InvokeAsync(call.Id)"
+                                            @onclick:stopPropagation="true">
                                         <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                                             <path fill="none"
                                                   stroke="currentColor"
@@ -135,6 +143,12 @@
     [Parameter, EditorRequired]
     public Guid BoardId { get; set; }
 
+    [Parameter]
+    public Guid? SelectedCallId { get; set; }
+
+    [Parameter, EditorRequired]
+    public EventCallback<Guid> OnSelectCall { get; set; }
+
     // The overlays themselves are hosted by CallsSidebar, not here -- this section renders inside
     // calls-sidebar__panel, which has `transform`/`overflow: hidden` for its slide-in animation and
     // would clip a `position: fixed` overlay to the sidebar's bounds instead of the viewport.
@@ -151,6 +165,12 @@
     {
         CallSessionStore.StateChanged += OnStoreStateChanged;
         BoardDetailsStore.StateChanged += OnStoreStateChanged;
+    }
+
+    private async Task OnCardKeyDown(KeyboardEventArgs e, Guid callId)
+    {
+        if (e.Key is "Enter" or " ")
+            await OnSelectCall.InvokeAsync(callId);
     }
 
     private void OnStoreStateChanged() => InvokeAsync(StateHasChanged);

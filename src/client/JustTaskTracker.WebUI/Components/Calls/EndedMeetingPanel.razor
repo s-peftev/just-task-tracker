@@ -1,0 +1,12 @@
+@using JustTaskTracker.WebUI.Domain.Calls
+
+<section class="meeting-body-panel" aria-label="Ended meeting">
+    <header class="meeting-body-panel__header">
+        <h2 class="meeting-body-panel__title">ENDED MEETING</h2>
+    </header>
+</section>
+
+@code {
+    [Parameter]
+    public CallSessionHistoryDto? Session { get; set; }
+}

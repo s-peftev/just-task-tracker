@@ -1,21 +1,19 @@
 @using JustTaskTracker.WebUI.Components.Shared
-@using JustTaskTracker.WebUI.Components.Shared.Forms
 @using JustTaskTracker.WebUI.Domain.Calls
 @using JustTaskTracker.WebUI.Infrastructure
 @using JustTaskTracker.WebUI.Services.Abstractions.Boards
 @using JustTaskTracker.WebUI.Services.Abstractions.Calls
 @using JustTaskTracker.WebUI.Services.Exceptions
-@using JustTaskTracker.WebUI.Validation
 @implements IDisposable
 @inject ICallSessionStore CallSessionStore
 @inject IBoardDetailsStore BoardDetailsStore
-@inject ICallsInteropService CallsInteropService
-@inject IDialogService DialogService
 @inject ISnackbar Snackbar
-@inject NavigationManager Navigation
 
-<aside class="calls-sidebar @(CallSessionStore.IsSidebarOpen ? "calls-sidebar--open" : null)" aria-hidden="@(!CallSessionStore.IsSidebarOpen)">
-    <div class="calls-sidebar__scrim" aria-hidden="true"></div>
+<aside class="calls-sidebar @(CallSessionStore.IsSidebarOpen ? "calls-sidebar--open" : null)"
+       aria-hidden="@(!CallSessionStore.IsSidebarOpen)">
+    <div class="calls-sidebar__scrim"
+         aria-hidden="true"
+         @onclick="CloseSidebar"></div>
     <div class="calls-sidebar__drawer">
         <div class="calls-sidebar__edge" aria-hidden="true"></div>
         <div class="calls-sidebar__panel">
@@ -26,8 +24,8 @@
                     @if (BoardDetailsStore.Board is not { IsArchived: true })
                     {
                         <button type="button"
-                                class="calls-sidebar__create-meeting-btn"
-                                @onclick="CreateCallAsync">
+                                class="calls-sidebar__create-meeting-btn @GetCreateMeetingButtonClass()"
+                                @onclick="ShowCreateMeetingPane">
                             Create new meeting
                         </button>
                     }
@@ -50,12 +48,26 @@
 
             <div class="calls-sidebar__body">
                 <section class="calls-sidebar__main" aria-label="Meeting details">
+                    @switch (_bodyPane)
+                    {
+                        case MeetingBodyPane.Active:
+                            <ActiveMeetingPanel Call="SelectedActiveCall" />
+                            break;
+                        case MeetingBodyPane.Ended:
+                            <EndedMeetingPanel Session="_selectedHistorySession" />
+                            break;
+                        default:
+                            <CreateMeetingPanel BoardId="BoardId" />
+                            break;
+                    }
                 </section>
 
                 <div class="calls-sidebar__rail">
                     @if (BoardDetailsStore.Board is not { IsArchived: true })
                     {
                         <ActiveCallsTab BoardId="BoardId"
+                                        SelectedCallId="_selectedActiveCallId"
+                                        OnSelectCall="SelectActiveMeeting"
                                         OnShowLinkedTasks="callId => ShowActiveOverlay(callId, ActiveCallOverlayKind.LinkedTasks)"
                                         OnShowParticipants="callId => ShowActiveOverlay(callId, ActiveCallOverlayKind.Participants)"
                                         OnShowAllowedUsers="callId => ShowActiveOverlay(callId, ActiveCallOverlayKind.AllowedUsers)" />
@@ -89,7 +101,9 @@
                                     <tbody>
                                         @foreach (var session in CallSessionStore.History)
                                         {
-                                            <CallHistoryCard Session="session" />
+                                            <CallHistoryCard Session="session"
+                                                             Selected="_selectedHistorySession?.Id == session.Id"
+                                                             OnSelect="SelectEndedMeeting" />
                                         }
                                     </tbody>
                                 </table>
@@ -129,6 +143,13 @@ else if (_activeOverlayKind == ActiveCallOverlayKind.AllowedUsers && ActiveOverl
 }
 
 @code {
+    private enum MeetingBodyPane
+    {
+        Create,
+        Active,
+        Ended,
+    }
+
     private enum ActiveCallOverlayKind
     {
         None,
@@ -139,6 +160,11 @@ else if (_activeOverlayKind == ActiveCallOverlayKind.AllowedUsers && ActiveOverl
 
     [Parameter, EditorRequired]
     public Guid BoardId { get; set; }
+
+    private MeetingBodyPane _bodyPane = MeetingBodyPane.Create;
+    private Guid? _selectedActiveCallId;
+    private CallSessionHistoryDto? _selectedHistorySession;
+    private bool _wasSidebarOpen;
 
     private Guid? _activeOverlayCallId;
     private ActiveCallOverlayKind _activeOverlayKind = ActiveCallOverlayKind.None;
@@ -151,8 +177,14 @@ else if (_activeOverlayKind == ActiveCallOverlayKind.AllowedUsers && ActiveOverl
             ? CallSessionStore.ActiveCalls.FirstOrDefault(c => c.Id == callId)
             : null;
 
+    private CallSessionDto? SelectedActiveCall =>
+        _selectedActiveCallId is { } callId
+            ? CallSessionStore.ActiveCalls.FirstOrDefault(c => c.Id == callId)
+            : null;
+
     protected override void OnInitialized()
     {
+        _wasSidebarOpen = CallSessionStore.IsSidebarOpen;
         CallSessionStore.StateChanged += OnStoreStateChanged;
         BoardDetailsStore.StateChanged += OnStoreStateChanged;
     }
@@ -160,53 +192,29 @@ else if (_activeOverlayKind == ActiveCallOverlayKind.AllowedUsers && ActiveOverl
     private void CloseSidebar() =>
         CallSessionStore.CloseSidebar();
 
-    private async Task CreateCallAsync()
+    private void ShowCreateMeetingPane()
     {
-        var submitState = new ResourceFormDialogState();
-
-        var dialog = await DialogService.ShowResourceFormAsync(
-            "Create video call",
-            "Create",
-            CreateCallForm.FormId,
-            CreateCallForm.Render(BoardId, submitState),
-            submitState: submitState);
-
-        var result = await dialog.Result;
-
-        if (result is not { Canceled: false, Data: CreateCallResult callResult })
-            return;
-
-        var session = await CallSessionStore.CreateCallAsync(
-            BoardId,
-            callResult.Title,
-            callResult.Topic,
-            callResult.Visibility,
-            callResult.AllowedUserIds,
-            callResult.LinkedTaskIds);
-
-        if (session is null)
-        {
-            if (CallSessionStore.ErrorMessage is { } error)
-                Snackbar.Add(error, Severity.Error);
-
-            return;
-        }
-
-        await JoinCallAsync(session);
+        _bodyPane = MeetingBodyPane.Create;
+        _selectedActiveCallId = null;
+        _selectedHistorySession = null;
     }
 
-    private async Task JoinCallAsync(CallSessionDto call)
+    private void SelectActiveMeeting(Guid callId)
     {
-        var environment = await CallsInteropService.CheckEnvironmentAsync();
-
-        if (!environment.IsSupported)
-        {
-            Snackbar.Add(environment.Reason ?? "This browser doesn't support video calls.", Severity.Error);
-            return;
-        }
-
-        Navigation.NavigateTo($"/boards/{BoardId}/calls/{call.Id}");
+        _bodyPane = MeetingBodyPane.Active;
+        _selectedActiveCallId = callId;
+        _selectedHistorySession = null;
     }
+
+    private void SelectEndedMeeting(CallSessionHistoryDto session)
+    {
+        _bodyPane = MeetingBodyPane.Ended;
+        _selectedHistorySession = session;
+        _selectedActiveCallId = null;
+    }
+
+    private string? GetCreateMeetingButtonClass() =>
+        _bodyPane == MeetingBodyPane.Create ? null : "calls-sidebar__create-meeting-btn--outline";
 
     private void ShowActiveOverlay(Guid callId, ActiveCallOverlayKind kind)
     {
@@ -232,7 +240,22 @@ else if (_activeOverlayKind == ActiveCallOverlayKind.AllowedUsers && ActiveOverl
         }
     }
 
-    private void OnStoreStateChanged() => InvokeAsync(StateHasChanged);
+    private void OnStoreStateChanged()
+    {
+        var isOpen = CallSessionStore.IsSidebarOpen;
+        if (isOpen && !_wasSidebarOpen)
+            ShowCreateMeetingPane();
+
+        _wasSidebarOpen = isOpen;
+
+        if (_selectedActiveCallId is { } activeId
+            && CallSessionStore.ActiveCalls.All(c => c.Id != activeId))
+        {
+            ShowCreateMeetingPane();
+        }
+
+        _ = InvokeAsync(StateHasChanged);
+    }
 
     private static IReadOnlyList<CallParticipantsOverlay.Entry> GetActiveParticipantEntries(CallSessionDto call) =>
         call.Participants.Select(u => new CallParticipantsOverlay.Entry(u)).ToList();

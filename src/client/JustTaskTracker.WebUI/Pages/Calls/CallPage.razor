@@ -362,6 +362,13 @@
         CallSessionStore.CallParticipantsChanged += OnCallParticipantsChanged;
         CallSessionStore.CallPresenterChanged += OnCallPresenterChanged;
 
+        // Both stores are read below assuming BoardPage already populated them -- true when
+        // navigating here from the board, false on a direct link/hard refresh. Load them ourselves
+        // so this page works the same either way.
+        await Task.WhenAll(
+            BoardDetailsStore.LoadAsync(BoardId),
+            CallSessionStore.EnsureActiveCallsLoadedAsync(BoardId));
+
         var activeCall = CallSessionStore.ActiveCalls.FirstOrDefault(c => c.Id == CallId);
 
         var isCreator = activeCall is { } call

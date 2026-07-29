@@ -136,6 +136,13 @@ public class UploadBoardTaskAttachmentCommandHandler(
             dateTimeProvider.UtcNow,
             new TaskAttachmentsCountChangedPayload(request.BoardTaskId, attachmentsCount)), ct);
 
+        await boardActionNotifier.NotifyAsync(new BoardActionNotification(
+            request.BoardId,
+            BoardActionNotificationType.TaskAttachmentAdded,
+            currentUserInfo.Id,
+            dateTimeProvider.UtcNow,
+            new TaskAttachmentAddedPayload(request.BoardTaskId, attachmentDto)), ct);
+
         return Result<BoardTaskAttachmentDto>.Success(attachmentDto);
     }
 }

@@ -26,6 +26,17 @@ public class UserRepository(JustTaskTrackerDbContext context) : Repository<User,
             ))
             .FirstOrDefaultAsync(ct);
 
+    public async Task<UserReadModel?> GetUserInfoByIdAsync(Guid userId, CancellationToken ct = default) =>
+        await _dbSet
+            .Where(u => u.Id == userId)
+            .Select(u => new UserReadModel(
+                u.Id,
+                u.Email,
+                u.DisplayName,
+                u.ProfilePhotoVersion
+            ))
+            .FirstOrDefaultAsync(ct);
+
     public async Task<User?> GetUserByAzureAOIAsync(Guid azureAdObjectId, CancellationToken ct = default) =>
         await _dbSet
             .Include(u => u.GlobalRoles)

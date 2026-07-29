@@ -210,14 +210,11 @@ async function syncParticipantScreenShare(participant, tileId) {
     }
 }
 
-// Zoom-like grid: Blazor owns one <div> tile per participant (local + each remote) and reports
-// its element back here via registerTileElement once rendered. This module owns ACS state and
-// only tells Blazor (via dotNetRef) when a tile should exist/stop existing -- rendering the actual
-// <video> into a tile is always driven from here, since only this module knows when a stream
-// becomes available, independent of Blazor's render cycle.
-export async function join(token, roomId, dotNetRef) {
+// Creates a fresh CallClient/CallAgent and joins the Room -- split out of join() so the retry
+// below can attempt it twice from a clean CallClient rather than reusing one that may have just
+// failed to initialize.
+async function createAgentAndJoin(tokenCredential, roomId) {
     const callClient = new CallClient();
-    const tokenCredential = new AzureCommunicationTokenCredential(token);
     const callAgent = await callClient.createCallAgent(tokenCredential);
 
     try {
@@ -237,7 +234,30 @@ export async function join(token, roomId, dotNetRef) {
         ? { videoOptions: { localVideoStreams: [localVideoStream] } }
         : {};
 
-    call = callAgent.join({ roomId }, callOptions);
+    return callAgent.join({ roomId }, callOptions);
+}
+
+// Zoom-like grid: Blazor owns one <div> tile per participant (local + each remote) and reports
+// its element back here via registerTileElement once rendered. This module owns ACS state and
+// only tells Blazor (via dotNetRef) when a tile should exist/stop existing -- rendering the actual
+// <video> into a tile is always driven from here, since only this module knows when a stream
+// becomes available, independent of Blazor's render cycle.
+export async function join(token, roomId, dotNetRef) {
+    const tokenCredential = new AzureCommunicationTokenCredential(token);
+
+    try {
+        call = await createAgentAndJoin(tokenCredential, roomId);
+    } catch (error) {
+        // Microsoft's own troubleshooting guide categorizes createCallAgent/join init-timing
+        // failures (e.g. "call stack did not initialize") as UnexpectedClientError and states a
+        // retry can still succeed -- most likely to surface on a genuinely cold page load, where
+        // the SDK's own async stack init is racing page/network startup. One retry, from a fresh
+        // CallClient, covers the observed intermittent failure without masking a real, persistent
+        // one (that retry is allowed to throw and reach the caller as before).
+        console.error("calls.js join failed, retrying once:", error);
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        call = await createAgentAndJoin(tokenCredential, roomId);
+    }
 
     // A force-end (AD-15) removes this participant from the Room, which disconnects their local
     // call state directly through ACS -- no SignalR/webhook round-trip reaches this client for that.

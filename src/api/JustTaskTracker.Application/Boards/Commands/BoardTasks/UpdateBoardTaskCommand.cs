@@ -7,6 +7,9 @@ using JustTaskTracker.Application.Common.Behaviors;
 using JustTaskTracker.Application.Common.Models;
 using JustTaskTracker.Application.Common.Persistence;
 using JustTaskTracker.Application.Common.Utils;
+using JustTaskTracker.Application.Users.Mappings;
+using JustTaskTracker.Application.Users.ProfilePhotos;
+using JustTaskTracker.Domain.Auth.DTOs;
 using JustTaskTracker.Domain.Boards.Authorization;
 using JustTaskTracker.Domain.Boards.Constants;
 using JustTaskTracker.Domain.Boards.Errors;
@@ -33,7 +36,8 @@ public class UpdateBoardTaskCommandHandler(
     IBoardTaskRepository boardTaskRepository,
     IUnitOfWork unitOfWork,
     IBoardActionNotifier boardActionNotifier,
-    IDateTimeProvider dateTimeProvider)
+    IDateTimeProvider dateTimeProvider,
+    IProfilePhotoService profilePhotoService)
     : IRequestHandler<UpdateBoardTaskCommand, Result>
 {
     public async Task<Result> Handle(UpdateBoardTaskCommand request, CancellationToken ct)
@@ -52,6 +56,8 @@ public class UpdateBoardTaskCommandHandler(
             return Result.Failure(GeneralErrors.NotFound);
 
         var hasChanges = false;
+        var descriptionChanged = false;
+        var assigneeChanged = false;
 
         if (request.Title.IsSpecified)
         {
@@ -74,6 +80,7 @@ public class UpdateBoardTaskCommandHandler(
             {
                 boardTask.Description = description;
                 hasChanges = true;
+                descriptionChanged = true;
             }
         }
 
@@ -91,6 +98,7 @@ public class UpdateBoardTaskCommandHandler(
 
                 boardTask.AssigneeId = assigneeId;
                 hasChanges = true;
+                assigneeChanged = true;
             }
         }
 
@@ -110,7 +118,38 @@ public class UpdateBoardTaskCommandHandler(
                 boardTask.Title,
                 boardTask.AssigneeId)), ct);
 
+        if (descriptionChanged)
+        {
+            await boardActionNotifier.NotifyAsync(new BoardActionNotification(
+                request.BoardId,
+                BoardActionNotificationType.TaskDescriptionChanged,
+                currentUserInfo.Id,
+                dateTimeProvider.UtcNow,
+                new TaskDescriptionChangedPayload(boardTask.Id, boardTask.Description)), ct);
+        }
+
+        if (assigneeChanged)
+        {
+            await boardActionNotifier.NotifyAsync(new BoardActionNotification(
+                request.BoardId,
+                BoardActionNotificationType.TaskAssigneeChanged,
+                currentUserInfo.Id,
+                dateTimeProvider.UtcNow,
+                new TaskAssigneeChangedPayload(boardTask.Id, await ResolveAssigneeDtoAsync(boardTask.AssigneeId, ct))), ct);
+        }
+
         return Result.Success();
+    }
+
+    private async Task<UserDto?> ResolveAssigneeDtoAsync(Guid? assigneeId, CancellationToken ct)
+    {
+        if (assigneeId is not { } id)
+            return null;
+
+        var assigneeInfo = await userRepository.GetUserInfoByIdAsync(id, ct);
+
+        return assigneeInfo.ToNullableDto(user =>
+            user.ProfilePhotoVersion is null ? null : profilePhotoService.BuildThumbnailUrl(user.Id, user.ProfilePhotoVersion));
     }
 }
 

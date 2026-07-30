@@ -2,8 +2,10 @@
 @attribute [Authorize]
 @implements IAsyncDisposable
 @using JustTaskTracker.WebUI.Domain.Boards
+@using JustTaskTracker.WebUI.Domain.Boards.Authorization
 @using JustTaskTracker.WebUI.Domain.Calls
 @using JustTaskTracker.WebUI.Services.Abstractions.Auth
+@using JustTaskTracker.WebUI.Services.Abstractions.Boards
 @using JustTaskTracker.WebUI.Services.Abstractions.Calls
 @using JustTaskTracker.WebUI.Services.Abstractions.Hubs
 @using JustTaskTracker.WebUI.Services.Exceptions
@@ -11,6 +13,7 @@
 @inject ICallsInteropService CallsInteropService
 @inject ICallsApiService CallsApiService
 @inject IBoardActionsHubService ActionsHubService
+@inject IBoardDetailsStore BoardDetailsStore
 @inject IProfileStore ProfileStore
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
@@ -201,7 +204,7 @@
                           d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
                 </svg>
             </button>
-            @if (_isCreator)
+            @if (_canEndCall)
             {
                 <button type="button"
                         class="btn-glass call-page__control-btn call-page__end-btn"
@@ -249,7 +252,7 @@
     private string? _joinError;
     private bool _micOn = true;
     private bool _cameraOn;
-    private bool _isCreator;
+    private bool _canEndCall;
     private bool _hasLeft;
     private bool _joinedBoardGroup;
     private bool _isMeetBoardOpen;
@@ -269,9 +272,15 @@
         CallSessionStore.CallSessionClosed += OnCallSessionClosed;
         CallSessionStore.CallParticipantsChanged += OnCallParticipantsChanged;
 
-        _isCreator = CallSessionStore.ActiveCalls.FirstOrDefault(c => c.Id == CallId) is { } call
+        var isCreator = CallSessionStore.ActiveCalls.FirstOrDefault(c => c.Id == CallId) is { } call
             && ProfileStore.Profile is { } profile
             && call.CreatedByUserId == profile.Id;
+
+        var canEndAsRole = BoardDetailsStore.Board is { } board
+            && board.Id == BoardId
+            && BoardRolePermissions.CanEndCall(board.UserRole);
+
+        _canEndCall = isCreator || canEndAsRole;
 
         var environment = await CallsInteropService.CheckEnvironmentAsync();
 
@@ -417,6 +426,28 @@
         InvokeAsync(async () =>
         {
             await EndLocalConnectionAsync();
+            Snackbar.Add("This call has ended.", Severity.Info);
+            GoBackToBoard();
+        });
+    }
+
+    /// <summary>
+    /// Fires when calls.js observes the local ACS call go Disconnected -- the only signal a
+    /// participant forcibly removed via a force-end (AD-15) gets on their own client, since that
+    /// removal doesn't round-trip through our SignalR SessionClosed notification for them.
+    /// _hasLeft already true here means this is our own voluntary hangUp() completing, not a
+    /// forced one -- no-op to avoid double-navigating.
+    /// </summary>
+    [JSInvokable]
+    public Task OnCallDisconnected()
+    {
+        if (_hasLeft)
+            return Task.CompletedTask;
+
+        _hasLeft = true;
+
+        return InvokeAsync(() =>
+        {
             Snackbar.Add("This call has ended.", Severity.Info);
             GoBackToBoard();
         });

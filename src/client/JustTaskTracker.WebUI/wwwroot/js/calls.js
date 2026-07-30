@@ -160,6 +160,17 @@ export async function join(token, roomId, dotNetRef) {
 
     call = callAgent.join({ roomId }, callOptions);
 
+    // A force-end (AD-15) removes this participant from the Room, which disconnects their local
+    // call state directly through ACS -- no SignalR/webhook round-trip reaches this client for that.
+    // This is the only signal available here, so it's the fallback that sends a forcibly-ended
+    // participant back to the board even if the server-side SessionClosed notification is
+    // delayed or never arrives for them. Also fires on a voluntary hangUp(); OnCallDisconnected
+    // on the C# side no-ops in that case since _hasLeft is already set by then.
+    call.on("stateChanged", () => {
+        if (call.state === "Disconnected")
+            dotNetRef.invokeMethodAsync("OnCallDisconnected");
+    });
+
     await dotNetRef.invokeMethodAsync("OnTileAdded", "local", true, !!localVideoStream);
 
     if (localVideoStream) {

@@ -1,10 +1,10 @@
 using FluentValidation;
 using JustTaskTracker.Application.Auth;
 using JustTaskTracker.Application.Auth.Repositories;
+using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Calls.Abstractions;
 using JustTaskTracker.Application.Calls.Repositories;
-using JustTaskTracker.Application.Common.Persistence;
-using JustTaskTracker.Application.Common.Utils;
+using JustTaskTracker.Domain.Boards.Authorization;
 using JustTaskTracker.Domain.Calls.Enums;
 using JustTaskTracker.Domain.Calls.Errors;
 using JustTaskTracker.Domain.Common.Results;
@@ -13,18 +13,18 @@ using MediatR;
 
 namespace JustTaskTracker.Application.Calls.Commands;
 
-// INTERIM (Story 1.1): creator-only, direct status write. Superseded by Story 1.2's
-// Event-Grid pipeline and converted to a trigger + extended to Owner/Admin in Story 1.6 --
-// see the architecture memlog for the reconciliation note (AD-12/AD-15).
+// AD-15: a trigger into the ACS Event Grid pipeline, not a second writer of CallSession.Status --
+// removes the current participants from the Room; AD-12's webhook handlers then perform the
+// actual close exactly as they would for a voluntary hang-up.
 public record EndCallCommand(Guid CallSessionId) : IRequest<Result>;
 
 public class EndCallCommandHandler(
     ICurrentUserAccessor currentUserAccessor,
     IUserRepository userRepository,
+    IBoardRepository boardRepository,
     ICallRepository callRepository,
-    IAcsCallProvisioningService acsCallProvisioningService,
-    IUnitOfWork unitOfWork,
-    IDateTimeProvider dateTimeProvider)
+    ICallParticipantRepository callParticipantRepository,
+    IAcsCallProvisioningService acsCallProvisioningService)
     : IRequestHandler<EndCallCommand, Result>
 {
     public async Task<Result> Handle(EndCallCommand request, CancellationToken ct)
@@ -39,26 +39,21 @@ public class EndCallCommandHandler(
         if (currentUser is null)
             return Result.Failure(GeneralErrors.Unauthorized);
 
-        if (callSession.CreatedByUserId != currentUser.Id)
+        var userRole = await boardRepository.GetUserRoleAsync(callSession.BoardId, currentUserAccessor.AzureAdObjectId, ct);
+
+        var isCreator = callSession.CreatedByUserId == currentUser.Id;
+        var canEndAsRole = userRole is { } role && BoardRolePermissions.CanEndCall(role);
+
+        if (!isCreator && !canEndAsRole)
             return Result.Failure(GeneralErrors.Forbidden);
 
         if (callSession.Status != CallStatus.Active)
             return Result.Failure(CallSessionsErrors.NotActive);
 
-        callSession.Status = CallStatus.Closed;
-        callSession.EndedAtUtc = dateTimeProvider.UtcNow;
-        callRepository.Update(callSession);
+        var activeParticipants = await callParticipantRepository.GetActiveParticipantsAsync(callSession.Id, ct);
+        var userIds = activeParticipants.Select(p => p.UserId).ToList();
 
-        await unitOfWork.SaveChangesAsync(ct);
-
-        try
-        {
-            await acsCallProvisioningService.DeleteRoomAsync(callSession.AcsRoomId, ct);
-        }
-        catch
-        {
-            // Best-effort cleanup: the session is already reliably marked Closed regardless.
-        }
+        await acsCallProvisioningService.RemoveParticipantsAsync(callSession.AcsRoomId, userIds, ct);
 
         return Result.Success();
     }

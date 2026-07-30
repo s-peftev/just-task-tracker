@@ -1,0 +1,178 @@
+.assistant-chat {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: var(--sidebar-width);
+    z-index: 4;
+    box-sizing: border-box;
+    width: min(360px, calc(100% - var(--sidebar-width)));
+    display: flex;
+    flex-direction: column;
+    background: var(--jtt-surface-raised, var(--jtt-surface-sidebar));
+    border-right: 1px solid var(--jtt-accent-tertiary);
+    box-shadow: 4px 0 24px color-mix(in srgb, #000 18%, transparent);
+    transition: left var(--sidebar-transition-duration, 220ms) ease,
+        width var(--sidebar-transition-duration, 220ms) ease;
+}
+
+.sidebar-shell--collapsed .assistant-chat {
+    left: 0;
+    width: min(360px, 100%);
+}
+
+.assistant-chat__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 1rem 1rem 0.75rem;
+    border-bottom: 1px solid var(--jtt-accent-tertiary);
+}
+
+.assistant-chat__title-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+}
+
+.assistant-chat__title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--jtt-text-strong);
+}
+
+.assistant-chat__subtitle {
+    margin: 0;
+    font-size: 0.75rem;
+    color: var(--jtt-text-muted);
+}
+
+.assistant-chat__close {
+    flex-shrink: 0;
+}
+
+.assistant-chat__messages {
+    flex: 1 1 0;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1rem;
+}
+
+.assistant-chat__empty {
+    margin: auto 0;
+    text-align: center;
+    font-size: 0.875rem;
+    line-height: 1.4;
+    color: var(--jtt-text-muted);
+}
+
+.assistant-chat__bubble {
+    max-width: 92%;
+    padding: 0.65rem 0.8rem;
+    border-radius: var(--jtt-radius-md, 0.5rem);
+    box-sizing: border-box;
+}
+
+.assistant-chat__bubble--user {
+    align-self: flex-end;
+    background: var(--jtt-accent);
+    color: var(--jtt-text-strong);
+}
+
+.assistant-chat__bubble--assistant {
+    align-self: flex-start;
+    background: color-mix(in srgb, var(--jtt-accent-tertiary) 55%, transparent);
+    color: var(--jtt-text-primary);
+}
+
+.assistant-chat__bubble--pending {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.75rem;
+    min-height: 2.5rem;
+}
+
+.assistant-chat__bubble-text {
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-size: 0.875rem;
+    line-height: 1.45;
+}
+
+.assistant-chat__error {
+    margin: 0 1rem 0.5rem;
+    padding: 0.5rem 0.65rem;
+    border-radius: var(--jtt-radius-md, 0.5rem);
+    border: 1px solid var(--jtt-stroke-warning-soft, #c9a227);
+    background: var(--jtt-surface-raised);
+    color: var(--jtt-text-primary);
+    font-size: 0.75rem;
+    line-height: 1.35;
+}
+
+.assistant-chat__composer {
+    display: flex;
+    align-items: flex-end;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem 1rem;
+    border-top: 1px solid var(--jtt-accent-tertiary);
+}
+
+.assistant-chat__input {
+    flex: 1 1 0;
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 0.55rem 0.7rem;
+    border-radius: var(--jtt-radius-md, 0.5rem);
+    border: 1px solid var(--jtt-accent-tertiary);
+    background: var(--jtt-surface-app, transparent);
+    color: var(--jtt-text-primary);
+    font: inherit;
+    font-size: 0.875rem;
+    line-height: 1.4;
+}
+
+.assistant-chat__input:focus {
+    outline: 2px solid color-mix(in srgb, var(--jtt-accent) 55%, transparent);
+    outline-offset: 1px;
+}
+
+.assistant-chat__input:disabled {
+    opacity: 0.65;
+}
+
+.assistant-chat__send {
+    flex-shrink: 0;
+    width: 2.25rem;
+    height: 2.25rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 999px;
+    background: var(--jtt-accent);
+    color: var(--jtt-text-strong);
+    cursor: pointer;
+    transition: background-color 0.15s ease, opacity 0.15s ease;
+}
+
+.assistant-chat__send svg {
+    width: 1rem;
+    height: 1rem;
+}
+
+.assistant-chat__send:hover:not(:disabled) {
+    background: var(--jtt-accent-secondary);
+}
+
+.assistant-chat__send:disabled {
+    opacity: 0.45;
+    cursor: default;
+}

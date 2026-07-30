@@ -1,7 +1,6 @@
-@inherits LayoutComponentBase
-@implements IDisposable
-@using Microsoft.AspNetCore.Components.Authorization
+@using JustTaskTracker.WebUI.Components.Assistant
 @using JustTaskTracker.WebUI.Components.Calls
+@using Microsoft.AspNetCore.Components.Authorization
 @using JustTaskTracker.WebUI.Domain.Calls.Notifications
 @using JustTaskTracker.WebUI.Infrastructure
 @using JustTaskTracker.WebUI.Services.Abstractions.Billing
@@ -9,6 +8,8 @@
 @using JustTaskTracker.WebUI.Services.Abstractions.Calls
 @using JustTaskTracker.WebUI.Services.Abstractions.Hubs
 @using JustTaskTracker.WebUI.Services.Abstractions.Theme
+@inherits LayoutComponentBase
+@implements IDisposable
 @inject IThemeService ThemeService
 @inject IProfileStore ProfileStore
 @inject IEntitlementsStore EntitlementsStore
@@ -49,6 +50,8 @@
                     <span class="sidebar-shell__toggle-icon @(_isSidebarCollapsed ? "sidebar-shell__toggle-icon--right" : "sidebar-shell__toggle-icon--left")"
                           aria-hidden="true"></span>
                 </button>
+
+                <AssistantChatOverlay />
 
                 <section class="sidebar-shell__content">
                     @Body

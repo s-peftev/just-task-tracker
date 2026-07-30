@@ -1,0 +1,156 @@
+@using JustTaskTracker.WebUI.Domain.Assistant
+@using JustTaskTracker.WebUI.Services.Abstractions.Assistant
+@using JustTaskTracker.WebUI.Services.Configuration
+@implements IDisposable
+@inject IAssistantChatStore ChatStore
+@inject ValidationSettings ValidationSettings
+@inject IJSRuntime Js
+
+@if (ChatStore.IsOpen)
+{
+    <aside class="assistant-chat"
+           role="dialog"
+           aria-label="Ask JustAssistant"
+           @onclick:stopPropagation="true"
+           @onmousedown:stopPropagation="true">
+        <header class="assistant-chat__header">
+            <div class="assistant-chat__title-wrap">
+                <span class="assistant-chat__title">JustAssistant</span>
+                <span class="assistant-chat__subtitle">Ask about JustTaskTracker</span>
+            </div>
+            <button type="button"
+                    class="btn-icon btn-icon--round btn-icon--sm assistant-chat__close"
+                    aria-label="Close JustAssistant"
+                    @onclick="ChatStore.Close">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path d="M18 6L6 18M6 6l12 12"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round" />
+                </svg>
+            </button>
+        </header>
+
+        <div class="assistant-chat__messages" @ref="_messagesContainer">
+            @if (ChatStore.Messages.Count == 0 && !ChatStore.IsSending)
+            {
+                <p class="assistant-chat__empty">
+                    Ask how to use boards, plans, roles, and other JustTaskTracker features.
+                </p>
+            }
+
+            @foreach (var message in ChatStore.Messages)
+            {
+                <div class="assistant-chat__bubble assistant-chat__bubble--@GetRoleClass(message.Role)">
+                    <p class="assistant-chat__bubble-text">@message.Content</p>
+                </div>
+            }
+
+            @if (ChatStore.IsSending)
+            {
+                <div class="assistant-chat__bubble assistant-chat__bubble--assistant assistant-chat__bubble--pending">
+                    <MudProgressCircular Size="Size.Small" Indeterminate="true" Color="Color.Primary" />
+                </div>
+            }
+        </div>
+
+        @if (ChatStore.ErrorMessage is { } error)
+        {
+            <div class="assistant-chat__error" role="alert">@error</div>
+        }
+
+        <form class="assistant-chat__composer" @onsubmit="OnSubmitAsync" @onsubmit:preventDefault>
+            <input class="assistant-chat__input"
+                   type="text"
+                   maxlength="@ValidationSettings.Assistant.MaxMessageLength"
+                   placeholder="Ask a question…"
+                   aria-label="Message for JustAssistant"
+                   disabled="@ChatStore.IsSending"
+                   autocomplete="off"
+                   @bind="_draft"
+                   @bind:event="oninput" />
+            <button type="submit"
+                    class="assistant-chat__send"
+                    disabled="@(ChatStore.IsSending || string.IsNullOrWhiteSpace(_draft))"
+                    aria-label="Send message">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path fill="currentColor"
+                          d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+                </svg>
+            </button>
+        </form>
+    </aside>
+}
+
+@code {
+    private const string ModulePath = "./js/assistantChat.js";
+
+    private string _draft = string.Empty;
+    private ElementReference _messagesContainer;
+    private IJSObjectReference? _module;
+    private bool _shouldScroll;
+
+    protected override void OnInitialized()
+    {
+        ChatStore.StateChanged += OnStoreStateChanged;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!_shouldScroll || !ChatStore.IsOpen)
+            return;
+
+        _shouldScroll = false;
+        await ScrollMessagesToBottomAsync();
+    }
+
+    public void Dispose()
+    {
+        ChatStore.StateChanged -= OnStoreStateChanged;
+        _ = DisposeModuleAsync();
+    }
+
+    private void OnStoreStateChanged()
+    {
+        _shouldScroll = true;
+        InvokeAsync(StateHasChanged);
+    }
+
+    private static string GetRoleClass(AssistantMessageRole role) =>
+        role == AssistantMessageRole.User ? "user" : "assistant";
+
+    private async Task OnSubmitAsync()
+    {
+        var text = _draft;
+        _draft = string.Empty;
+        await ChatStore.SendAsync(text);
+    }
+
+    private async Task ScrollMessagesToBottomAsync()
+    {
+        try
+        {
+            _module ??= await Js.InvokeAsync<IJSObjectReference>("import", ModulePath);
+            await _module.InvokeVoidAsync("scrollToBottom", _messagesContainer);
+        }
+        catch
+        {
+            // Ignore scroll failures when the panel is closed or JS is unavailable.
+        }
+    }
+
+    private async Task DisposeModuleAsync()
+    {
+        if (_module is null)
+            return;
+
+        try
+        {
+            await _module.DisposeAsync();
+        }
+        catch
+        {
+            // Ignored on teardown.
+        }
+    }
+}

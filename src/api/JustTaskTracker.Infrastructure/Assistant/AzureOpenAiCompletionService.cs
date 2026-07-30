@@ -30,9 +30,12 @@ internal class AzureOpenAiCompletionService(ChatClient chatClient, AssistantProm
 
         var completionOptions = new ChatCompletionOptions
         {
-            MaxOutputTokenCount = promptOptions.MaxOutputTokens,
-            Temperature = promptOptions.Temperature
+            MaxOutputTokenCount = promptOptions.MaxOutputTokens
         };
+
+        // gpt-5-mini and similar models reject non-default temperature; only set when configured.
+        if (promptOptions.Temperature is { } temperature)
+            completionOptions.Temperature = temperature;
 
         var completion = await chatClient.CompleteChatAsync(chatMessages, completionOptions, ct);
 

@@ -20,7 +20,10 @@ public class AssistantPromptOptions
 
     public int MaxOutputTokens { get; set; }
 
-    public float Temperature { get; set; }
+    /// <summary>
+    /// Optional. Omit for models that only allow the default temperature (e.g. gpt-5-mini).
+    /// </summary>
+    public float? Temperature { get; set; }
 
     public void Validate()
     {

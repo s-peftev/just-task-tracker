@@ -9,6 +9,7 @@ internal sealed class CallsInteropService(IJSRuntime js) : ICallsInteropService,
     private const string ModulePath = "./js/calls.js";
 
     private IJSObjectReference? _module;
+    private CallPreJoinDevicesResult? _preJoinDevicesCache;
 
     public CallPreJoinMediaPreferences PreJoin { get; } = new();
 
@@ -21,8 +22,13 @@ internal sealed class CallsInteropService(IJSRuntime js) : ICallsInteropService,
 
     public async Task<CallPreJoinDevicesResult> GetPreJoinDevicesAsync()
     {
-        var module = await EnsureModuleAsync();
-        var result = await module.InvokeAsync<CallPreJoinDevicesResult>("getPreJoinDevices");
+        if (_preJoinDevicesCache is null)
+        {
+            var module = await EnsureModuleAsync();
+            _preJoinDevicesCache = await module.InvokeAsync<CallPreJoinDevicesResult>("getPreJoinDevices");
+        }
+
+        var result = _preJoinDevicesCache;
 
         if (string.IsNullOrWhiteSpace(PreJoin.CameraDeviceId)
             && !string.IsNullOrWhiteSpace(result.SelectedCameraId))

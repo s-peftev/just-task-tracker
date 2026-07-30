@@ -32,15 +32,25 @@
     min-width: 0;
     box-sizing: border-box;
     margin: 0;
-    padding: 0.5rem 0.625rem;
+    padding: 0.5rem 2rem 0.5rem 0.625rem;
     border: 1px solid var(--jtt-stroke-default);
     border-radius: var(--jtt-radius-sm);
-    background: color-mix(in srgb, var(--jtt-surface-board-column) 70%, black);
+    background-color: color-mix(in srgb, var(--jtt-surface-board-column) 70%, black);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M4 6l4 4 4-4' stroke='%239ca3af' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.625rem center;
+    background-size: 0.875rem 0.875rem;
     color: var(--jtt-text-primary);
     font: inherit;
     font-size: 0.8125rem;
     line-height: 1.35;
     outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+}
+
+.call-prejoin-media__select::-ms-expand {
+    display: none;
 }
 
 .call-prejoin-media__select:hover:not(:disabled) {

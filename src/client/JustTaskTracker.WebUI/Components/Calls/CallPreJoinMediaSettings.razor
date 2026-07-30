@@ -1,6 +1,8 @@
 @using JustTaskTracker.WebUI.Services.Abstractions.Calls
 @using Microsoft.JSInterop
+@implements IDisposable
 @inject ICallsInteropService CallsInteropService
+@inject ICallSessionStore CallSessionStore
 
 <section class="call-prejoin-media" aria-label="Pre-join media settings">
     <div class="call-prejoin-media__field">
@@ -144,22 +146,39 @@
     [Parameter]
     public string IdPrefix { get; set; } = "prejoin";
 
-    private bool _isLoadingDevices = true;
+    private bool _isLoadingDevices;
     private bool _devicesLoaded;
+    private bool _loadInFlight;
     private string? _devicesError;
     private IReadOnlyList<CallMediaDeviceDto> _cameras = [];
     private IReadOnlyList<CallMediaDeviceDto> _microphones = [];
 
-    protected override async Task OnInitializedAsync() =>
-        await LoadDevicesAsync();
+    protected override async Task OnInitializedAsync()
+    {
+        CallSessionStore.StateChanged += OnSidebarStateChanged;
+
+        // Sidebar stays mounted on the board page; only ask for media when the hub is open.
+        if (CallSessionStore.IsSidebarOpen)
+            await LoadDevicesAsync();
+    }
+
+    private void OnSidebarStateChanged()
+    {
+        if (!CallSessionStore.IsSidebarOpen || _devicesLoaded || _loadInFlight)
+            return;
+
+        _ = InvokeAsync(LoadDevicesAsync);
+    }
 
     private async Task LoadDevicesAsync()
     {
-        if (_devicesLoaded)
+        if (_devicesLoaded || _loadInFlight || !CallSessionStore.IsSidebarOpen)
             return;
 
+        _loadInFlight = true;
         _isLoadingDevices = true;
         _devicesError = null;
+        await InvokeAsync(StateHasChanged);
 
         try
         {
@@ -179,7 +198,9 @@
         }
         finally
         {
+            _loadInFlight = false;
             _isLoadingDevices = false;
+            await InvokeAsync(StateHasChanged);
         }
     }
 
@@ -198,4 +219,7 @@
         CallsInteropService.PreJoin.CameraDeviceId = string.IsNullOrWhiteSpace(e.Value?.ToString())
             ? null
             : e.Value!.ToString();
+
+    public void Dispose() =>
+        CallSessionStore.StateChanged -= OnSidebarStateChanged;
 }

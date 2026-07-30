@@ -57,6 +57,14 @@ internal static class OptionsModule
         billingOptions.Validate();
         services.AddSingleton(billingOptions);
 
+        var assistantPromptOptions = configuration
+            .GetSection(ConfigSections.AssistantPrompt)
+            .Get<AssistantPromptOptions>()
+            ?? throw new InvalidOperationException($"{ConfigSections.AssistantPrompt} section is not configured.");
+
+        assistantPromptOptions.Validate();
+        services.AddSingleton(assistantPromptOptions);
+
         return services;
     }
 }

@@ -1,10 +1,11 @@
 using JustTaskTracker.Application.Auth;
 using JustTaskTracker.Application.Boards.Repositories;
+using JustTaskTracker.Application.Calls.Mappings;
 using JustTaskTracker.Application.Calls.Repositories;
+using JustTaskTracker.Application.Users.ProfilePhotos;
+using JustTaskTracker.Application.Users.ReadModels;
 using JustTaskTracker.Domain.Boards.Authorization;
 using JustTaskTracker.Domain.Calls.DTOs;
-using JustTaskTracker.Domain.Calls.Entities;
-using JustTaskTracker.Domain.Calls.Enums;
 using JustTaskTracker.Domain.Common.Results;
 using JustTaskTracker.Domain.Common.Results.Errors;
 using MediatR;
@@ -19,8 +20,7 @@ public class ListActiveCallSessionsForBoardQueryHandler(
     ICurrentUserAccessor currentUserAccessor,
     IBoardRepository boardRepository,
     ICallRepository callRepository,
-    ICallSessionAllowedParticipantRepository allowedParticipantRepository,
-    ICallSessionLinkedTaskRepository linkedTaskRepository)
+    IProfilePhotoService profilePhotoService)
     : IRequestHandler<ListActiveCallSessionsForBoardQuery, Result<IReadOnlyList<CallSessionDto>>>
 {
     public async Task<Result<IReadOnlyList<CallSessionDto>>> Handle(ListActiveCallSessionsForBoardQuery request, CancellationToken ct)
@@ -30,37 +30,16 @@ public class ListActiveCallSessionsForBoardQueryHandler(
         if (userRole is not { } role || !BoardRolePermissions.CanJoinCall(role))
             return Result<IReadOnlyList<CallSessionDto>>.Failure(GeneralErrors.Forbidden);
 
-        var sessions = await callRepository.GetActiveSessionsForBoardAsync(request.BoardId, ct);
+        // AD-10 live-state UI (Story 3.2) needs participants/allowed users/linked tasks/creator for
+        // every active session -- projected via CallSession's navigation properties in one query
+        // (CallRepository.GetActiveSessionsWithStateForBoardAsync), never one round trip per session.
+        var sessions = await callRepository.GetActiveSessionsWithStateForBoardAsync(request.BoardId, ct);
 
-        var dtos = new List<CallSessionDto>(sessions.Count);
+        Func<UserReadModel, string?> profilePhotoUrlResolver = user =>
+            user.ProfilePhotoVersion is null ? null : profilePhotoService.BuildThumbnailUrl(user.Id, user.ProfilePhotoVersion);
 
-        foreach (var session in sessions)
-            dtos.Add(await ToDtoAsync(session, ct));
+        IReadOnlyList<CallSessionDto> dtos = sessions.Select(session => session.ToDto(profilePhotoUrlResolver)).ToList();
 
         return Result<IReadOnlyList<CallSessionDto>>.Success(dtos);
-    }
-
-    private async Task<CallSessionDto> ToDtoAsync(CallSession session, CancellationToken ct)
-    {
-        // Client-side "can I join?" gate for Restricted sessions (AD-4) -- Open sessions don't need it.
-        var allowedUserIds = session.Visibility == CallVisibility.Restricted
-            ? await allowedParticipantRepository.GetAllowedUserIdsAsync(session.Id, ct)
-            : null;
-
-        var linkedTaskIds = await linkedTaskRepository.GetLinkedTaskIdsAsync(session.Id, ct);
-
-        return new CallSessionDto(
-            session.Id,
-            session.BoardId,
-            session.CreatedByUserId,
-            session.Title,
-            session.Topic,
-            session.Visibility,
-            session.AcsRoomId,
-            session.Status,
-            session.StartedAtUtc,
-            allowedUserIds,
-            linkedTaskIds,
-            session.CurrentPresenterUserId);
     }
 }

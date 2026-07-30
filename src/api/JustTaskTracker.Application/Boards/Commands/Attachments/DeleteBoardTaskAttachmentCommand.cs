@@ -102,6 +102,13 @@ public class DeleteBoardTaskAttachmentCommandHandler(
             dateTimeProvider.UtcNow,
             new TaskAttachmentsCountChangedPayload(request.BoardTaskId, remainingAttachments.Count)), ct);
 
+        await boardActionNotifier.NotifyAsync(new BoardActionNotification(
+            request.BoardId,
+            BoardActionNotificationType.TaskAttachmentRemoved,
+            currentUserInfo.Id,
+            dateTimeProvider.UtcNow,
+            new TaskAttachmentRemovedPayload(request.BoardTaskId, request.AttachmentId)), ct);
+
         return Result.Success();
     }
 }

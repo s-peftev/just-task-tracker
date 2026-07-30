@@ -1,4 +1,3 @@
-using JustTaskTracker.Domain.Boards.Entities;
 using JustTaskTracker.Domain.Calls.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -11,12 +10,12 @@ public class CallSessionLinkedTaskConfiguration : IEntityTypeConfiguration<CallS
     {
         builder.HasKey(t => new { t.CallSessionId, t.TaskId });
 
-        builder.HasOne<CallSession>()
-            .WithMany()
+        builder.HasOne(t => t.CallSession)
+            .WithMany(s => s.LinkedTasks)
             .HasForeignKey(t => t.CallSessionId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.HasOne<BoardTask>()
+        builder.HasOne(t => t.Task)
             .WithMany()
             .HasForeignKey(t => t.TaskId)
             .OnDelete(DeleteBehavior.NoAction);

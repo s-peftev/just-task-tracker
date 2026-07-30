@@ -12,5 +12,10 @@ public class CallSessionConfiguration : IEntityTypeConfiguration<CallSession>
         builder.Property(c => c.Title).HasMaxLength(CallFieldLengths.MaxTitleLength);
         builder.Property(c => c.Topic).HasMaxLength(CallFieldLengths.MaxTopicLength);
         builder.Property(c => c.AcsRoomId).IsRequired();
+
+        builder.HasOne(c => c.CreatedByUser)
+            .WithMany()
+            .HasForeignKey(c => c.CreatedByUserId)
+            .OnDelete(DeleteBehavior.NoAction);
     }
 }

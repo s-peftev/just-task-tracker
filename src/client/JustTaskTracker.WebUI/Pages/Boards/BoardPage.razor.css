@@ -60,19 +60,8 @@
     user-select: none;
 }
 
-.board-page__workspace {
-    display: flex;
-    flex-direction: row;
-    height: 100%;
-    min-height: 0;
-    overflow: hidden;
-    align-items: flex-start;
-}
-
 .board-page__body {
     position: relative;
-    flex: 1 1 0;
-    min-width: 0;
     height: 100%;
     min-height: 0;
     overflow-x: auto;

@@ -13,7 +13,7 @@ public static class UserReadModelMappings
             profilePhotoUrlResolver(user));
 
     public static UserDto? ToNullableDto(this UserReadModel? user, Func<UserReadModel, string?> profilePhotoUrlResolver) =>
-        user is null ? null : user.ToDto(profilePhotoUrlResolver);
+        user?.ToDto(profilePhotoUrlResolver);
 
     public static UserWithRolesDto ToUserWithRolesDto(
         this UserReadModel user,

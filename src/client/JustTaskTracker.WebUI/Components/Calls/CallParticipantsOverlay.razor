@@ -1,6 +1,5 @@
 @using JustTaskTracker.WebUI.Components.Shared
 @using JustTaskTracker.WebUI.Domain.Auth
-@using JustTaskTracker.WebUI.Domain.Calls
 
 <div class="board-members-overlay"
      role="dialog"
@@ -36,27 +35,30 @@
             @if (Participants.Count == 0)
             {
                 <div class="board-members-overlay__state">
-                    <p class="board-members-overlay__message">No participants recorded.</p>
+                    <p class="board-members-overlay__message">@EmptyMessage</p>
                 </div>
             }
             else
             {
                 <ul class="board-members-overlay__list">
-                    @foreach (var participant in Participants)
+                    @foreach (var entry in Participants)
                     {
-                        <li class="board-members-overlay__item">
+                        <li @key="entry.User.Id" class="board-members-overlay__item">
                             <div class="board-members-overlay__member">
                                 <div class="board-members-overlay__member-avatar-wrap">
                                     <UserAvatarPlaceholder Class="board-members-overlay__member-avatar"
                                                            Preset="UserAvatarPlaceholderPreset.Member"
-                                                           DisplayName="@participant.User.DisplayName"
-                                                           Email="@participant.User.Email"
-                                                           ProfilePhotoUrl="@participant.User.ProfilePhotoUrl"
-                                                           Title="@participant.User.Email" />
+                                                           DisplayName="@entry.User.DisplayName"
+                                                           Email="@entry.User.Email"
+                                                           ProfilePhotoUrl="@entry.User.ProfilePhotoUrl"
+                                                           Title="@entry.User.Email" />
                                 </div>
-                                <span class="board-members-overlay__member-name">@UserDisplayFormatting.GetShortName(participant.User)</span>
-                                <span class="board-members-overlay__member-email">@participant.User.Email</span>
-                                <span class="call-history-participants-overlay__times">@GetTimesCaption(participant)</span>
+                                <span class="board-members-overlay__member-name">@UserDisplayFormatting.GetShortName(entry.User)</span>
+                                <span class="board-members-overlay__member-email">@entry.User.Email</span>
+                                @if (entry.Caption is { } caption)
+                                {
+                                    <span class="call-participants-overlay__caption">@caption</span>
+                                }
                             </div>
                         </li>
                     }
@@ -67,19 +69,18 @@
 </div>
 
 @code {
+    // Caption is the optional per-participant line under the name/email -- history passes
+    // "Joined ..., left ..." (CallsSidebar.razor), a live call passes none (ActiveCallsTab.razor).
+    public record Entry(UserDto User, string? Caption = null);
+
     [Parameter, EditorRequired]
-    public IReadOnlyList<CallHistoryParticipantDto> Participants { get; set; } = [];
+    public IReadOnlyList<Entry> Participants { get; set; } = [];
+
+    [Parameter]
+    public string EmptyMessage { get; set; } = "No participants recorded.";
 
     [Parameter, EditorRequired]
     public EventCallback OnClose { get; set; }
-
-    private static string GetTimesCaption(CallHistoryParticipantDto participant)
-    {
-        var joined = participant.FirstJoinedAtUtc.ToLocalTime().ToString("g");
-        var left = participant.LastLeftAtUtc is { } lastLeftAtUtc ? lastLeftAtUtc.ToLocalTime().ToString("g") : "—";
-
-        return $"Joined {joined}, left {left}";
-    }
 
     private Task Close() => OnClose.InvokeAsync();
 }

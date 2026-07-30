@@ -153,11 +153,13 @@
 }
 
 .board-page-header__calls-btn {
+    position: relative;
     color: var(--jtt-text-strong);
     border: none;
     border-radius: var(--jtt-radius-sm);
 }
 
+.board-page-header__calls-btn--active,
 .board-page-header__calls-btn:hover,
 .board-page-header__calls-btn:focus-visible {
     color: var(--jtt-accent);
@@ -166,6 +168,25 @@
 .board-page-header__calls-btn svg {
     width: 1.375rem;
     height: 1.375rem;
+}
+
+.board-page-header__calls-badge {
+    position: absolute;
+    top: 0.0625rem;
+    right: 0.0625rem;
+    min-width: 1rem;
+    height: 1rem;
+    padding: 0 0.1875rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background-color: var(--jtt-accent);
+    color: var(--jtt-surface-board-column);
+    font-size: 0.625rem;
+    font-weight: var(--jtt-font-weight-strong);
+    line-height: 1;
+    pointer-events: none;
 }
 
 .board-page__download-btn {

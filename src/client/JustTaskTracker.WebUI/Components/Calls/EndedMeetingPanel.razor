@@ -1,0 +1,313 @@
+@using JustTaskTracker.WebUI.Components.Boards
+@using JustTaskTracker.WebUI.Components.Shared
+@using JustTaskTracker.WebUI.Domain.Auth
+@using JustTaskTracker.WebUI.Domain.Boards
+@using JustTaskTracker.WebUI.Domain.Calls
+@using JustTaskTracker.WebUI.Domain.Calls.Enums
+@using JustTaskTracker.WebUI.Infrastructure
+@implements IAsyncDisposable
+@inject NavigationManager Navigation
+@inject IJSRuntime Js
+
+<section class="meeting-body-panel ended-meeting-panel" aria-label="Ended meeting">
+    @if (Session is null)
+    {
+        <header class="meeting-body-panel__header">
+            <h2 class="meeting-body-panel__title">ENDED MEETING</h2>
+        </header>
+        <p class="ended-meeting-panel__empty">Select an ended meeting from the list.</p>
+    }
+    else
+    {
+        <header class="ended-meeting-panel__header">
+            <h2 class="ended-meeting-panel__eyebrow">Ended meeting:</h2>
+
+            <h3 class="ended-meeting-panel__title" title="@Session.Title">@Session.Title</h3>
+
+            <div class="ended-meeting-panel__subtitle-row">
+                <p class="ended-meeting-panel__topic" title="@(Session.Topic ?? string.Empty)">
+                    <span class="ended-meeting-panel__muted">Topic:</span>
+                    @(string.IsNullOrWhiteSpace(Session.Topic) ? "—" : Session.Topic)
+                </p>
+
+                @if (Session.Visibility == CallVisibility.Restricted)
+                {
+                    <button type="button"
+                            class="ended-meeting-panel__type ended-meeting-panel__type--restricted"
+                            title="View allowed members"
+                            @onclick="ShowAllowedUsersAsync">
+                        Type: Restricted
+                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <path fill="none"
+                                  stroke="currentColor"
+                                  stroke-width="1.75"
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                  d="M7 11V8a5 5 0 0 1 10 0v3M6 11h12v10H6z" />
+                        </svg>
+                    </button>
+                }
+                else
+                {
+                    <span class="ended-meeting-panel__type">
+                        Type: Open
+                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <path fill="none"
+                                  stroke="currentColor"
+                                  stroke-width="1.75"
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                  d="M7 11V8a5 5 0 0 1 9.9-1M6 11h12v10H6z" />
+                        </svg>
+                    </span>
+                }
+            </div>
+        </header>
+
+        <div class="ended-meeting-panel__meta">
+            <div class="ended-meeting-panel__meta-item">
+                <UserAvatarPlaceholder Class="ended-meeting-panel__meta-avatar"
+                                       Size="28px"
+                                       DisplayName="@Session.CreatedBy.DisplayName"
+                                       Email="@Session.CreatedBy.Email"
+                                       ProfilePhotoUrl="@Session.CreatedBy.ProfilePhotoUrl"
+                                       Title="@UserDisplayFormatting.GetShortName(Session.CreatedBy)" />
+                <div class="ended-meeting-panel__meta-text">
+                    <span class="ended-meeting-panel__muted">Created by:</span>
+                    <span class="ended-meeting-panel__meta-value"
+                          title="@UserDisplayFormatting.GetShortName(Session.CreatedBy)">
+                        @UserDisplayFormatting.GetShortName(Session.CreatedBy)
+                    </span>
+                </div>
+            </div>
+
+            <div class="ended-meeting-panel__meta-item">
+                <div class="ended-meeting-panel__meta-text">
+                    <span class="ended-meeting-panel__muted">Started:</span>
+                    <span class="ended-meeting-panel__meta-value"
+                          title="@FormatDateTime(Session.StartedAtUtc)">
+                        @FormatDateTime(Session.StartedAtUtc)
+                    </span>
+                </div>
+            </div>
+
+            <div class="ended-meeting-panel__meta-item ended-meeting-panel__meta-item--end">
+                <div class="ended-meeting-panel__meta-text">
+                    <span class="ended-meeting-panel__muted">Ended:</span>
+                    <span class="ended-meeting-panel__meta-value"
+                          title="@FormatDateTime(Session.EndedAtUtc)">
+                        @FormatDateTime(Session.EndedAtUtc)
+                    </span>
+                </div>
+            </div>
+
+            <div class="ended-meeting-panel__meta-item ended-meeting-panel__meta-item--duration">
+                <div class="ended-meeting-panel__meta-text">
+                    <span class="ended-meeting-panel__muted">Duration:</span>
+                    <span class="ended-meeting-panel__meta-value ended-meeting-panel__meta-value--duration">
+                        @FormatDuration(Session.EndedAtUtc - Session.StartedAtUtc)
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="ended-meeting-panel__body">
+            <section class="ended-meeting-panel__card" aria-labelledby="ended-meeting-participants-heading">
+                <header class="ended-meeting-panel__card-header">
+                    <h4 id="ended-meeting-participants-heading" class="ended-meeting-panel__card-title">Participants</h4>
+                    <span class="ended-meeting-panel__card-count">@GetParticipantsCountLabel()</span>
+                </header>
+
+                @if (Session.Participants.Count == 0)
+                {
+                    <p class="ended-meeting-panel__card-empty">No one joined this call.</p>
+                }
+                else
+                {
+                    <div @ref="_participantsViewport" class="ended-meeting-panel__participants">
+                        <ul class="ended-meeting-panel__participants-track">
+                            @foreach (var participant in Session.Participants)
+                            {
+                                <li class="ended-meeting-panel__participant" @key="participant.User.Id">
+                                    <UserAvatarPlaceholder Class="ended-meeting-panel__participant-avatar"
+                                                           Size="44px"
+                                                           Preset="UserAvatarPlaceholderPreset.Member"
+                                                           DisplayName="@participant.User.DisplayName"
+                                                           Email="@participant.User.Email"
+                                                           ProfilePhotoUrl="@participant.User.ProfilePhotoUrl"
+                                                           Title="@GetParticipantTitle(participant)" />
+                                    <span class="ended-meeting-panel__participant-name"
+                                          title="@UserDisplayFormatting.GetShortName(participant.User)">
+                                        @GetFirstName(participant.User)
+                                    </span>
+                                    <span class="ended-meeting-panel__participant-presence"
+                                          title="@GetParticipantTitle(participant)">
+                                        @FormatPresence(participant)
+                                    </span>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                }
+            </section>
+
+            <section class="ended-meeting-panel__card ended-meeting-panel__card--tasks" aria-labelledby="ended-meeting-tasks-heading">
+                <header class="ended-meeting-panel__card-header">
+                    <h4 id="ended-meeting-tasks-heading" class="ended-meeting-panel__card-title">Linked tasks</h4>
+                    <span class="ended-meeting-panel__card-count">@GetLinkedTasksCountLabel()</span>
+                </header>
+
+                @if (Session.LinkedTasks.Count == 0)
+                {
+                    <p class="ended-meeting-panel__card-empty">No linked tasks.</p>
+                }
+                else
+                {
+                    <ul class="ended-meeting-panel__tasks">
+                        @foreach (var task in Session.LinkedTasks)
+                        {
+                            <li class="ended-meeting-panel__task" @key="task.Id">
+                                <BoardTaskSearchResultItem Task="task" OnClick="OnTaskClickAsync" />
+                            </li>
+                        }
+                    </ul>
+                }
+            </section>
+        </div>
+    }
+</section>
+
+@code {
+    private const string PanModulePath = "./js/horizontalPanScroll.js";
+
+    [Parameter, EditorRequired]
+    public Guid BoardId { get; set; }
+
+    [Parameter]
+    public CallSessionHistoryDto? Session { get; set; }
+
+    [Parameter]
+    public EventCallback OnShowAllowedUsers { get; set; }
+
+    private ElementReference _participantsViewport;
+    private IJSObjectReference? _panModule;
+    private IJSObjectReference? _panHandle;
+    private Guid? _panAttachedSessionId;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (Session is null || Session.Participants.Count == 0)
+        {
+            await DetachPanAsync();
+            return;
+        }
+
+        if (_panAttachedSessionId == Session.Id && _panHandle is not null)
+            return;
+
+        await DetachPanAsync();
+        await AttachPanAsync(Session.Id);
+    }
+
+    private async Task AttachPanAsync(Guid sessionId)
+    {
+        _panModule ??= await Js.InvokeAsync<IJSObjectReference>("import", PanModulePath);
+        _panHandle = await _panModule.InvokeAsync<IJSObjectReference>("attach", _participantsViewport);
+        _panAttachedSessionId = sessionId;
+    }
+
+    private async Task DetachPanAsync()
+    {
+        if (_panHandle is not null)
+        {
+            await _panHandle.InvokeVoidAsync("dispose");
+            await _panHandle.DisposeAsync();
+            _panHandle = null;
+        }
+
+        _panAttachedSessionId = null;
+    }
+
+    private string GetParticipantsCountLabel()
+    {
+        if (Session is null)
+            return string.Empty;
+
+        if (Session.Visibility == CallVisibility.Restricted)
+        {
+            var allowed = Session.AllowedUsers?.Count ?? 0;
+            return $"{Session.Participants.Count} / {allowed}";
+        }
+
+        return Session.Participants.Count.ToString();
+    }
+
+    private string GetLinkedTasksCountLabel()
+    {
+        if (Session is null)
+            return string.Empty;
+
+        var count = Session.LinkedTasks.Count;
+        return count == 1 ? "1 Task" : $"{count} Tasks";
+    }
+
+    private static string GetFirstName(UserDto user)
+    {
+        var name = UserDisplayFormatting.GetShortName(user);
+        var space = name.IndexOf(' ');
+        return space > 0 ? name[..space] : name;
+    }
+
+    private static string FormatDateTime(DateTime utc) =>
+        utc.ToLocalTime().ToString("dd.MM.yyyy HH:mm");
+
+    private static string FormatDuration(TimeSpan span)
+    {
+        if (span < TimeSpan.Zero)
+            span = TimeSpan.Zero;
+
+        if (span.TotalHours >= 1)
+            return $"{(int)span.TotalHours}h {span.Minutes:D2}m";
+
+        if (span.TotalMinutes >= 1)
+            return $"{span.Minutes}m {span.Seconds:D2}s";
+
+        return $"{Math.Max(1, span.Seconds)}s";
+    }
+
+    private static string FormatPresence(CallHistoryParticipantDto participant)
+    {
+        var joined = participant.FirstJoinedAtUtc.ToLocalTime().ToString("HH:mm");
+        if (participant.LastLeftAtUtc is { } left)
+            return $"{joined}–{left.ToLocalTime():HH:mm}";
+
+        return $"{joined}–";
+    }
+
+    private static string GetParticipantTitle(CallHistoryParticipantDto participant)
+    {
+        var name = UserDisplayFormatting.GetShortName(participant.User);
+        var joined = FormatDateTime(participant.FirstJoinedAtUtc);
+        if (participant.LastLeftAtUtc is { } left)
+            return $"{name} · Joined {joined} · Left {FormatDateTime(left)}";
+
+        return $"{name} · Joined {joined}";
+    }
+
+    private Task ShowAllowedUsersAsync() =>
+        OnShowAllowedUsers.InvokeAsync();
+
+    private void OnTaskClickAsync(BoardTaskLookupDto task) =>
+        Navigation.NavigateTo(BoardTaskRoutes.GetTaskUrl(BoardId, task.ColumnId, task.Id));
+
+    public async ValueTask DisposeAsync()
+    {
+        await DetachPanAsync();
+
+        if (_panModule is not null)
+        {
+            await _panModule.DisposeAsync();
+            _panModule = null;
+        }
+    }
+}

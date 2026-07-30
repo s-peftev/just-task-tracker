@@ -58,6 +58,22 @@ internal static class BoardActionPayloadParser
                 payload.Deserialize<TaskAttachmentsCountChangedPayload>(Options)
                 ?? throw CreateParseException(type),
 
+            BoardActionNotificationType.TaskDescriptionChanged =>
+                payload.Deserialize<TaskDescriptionChangedPayload>(Options)
+                ?? throw CreateParseException(type),
+
+            BoardActionNotificationType.TaskAssigneeChanged =>
+                payload.Deserialize<TaskAssigneeChangedPayload>(Options)
+                ?? throw CreateParseException(type),
+
+            BoardActionNotificationType.TaskAttachmentAdded =>
+                payload.Deserialize<TaskAttachmentAddedPayload>(Options)
+                ?? throw CreateParseException(type),
+
+            BoardActionNotificationType.TaskAttachmentRemoved =>
+                payload.Deserialize<TaskAttachmentRemovedPayload>(Options)
+                ?? throw CreateParseException(type),
+
             _ => throw new NotSupportedException($"Board action notification type '{type}' is not supported."),
         };
 

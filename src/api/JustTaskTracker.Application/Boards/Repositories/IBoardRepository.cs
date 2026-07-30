@@ -36,6 +36,13 @@ public interface IBoardRepository : IRepository<Board, Guid>
 
     Task<bool> IsBoardMemberAsync(Guid boardId, Guid userId, CancellationToken ct = default);
 
+    /// <summary>
+    /// How many of <paramref name="userIds"/> are members of the board -- lets a caller validate
+    /// an entire allow-list in one round trip (compare against <c>userIds.Count</c>) instead of
+    /// one <see cref="IsBoardMemberAsync"/> call per id.
+    /// </summary>
+    Task<int> CountBoardMembersAsync(Guid boardId, IReadOnlyList<Guid> userIds, CancellationToken ct = default);
+
     Task<bool> IsArchivedAsync(Guid boardId, CancellationToken ct = default);
 
     Task<Guid?> GetOwnerUserIdAsync(Guid boardId, CancellationToken ct = default);
@@ -60,4 +67,10 @@ public interface IBoardRepository : IRepository<Board, Guid>
         int pageSize,
         TextSearchOptions<BoardMemberSearchField>? searchOptions = null,
         CancellationToken ct = default);
+
+    /// <summary>
+    /// All of a board's members with their role and AzureAdObjectId (AD-10) -- the full,
+    /// unpaginated list needed to resolve who's eligible for a cross-page "call started" alert.
+    /// </summary>
+    Task<IReadOnlyList<BoardMemberIdentity>> GetMemberIdentitiesAsync(Guid boardId, CancellationToken ct = default);
 }

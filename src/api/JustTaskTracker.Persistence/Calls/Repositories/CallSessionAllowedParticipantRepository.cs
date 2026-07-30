@@ -11,12 +11,6 @@ public class CallSessionAllowedParticipantRepository(JustTaskTrackerDbContext co
         context.CallSessionAllowedParticipants
             .AnyAsync(p => p.CallSessionId == callSessionId && p.UserId == userId, ct);
 
-    public async Task<IReadOnlyList<Guid>> GetAllowedUserIdsAsync(Guid callSessionId, CancellationToken ct = default) =>
-        await context.CallSessionAllowedParticipants
-            .Where(p => p.CallSessionId == callSessionId)
-            .Select(p => p.UserId)
-            .ToListAsync(ct);
-
     public void Add(CallSessionAllowedParticipant allowedParticipant) =>
         context.CallSessionAllowedParticipants.Add(allowedParticipant);
 }

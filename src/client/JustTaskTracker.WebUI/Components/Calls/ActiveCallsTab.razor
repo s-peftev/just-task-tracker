@@ -1,0 +1,183 @@
+@using JustTaskTracker.WebUI.Components.Shared
+@using JustTaskTracker.WebUI.Domain.Auth
+@using JustTaskTracker.WebUI.Domain.Calls
+@using JustTaskTracker.WebUI.Domain.Calls.Enums
+@using JustTaskTracker.WebUI.Infrastructure
+@using JustTaskTracker.WebUI.Services.Abstractions.Boards
+@using JustTaskTracker.WebUI.Services.Abstractions.Calls
+@implements IDisposable
+@inject ICallSessionStore CallSessionStore
+@inject IBoardDetailsStore BoardDetailsStore
+
+<section class="calls-sidebar__section calls-sidebar__section--active" aria-label="Active meetings">
+    <header class="calls-sidebar__header calls-sidebar__header--recent">
+        <h2 class="calls-sidebar__title calls-sidebar__title--recent">ACTIVE MEETINGS</h2>
+    </header>
+
+    <div class="calls-sidebar__section-body">
+        @if (CallSessionStore.IsLoadingActiveCalls)
+        {
+            <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Small" />
+        }
+        else if (CallSessionStore.ActiveCalls.Count == 0)
+        {
+            <p class="calls-sidebar__empty">No active calls on this board.</p>
+        }
+        else
+        {
+            <ul class="calls-sidebar__list">
+                @foreach (var call in CallSessionStore.ActiveCalls)
+                {
+                    <li @key="call.Id"
+                        class="active-meeting-card @(SelectedCallId == call.Id ? "active-meeting-card--selected" : null)"
+                        role="button"
+                        tabindex="0"
+                        @onclick="() => OnSelectCall.InvokeAsync(call.Id)"
+                        @onkeydown="e => OnCardKeyDown(e, call.Id)">
+                        <div class="active-meeting-card__top">
+                            <span class="active-meeting-card__title" title="@call.Title">@call.Title</span>
+
+                            @if (call.Visibility == CallVisibility.Restricted)
+                            {
+                                <button type="button"
+                                        class="active-meeting-card__visibility active-meeting-card__visibility--restricted"
+                                        title="Restricted"
+                                        @onclick="() => OnShowAllowedUsers.InvokeAsync(call.Id)"
+                                        @onclick:stopPropagation="true">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                        <path fill="none"
+                                              stroke="currentColor"
+                                              stroke-width="2"
+                                              stroke-linecap="round"
+                                              stroke-linejoin="round"
+                                              d="M7 11V8a5 5 0 0 1 10 0v3M6 11h12v10H6z" />
+                                    </svg>
+                                    Restricted
+                                </button>
+                            }
+                            else
+                            {
+                                <span class="active-meeting-card__visibility">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                        <path fill="none"
+                                              stroke="currentColor"
+                                              stroke-width="2"
+                                              stroke-linecap="round"
+                                              stroke-linejoin="round"
+                                              d="M7 11V8a5 5 0 0 1 10 0v3M6 11h12v10H6z" />
+                                    </svg>
+                                    Open
+                                </span>
+                            }
+                        </div>
+
+                        <p class="active-meeting-card__topic" title="@(call.Topic ?? string.Empty)">
+                            <span class="active-meeting-card__label">Topic:</span>
+                            @(string.IsNullOrWhiteSpace(call.Topic) ? "—" : call.Topic)
+                        </p>
+
+                        <div class="active-meeting-card__footer">
+                            <div class="active-meeting-card__creator">
+                                <UserAvatarPlaceholder Class="active-meeting-card__avatar"
+                                                       Size="28px"
+                                                       DisplayName="@call.CreatedBy.DisplayName"
+                                                       Email="@call.CreatedBy.Email"
+                                                       ProfilePhotoUrl="@call.CreatedBy.ProfilePhotoUrl" />
+                                <div class="active-meeting-card__creator-text">
+                                    <span class="active-meeting-card__label">Created by:</span>
+                                    <span class="active-meeting-card__value"
+                                          title="@UserDisplayFormatting.GetShortName(call.CreatedBy)">
+                                        @UserDisplayFormatting.GetShortName(call.CreatedBy)
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="active-meeting-card__aside">
+                                <span class="active-meeting-card__label active-meeting-card__aside-label">Duration:</span>
+                                <div class="active-meeting-card__timer">
+                                    <LiveCallDuration Class="active-meeting-card__value active-meeting-card__value--duration"
+                                                      StartedAtUtc="call.StartedAtUtc" />
+                                </div>
+                                <div class="active-meeting-card__stats">
+                                    <button type="button"
+                                            class="active-meeting-card__stat"
+                                            title="Linked tasks"
+                                            @onclick="() => OnShowLinkedTasks.InvokeAsync(call.Id)"
+                                            @onclick:stopPropagation="true">
+                                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                            <path fill="none"
+                                                  stroke="currentColor"
+                                                  stroke-width="2"
+                                                  stroke-linecap="round"
+                                                  d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />
+                                        </svg>
+                                        <span>@call.LinkedTasks.Count</span>
+                                    </button>
+
+                                    <button type="button"
+                                            class="active-meeting-card__stat"
+                                            title="Participants"
+                                            @onclick="() => OnShowParticipants.InvokeAsync(call.Id)"
+                                            @onclick:stopPropagation="true">
+                                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                            <path fill="none"
+                                                  stroke="currentColor"
+                                                  stroke-width="2"
+                                                  stroke-linecap="round"
+                                                  stroke-linejoin="round"
+                                                  d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+                                        </svg>
+                                        <span>@call.Participants.Count</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                }
+            </ul>
+        }
+    </div>
+</section>
+
+@code {
+    [Parameter, EditorRequired]
+    public Guid BoardId { get; set; }
+
+    [Parameter]
+    public Guid? SelectedCallId { get; set; }
+
+    [Parameter, EditorRequired]
+    public EventCallback<Guid> OnSelectCall { get; set; }
+
+    // The overlays themselves are hosted by CallsSidebar, not here -- this section renders inside
+    // calls-sidebar__panel, which has `transform`/`overflow: hidden` for its slide-in animation and
+    // would clip a `position: fixed` overlay to the sidebar's bounds instead of the viewport.
+    [Parameter, EditorRequired]
+    public EventCallback<Guid> OnShowLinkedTasks { get; set; }
+
+    [Parameter, EditorRequired]
+    public EventCallback<Guid> OnShowParticipants { get; set; }
+
+    [Parameter, EditorRequired]
+    public EventCallback<Guid> OnShowAllowedUsers { get; set; }
+
+    protected override void OnInitialized()
+    {
+        CallSessionStore.StateChanged += OnStoreStateChanged;
+        BoardDetailsStore.StateChanged += OnStoreStateChanged;
+    }
+
+    private async Task OnCardKeyDown(KeyboardEventArgs e, Guid callId)
+    {
+        if (e.Key is "Enter" or " ")
+            await OnSelectCall.InvokeAsync(callId);
+    }
+
+    private void OnStoreStateChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        CallSessionStore.StateChanged -= OnStoreStateChanged;
+        BoardDetailsStore.StateChanged -= OnStoreStateChanged;
+    }
+}

@@ -1,0 +1,55 @@
+@using JustTaskTracker.WebUI.Components.Shared.Forms
+@using JustTaskTracker.WebUI.Domain.Calls
+@using JustTaskTracker.WebUI.Infrastructure
+@using JustTaskTracker.WebUI.Services.Abstractions.Calls
+@using JustTaskTracker.WebUI.Validation
+@inject ICallSessionStore CallSessionStore
+@inject ICallsInteropService CallsInteropService
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+
+<section class="meeting-body-panel" aria-label="Create new meeting">
+    <header class="meeting-body-panel__header">
+        <h2 class="meeting-body-panel__title">CREATE NEW MEETING</h2>
+    </header>
+
+    <div class="meeting-body-panel__content">
+        <CreateCallForm BoardId="BoardId"
+                        Inline="true"
+                        OnSubmitted="CreateAndJoinAsync" />
+    </div>
+</section>
+
+@code {
+    [Parameter, EditorRequired]
+    public Guid BoardId { get; set; }
+
+    private async Task CreateAndJoinAsync(CreateCallResult callResult)
+    {
+        var session = await CallSessionStore.CreateCallAsync(
+            BoardId,
+            callResult.Title,
+            callResult.Topic,
+            callResult.Visibility,
+            callResult.AllowedUserIds,
+            callResult.LinkedTaskIds);
+
+        if (session is null)
+        {
+            if (CallSessionStore.ErrorMessage is { } error)
+                Snackbar.Add(error, Severity.Error);
+
+            return;
+        }
+
+        var environment = await CallsInteropService.CheckEnvironmentAsync();
+
+        if (!environment.IsSupported)
+        {
+            Snackbar.Add(environment.Reason ?? "This browser doesn't support video calls.", Severity.Error);
+            return;
+        }
+
+        Navigation.NavigateTo($"/boards/{BoardId}/calls/{session.Id}");
+    }
+}

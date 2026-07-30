@@ -28,16 +28,16 @@ internal sealed class CallSessionStore(ICallsApiService callsApiService) : ICall
     public string? ErrorMessage { get; private set; }
     public Guid? CurrentCallId { get; private set; }
     public JoinCallResponse? CurrentJoinInfo { get; private set; }
+    public Guid CurrentBoardId => _boardId;
 
     public event Action? StateChanged;
     public event Action<Guid>? CallSessionClosed;
     public event Action<Guid>? CallParticipantsChanged;
     public event Action<Guid, Guid?>? CallPresenterChanged;
 
-    public async Task OpenSidebarAsync(Guid boardId, CancellationToken ct = default)
+    public async Task EnsureActiveCallsLoadedAsync(Guid boardId, CancellationToken ct = default)
     {
         _boardId = boardId;
-        IsSidebarOpen = true;
         IsLoadingActiveCalls = true;
         ErrorMessage = null;
         NotifyStateChanged();
@@ -57,6 +57,14 @@ internal sealed class CallSessionStore(ICallsApiService callsApiService) : ICall
             IsLoadingActiveCalls = false;
             NotifyStateChanged();
         }
+    }
+
+    public async Task OpenSidebarAsync(Guid boardId, CancellationToken ct = default)
+    {
+        IsSidebarOpen = true;
+        NotifyStateChanged();
+
+        await EnsureActiveCallsLoadedAsync(boardId, ct);
 
         _historyPage = 1;
         IsLoadingHistory = true;
@@ -236,7 +244,7 @@ internal sealed class CallSessionStore(ICallsApiService callsApiService) : ICall
         NotifyStateChanged();
     }
 
-    public void ApplyCallStateNotification(CallStateNotification notification)
+    public async Task ApplyCallStateNotification(CallStateNotification notification)
     {
         switch (notification.Type)
         {
@@ -251,18 +259,24 @@ internal sealed class CallSessionStore(ICallsApiService callsApiService) : ICall
 
                 NotifyStateChanged();
                 CallSessionClosed?.Invoke(notification.CallSessionId);
+
+                if (notification.BoardId == _boardId)
+                    await RefreshHistoryAsync(notification.BoardId);
+
                 break;
 
             case CallStateNotificationType.ParticipantJoined:
             case CallStateNotificationType.ParticipantLeft:
+                // CallSessionDto now carries its own Participants -- a fresh, cheap batched fetch
+                // (Story 3.2, AD-2/AD-10) beats trying to patch just this one field locally.
+                await EnsureActiveCallsLoadedAsync(notification.BoardId);
                 CallParticipantsChanged?.Invoke(notification.CallSessionId);
                 break;
 
             case CallStateNotificationType.PresenterChanged:
                 if (notification.Payload is PresenterChangedPayload presenterChanged)
                 {
-                    UpdatePresenter(notification.CallSessionId, presenterChanged.PresenterUserId);
-                    NotifyStateChanged();
+                    await EnsureActiveCallsLoadedAsync(notification.BoardId);
                     CallPresenterChanged?.Invoke(notification.CallSessionId, presenterChanged.PresenterUserId);
                 }
 
@@ -270,12 +284,30 @@ internal sealed class CallSessionStore(ICallsApiService callsApiService) : ICall
         }
     }
 
-    private void UpdatePresenter(Guid callSessionId, Guid? presenterUserId)
+    /// <summary>
+    /// Re-fetches everything currently loaded into <see cref="History"/> (at least one page's worth)
+    /// as page 1 of that same size, so a session that just closed (Story 1.2/AD-12) shows up
+    /// immediately without discarding any "Show more" pages the user already loaded, and without
+    /// needing a full page reload (Story 3.2, AC1).
+    /// </summary>
+    private async Task RefreshHistoryAsync(Guid boardId)
     {
-        var index = _activeCalls.FindIndex(c => c.Id == callSessionId);
+        var loadedCount = Math.Max(_history.Count, HistoryPageSize);
 
-        if (index >= 0)
-            _activeCalls[index] = _activeCalls[index] with { CurrentPresenterUserId = presenterUserId };
+        try
+        {
+            var page = await callsApiService.GetHistoryAsync(boardId, 1, loadedCount);
+            _history.Clear();
+            _history.AddRange(page.Items);
+            HistoryPagination = page.Metadata;
+            _historyPage = loadedCount / HistoryPageSize;
+            NotifyStateChanged();
+        }
+        catch (ApiServiceException)
+        {
+            // Best-effort: this is a background refresh triggered by a live notification, not a
+            // user action -- history will still self-correct next time the sidebar is (re)opened.
+        }
     }
 
     private void NotifyStateChanged() => StateChanged?.Invoke();

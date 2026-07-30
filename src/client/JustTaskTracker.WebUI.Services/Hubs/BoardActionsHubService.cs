@@ -18,6 +18,7 @@ internal sealed class BoardActionsHubService(
     IOptions<ApiClientOptions> options,
     IBoardDetailsStore boardDetailsStore,
     ICallSessionStore callSessionStore,
+    IActiveCallAlertStore activeCallAlertStore,
     IProfileStore profileStore,
     ILogger<BoardActionsHubService> logger)
     : IBoardActionsHubService, IAsyncDisposable
@@ -33,6 +34,10 @@ internal sealed class BoardActionsHubService(
     private readonly Dictionary<Guid, int> _subscriptionRefCounts = [];
     private readonly SemaphoreSlim _hubGate = new(1, 1);
     private HubConnection? _connection;
+
+    public event Action<BoardActionNotification>? BoardActionReceived;
+
+    public Task ConnectAsync(CancellationToken ct = default) => EnsureConnectedAsync(ct);
 
     public async Task JoinBoardAsync(Guid boardId, CancellationToken ct = default)
     {
@@ -241,6 +246,10 @@ internal sealed class BoardActionsHubService(
             CallStateHubEvents.CallStateChanged,
             callSessionStore.ApplyCallStateNotification);
 
+        _connection.On<CallStartedAlert>(
+            CallAlertHubEvents.CallStarted,
+            OnCallStartedAlert);
+
         _connection.Reconnected += OnReconnectedAsync;
 
         _connection.Closed += ex =>
@@ -250,6 +259,18 @@ internal sealed class BoardActionsHubService(
 
             return Task.CompletedTask;
         };
+    }
+
+    private Task OnCallStartedAlert(CallStartedAlert alert)
+    {
+        activeCallAlertStore.ApplyCallStartedAlert(alert);
+
+        // FR8/Story 3.2: if this alert is for the board the local user is currently viewing, refresh
+        // its active-calls list too -- otherwise the new session wouldn't show up (or bump the
+        // header badge) until the board is reloaded, even though we already know it just started.
+        return alert.BoardId == callSessionStore.CurrentBoardId
+            ? callSessionStore.EnsureActiveCallsLoadedAsync(alert.BoardId)
+            : Task.CompletedTask;
     }
 
     private void OnBoardChanged(BoardActionNotificationWireDto wire)
@@ -279,6 +300,7 @@ internal sealed class BoardActionsHubService(
 
         var currentUserId = profileStore.Profile?.Id ?? Guid.Empty;
         boardDetailsStore.ApplyBoardActionNotification(notification, currentUserId);
+        BoardActionReceived?.Invoke(notification);
     }
 
     private async Task OnReconnectedAsync(string? connectionId)

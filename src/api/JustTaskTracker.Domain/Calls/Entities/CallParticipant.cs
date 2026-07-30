@@ -1,3 +1,5 @@
+using JustTaskTracker.Domain.Auth.Entities;
+
 namespace JustTaskTracker.Domain.Calls.Entities;
 
 // Not a BaseEntity: an append-mostly event-log row (one per join), never soft-deleted.
@@ -9,4 +11,7 @@ public class CallParticipant
     public Guid UserId { get; set; }
     public DateTime JoinedAtUtc { get; set; }
     public DateTime? LeftAtUtc { get; set; }
+
+    public CallSession? CallSession { get; set; }
+    public User? User { get; set; }
 }

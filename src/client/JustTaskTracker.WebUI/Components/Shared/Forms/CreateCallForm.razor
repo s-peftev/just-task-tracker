@@ -12,94 +12,295 @@
 @inject ICallTaskLinkPickerStore TaskLinkPickerStore
 @inject ISnackbar Snackbar
 
-<form id="@FormId" @onsubmit="SubmitAsync" @onsubmit:preventDefault="true">
-    <div @onfocusout="OnFieldFocusOutAsync">
-        <MudTextField @bind-Value="_model.Title"
-                      @bind-Value:after="OnFieldChangedAsync"
-                      Label="Title"
-                      Variant="Variant.Outlined"
-                      Counter="@CallFieldLengths.MaxTitleLength"
-                      MaxLength="@CallFieldLengths.MaxTitleLength"
-                      AutoFocus="true"
-                      Required="false"
-                      OnlyValidateIfDirty="true"
-                      Error="_showValidation && _titleError is not null"
-                      ErrorText="@(_showValidation ? _titleError : null)" />
+<form id="@FormId"
+      class="create-call-form @(Inline ? "create-call-form--inline" : null)"
+      @onsubmit="SubmitAsync"
+      @onsubmit:preventDefault="true">
+    @if (Inline)
+    {
+        <section class="create-call-form__section" aria-labelledby="create-call-details-heading">
+            <h3 id="create-call-details-heading" class="create-call-form__section-title">1. Meeting details</h3>
 
-        <MudTextField @bind-Value="_model.Topic"
-                      @bind-Value:after="OnFieldChangedAsync"
-                      Label="Topic (optional)"
-                      Variant="Variant.Outlined"
-                      Lines="3"
-                      Counter="@CallFieldLengths.MaxTopicLength"
-                      MaxLength="@CallFieldLengths.MaxTopicLength"
-                      Required="false"
-                      OnlyValidateIfDirty="true"
-                      Error="_showValidation && _topicError is not null"
-                      ErrorText="@(_showValidation ? _topicError : null)"
-                      Class="mt-4" />
-    </div>
+            <div class="create-call-form__field" @onfocusout="OnFieldFocusOutAsync">
+                <label class="create-call-form__label" for="create-call-title">
+                    Title <span class="create-call-form__required" aria-hidden="true">*</span>
+                </label>
+                <input id="create-call-title"
+                       class="create-call-form__input @(_showValidation && _titleError is not null ? "create-call-form__input--error" : null)"
+                       type="text"
+                       maxlength="@CallFieldLengths.MaxTitleLength"
+                       value="@_model.Title"
+                       @oninput="OnTitleInputAsync"
+                       aria-invalid="@(_showValidation && _titleError is not null)"
+                       aria-describedby="create-call-title-counter create-call-title-error" />
+                <div class="create-call-form__field-meta">
+                    @if (_showValidation && _titleError is not null)
+                    {
+                        <span id="create-call-title-error" class="create-call-form__error">@_titleError</span>
+                    }
+                    <span id="create-call-title-counter" class="create-call-form__counter">
+                        @TitleLength / @CallFieldLengths.MaxTitleLength
+                    </span>
+                </div>
+            </div>
 
-    <fieldset class="create-call-form__visibility-fieldset">
-        <legend class="create-call-form__visibility-legend">Visibility</legend>
+            <div class="create-call-form__field" @onfocusout="OnFieldFocusOutAsync">
+                <label class="create-call-form__label" for="create-call-topic">Topic (optional)</label>
+                <textarea id="create-call-topic"
+                          class="create-call-form__textarea @(_showValidation && _topicError is not null ? "create-call-form__input--error" : null)"
+                          rows="3"
+                          maxlength="@CallFieldLengths.MaxTopicLength"
+                          value="@_model.Topic"
+                          @oninput="OnTopicInputAsync"
+                          aria-invalid="@(_showValidation && _topicError is not null)"
+                          aria-describedby="create-call-topic-counter create-call-topic-error"></textarea>
+                <div class="create-call-form__field-meta">
+                    @if (_showValidation && _topicError is not null)
+                    {
+                        <span id="create-call-topic-error" class="create-call-form__error">@_topicError</span>
+                    }
+                    <span id="create-call-topic-counter" class="create-call-form__counter">
+                        @TopicLength / @CallFieldLengths.MaxTopicLength
+                    </span>
+                </div>
+            </div>
+        </section>
 
-        <MudRadioGroup T="CallVisibility" @bind-Value="_model.Visibility" @bind-Value:after="UpdateSubmitState">
-            <MudRadio T="CallVisibility" Value="CallVisibility.Open" Color="Color.Primary">
-                Open — any board member can join
-            </MudRadio>
-            <MudRadio T="CallVisibility" Value="CallVisibility.Restricted" Color="Color.Primary">
-                Restricted — only selected members can join
-            </MudRadio>
-        </MudRadioGroup>
-    </fieldset>
+        <section class="create-call-form__section" aria-labelledby="create-call-access-heading">
+            <h3 id="create-call-access-heading" class="create-call-form__section-title">2. Access</h3>
 
-    <div class="create-call-form__tasks">
-        <button type="button"
-                class="btn-glass-white create-call-form__tasks-btn"
-                @onclick="OpenTaskLinkPickerAsync">
-            Link board tasks
-            <span class="create-call-form__tasks-count">(@TaskLinkPickerStore.SelectedTaskIds.Count linked)</span>
-        </button>
-    </div>
+            <div class="create-call-form__access" role="radiogroup" aria-labelledby="create-call-access-heading">
+                <button type="button"
+                        class="create-call-form__access-option @(_model.Visibility == CallVisibility.Open ? "create-call-form__access-option--selected" : null)"
+                        role="radio"
+                        aria-checked="@(_model.Visibility == CallVisibility.Open)"
+                        @onclick="() => SetVisibility(CallVisibility.Open)">
+                    <span class="create-call-form__access-radio" aria-hidden="true"></span>
+                    <span class="create-call-form__access-copy">
+                        <span class="create-call-form__access-name">Open</span>
+                        <span class="create-call-form__access-desc">Anyone on the board can join</span>
+                    </span>
+                    <svg class="create-call-form__access-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path fill="none"
+                              stroke="currentColor"
+                              stroke-width="1.75"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                        <circle cx="9" cy="7" r="4" fill="none" stroke="currentColor" stroke-width="1.75" />
+                        <path fill="none"
+                              stroke="currentColor"
+                              stroke-width="1.75"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+                    </svg>
+                </button>
 
-    <div class="create-call-form__members">
-        <button type="button"
-                class="btn-glass-white create-call-form__members-btn"
-                disabled="@(_model.Visibility != CallVisibility.Restricted)"
-                @onclick="OpenParticipantPickerAsync">
-            Select members
+                <button type="button"
+                        class="create-call-form__access-option @(_model.Visibility == CallVisibility.Restricted ? "create-call-form__access-option--selected" : null)"
+                        role="radio"
+                        aria-checked="@(_model.Visibility == CallVisibility.Restricted)"
+                        @onclick="() => SetVisibility(CallVisibility.Restricted)">
+                    <span class="create-call-form__access-radio" aria-hidden="true"></span>
+                    <span class="create-call-form__access-copy">
+                        <span class="create-call-form__access-name">Restricted</span>
+                        <span class="create-call-form__access-desc">Only invited members can join</span>
+                    </span>
+                    <svg class="create-call-form__access-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path fill="none"
+                              stroke="currentColor"
+                              stroke-width="1.75"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              d="M7 11V8a5 5 0 0 1 10 0v3M6 11h12v10H6z" />
+                    </svg>
+                </button>
+            </div>
+
             @if (_model.Visibility == CallVisibility.Restricted)
             {
-                <span class="create-call-form__members-count">(@ParticipantPickerStore.SelectedUserIds.Count selected)</span>
-            }
-        </button>
+                <div class="create-call-form__link-card">
+                    <svg class="create-call-form__link-card-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path fill="none"
+                              stroke="currentColor"
+                              stroke-width="1.75"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                        <circle cx="9" cy="7" r="4" fill="none" stroke="currentColor" stroke-width="1.75" />
+                        <path fill="none"
+                              stroke="currentColor"
+                              stroke-width="1.75"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+                    </svg>
 
-        @if (_showValidation && _model.Visibility == CallVisibility.Restricted && _membersError is not null)
-        {
-            <MudText Typo="Typo.caption" Color="Color.Error" Class="create-call-form__members-error">
-                @_membersError
-            </MudText>
-        }
-    </div>
+                    <div class="create-call-form__link-card-copy">
+                        <span class="create-call-form__link-card-title">@GetMembersCardTitle()</span>
+                        <span class="create-call-form__link-card-desc">Invite board members who can join</span>
+                    </div>
+
+                    <button type="button"
+                            class="create-call-form__link-card-btn"
+                            @onclick="OpenParticipantPickerAsync">
+                        Select members
+                    </button>
+                </div>
+
+                @if (_showValidation && _membersError is not null)
+                {
+                    <p class="create-call-form__error create-call-form__error--block">@_membersError</p>
+                }
+            }
+        </section>
+
+        <section class="create-call-form__section" aria-labelledby="create-call-tasks-heading">
+            <h3 id="create-call-tasks-heading" class="create-call-form__section-title">3. Related tasks (optional)</h3>
+
+            <div class="create-call-form__link-card">
+                <svg class="create-call-form__link-card-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.75"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                    <path fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.75"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                </svg>
+
+                <div class="create-call-form__link-card-copy">
+                    <span class="create-call-form__link-card-title">@GetTasksCardTitle()</span>
+                    <span class="create-call-form__link-card-desc">Link tasks to keep everything in context</span>
+                </div>
+
+                <button type="button"
+                        class="create-call-form__link-card-btn"
+                        @onclick="OpenTaskLinkPickerAsync">
+                    Link tasks
+                </button>
+            </div>
+        </section>
+
+        <section class="create-call-form__section create-call-form__section--media">
+            <CallPreJoinMediaSettings IdPrefix="create-prejoin" />
+        </section>
+
+        <div class="create-call-form__actions">
+            <button type="submit"
+                    class="create-call-form__submit"
+                    disabled="@(_submitDisabled || _isSubmitting)">
+                @(_isSubmitting ? "Creating…" : "Create meeting")
+            </button>
+        </div>
+    }
+    else
+    {
+        <div @onfocusout="OnFieldFocusOutAsync">
+            <MudTextField @bind-Value="_model.Title"
+                          @bind-Value:after="OnFieldChangedAsync"
+                          Label="Title"
+                          Variant="Variant.Outlined"
+                          Counter="@CallFieldLengths.MaxTitleLength"
+                          MaxLength="@CallFieldLengths.MaxTitleLength"
+                          AutoFocus="true"
+                          Required="false"
+                          OnlyValidateIfDirty="true"
+                          Error="_showValidation && _titleError is not null"
+                          ErrorText="@(_showValidation ? _titleError : null)" />
+
+            <MudTextField @bind-Value="_model.Topic"
+                          @bind-Value:after="OnFieldChangedAsync"
+                          Label="Topic (optional)"
+                          Variant="Variant.Outlined"
+                          Lines="3"
+                          Counter="@CallFieldLengths.MaxTopicLength"
+                          MaxLength="@CallFieldLengths.MaxTopicLength"
+                          Required="false"
+                          OnlyValidateIfDirty="true"
+                          Error="_showValidation && _topicError is not null"
+                          ErrorText="@(_showValidation ? _topicError : null)"
+                          Class="mt-4" />
+        </div>
+
+        <fieldset class="create-call-form__visibility-fieldset">
+            <legend class="create-call-form__visibility-legend">Visibility</legend>
+
+            <MudRadioGroup T="CallVisibility" @bind-Value="_model.Visibility" @bind-Value:after="UpdateSubmitState">
+                <MudRadio T="CallVisibility" Value="CallVisibility.Open" Color="Color.Primary">
+                    Open — any board member can join
+                </MudRadio>
+                <MudRadio T="CallVisibility" Value="CallVisibility.Restricted" Color="Color.Primary">
+                    Restricted — only selected members can join
+                </MudRadio>
+            </MudRadioGroup>
+        </fieldset>
+
+        <div class="create-call-form__tasks">
+            <button type="button"
+                    class="btn-glass-white create-call-form__tasks-btn"
+                    @onclick="OpenTaskLinkPickerAsync">
+                Link board tasks
+                <span class="create-call-form__tasks-count">(@TaskLinkPickerStore.SelectedTaskIds.Count linked)</span>
+            </button>
+        </div>
+
+        <div class="create-call-form__members">
+            <button type="button"
+                    class="btn-glass-white create-call-form__members-btn"
+                    disabled="@(_model.Visibility != CallVisibility.Restricted)"
+                    @onclick="OpenParticipantPickerAsync">
+                Select members
+                @if (_model.Visibility == CallVisibility.Restricted)
+                {
+                    <span class="create-call-form__members-count">(@ParticipantPickerStore.SelectedUserIds.Count selected)</span>
+                }
+            </button>
+
+            @if (_showValidation && _model.Visibility == CallVisibility.Restricted && _membersError is not null)
+            {
+                <MudText Typo="Typo.caption" Color="Color.Error" Class="create-call-form__members-error">
+                    @_membersError
+                </MudText>
+            }
+        </div>
+    }
 </form>
 
 @code {
     [Parameter, EditorRequired]
     public Guid BoardId { get; set; }
 
-    [Parameter, EditorRequired]
-    public ResourceFormDialogState SubmitState { get; set; } = default!;
+    [Parameter]
+    public ResourceFormDialogState? SubmitState { get; set; }
+
+    [Parameter]
+    public bool Inline { get; set; }
+
+    [Parameter]
+    public EventCallback<CreateCallResult> OnSubmitted { get; set; }
 
     [CascadingParameter]
-    private IMudDialogInstance MudDialog { get; set; } = default!;
+    private IMudDialogInstance? MudDialog { get; set; }
 
     private readonly CreateCallModel _model = new();
     private readonly CreateCallModelValidator _validator = new();
     private bool _showValidation;
     private bool _isDirty;
+    private bool _submitDisabled;
+    private bool _isSubmitting;
     private string? _titleError;
     private string? _topicError;
     private string? _membersError;
+
+    private int TitleLength => _model.Title?.Length ?? 0;
+    private int TopicLength => _model.Topic?.Length ?? 0;
 
     protected override void OnInitialized()
     {
@@ -128,6 +329,27 @@
 
     private void OnTaskLinkPickerStateChanged() =>
         InvokeAsync(StateHasChanged);
+
+    private async Task OnTitleInputAsync(ChangeEventArgs e)
+    {
+        _model.Title = e.Value?.ToString() ?? string.Empty;
+        await OnFieldChangedAsync();
+    }
+
+    private async Task OnTopicInputAsync(ChangeEventArgs e)
+    {
+        _model.Topic = e.Value?.ToString() ?? string.Empty;
+        await OnFieldChangedAsync();
+    }
+
+    private void SetVisibility(CallVisibility visibility)
+    {
+        if (_model.Visibility == visibility)
+            return;
+
+        _model.Visibility = visibility;
+        UpdateSubmitState();
+    }
 
     private async Task OnFieldChangedAsync()
     {
@@ -177,11 +399,36 @@
         var hasEnoughMembers = _model.Visibility != CallVisibility.Restricted
             || ParticipantPickerStore.SelectedUserIds.Count >= 2;
 
-        SubmitState.SetDisableSubmit(!hasEnoughMembers);
+        _submitDisabled = !hasEnoughMembers;
+        SubmitState?.SetDisableSubmit(_submitDisabled);
+    }
+
+    private string GetTasksCardTitle()
+    {
+        var count = TaskLinkPickerStore.SelectedTaskIds.Count;
+        return count == 0
+            ? "No tasks linked"
+            : count == 1
+                ? "1 task linked"
+                : $"{count} tasks linked";
+    }
+
+    private string GetMembersCardTitle()
+    {
+        // SelectedUserIds always includes the current user.
+        var invited = Math.Max(0, ParticipantPickerStore.SelectedUserIds.Count - 1);
+        return invited == 0
+            ? "No members invited"
+            : invited == 1
+                ? "1 member invited"
+                : $"{invited} members invited";
     }
 
     private async Task SubmitAsync()
     {
+        if (_isSubmitting)
+            return;
+
         _showValidation = true;
         await ValidateAsync();
 
@@ -202,7 +449,24 @@
             ? TaskLinkPickerStore.SelectedTaskIds.ToList()
             : null;
 
-        MudDialog.Close(DialogResult.Ok(new CreateCallResult(_model.Title.Trim(), topic, _model.Visibility, allowedUserIds, linkedTaskIds)));
+        var result = new CreateCallResult(_model.Title.Trim(), topic, _model.Visibility, allowedUserIds, linkedTaskIds);
+
+        if (OnSubmitted.HasDelegate)
+        {
+            _isSubmitting = true;
+            try
+            {
+                await OnSubmitted.InvokeAsync(result);
+            }
+            finally
+            {
+                _isSubmitting = false;
+            }
+
+            return;
+        }
+
+        MudDialog?.Close(DialogResult.Ok(result));
     }
 
     private async Task ValidateAsync()

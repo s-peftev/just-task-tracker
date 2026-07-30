@@ -1,4 +1,3 @@
-using JustTaskTracker.Domain.Boards.DTOs.BoardTasks;
 using JustTaskTracker.Domain.Calls.Entities;
 
 namespace JustTaskTracker.Application.Calls.Repositories;
@@ -6,8 +5,6 @@ namespace JustTaskTracker.Application.Calls.Repositories;
 public interface ICallSessionLinkedTaskRepository
 {
     Task<IReadOnlyList<Guid>> GetLinkedTaskIdsAsync(Guid callSessionId, CancellationToken ct = default);
-
-    Task<IReadOnlyList<BoardTaskLookupDto>> GetLinkedTaskLookupsAsync(Guid callSessionId, CancellationToken ct = default);
 
     void Add(CallSessionLinkedTask linkedTask);
 }

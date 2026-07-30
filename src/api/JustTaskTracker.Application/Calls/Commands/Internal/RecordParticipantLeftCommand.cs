@@ -1,4 +1,5 @@
 using FluentValidation;
+using JustTaskTracker.Application.Calls.Abstractions;
 using JustTaskTracker.Application.Calls.Notifiers;
 using JustTaskTracker.Application.Calls.Repositories;
 using JustTaskTracker.Application.Common.Persistence;
@@ -19,6 +20,7 @@ public class RecordParticipantLeftCommandHandler(
     ICallParticipantRepository callParticipantRepository,
     IAcsUserIdentityMappingRepository mappingRepository,
     ICallStateNotifier callStateNotifier,
+    IAcsCallProvisioningService acsCallProvisioningService,
     IUnitOfWork unitOfWork,
     ILogger<RecordParticipantLeftCommandHandler> logger)
     : IRequestHandler<RecordParticipantLeftCommand, Result>
@@ -91,6 +93,22 @@ public class RecordParticipantLeftCommandHandler(
                 callSession.Id,
                 CallStateNotificationType.SessionClosed,
                 new SessionClosedPayload(request.OccurredAtUtc)), ct);
+
+            // One fresh Room per session, never reused (AD-8) -- safe to delete now that the
+            // session is authoritatively closed. Best-effort: a failed cleanup here doesn't
+            // affect the already-committed session state.
+            try
+            {
+                await acsCallProvisioningService.DeleteRoomAsync(callSession.AcsRoomId, ct);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(
+                    ex,
+                    "Failed to delete ACS Room {AcsRoomId} after call session {CallSessionId} closed.",
+                    callSession.AcsRoomId,
+                    callSession.Id);
+            }
         }
 
         return Result.Success();

@@ -126,13 +126,18 @@
             }
 
             <button type="button"
-                    class="board-page-header__calls-btn btn-icon"
-                    aria-label="Video calls"
+                    class="board-page-header__calls-btn btn-icon @(CallSessionStore.IsSidebarOpen ? "board-page-header__calls-btn--active" : null)"
+                    aria-label="@GetCallsButtonAriaLabel()"
+                    aria-pressed="@CallSessionStore.IsSidebarOpen"
                     @onclick="ToggleCallsSidebarAsync">
                 <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                     <path d="M6.62 10.79a15.05 15.05 0 0 0 6.59 6.59l2.2-2.2a1 1 0 0 1 1.02-.24c1.12.37 2.33.57 3.57.57a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1C10.61 21 3 13.39 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.24.2 2.45.57 3.57a1 1 0 0 1-.25 1.02l-2.2 2.2z"
                           fill="currentColor" />
                 </svg>
+                @if (CallSessionStore.ActiveCalls.Count > 0)
+                {
+                    <span class="board-page-header__calls-badge">@CallSessionStore.ActiveCalls.Count</span>
+                }
             </button>
 
             <BoardPageStats BoardId="BoardId" OnMembersClick="OpenMembersOverlayAsync" />
@@ -274,6 +279,7 @@
         BoardDetailsStore.StateChanged += OnBoardDetailsStoreStateChanged;
         BoardDetailsStore.RemoteBoardNameApplied += OnRemoteBoardNameApplied;
         EntitlementsStore.StateChanged += OnEntitlementsChanged;
+        CallSessionStore.StateChanged += OnCallSessionStoreStateChanged;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -290,6 +296,7 @@
         BoardDetailsStore.StateChanged -= OnBoardDetailsStoreStateChanged;
         BoardDetailsStore.RemoteBoardNameApplied -= OnRemoteBoardNameApplied;
         EntitlementsStore.StateChanged -= OnEntitlementsChanged;
+        CallSessionStore.StateChanged -= OnCallSessionStoreStateChanged;
     }
 
     private string GetTitleClass(bool editable)
@@ -332,6 +339,17 @@
 
     private void OnEntitlementsChanged() =>
         InvokeAsync(StateHasChanged);
+
+    private void OnCallSessionStoreStateChanged() =>
+        InvokeAsync(StateHasChanged);
+
+    private string GetCallsButtonAriaLabel() =>
+        CallSessionStore.ActiveCalls.Count switch
+        {
+            0 => "Video calls",
+            1 => "Video calls, 1 active call",
+            var count => $"Video calls, {count} active calls",
+        };
 
     private async Task ToggleCallsSidebarAsync()
     {

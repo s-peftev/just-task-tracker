@@ -1,0 +1,48 @@
+@using JustTaskTracker.WebUI.Components.Shared
+@using JustTaskTracker.WebUI.Domain.Auth
+@using JustTaskTracker.WebUI.Domain.Calls.Notifications
+@inject NavigationManager Navigation
+
+<div class="call-started-snackbar">
+    <UserAvatarPlaceholder Class="call-started-snackbar__avatar"
+                           Preset="UserAvatarPlaceholderPreset.Member"
+                           DisplayName="@Alert.CreatedBy.DisplayName"
+                           Email="@Alert.CreatedBy.Email"
+                           ProfilePhotoUrl="@Alert.CreatedBy.ProfilePhotoUrl"
+                           Title="@Alert.CreatedBy.Email" />
+
+    <div class="call-started-snackbar__content">
+        <div class="call-started-snackbar__text">
+            <span class="call-started-snackbar__title">@GetCreatorName() started a call</span>
+            <span class="call-started-snackbar__detail">@Alert.BoardName</span>
+            <span class="call-started-snackbar__detail">@Alert.Title</span>
+        </div>
+
+        <button type="button"
+                class="call-started-snackbar__action"
+                @onclick="GoToBoard"
+                @onclick:stopPropagation="true">
+            <span>Go to board</span>
+            <svg class="call-started-snackbar__action-icon"
+                 viewBox="0 0 24 24"
+                 aria-hidden="true"
+                 focusable="false">
+                <path fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="M5 12h14M13 6l6 6-6 6" />
+            </svg>
+        </button>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public CallStartedAlert Alert { get; set; } = null!;
+
+    private string GetCreatorName() => UserDisplayFormatting.GetShortName(Alert.CreatedBy);
+
+    private void GoToBoard() => Navigation.NavigateTo($"/boards/{Alert.BoardId}");
+}

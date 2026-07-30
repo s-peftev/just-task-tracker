@@ -965,6 +965,25 @@ html, body {
     border-color: var(--jtt-accent-tertiary);
 }
 
+/* ─── Calls sidebar typography (faces live in css/jtt-roboto.css, base64 inlined) ─── */
+.calls-sidebar,
+.calls-sidebar__panel {
+    --calls-sidebar-font-family: "JttRoboto", sans-serif;
+    font-family: var(--calls-sidebar-font-family);
+}
+
+.calls-sidebar__panel,
+.calls-sidebar__panel * {
+    font-family: var(--calls-sidebar-font-family);
+}
+
+.calls-sidebar__hub-title {
+    font-family: "JttRoboto", sans-serif !important;
+    font-weight: 400 !important;
+    font-size: 1.25rem !important;
+    letter-spacing: 0.01em;
+}
+
 /* ─── MudBlazor overrides ─── */
 .mud-layout,
 .mud-main-content {
@@ -1003,6 +1022,34 @@ html, body {
 .mud-snackbar.mud-alert-filled-info .mud-snackbar-icon,
 .mud-snackbar.mud-alert-filled-error .mud-snackbar-icon {
     color: var(--jtt-text-strong);
+}
+
+/* Call-started snackbar: no severity icon; close in top-right; truncate long text. */
+.mud-snackbar.call-started-snackbar-host {
+    align-items: flex-start;
+    padding-right: 2.25rem;
+}
+
+.mud-snackbar.call-started-snackbar-host .mud-snackbar-icon {
+    display: none;
+}
+
+.mud-snackbar.call-started-snackbar-host .mud-snackbar-content-message {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    overflow-wrap: normal;
+}
+
+.mud-snackbar.call-started-snackbar-host .mud-snackbar-content-action {
+    position: absolute;
+    top: 0.25rem;
+    right: 0.25rem;
+    z-index: 1;
+    flex-shrink: 0;
+    margin: 0;
+    padding: 0;
+    align-self: flex-start;
 }
 
 /* ─── Blazor loading + error UI ─── */

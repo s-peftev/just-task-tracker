@@ -173,6 +173,11 @@ public class BoardRepository(JustTaskTrackerDbContext context)
     public async Task<bool> IsBoardMemberAsync(Guid boardId, Guid userId, CancellationToken ct = default) =>
         await _context.BoardMembers.AnyAsync(m => m.BoardId == boardId && m.UserId == userId, ct);
 
+    public Task<int> CountBoardMembersAsync(Guid boardId, IReadOnlyList<Guid> userIds, CancellationToken ct = default) =>
+        userIds.Count is 0
+            ? Task.FromResult(0)
+            : _context.BoardMembers.CountAsync(m => m.BoardId == boardId && userIds.Contains(m.UserId), ct);
+
     public async Task<bool> IsArchivedAsync(Guid boardId, CancellationToken ct = default) =>
         await _dbSet.AnyAsync(b => b.Id == boardId && b.IsArchived, ct);
 
@@ -235,6 +240,12 @@ public class BoardRepository(JustTaskTrackerDbContext context)
                 pageSize,
                 ct);
     }
+
+    public async Task<IReadOnlyList<BoardMemberIdentity>> GetMemberIdentitiesAsync(Guid boardId, CancellationToken ct = default) =>
+        await _context.BoardMembers
+            .Where(member => member.BoardId == boardId)
+            .Select(member => new BoardMemberIdentity(member.UserId, member.User!.AzureAdObjectId, member.Role))
+            .ToListAsync(ct);
 
     public async Task<BoardExportRawData?> GetBoardExportRawDataAsync(Guid boardId, BoardExportOptions options, CancellationToken ct = default)
     {

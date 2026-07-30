@@ -11,6 +11,8 @@ public interface IUserRepository : IRepository<User, Guid>
 {
     Task<UserReadModel?> GetUserInfoByAzureAOIAsync(Guid azureAdObjectId, CancellationToken ct = default);
 
+    Task<UserReadModel?> GetUserInfoByIdAsync(Guid userId, CancellationToken ct = default);
+
     Task<User?> GetUserByAzureAOIAsync(Guid azureAdObjectId, CancellationToken ct = default);
 
     Task<IReadOnlyList<string>> GetGlobalRolesByUserIdAsync(Guid userId, CancellationToken ct = default);

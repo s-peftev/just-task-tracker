@@ -100,6 +100,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ICallParticipantPickerStore, CallParticipantPickerStore>();
         services.AddScoped<ICallTaskLinkPickerStore, CallTaskLinkPickerStore>();
         services.AddScoped<ICallsInteropService, CallsInteropService>();
+        services.AddScoped<IActiveCallAlertStore, ActiveCallAlertStore>();
 
         return services;
     }

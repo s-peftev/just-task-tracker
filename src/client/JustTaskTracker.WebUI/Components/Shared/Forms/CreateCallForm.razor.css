@@ -1,3 +1,4 @@
+/* ── Dialog / legacy layout ── */
 .create-call-form__visibility-fieldset {
     margin: 1rem 0 0;
     padding: 0;
@@ -39,4 +40,307 @@
 .create-call-form__members-error {
     display: block;
     margin-top: 0.5rem;
+}
+
+/* ── Hub / inline create panel ── */
+.create-call-form--inline {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    min-height: 0;
+    font-family: "JttRoboto", sans-serif;
+}
+
+.create-call-form__section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    min-width: 0;
+}
+
+.create-call-form__section-title {
+    margin: 0;
+    font-family: "JttRoboto", sans-serif;
+    font-size: 0.75rem;
+    font-weight: 400;
+    letter-spacing: 0.06em;
+    line-height: 1.3;
+    text-transform: uppercase;
+    color: var(--jtt-text-muted);
+}
+
+.create-call-form__field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    min-width: 0;
+}
+
+.create-call-form__label {
+    font-size: 0.8125rem;
+    font-weight: 400;
+    line-height: 1.3;
+    color: var(--jtt-text-primary);
+}
+
+.create-call-form__required {
+    color: #f07178;
+}
+
+.create-call-form__input,
+.create-call-form__textarea {
+    width: 100%;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0.625rem 0.75rem;
+    border: 1px solid var(--jtt-stroke-default);
+    border-radius: var(--jtt-radius-sm);
+    background: color-mix(in srgb, var(--jtt-surface-board-column) 70%, black);
+    color: var(--jtt-text-primary);
+    font: inherit;
+    font-size: 0.875rem;
+    line-height: 1.4;
+    outline: none;
+    transition: border-color 0.15s ease;
+}
+
+.create-call-form__textarea {
+    min-height: 4.75rem;
+    resize: vertical;
+}
+
+.create-call-form__input:hover,
+.create-call-form__textarea:hover {
+    border-color: var(--jtt-stroke-strong);
+}
+
+.create-call-form__input:focus,
+.create-call-form__textarea:focus {
+    border-color: var(--jtt-accent);
+}
+
+.create-call-form__input--error,
+.create-call-form__input--error:focus {
+    border-color: var(--jtt-stroke-danger);
+}
+
+.create-call-form__field-meta {
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    min-height: 1rem;
+}
+
+.create-call-form__error {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0;
+    font-size: 0.75rem;
+    line-height: 1.3;
+    color: var(--jtt-stroke-danger);
+}
+
+.create-call-form__error--block {
+    margin-top: -0.25rem;
+}
+
+.create-call-form__counter {
+    flex-shrink: 0;
+    font-size: 0.75rem;
+    line-height: 1.3;
+    color: var(--jtt-text-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.create-call-form__access {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.create-call-form__access-option {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    margin: 0;
+    padding: 0.75rem 0.875rem;
+    box-sizing: border-box;
+    border: 1px solid var(--jtt-stroke-subtle);
+    border-radius: var(--jtt-radius-md);
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.create-call-form__access-option:hover {
+    border-color: var(--jtt-stroke-default);
+    background: color-mix(in srgb, var(--jtt-overlay-white-10) 40%, transparent);
+}
+
+.create-call-form__access-option--selected {
+    border-color: var(--jtt-accent);
+    background: color-mix(in srgb, var(--jtt-accent) 8%, transparent);
+}
+
+.create-call-form__access-option--selected:hover {
+    border-color: var(--jtt-accent);
+    background: color-mix(in srgb, var(--jtt-accent) 12%, transparent);
+}
+
+.create-call-form__access-radio {
+    flex-shrink: 0;
+    width: 1rem;
+    height: 1rem;
+    box-sizing: border-box;
+    border: 1.5px solid var(--jtt-stroke-strong);
+    border-radius: 50%;
+    background: transparent;
+}
+
+.create-call-form__access-option--selected .create-call-form__access-radio {
+    border-color: var(--jtt-accent);
+    background:
+        radial-gradient(circle at center, var(--jtt-accent) 0 0.28rem, transparent 0.3rem);
+}
+
+.create-call-form__access-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    min-width: 0;
+}
+
+.create-call-form__access-name {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    line-height: 1.3;
+    color: var(--jtt-text-primary);
+}
+
+.create-call-form__access-desc {
+    font-size: 0.75rem;
+    font-weight: 400;
+    line-height: 1.35;
+    color: var(--jtt-text-muted);
+}
+
+.create-call-form__access-icon {
+    flex-shrink: 0;
+    width: 1.25rem;
+    height: 1.25rem;
+    color: var(--jtt-text-muted);
+}
+
+.create-call-form__access-option--selected .create-call-form__access-icon {
+    color: var(--jtt-accent);
+}
+
+.create-call-form__link-card {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 0.875rem;
+    box-sizing: border-box;
+    border: 1px solid var(--jtt-stroke-subtle);
+    border-radius: var(--jtt-radius-md);
+    background: transparent;
+}
+
+.create-call-form__link-card-icon {
+    flex-shrink: 0;
+    width: 1.25rem;
+    height: 1.25rem;
+    color: var(--jtt-accent);
+}
+
+.create-call-form__link-card-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    min-width: 0;
+}
+
+.create-call-form__link-card-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.3;
+    color: var(--jtt-text-primary);
+}
+
+.create-call-form__link-card-desc {
+    font-size: 0.75rem;
+    font-weight: 400;
+    line-height: 1.35;
+    color: var(--jtt-text-muted);
+}
+
+.create-call-form__link-card-btn {
+    flex-shrink: 0;
+    margin: 0;
+    padding: 0.4rem 0.75rem;
+    border: 1px solid var(--jtt-stroke-default);
+    border-radius: var(--jtt-radius-sm);
+    background: transparent;
+    color: var(--jtt-text-primary);
+    font: inherit;
+    font-size: 0.8125rem;
+    font-weight: 400;
+    line-height: 1.2;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.create-call-form__link-card-btn:hover,
+.create-call-form__link-card-btn:focus-visible {
+    border-color: var(--jtt-stroke-strong);
+    background: color-mix(in srgb, var(--jtt-overlay-white-10) 50%, transparent);
+    outline: none;
+}
+
+.create-call-form--inline .create-call-form__actions {
+    margin-top: 0.25rem;
+    display: block;
+}
+
+.create-call-form--inline .create-call-form__section--media {
+    gap: 0.625rem;
+}
+
+.create-call-form--inline .create-call-form__submit {
+    width: 100%;
+    margin: 0;
+    padding: 0.75rem 1rem;
+    border: none;
+    border-radius: var(--jtt-radius-sm);
+    background: var(--jtt-accent);
+    color: #ffffff;
+    font: inherit;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    line-height: 1.2;
+    cursor: pointer;
+    transition: opacity 0.15s ease, background-color 0.15s ease;
+}
+
+.create-call-form--inline .create-call-form__submit:hover:not(:disabled),
+.create-call-form--inline .create-call-form__submit:focus-visible {
+    opacity: 0.92;
+    outline: none;
+}
+
+.create-call-form--inline .create-call-form__submit:active:not(:disabled) {
+    opacity: 0.85;
+}
+
+.create-call-form--inline .create-call-form__submit:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
 }

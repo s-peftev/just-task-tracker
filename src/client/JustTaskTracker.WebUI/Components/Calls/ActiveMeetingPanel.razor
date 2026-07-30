@@ -1,0 +1,364 @@
+@using JustTaskTracker.WebUI.Components.Boards
+@using JustTaskTracker.WebUI.Components.Shared
+@using JustTaskTracker.WebUI.Domain.Auth
+@using JustTaskTracker.WebUI.Domain.Boards
+@using JustTaskTracker.WebUI.Domain.Calls
+@using JustTaskTracker.WebUI.Domain.Calls.Enums
+@using JustTaskTracker.WebUI.Infrastructure
+@using JustTaskTracker.WebUI.Services.Abstractions.Auth
+@using JustTaskTracker.WebUI.Services.Abstractions.Calls
+@implements IAsyncDisposable
+@inject IProfileStore ProfileStore
+@inject ICallsInteropService CallsInteropService
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+@inject IJSRuntime Js
+
+<section class="meeting-body-panel active-meeting-panel" aria-label="Active call">
+    @if (Call is null)
+    {
+        <header class="meeting-body-panel__header">
+            <h2 class="meeting-body-panel__title">ACTIVE CALL</h2>
+        </header>
+        <p class="active-meeting-panel__empty">Select an active meeting from the list.</p>
+    }
+    else
+    {
+        <header class="active-meeting-panel__header">
+            <h2 class="active-meeting-panel__eyebrow">Active call:</h2>
+
+            <h3 class="active-meeting-panel__title" title="@Call.Title">@Call.Title</h3>
+
+            <div class="active-meeting-panel__subtitle-row">
+                <p class="active-meeting-panel__topic" title="@(Call.Topic ?? string.Empty)">
+                    <span class="active-meeting-panel__muted">Topic:</span>
+                    @(string.IsNullOrWhiteSpace(Call.Topic) ? "—" : Call.Topic)
+                </p>
+
+                @if (Call.Visibility == CallVisibility.Restricted)
+                {
+                    <button type="button"
+                            class="active-meeting-panel__type active-meeting-panel__type--restricted"
+                            title="View allowed members"
+                            @onclick="ShowAllowedUsersAsync">
+                        Type: Restricted
+                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <path fill="none"
+                                  stroke="currentColor"
+                                  stroke-width="1.75"
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                  d="M7 11V8a5 5 0 0 1 10 0v3M6 11h12v10H6z" />
+                        </svg>
+                    </button>
+                }
+                else
+                {
+                    <span class="active-meeting-panel__type">
+                        Type: Open
+                        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <path fill="none"
+                                  stroke="currentColor"
+                                  stroke-width="1.75"
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                  d="M7 11V8a5 5 0 0 1 9.9-1M6 11h12v10H6z" />
+                        </svg>
+                    </span>
+                }
+            </div>
+        </header>
+
+        <div class="active-meeting-panel__meta">
+            <div class="active-meeting-panel__meta-item">
+                <UserAvatarPlaceholder Class="active-meeting-panel__meta-avatar"
+                                       Size="28px"
+                                       DisplayName="@Call.CreatedBy.DisplayName"
+                                       Email="@Call.CreatedBy.Email"
+                                       ProfilePhotoUrl="@Call.CreatedBy.ProfilePhotoUrl"
+                                       Title="@UserDisplayFormatting.GetShortName(Call.CreatedBy)" />
+                <div class="active-meeting-panel__meta-text">
+                    <span class="active-meeting-panel__muted">Created by:</span>
+                    <span class="active-meeting-panel__meta-value"
+                          title="@UserDisplayFormatting.GetShortName(Call.CreatedBy)">
+                        @UserDisplayFormatting.GetShortName(Call.CreatedBy)
+                    </span>
+                </div>
+            </div>
+
+            <div class="active-meeting-panel__meta-item">
+                @if (Presenter is { } presenter)
+                {
+                    <UserAvatarPlaceholder Class="active-meeting-panel__meta-avatar"
+                                           Size="28px"
+                                           DisplayName="@presenter.DisplayName"
+                                           Email="@presenter.Email"
+                                           ProfilePhotoUrl="@presenter.ProfilePhotoUrl"
+                                           Title="@UserDisplayFormatting.GetShortName(presenter)" />
+                    <div class="active-meeting-panel__meta-text">
+                        <span class="active-meeting-panel__muted">Presenting:</span>
+                        <span class="active-meeting-panel__meta-value"
+                              title="@UserDisplayFormatting.GetShortName(presenter)">
+                            @UserDisplayFormatting.GetShortName(presenter)
+                        </span>
+                    </div>
+                }
+                else
+                {
+                    <div class="active-meeting-panel__meta-text">
+                        <span class="active-meeting-panel__muted">Presenting:</span>
+                        <span class="active-meeting-panel__meta-value">—</span>
+                    </div>
+                }
+            </div>
+
+            <div class="active-meeting-panel__meta-item active-meeting-panel__meta-item--duration">
+                <div class="active-meeting-panel__meta-text">
+                    <span class="active-meeting-panel__muted">Call duration:</span>
+                    <LiveCallDuration Class="active-meeting-panel__meta-value active-meeting-panel__meta-value--duration"
+                                      StartedAtUtc="Call.StartedAtUtc" />
+                </div>
+            </div>
+        </div>
+
+        <div class="active-meeting-panel__body">
+            <section class="active-meeting-panel__card" aria-labelledby="active-meeting-participants-heading">
+                <header class="active-meeting-panel__card-header">
+                    <h4 id="active-meeting-participants-heading" class="active-meeting-panel__card-title">Participants</h4>
+                    <span class="active-meeting-panel__card-count">@GetParticipantsCountLabel()</span>
+                </header>
+
+                @if (Call.Participants.Count == 0)
+                {
+                    <p class="active-meeting-panel__card-empty">No one is in this call yet.</p>
+                }
+                else
+                {
+                    <div @ref="_participantsViewport" class="active-meeting-panel__participants">
+                        <ul class="active-meeting-panel__participants-track">
+                            @foreach (var participant in Call.Participants)
+                            {
+                                <li class="active-meeting-panel__participant" @key="participant.Id">
+                                    <UserAvatarPlaceholder Class="active-meeting-panel__participant-avatar"
+                                                           Size="44px"
+                                                           Preset="UserAvatarPlaceholderPreset.Member"
+                                                           DisplayName="@participant.DisplayName"
+                                                           Email="@participant.Email"
+                                                           ProfilePhotoUrl="@participant.ProfilePhotoUrl"
+                                                           Title="@UserDisplayFormatting.GetShortName(participant)" />
+                                    <span class="active-meeting-panel__participant-name"
+                                          title="@UserDisplayFormatting.GetShortName(participant)">
+                                        @GetFirstName(participant)
+                                    </span>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                }
+            </section>
+
+            <section class="active-meeting-panel__card active-meeting-panel__card--tasks" aria-labelledby="active-meeting-tasks-heading">
+                <header class="active-meeting-panel__card-header">
+                    <h4 id="active-meeting-tasks-heading" class="active-meeting-panel__card-title">Linked tasks</h4>
+                    <span class="active-meeting-panel__card-count">@GetLinkedTasksCountLabel()</span>
+                </header>
+
+                @if (Call.LinkedTasks.Count == 0)
+                {
+                    <p class="active-meeting-panel__card-empty">No linked tasks.</p>
+                }
+                else
+                {
+                    <ul class="active-meeting-panel__tasks">
+                        @foreach (var task in Call.LinkedTasks)
+                        {
+                            <li class="active-meeting-panel__task" @key="task.Id">
+                                <BoardTaskSearchResultItem Task="task" OnClick="OnTaskClickAsync" />
+                            </li>
+                        }
+                    </ul>
+                }
+            </section>
+        </div>
+
+        <div class="active-meeting-panel__media">
+            <CallPreJoinMediaSettings IdPrefix="active-prejoin" />
+        </div>
+
+        <div class="active-meeting-panel__footer">
+            <button type="button"
+                    class="active-meeting-panel__join"
+                    disabled="@(!CanJoin || _isJoining)"
+                    title="@(CanJoin ? null : JoinBlockedReason)"
+                    @onclick="OpenRoomAsync">
+                @(_isJoining ? "Opening…" : "Open room")
+            </button>
+
+            @if (!CanJoin && JoinBlockedReason is { } reason)
+            {
+                <p class="active-meeting-panel__join-hint">@reason</p>
+            }
+        </div>
+    }
+</section>
+
+@code {
+    private const string PanModulePath = "./js/horizontalPanScroll.js";
+    private const string RestrictedJoinBlockedReason = "You’re not on the allow-list for this restricted call.";
+
+    [Parameter, EditorRequired]
+    public Guid BoardId { get; set; }
+
+    [Parameter]
+    public CallSessionDto? Call { get; set; }
+
+    [Parameter]
+    public EventCallback OnShowAllowedUsers { get; set; }
+
+    private ElementReference _participantsViewport;
+    private IJSObjectReference? _panModule;
+    private IJSObjectReference? _panHandle;
+    private Guid? _panAttachedCallId;
+    private bool _isJoining;
+
+    private UserDto? Presenter
+    {
+        get
+        {
+            if (Call?.CurrentPresenterUserId is not { } presenterId)
+                return null;
+
+            return Call.Participants.FirstOrDefault(u => u.Id == presenterId)
+                ?? Call.AllowedUsers?.FirstOrDefault(u => u.Id == presenterId)
+                ?? (Call.CreatedBy.Id == presenterId ? Call.CreatedBy : null);
+        }
+    }
+
+    private bool CanJoin =>
+        Call is not null
+        && (Call.Visibility != CallVisibility.Restricted || IsCurrentUserAllowed());
+
+    private string? JoinBlockedReason =>
+        Call is { Visibility: CallVisibility.Restricted } && !IsCurrentUserAllowed()
+            ? RestrictedJoinBlockedReason
+            : null;
+
+    private bool IsCurrentUserAllowed()
+    {
+        if (Call is null || ProfileStore.Profile is not { } profile)
+            return false;
+
+        return Call.AllowedUsers?.Any(user => user.Id == profile.Id) == true;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (Call is null || Call.Participants.Count == 0)
+        {
+            await DetachPanAsync();
+            return;
+        }
+
+        if (_panAttachedCallId == Call.Id && _panHandle is not null)
+            return;
+
+        await DetachPanAsync();
+        await AttachPanAsync(Call.Id);
+    }
+
+    private async Task AttachPanAsync(Guid callId)
+    {
+        _panModule ??= await Js.InvokeAsync<IJSObjectReference>("import", PanModulePath);
+        _panHandle = await _panModule.InvokeAsync<IJSObjectReference>("attach", _participantsViewport);
+        _panAttachedCallId = callId;
+    }
+
+    private async Task DetachPanAsync()
+    {
+        if (_panHandle is not null)
+        {
+            await _panHandle.InvokeVoidAsync("dispose");
+            await _panHandle.DisposeAsync();
+            _panHandle = null;
+        }
+
+        _panAttachedCallId = null;
+    }
+
+    private string GetParticipantsCountLabel()
+    {
+        if (Call is null)
+            return string.Empty;
+
+        if (Call.Visibility == CallVisibility.Restricted)
+        {
+            var allowed = Call.AllowedUsers?.Count ?? 0;
+            return $"{Call.Participants.Count} / {allowed}";
+        }
+
+        return Call.Participants.Count.ToString();
+    }
+
+    private string GetLinkedTasksCountLabel()
+    {
+        if (Call is null)
+            return string.Empty;
+
+        var count = Call.LinkedTasks.Count;
+        return count == 1 ? "1 Task" : $"{count} Tasks";
+    }
+
+    private static string GetFirstName(UserDto user)
+    {
+        var name = UserDisplayFormatting.GetShortName(user);
+        var space = name.IndexOf(' ');
+        return space > 0 ? name[..space] : name;
+    }
+
+    private Task ShowAllowedUsersAsync() =>
+        OnShowAllowedUsers.InvokeAsync();
+
+    private void OnTaskClickAsync(BoardTaskLookupDto task) =>
+        Navigation.NavigateTo(BoardTaskRoutes.GetTaskUrl(BoardId, task.ColumnId, task.Id));
+
+    private async Task OpenRoomAsync()
+    {
+        if (Call is null || !CanJoin || _isJoining)
+            return;
+
+        _isJoining = true;
+
+        try
+        {
+            var environment = await CallsInteropService.CheckEnvironmentAsync();
+
+            if (!environment.IsSupported)
+            {
+                Snackbar.Add(environment.Reason ?? "This browser doesn't support video calls.", Severity.Error);
+                return;
+            }
+
+            Navigation.NavigateTo($"/boards/{BoardId}/calls/{Call.Id}");
+        }
+        catch (JSException)
+        {
+            // Usually a stale fingerprinted module URL after a hot rebuild -- a hard refresh fixes it.
+            Snackbar.Add("Could not load the calls module. Refresh the page and try again.", Severity.Error);
+        }
+        finally
+        {
+            _isJoining = false;
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await DetachPanAsync();
+
+        if (_panModule is not null)
+        {
+            await _panModule.DisposeAsync();
+            _panModule = null;
+        }
+    }
+}

@@ -1,3 +1,5 @@
+using JustTaskTracker.WebUI.Domain.Auth;
+using JustTaskTracker.WebUI.Domain.Boards;
 using JustTaskTracker.WebUI.Domain.Calls.Enums;
 
 namespace JustTaskTracker.WebUI.Domain.Calls;
@@ -5,7 +7,7 @@ namespace JustTaskTracker.WebUI.Domain.Calls;
 public record CallSessionDto(
     Guid Id,
     Guid BoardId,
-    Guid CreatedByUserId,
+    UserDto CreatedBy,
     string Title,
     string? Topic,
     CallVisibility Visibility,
@@ -14,6 +16,7 @@ public record CallSessionDto(
     DateTime StartedAtUtc,
     // Null for Open sessions; for Restricted sessions, lets the client locally decide whether to
     // show the Join action as enabled for the current user (AD-4) without a round trip.
-    IReadOnlyList<Guid>? AllowedUserIds,
-    IReadOnlyList<Guid> LinkedTaskIds,
+    IReadOnlyList<UserDto>? AllowedUsers,
+    IReadOnlyList<BoardTaskLookupDto> LinkedTasks,
+    IReadOnlyList<UserDto> Participants,
     Guid? CurrentPresenterUserId);

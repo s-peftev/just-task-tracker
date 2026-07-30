@@ -109,7 +109,7 @@
     flex-shrink: 0;
     width: 1.125rem;
     height: 1.125rem;
-    filter: brightness(0) invert(1);
+    filter: var(--jtt-sidebar-img-icon-filter);
 }
 
 ::deep .sidebar__tab:hover:not(.sidebar__tab--active) {
@@ -232,6 +232,7 @@
     flex-shrink: 0;
     width: 1.125rem;
     height: 1.125rem;
+    color: currentColor;
 }
 
 .sidebar__footer ::deep .sidebar__footer-action:hover {

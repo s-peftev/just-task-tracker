@@ -97,6 +97,7 @@ public static class ServiceCollectionExtensions
 
         services.AddScoped<ICallsApiService, CallsApiService>();
         services.AddScoped<ICallSessionStore, CallSessionStore>();
+        services.AddScoped<ICallParticipantPickerStore, CallParticipantPickerStore>();
         services.AddScoped<ICallsInteropService, CallsInteropService>();
 
         return services;

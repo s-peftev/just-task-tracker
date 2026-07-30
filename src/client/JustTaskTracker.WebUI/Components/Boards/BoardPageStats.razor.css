@@ -64,3 +64,37 @@
     font-variant-numeric: tabular-nums;
     line-height: 1;
 }
+
+.board-page-stats--has-limits {
+  /* Match left gap (0.875rem) with right gap to the board menu trigger. */
+  margin-right: -0.875rem;
+}
+
+.board-page-stats__limited {
+    display: inline-flex;
+    align-items: center;
+    margin: 0;
+    padding: 0.25rem 0.125rem;
+    color: var(--jtt-accent);
+    font-size: 0.9375rem;
+    font-weight: var(--jtt-font-weight-strong);
+    letter-spacing: 0.04em;
+    line-height: 1;
+    text-transform: uppercase;
+    cursor: default;
+}
+
+.board-page-stats__limited:focus-visible {
+    outline: none;
+    border-radius: var(--jtt-radius-sm);
+    background-color: var(--jtt-overlay-accent-10);
+}
+
+.board-page-stats__limits-list {
+    margin: 0;
+    padding-left: 1.125rem;
+}
+
+.board-page-stats__limits-list li + li {
+    margin-top: 0.25rem;
+}

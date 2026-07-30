@@ -1,65 +1,109 @@
+@using JustTaskTracker.WebUI.Components.Shared
+@using JustTaskTracker.WebUI.Domain.Boards.Authorization
 @using JustTaskTracker.WebUI.Domain.Calls
+@using JustTaskTracker.WebUI.Domain.Calls.Enums
+@using JustTaskTracker.WebUI.Services.Abstractions.Auth
+@using JustTaskTracker.WebUI.Services.Abstractions.Boards
 @using JustTaskTracker.WebUI.Services.Abstractions.Calls
 @using JustTaskTracker.WebUI.Validation
 @implements IDisposable
 @inject ICallSessionStore CallSessionStore
 @inject ICallsInteropService CallsInteropService
+@inject IBoardDetailsStore BoardDetailsStore
+@inject IProfileStore ProfileStore
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
 
 <aside class="calls-sidebar @(CallSessionStore.IsSidebarOpen ? "calls-sidebar--open" : null)" aria-hidden="@(!CallSessionStore.IsSidebarOpen)">
-    <div class="calls-sidebar__header">
-        <span class="calls-sidebar__title">Video calls</span>
-    </div>
+    <div class="calls-sidebar__panel">
+        <section class="calls-sidebar__section calls-sidebar__section--active" aria-label="Active video calls">
+            <header class="calls-sidebar__header">
+                <h2 class="calls-sidebar__title">Active video calls</h2>
+                <button type="button"
+                        class="calls-sidebar__create-btn"
+                        @onclick="CreateCallAsync">
+                    create call
+                </button>
+            </header>
 
-    <div class="calls-sidebar__body">
-        @if (CallSessionStore.IsLoadingActiveCalls)
-        {
-            <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Small" />
-        }
-        else if (CallSessionStore.ErrorMessage is { } error)
-        {
-            <p class="calls-sidebar__error">@error</p>
-        }
-        else if (CallSessionStore.ActiveCalls.Count == 0)
-        {
-            <p class="calls-sidebar__empty">No active calls on this board.</p>
-        }
-        else
-        {
-            <ul class="calls-sidebar__list">
-                @foreach (var call in CallSessionStore.ActiveCalls)
+            <div class="calls-sidebar__section-body">
+                @if (CallSessionStore.IsLoadingActiveCalls)
                 {
-                    <li class="calls-sidebar__list-item">
-                        <div class="calls-sidebar__call-info">
-                            <span class="calls-sidebar__call-title">@call.Title</span>
-                            @if (!string.IsNullOrWhiteSpace(call.Topic))
-                            {
-                                <span class="calls-sidebar__call-topic">@call.Topic</span>
-                            }
-                        </div>
-
-                        @if (CallSessionStore.CurrentCallId == call.Id)
-                        {
-                            <span class="calls-sidebar__in-call-label">In call</span>
-                        }
-                        else
-                        {
-                            <button type="button" class="btn-glass calls-sidebar__join-btn" @onclick="() => JoinCallAsync(call)">
-                                Join
-                            </button>
-                        }
-                    </li>
+                    <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Small" />
                 }
-            </ul>
-        }
-    </div>
+                else if (CallSessionStore.ErrorMessage is { } error)
+                {
+                    <p class="calls-sidebar__error">@error</p>
+                }
+                else if (CallSessionStore.ActiveCalls.Count == 0)
+                {
+                    <p class="calls-sidebar__empty">No active calls on this board.</p>
+                }
+                else
+                {
+                    <ul class="calls-sidebar__list">
+                        @foreach (var call in CallSessionStore.ActiveCalls)
+                        {
+                            <li class="calls-sidebar__call-card">
+                                <div class="calls-sidebar__call-body">
+                                    <span class="calls-sidebar__call-title"
+                                          title="@call.Title">@call.Title</span>
+                                    <span class="calls-sidebar__call-topic @(string.IsNullOrWhiteSpace(call.Topic) ? "calls-sidebar__call-topic--empty" : null)"
+                                          title="@call.Topic">@(string.IsNullOrWhiteSpace(call.Topic) ? "\u00a0" : call.Topic)</span>
+                                </div>
 
-    <div class="calls-sidebar__footer">
-        <button type="button" class="btn-glass-white calls-sidebar__create-btn" @onclick="CreateCallAsync">
-            + Create call
-        </button>
+                                <footer class="calls-sidebar__call-footer">
+                                    <span class="calls-sidebar__call-visibility">
+                                        @(call.Visibility == CallVisibility.Restricted ? "Restricted" : "Open")
+                                    </span>
+
+                                    @if (CallSessionStore.CurrentCallId == call.Id)
+                                    {
+                                        <span class="calls-sidebar__in-call-label">In call</span>
+                                    }
+                                    else
+                                    {
+                                        <button type="button"
+                                                class="calls-sidebar__join-btn"
+                                                aria-label="Join call"
+                                                disabled="@(!CanJoin(call))"
+                                                title="@(CanJoin(call) ? "Join call" : "You're not on this restricted call's allow-list.")"
+                                                @onclick="() => JoinCallAsync(call)">
+                                            <svg viewBox="0 0 24 24"
+                                                 aria-hidden="true"
+                                                 focusable="false">
+                                                <path fill="none"
+                                                      stroke="currentColor"
+                                                      stroke-width="2"
+                                                      stroke-linecap="round"
+                                                      stroke-linejoin="round"
+                                                      d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3" />
+                                            </svg>
+                                        </button>
+                                    }
+                                </footer>
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+        </section>
+
+        <section class="calls-sidebar__section calls-sidebar__section--history @GetHistorySectionClass()"
+                 aria-label="Video calls history">
+            <header class="calls-sidebar__header">
+                <button type="button"
+                        class="calls-sidebar__history-toggle"
+                        aria-expanded="@_isHistoryExpanded"
+                        @onclick="ToggleHistorySection">
+                    <span class="calls-sidebar__title">Video calls history</span>
+                </button>
+            </header>
+
+            <div class="calls-sidebar__section-body calls-sidebar__section-body--history">
+            </div>
+        </section>
     </div>
 </aside>
 
@@ -67,25 +111,56 @@
     [Parameter, EditorRequired]
     public Guid BoardId { get; set; }
 
+    private bool _isHistoryExpanded = true;
+
     protected override void OnInitialized()
     {
         CallSessionStore.StateChanged += OnStoreStateChanged;
     }
 
+    private void ToggleHistorySection() =>
+        _isHistoryExpanded = !_isHistoryExpanded;
+
+    private string? GetHistorySectionClass() =>
+        _isHistoryExpanded ? null : "calls-sidebar__section--history-collapsed";
+
+    private bool CanJoin(CallSessionDto call)
+    {
+        if (call.Visibility != CallVisibility.Restricted)
+            return true;
+
+        if (ProfileStore.Profile is { } profile && call.CreatedByUserId == profile.Id)
+            return true;
+
+        if (BoardDetailsStore.Board is { } board && BoardRolePermissions.CanBypassCallRestriction(board.UserRole))
+            return true;
+
+        return ProfileStore.Profile is { } currentUser
+            && (call.AllowedUserIds?.Contains(currentUser.Id) ?? false);
+    }
+
     private async Task CreateCallAsync()
     {
+        var submitState = new ResourceFormDialogState();
+
         var dialog = await DialogService.ShowResourceFormAsync(
             "Create video call",
             "Create",
             CreateCallForm.FormId,
-            CreateCallForm.Render());
+            CreateCallForm.Render(BoardId, submitState),
+            submitState: submitState);
 
         var result = await dialog.Result;
 
         if (result is not { Canceled: false, Data: CreateCallResult callResult })
             return;
 
-        var session = await CallSessionStore.CreateCallAsync(BoardId, callResult.Title, callResult.Topic);
+        var session = await CallSessionStore.CreateCallAsync(
+            BoardId,
+            callResult.Title,
+            callResult.Topic,
+            callResult.Visibility,
+            callResult.AllowedUserIds);
 
         if (session is null)
         {

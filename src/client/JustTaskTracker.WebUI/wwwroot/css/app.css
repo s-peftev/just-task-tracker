@@ -109,6 +109,7 @@
     --jtt-sidebar-tab-font-size: 16px;
     --jtt-sidebar-tab-font-weight: 500;
     --jtt-sidebar-tab-line-height: 1.4;
+    --jtt-sidebar-img-icon-filter: brightness(0) invert(1);
 
     /* MudBlazor palette */
     --mud-palette-background: transparent;
@@ -209,6 +210,8 @@ html.light {
     --mud-palette-appbar-background: transparent;
     --mud-palette-text-primary: var(--jtt-text-on-app);
     --mud-palette-text-secondary: #78716C;
+
+    --jtt-sidebar-img-icon-filter: brightness(0);
 }
 
 /* ─── Base ─── */
@@ -844,7 +847,9 @@ html, body {
 }
 
 .board-members-overlay--elevated {
-    z-index: 1400;
+    /* Offset above --mud-zindex-dialog so this overlay clears an open MudDialog
+       (both currently default to 1400, which ties and lets DOM order decide). */
+    z-index: calc(var(--mud-zindex-dialog, 1400) + 100);
 }
 
 .board-members-overlay__tab[aria-selected="true"]:not(button) {
@@ -933,6 +938,29 @@ html, body {
 .board-members-overlay__item--state .board-members-overlay__message {
     padding: 1rem 0;
     text-align: center;
+}
+
+.board-members-overlay__section-heading {
+    padding: 0.375rem 0.125rem 0.125rem;
+    color: var(--jtt-text-muted);
+    font-size: 0.75rem;
+    font-weight: var(--jtt-font-weight-strong);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.board-members-overlay__tabs--with-close {
+    justify-content: space-between;
+}
+
+.board-members-overlay__close-btn {
+    flex: 0 0 auto;
+    align-self: center;
+    margin: 0 0.5rem;
+}
+
+.board-members-overlay__member-select-btn--added {
+    border-color: var(--jtt-accent-tertiary);
 }
 
 /* ─── MudBlazor overrides ─── */

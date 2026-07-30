@@ -27,6 +27,7 @@ internal static class RepositoriesModule
         services.AddScoped<IStripeWebhookEventRepository, StripeWebhookEventRepository>();
         services.AddScoped<ICallRepository, CallRepository>();
         services.AddScoped<ICallParticipantRepository, CallParticipantRepository>();
+        services.AddScoped<ICallSessionAllowedParticipantRepository, CallSessionAllowedParticipantRepository>();
         services.AddScoped<IAcsUserIdentityMappingRepository, AcsUserIdentityMappingRepository>();
 
         return services;

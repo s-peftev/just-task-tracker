@@ -21,6 +21,7 @@ public class JoinCallCommandHandler(
     IUserRepository userRepository,
     IBoardRepository boardRepository,
     ICallRepository callRepository,
+    ICallSessionAllowedParticipantRepository allowedParticipantRepository,
     IAcsCallProvisioningService acsCallProvisioningService)
     : IRequestHandler<JoinCallCommand, Result<CallJoinDto>>
 {
@@ -43,6 +44,18 @@ public class JoinCallCommandHandler(
 
         if (currentUser is null)
             return Result<CallJoinDto>.Failure(GeneralErrors.Unauthorized);
+
+        // AD-4: for a Restricted session, board membership is necessary but not sufficient -- the
+        // creator and Owner/Admin may always join; everyone else needs an explicit allow-list entry.
+        if (callSession.Visibility == CallVisibility.Restricted
+            && callSession.CreatedByUserId != currentUser.Id
+            && !BoardRolePermissions.CanBypassCallRestriction(role))
+        {
+            var isAllowed = await allowedParticipantRepository.IsAllowedAsync(callSession.Id, currentUser.Id, ct);
+
+            if (!isAllowed)
+                return Result<CallJoinDto>.Failure(GeneralErrors.Forbidden);
+        }
 
         var token = await acsCallProvisioningService.IssueJoinTokenAsync(currentUser.Id, callSession.AcsRoomId, ct);
 

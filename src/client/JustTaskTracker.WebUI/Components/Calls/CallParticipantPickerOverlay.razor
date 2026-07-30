@@ -1,0 +1,197 @@
+@using JustTaskTracker.WebUI.Components.Shared
+@using JustTaskTracker.WebUI.Domain.Auth
+@using JustTaskTracker.WebUI.Domain.Boards
+@using JustTaskTracker.WebUI.Infrastructure
+@using JustTaskTracker.WebUI.Services.Abstractions.Auth
+@using JustTaskTracker.WebUI.Services.Abstractions.Calls
+@using JustTaskTracker.WebUI.Services.Exceptions
+@implements IDisposable
+@inject ICallParticipantPickerStore PickerStore
+@inject IProfileStore ProfileStore
+@inject ISnackbar Snackbar
+
+@if (PickerStore.IsOpen)
+{
+    <div class="board-members-overlay board-members-overlay--elevated"
+         role="dialog"
+         aria-modal="true"
+         aria-label="Select call participants">
+        <div class="board-members-overlay__backdrop" aria-hidden="true"></div>
+
+        <div class="board-members-overlay__panel"
+             @onclick:stopPropagation="true"
+             @onmousedown:stopPropagation="true">
+            <div class="board-members-overlay__tabs board-members-overlay__tabs--with-close" role="tablist" aria-label="Select call participants">
+                <div class="board-members-overlay__tab board-members-overlay__tab--active"
+                     role="tab"
+                     aria-selected="true">
+                    Select participants
+                </div>
+
+                <button type="button"
+                        class="btn-icon btn-icon--round btn-icon--sm board-members-overlay__close-btn"
+                        aria-label="Close participant picker"
+                        @onclick="Close">
+                    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                        <path d="M18 6L6 18M6 6l12 12"
+                              stroke="currentColor"
+                              stroke-width="2"
+                              stroke-linecap="round" />
+                    </svg>
+                </button>
+            </div>
+
+            <div class="board-members-overlay__search">
+                <input class="board-members-overlay__search-input"
+                       type="search"
+                       aria-label="Search board members"
+                       placeholder="Search members"
+                       value="@PickerStore.SearchText"
+                       @oninput="OnSearchInputAsync" />
+            </div>
+
+            <div class="board-members-overlay__body">
+                <ul class="board-members-overlay__list">
+                    <li class="board-members-overlay__item board-members-overlay__section-heading">
+                        Added (@PickerStore.SelectedUserIds.Count)
+                    </li>
+
+                    @if (ProfileStore.Profile is { } profile)
+                    {
+                        <li class="board-members-overlay__item">
+                            <div class="board-members-overlay__member board-members-overlay__member--current-user">
+                                <span class="board-members-overlay__member-avatar-wrap">
+                                    <UserAvatarPlaceholder Class="board-members-overlay__member-avatar"
+                                                           Preset="UserAvatarPlaceholderPreset.Member"
+                                                           DisplayName="@profile.DisplayName"
+                                                           Email="@profile.Email"
+                                                           ProfilePhotoUrl="@profile.ProfilePhotoUrl"
+                                                           Title="@profile.Email" />
+                                </span>
+                                <span class="board-members-overlay__member-name">@UserDisplayFormatting.AppendYouSuffix(UserDisplayFormatting.GetShortName(profile))</span>
+                                <span class="board-members-overlay__member-email">@profile.Email</span>
+                            </div>
+                        </li>
+                    }
+
+                    @foreach (var member in PickerStore.AddedMembers)
+                    {
+                        <li class="board-members-overlay__item">
+                            <button type="button"
+                                    class="board-members-overlay__member-select-btn board-members-overlay__member-select-btn--added"
+                                    @onclick="() => PickerStore.Toggle(member)">
+                                <UserAvatarPlaceholder Class="board-members-overlay__member-avatar"
+                                                       Preset="UserAvatarPlaceholderPreset.Member"
+                                                       DisplayName="@member.User.DisplayName"
+                                                       Email="@member.User.Email"
+                                                       ProfilePhotoUrl="@member.User.ProfilePhotoUrl"
+                                                       Title="@member.User.Email" />
+                                <span class="board-members-overlay__member-name">@UserDisplayFormatting.GetShortName(member.User)</span>
+                                <span class="board-members-overlay__member-email">@member.User.Email</span>
+                                <span class="board-members-overlay__member-role">@BoardMemberRoleFormatting.Format(member.Role)</span>
+                            </button>
+                        </li>
+                    }
+
+                    <li class="board-members-overlay__item board-members-overlay__section-heading">
+                        Board members
+                    </li>
+
+                    @if (PickerStore.IsLoading && PickerStore.Members.Count == 0)
+                    {
+                        <li class="board-members-overlay__item board-members-overlay__item--state">
+                            <div class="board-members-overlay__state">
+                                <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Small" />
+                            </div>
+                        </li>
+                    }
+                    else if (NotAddedMembers.Count == 0)
+                    {
+                        <li class="board-members-overlay__item board-members-overlay__item--state">
+                            <p class="board-members-overlay__message">No members found.</p>
+                        </li>
+                    }
+                    else
+                    {
+                        @foreach (var member in NotAddedMembers)
+                        {
+                            <li class="board-members-overlay__item">
+                                <button type="button"
+                                        class="board-members-overlay__member-select-btn"
+                                        @onclick="() => PickerStore.Toggle(member)">
+                                    <UserAvatarPlaceholder Class="board-members-overlay__member-avatar"
+                                                           Preset="UserAvatarPlaceholderPreset.Member"
+                                                           DisplayName="@member.User.DisplayName"
+                                                           Email="@member.User.Email"
+                                                           ProfilePhotoUrl="@member.User.ProfilePhotoUrl"
+                                                           Title="@member.User.Email" />
+                                    <span class="board-members-overlay__member-name">@UserDisplayFormatting.GetShortName(member.User)</span>
+                                    <span class="board-members-overlay__member-email">@member.User.Email</span>
+                                    <span class="board-members-overlay__member-role">@BoardMemberRoleFormatting.Format(member.Role)</span>
+                                </button>
+                            </li>
+                        }
+                    }
+
+                    @if (PickerStore.HasMoreMembers)
+                    {
+                        <li class="board-members-overlay__item board-members-overlay__item--action">
+                            <ExpandableActionButton Text="Show more"
+                                                    Icon="ExpandableActionButtonIcon.ChevronDown"
+                                                    Disabled="@PickerStore.IsLoadingMoreMembers"
+                                                    OnClick="LoadMoreAsync" />
+                        </li>
+                    }
+                </ul>
+            </div>
+
+            <div class="call-participant-picker-overlay__footer">
+                <button type="button"
+                        class="btn-noir call-participant-picker-overlay__done-btn"
+                        @onclick="Close">
+                    Done
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private IReadOnlyList<BoardMemberDto> NotAddedMembers =>
+        PickerStore.Members.Where(m => !PickerStore.IsSelected(m.User.Id)).ToList();
+
+    protected override void OnInitialized() =>
+        PickerStore.StateChanged += OnStoreStateChanged;
+
+    public void Dispose() =>
+        PickerStore.StateChanged -= OnStoreStateChanged;
+
+    private void OnStoreStateChanged() =>
+        InvokeAsync(StateHasChanged);
+
+    private async Task OnSearchInputAsync(ChangeEventArgs e)
+    {
+        try
+        {
+            await PickerStore.SetSearchAsync(e.Value?.ToString() ?? string.Empty);
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+    }
+
+    private async Task LoadMoreAsync()
+    {
+        try
+        {
+            await PickerStore.LoadMoreAsync();
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+    }
+
+    private void Close() => PickerStore.Close();
+}

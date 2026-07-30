@@ -12,13 +12,19 @@ using JustTaskTracker.Domain.Calls.Constants;
 using JustTaskTracker.Domain.Calls.DTOs;
 using JustTaskTracker.Domain.Calls.Entities;
 using JustTaskTracker.Domain.Calls.Enums;
+using JustTaskTracker.Domain.Calls.Errors;
 using JustTaskTracker.Domain.Common.Results;
 using JustTaskTracker.Domain.Common.Results.Errors;
 using MediatR;
 
 namespace JustTaskTracker.Application.Calls.Commands;
 
-public record CreateCallCommand(Guid BoardId, string Title, string? Topic, CallVisibility Visibility)
+public record CreateCallCommand(
+    Guid BoardId,
+    string Title,
+    string? Topic,
+    CallVisibility Visibility,
+    IReadOnlyList<Guid>? AllowedUserIds)
     : IRequest<Result<CallSessionDto>>, IRequireActiveBoard;
 
 public class CreateCallCommandHandler(
@@ -26,6 +32,7 @@ public class CreateCallCommandHandler(
     IUserRepository userRepository,
     IBoardRepository boardRepository,
     ICallRepository callRepository,
+    ICallSessionAllowedParticipantRepository allowedParticipantRepository,
     IAcsCallProvisioningService acsCallProvisioningService,
     IUnitOfWork unitOfWork,
     IDateTimeProvider dateTimeProvider)
@@ -42,6 +49,18 @@ public class CreateCallCommandHandler(
 
         if (currentUser is null)
             return Result<CallSessionDto>.Failure(GeneralErrors.Unauthorized);
+
+        IReadOnlyList<Guid> allowedUserIds = request.Visibility == CallVisibility.Restricted
+            ? request.AllowedUserIds ?? []
+            : [];
+
+        // AD-4/AD-8: an allow-list entry only makes sense for someone who can actually be a call
+        // participant at all -- reject up front rather than persisting a dangling/meaningless entry.
+        foreach (var allowedUserId in allowedUserIds)
+        {
+            if (!await boardRepository.IsBoardMemberAsync(request.BoardId, allowedUserId, ct))
+                return Result<CallSessionDto>.Failure(CallSessionsErrors.AllowedParticipantNotBoardMember);
+        }
 
         // AD-14: provision the ACS Room first; only persist once it exists.
         var acsRoomId = await acsCallProvisioningService.CreateRoomAsync(ct);
@@ -60,6 +79,15 @@ public class CreateCallCommandHandler(
         };
 
         callRepository.Add(callSession);
+
+        foreach (var allowedUserId in allowedUserIds)
+        {
+            allowedParticipantRepository.Add(new CallSessionAllowedParticipant
+            {
+                CallSessionId = callSession.Id,
+                UserId = allowedUserId
+            });
+        }
 
         try
         {
@@ -81,7 +109,8 @@ public class CreateCallCommandHandler(
             callSession.Visibility,
             callSession.AcsRoomId,
             callSession.Status,
-            callSession.StartedAtUtc));
+            callSession.StartedAtUtc,
+            request.Visibility == CallVisibility.Restricted ? allowedUserIds : null));
     }
 }
 
@@ -101,8 +130,12 @@ public class CreateCallCommandValidator : AbstractValidator<CreateCallCommand>
             .MaximumLength(CallFieldLengths.MaxTopicLength);
 
         RuleFor(x => x.Visibility)
-            .IsInEnum()
-            .Must(visibility => visibility == CallVisibility.Open)
-            .WithMessage("Only 'Open' calls are supported currently; 'Restricted' arrives in a later story.");
+            .IsInEnum();
+
+        When(x => x.Visibility == CallVisibility.Restricted, () =>
+        {
+            RuleForEach(x => x.AllowedUserIds)
+                .NotEmpty();
+        });
     }
 }

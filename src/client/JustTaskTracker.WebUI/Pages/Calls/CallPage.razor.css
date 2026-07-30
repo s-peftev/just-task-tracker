@@ -27,6 +27,39 @@
     overflow: hidden;
 }
 
+/* While someone presents, the grid stops being the main view and becomes a narrow,
+   scrollable filmstrip of small tiles alongside the big stage (Zoom-like). */
+.call-page__grid--filmstrip {
+    flex: 0 0 220px;
+    grid-auto-rows: 130px;
+    align-content: start;
+    overflow-y: auto;
+}
+
+.call-page__stage {
+    flex: 1 1 auto;
+    position: relative;
+    min-width: 0;
+    min-height: 0;
+    margin: 1rem 0 1rem 1rem;
+    background-color: var(--jtt-surface-content);
+    border: 1px solid var(--jtt-stroke-subtle);
+    border-radius: var(--jtt-radius-md);
+    overflow: hidden;
+}
+
+.call-page__stage-placeholder {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    color: var(--jtt-text-muted);
+    font-size: 0.95rem;
+    text-align: center;
+}
+
 .call-page__controls {
     flex: 0 0 auto;
     display: flex;

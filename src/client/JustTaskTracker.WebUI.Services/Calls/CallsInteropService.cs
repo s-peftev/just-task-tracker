@@ -38,6 +38,13 @@ internal sealed class CallsInteropService(IJSRuntime js) : ICallsInteropService,
         await module.InvokeVoidAsync("unregisterTileElement", tileId);
     }
 
+    public async Task RegisterStageElementAsync(ElementReference element)
+    {
+        var module = await EnsureModuleAsync();
+
+        await module.InvokeVoidAsync("registerStageElement", element);
+    }
+
     public async Task<bool> ToggleMicAsync()
     {
         var module = await EnsureModuleAsync();
@@ -50,6 +57,20 @@ internal sealed class CallsInteropService(IJSRuntime js) : ICallsInteropService,
         var module = await EnsureModuleAsync();
 
         return await module.InvokeAsync<bool>("toggleCamera");
+    }
+
+    public async Task StartScreenShareAsync()
+    {
+        var module = await EnsureModuleAsync();
+
+        await module.InvokeVoidAsync("startScreenSharing");
+    }
+
+    public async Task StopScreenShareAsync()
+    {
+        var module = await EnsureModuleAsync();
+
+        await module.InvokeVoidAsync("stopScreenSharing");
     }
 
     public async Task HangUpAsync()

@@ -135,7 +135,8 @@ public class CreateCallCommandHandler(
             callSession.Status,
             callSession.StartedAtUtc,
             request.Visibility == CallVisibility.Restricted ? allowedUserIds : null,
-            linkedTaskIds));
+            linkedTaskIds,
+            callSession.CurrentPresenterUserId));
     }
 }
 

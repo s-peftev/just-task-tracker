@@ -82,4 +82,24 @@ public class CallsController(ISender sender) : ControllerBase
             () => NoContent(),
             error => error.CreateErrorResponse());
     }
+
+    [HttpPost("{id:guid}/screen-share/start")]
+    public async Task<IActionResult> StartScreenShare(Guid id, CancellationToken ct)
+    {
+        var result = await sender.Send(new RequestScreenShareCommand(id), ct);
+
+        return result.Match(
+            () => NoContent(),
+            error => error.CreateErrorResponse());
+    }
+
+    [HttpPost("{id:guid}/screen-share/stop")]
+    public async Task<IActionResult> StopScreenShare(Guid id, CancellationToken ct)
+    {
+        var result = await sender.Send(new StopScreenShareCommand(id), ct);
+
+        return result.Match(
+            () => NoContent(),
+            error => error.CreateErrorResponse());
+    }
 }

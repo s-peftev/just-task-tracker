@@ -17,4 +17,14 @@ public static class CallSessionsErrors
         nameof(LinkedTaskNotOnBoard),
         ErrorType.Business,
         ["A call can only link tasks that belong to its own board."]);
+
+    public static readonly Error PresenterSlotTaken = new(
+        nameof(PresenterSlotTaken),
+        ErrorType.Conflict,
+        ["Someone else is already presenting."]);
+
+    public static readonly Error NotPresenter = new(
+        nameof(NotPresenter),
+        ErrorType.Conflict,
+        ["You are not the current presenter."]);
 }

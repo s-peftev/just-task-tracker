@@ -32,4 +32,10 @@ internal interface ICallsApi
 
     [Post("/api/calls/{id}/end")]
     Task<IApiResponse<ApiEnvelope<object>>> EndAsync(Guid id, CancellationToken ct = default);
+
+    [Post("/api/calls/{id}/screen-share/start")]
+    Task<IApiResponse<ApiEnvelope<object>>> StartScreenShareAsync(Guid id, CancellationToken ct = default);
+
+    [Post("/api/calls/{id}/screen-share/stop")]
+    Task<IApiResponse<ApiEnvelope<object>>> StopScreenShareAsync(Guid id, CancellationToken ct = default);
 }

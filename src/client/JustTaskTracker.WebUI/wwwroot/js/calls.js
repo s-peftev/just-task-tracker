@@ -54,13 +54,26 @@ const pendingViews = new Map();
 // pile of stale, disconnected media elements behind in the tile.
 const activeViewElements = new Map();
 
+// The "stage" is a single dedicated surface for whichever remote participant is currently
+// screen-sharing (AD-9 guarantees at most one at a time) -- separate from the tile grid/Map
+// above, since it isn't keyed per-participant and only ever renders a 'ScreenSharing' stream,
+// never a camera stream.
+let stageElement = null;
+let stageRenderer = null;
+let stagePresenterTileId = null;
+let pendingStageView = null;
+let activeStageView = null;
+
 // view.target ships with no intrinsic size or aspect-ratio handling -- style it directly
 // rather than relying on CSS to reach into an element Blazor's scoped-CSS isolation doesn't
 // know about (it's appended via plain DOM APIs, not rendered by Blazor, so scoped selectors
-// don't reliably reach it). object-fit: cover goes on the actual <video>/<canvas> (which may
-// be view.target itself, or nested inside it depending on the SDK's internal DOM shape) so
-// the feed fills the tile without stretching/distorting.
-function styleView(viewTarget) {
+// don't reliably reach it). object-fit goes on the actual <video>/<canvas> (which may be
+// view.target itself, or nested inside it depending on the SDK's internal DOM shape).
+// "cover" (camera tiles, the default) fills the tile without distorting, cropping whatever
+// doesn't fit -- fine for a face. "contain" (the screen-share stage) never crops, showing the
+// whole shared screen even if that leaves letterbox/pillarbox space -- cropping a presentation
+// could hide the exact content someone's trying to show.
+function styleView(viewTarget, objectFit = "cover") {
     viewTarget.style.position = "absolute";
     viewTarget.style.inset = "0";
     viewTarget.style.width = "100%";
@@ -73,7 +86,7 @@ function styleView(viewTarget) {
     for (const media of mediaElements) {
         media.style.width = "100%";
         media.style.height = "100%";
-        media.style.objectFit = "cover";
+        media.style.objectFit = objectFit;
     }
 }
 
@@ -105,6 +118,14 @@ function participantKeyOf(participant) {
     return participant.identifier.communicationUserId ?? participant.identifier.rawId;
 }
 
+// A presenting participant has TWO independent, separately-typed video streams available at
+// once (mediaStreamType 'Video' for camera, 'ScreenSharing' for the share) -- never one
+// replacing the other -- so camera and screen-share must be looked up distinctly, not just
+// "the first available stream".
+function findAvailableStream(participant, mediaStreamType) {
+    return participant.videoStreams.find((s) => s.mediaStreamType === mediaStreamType && s.isAvailable);
+}
+
 async function renderRemoteStream(tileId, stream) {
     if (remoteRenderers.has(tileId))
         return;
@@ -129,6 +150,64 @@ function disposeRemoteRenderer(tileId) {
     renderer.dispose();
     remoteRenderers.delete(tileId);
     detachView(tileId);
+}
+
+function attachStageView(viewTarget) {
+    styleView(viewTarget, "contain");
+    detachStageView();
+
+    if (stageElement) {
+        stageElement.appendChild(viewTarget);
+        activeStageView = viewTarget;
+    } else {
+        pendingStageView = viewTarget;
+    }
+}
+
+function detachStageView() {
+    if (activeStageView?.parentElement)
+        activeStageView.parentElement.removeChild(activeStageView);
+
+    activeStageView = null;
+    pendingStageView = null;
+}
+
+async function renderStageStream(stream) {
+    if (stageRenderer)
+        return;
+
+    try {
+        stageRenderer = new VideoStreamRenderer(stream);
+        const view = await stageRenderer.createView();
+        attachStageView(view.target);
+    } catch (error) {
+        console.error("calls.js failed to render stage video:", error);
+        stageRenderer = null;
+    }
+}
+
+function disposeStageRenderer() {
+    if (!stageRenderer)
+        return;
+
+    stageRenderer.dispose();
+    stageRenderer = null;
+    detachStageView();
+}
+
+// Doesn't need to know *who* is presenting -- AD-9's server-enforced single-presenter lock
+// guarantees at most one participant ever has an available 'ScreenSharing' stream at a time,
+// so whichever one shows up is the stage's content.
+async function syncParticipantScreenShare(participant, tileId) {
+    const screenStream = findAvailableStream(participant, "ScreenSharing");
+
+    if (screenStream) {
+        stagePresenterTileId = tileId;
+        await renderStageStream(screenStream);
+    } else if (stagePresenterTileId === tileId) {
+        stagePresenterTileId = null;
+        disposeStageRenderer();
+    }
 }
 
 // Zoom-like grid: Blazor owns one <div> tile per participant (local + each remote) and reports
@@ -171,6 +250,16 @@ export async function join(token, roomId, dotNetRef) {
             dotNetRef.invokeMethodAsync("OnCallDisconnected");
     });
 
+    // Catches the local user stopping their share through the browser's own "Stop sharing"
+    // control (not our in-app button) -- without this, the presenter lock (AD-9) would stay
+    // held server-side even though the share already ended, a stuck lock Epic 2 explicitly
+    // rules out. Also fires on our own stopScreenSharing() call; OnLocalScreenShareStopped
+    // on the C# side no-ops in that case since the lock is already released by then.
+    call.on("isScreenSharingOnChanged", () => {
+        if (!call.isScreenSharingOn)
+            dotNetRef.invokeMethodAsync("OnLocalScreenShareStopped");
+    });
+
     await dotNetRef.invokeMethodAsync("OnTileAdded", "local", true, !!localVideoStream);
 
     if (localVideoStream) {
@@ -183,31 +272,40 @@ export async function join(token, roomId, dotNetRef) {
     // ACS reuses the same stream object across a camera toggle rather than removing/re-adding it,
     // so re-rendering can't be driven only from videoStreamsUpdated.
     async function syncParticipantVideo(participant, tileId) {
-        const availableStream = participant.videoStreams.find((s) => s.isAvailable);
+        const cameraStream = findAvailableStream(participant, "Video");
 
-        if (availableStream)
-            await renderRemoteStream(tileId, availableStream);
+        if (cameraStream)
+            await renderRemoteStream(tileId, cameraStream);
         else
             disposeRemoteRenderer(tileId);
 
-        await dotNetRef.invokeMethodAsync("OnTileVideoStateChanged", tileId, !!availableStream);
+        await dotNetRef.invokeMethodAsync("OnTileVideoStateChanged", tileId, !!cameraStream);
+    }
+
+    function watchParticipantStream(participant, tileId, stream) {
+        stream.on("isAvailableChanged", () => {
+            syncParticipantVideo(participant, tileId);
+            syncParticipantScreenShare(participant, tileId);
+        });
     }
 
     async function watchParticipant(participant) {
         const tileId = participantKeyOf(participant);
 
-        await dotNetRef.invokeMethodAsync("OnTileAdded", tileId, false, participant.videoStreams.some((s) => s.isAvailable));
+        await dotNetRef.invokeMethodAsync("OnTileAdded", tileId, false, !!findAvailableStream(participant, "Video"));
 
         for (const stream of participant.videoStreams)
-            stream.on("isAvailableChanged", () => syncParticipantVideo(participant, tileId));
+            watchParticipantStream(participant, tileId, stream);
 
         await syncParticipantVideo(participant, tileId);
+        await syncParticipantScreenShare(participant, tileId);
 
         participant.on("videoStreamsUpdated", (e) => {
             for (const stream of e.added)
-                stream.on("isAvailableChanged", () => syncParticipantVideo(participant, tileId));
+                watchParticipantStream(participant, tileId, stream);
 
             syncParticipantVideo(participant, tileId);
+            syncParticipantScreenShare(participant, tileId);
         });
     }
 
@@ -216,6 +314,12 @@ export async function join(token, roomId, dotNetRef) {
         disposeRemoteRenderer(tileId);
         tileElements.delete(tileId);
         pendingViews.delete(tileId);
+
+        if (stagePresenterTileId === tileId) {
+            stagePresenterTileId = null;
+            disposeStageRenderer();
+        }
+
         await dotNetRef.invokeMethodAsync("OnTileRemoved", tileId);
     }
 
@@ -254,6 +358,16 @@ export function unregisterTileElement(tileId) {
     tileElements.delete(tileId);
 }
 
+export function registerStageElement(element) {
+    stageElement = element;
+
+    if (pendingStageView) {
+        element.appendChild(pendingStageView);
+        activeStageView = pendingStageView;
+        pendingStageView = null;
+    }
+}
+
 export async function toggleMic() {
     if (!call)
         return micOn;
@@ -289,6 +403,18 @@ export async function toggleCamera() {
     return cameraOn;
 }
 
+// Gating (the presenter lock, AD-9) already happened server-side before this is called --
+// this only ever does the local ACS SDK action.
+export async function startScreenSharing() {
+    if (call)
+        await call.startScreenSharing();
+}
+
+export async function stopScreenSharing() {
+    if (call)
+        await call.stopScreenSharing();
+}
+
 export async function hangUp() {
     if (call)
         await call.hangUp();
@@ -301,10 +427,14 @@ export function disposeCall() {
     for (const renderer of remoteRenderers.values())
         renderer.dispose();
 
+    disposeStageRenderer();
+
     remoteRenderers.clear();
     tileElements.clear();
     pendingViews.clear();
     activeViewElements.clear();
+    stageElement = null;
+    stagePresenterTileId = null;
     call = null;
     localVideoStream = null;
     localRenderer = null;

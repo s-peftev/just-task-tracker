@@ -33,6 +33,9 @@ public interface ICallSessionStore
     /// <summary>Raised with the call's id when a participant joins or leaves it, so an open CallPage can refresh its roster.</summary>
     event Action<Guid>? CallParticipantsChanged;
 
+    /// <summary>Raised with the call's id and the new presenter (null if the slot was freed) on a <see cref="CallStateNotificationType.PresenterChanged"/> notification.</summary>
+    event Action<Guid, Guid?>? CallPresenterChanged;
+
     Task OpenSidebarAsync(Guid boardId, CancellationToken ct = default);
 
     Task LoadMoreHistoryAsync(CancellationToken ct = default);
@@ -51,6 +54,15 @@ public interface ICallSessionStore
     Task<JoinCallResponse?> JoinCallAsync(Guid callSessionId, CancellationToken ct = default);
 
     Task EndCurrentCallAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Requests the presenter lock for the current call (AD-9). Returns <see langword="false"/>
+    /// without throwing if someone else already holds it -- <see cref="ErrorMessage"/> carries the reason.
+    /// </summary>
+    Task<bool> RequestScreenShareAsync(CancellationToken ct = default);
+
+    /// <summary>Releases the presenter lock for the current call, if the local user holds it.</summary>
+    Task<bool> StopScreenShareAsync(CancellationToken ct = default);
 
     void LeaveCurrentCall();
 

@@ -19,4 +19,8 @@ public interface ICallsApiService
     Task<IReadOnlyList<BoardTaskDetailsDto>> GetLinkedTasksAsync(Guid callSessionId, CancellationToken ct = default);
 
     Task EndCallAsync(Guid callSessionId, CancellationToken ct = default);
+
+    Task RequestScreenShareAsync(Guid callSessionId, CancellationToken ct = default);
+
+    Task StopScreenShareAsync(Guid callSessionId, CancellationToken ct = default);
 }

@@ -13,4 +13,5 @@ public record CallSessionDto(
     CallStatus Status,
     DateTime StartedAtUtc,
     IReadOnlyList<Guid>? AllowedUserIds,
-    IReadOnlyList<Guid> LinkedTaskIds);
+    IReadOnlyList<Guid> LinkedTaskIds,
+    Guid? CurrentPresenterUserId);

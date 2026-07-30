@@ -44,6 +44,9 @@ public class BoardTaskRepository(JustTaskTrackerDbContext context)
             .Select(m => m.Role)
             .FirstOrDefaultAsync(ct);
 
+    public Task<bool> ExistsInBoardAsync(Guid boardTaskId, Guid boardId, CancellationToken ct = default) =>
+        _dbSet.AnyAsync(t => t.Id == boardTaskId && t.Column!.BoardId == boardId, ct);
+
     public async Task<BoardTaskDetailsReadModel?> GetBoardTaskDetailsAsync(Guid boardTaskId, CancellationToken ct = default) =>
         await _dbSet
             .Where(task => task.Id == boardTaskId)

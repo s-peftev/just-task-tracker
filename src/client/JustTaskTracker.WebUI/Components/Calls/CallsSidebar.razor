@@ -17,78 +17,77 @@
 
 <aside class="calls-sidebar @(CallSessionStore.IsSidebarOpen ? "calls-sidebar--open" : null)" aria-hidden="@(!CallSessionStore.IsSidebarOpen)">
     <div class="calls-sidebar__panel">
-        <section class="calls-sidebar__section calls-sidebar__section--active" aria-label="Active video calls">
-            <header class="calls-sidebar__header">
-                <h2 class="calls-sidebar__title">Active video calls</h2>
-                <button type="button"
-                        class="calls-sidebar__create-btn"
-                        @onclick="CreateCallAsync">
-                    create call
-                </button>
-            </header>
+        @if (BoardDetailsStore.Board is not { IsArchived: true })
+        {
+            <section class="calls-sidebar__section calls-sidebar__section--active" aria-label="Active video calls">
+                <header class="calls-sidebar__header">
+                    <h2 class="calls-sidebar__title">Active video calls</h2>
+                    <button type="button"
+                            class="calls-sidebar__create-btn"
+                            @onclick="CreateCallAsync">
+                        create call
+                    </button>
+                </header>
 
-            <div class="calls-sidebar__section-body">
-                @if (CallSessionStore.IsLoadingActiveCalls)
-                {
-                    <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Small" />
-                }
-                else if (CallSessionStore.ErrorMessage is { } error)
-                {
-                    <p class="calls-sidebar__error">@error</p>
-                }
-                else if (CallSessionStore.ActiveCalls.Count == 0)
-                {
-                    <p class="calls-sidebar__empty">No active calls on this board.</p>
-                }
-                else
-                {
-                    <ul class="calls-sidebar__list">
-                        @foreach (var call in CallSessionStore.ActiveCalls)
-                        {
-                            <li class="calls-sidebar__call-card">
-                                <div class="calls-sidebar__call-body">
-                                    <span class="calls-sidebar__call-title"
-                                          title="@call.Title">@call.Title</span>
-                                    <span class="calls-sidebar__call-topic @(string.IsNullOrWhiteSpace(call.Topic) ? "calls-sidebar__call-topic--empty" : null)"
-                                          title="@call.Topic">@(string.IsNullOrWhiteSpace(call.Topic) ? "\u00a0" : call.Topic)</span>
-                                </div>
+                <div class="calls-sidebar__section-body">
+                    @if (CallSessionStore.IsLoadingActiveCalls)
+                    {
+                        <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Small" />
+                    }
+                    else if (CallSessionStore.ActiveCalls.Count == 0)
+                    {
+                        <p class="calls-sidebar__empty">No active calls on this board.</p>
+                    }
+                    else
+                    {
+                        <ul class="calls-sidebar__list">
+                            @foreach (var call in CallSessionStore.ActiveCalls)
+                            {
+                                <li class="calls-sidebar__call-card">
+                                    <div class="calls-sidebar__call-body">
+                                        <span class="calls-sidebar__call-title"
+                                              title="@call.Title">@call.Title</span>
+                                        <span class="calls-sidebar__call-topic @(string.IsNullOrWhiteSpace(call.Topic) ? "calls-sidebar__call-topic--empty" : null)"
+                                              title="@call.Topic">@(string.IsNullOrWhiteSpace(call.Topic) ? "\u00a0" : call.Topic)</span>
+                                    </div>
 
-                                <footer class="calls-sidebar__call-footer">
-                                    <span class="calls-sidebar__call-visibility">
-                                        @(call.Visibility == CallVisibility.Restricted ? "Restricted" : "Open")
-                                    </span>
+                                    <footer class="calls-sidebar__call-footer">
+                                        <span class="calls-sidebar__call-visibility">
+                                            @(call.Visibility == CallVisibility.Restricted ? "Restricted" : "Open")
+                                        </span>
 
-                                    @if (CallSessionStore.CurrentCallId == call.Id)
-                                    {
-                                        <span class="calls-sidebar__in-call-label">In call</span>
-                                    }
-                                    else
-                                    {
-                                        <button type="button"
-                                                class="calls-sidebar__join-btn"
-                                                aria-label="Join call"
-                                                disabled="@(!CanJoin(call))"
-                                                title="@(CanJoin(call) ? "Join call" : "You're not on this restricted call's allow-list.")"
-                                                @onclick="() => JoinCallAsync(call)">
-                                            <svg viewBox="0 0 24 24"
-                                                 aria-hidden="true"
-                                                 focusable="false">
-                                                <path fill="none"
-                                                      stroke="currentColor"
-                                                      stroke-width="2"
-                                                      stroke-linecap="round"
-                                                      stroke-linejoin="round"
-                                                      d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3" />
-                                            </svg>
-                                        </button>
-                                    }
-                                </footer>
-                            </li>
-                        }
-                    </ul>
-                }
-            </div>
-        </section>
+                                        @if (CallSessionStore.CurrentCallId == call.Id)
+                                        {
+                                            <span class="calls-sidebar__in-call-label">In call</span>
+                                        }
+                                        else
+                                        {
+                                            <button type="button"
+                                                    class="calls-sidebar__join-btn"
+                                                    aria-label="Join call"
+                                                    disabled="@(!CanJoin(call))"
+                                                    title="@(CanJoin(call) ? "Join call" : "You're not on this restricted call's allow-list.")"
+                                                    @onclick="() => JoinCallAsync(call)">
+                                                <svg viewBox="0 0 24 24"
+                                                     aria-hidden="true"
+                                                     focusable="false">
+                                                    <path fill="none"
+                                                          stroke="currentColor"
+                                                          stroke-width="2"
+                                                          stroke-linecap="round"
+                                                          stroke-linejoin="round"
+                                                          d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3" />
+                                                </svg>
+                                            </button>
+                                        }
+                                    </footer>
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
+            </section>
+        }
 
         <section class="calls-sidebar__section calls-sidebar__section--history @GetHistorySectionClass()"
                  aria-label="Video calls history">
@@ -116,6 +115,7 @@
     protected override void OnInitialized()
     {
         CallSessionStore.StateChanged += OnStoreStateChanged;
+        BoardDetailsStore.StateChanged += OnStoreStateChanged;
     }
 
     private void ToggleHistorySection() =>
@@ -160,7 +160,8 @@
             callResult.Title,
             callResult.Topic,
             callResult.Visibility,
-            callResult.AllowedUserIds);
+            callResult.AllowedUserIds,
+            callResult.LinkedTaskIds);
 
         if (session is null)
         {
@@ -191,5 +192,6 @@
     public void Dispose()
     {
         CallSessionStore.StateChanged -= OnStoreStateChanged;
+        BoardDetailsStore.StateChanged -= OnStoreStateChanged;
     }
 }

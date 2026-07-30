@@ -1,3 +1,4 @@
+using JustTaskTracker.WebUI.Domain.Boards;
 using JustTaskTracker.WebUI.Domain.Calls;
 using JustTaskTracker.WebUI.Services.Api.Models;
 using Refit;
@@ -17,6 +18,9 @@ internal interface ICallsApi
 
     [Get("/api/calls/{id}/participants")]
     Task<IApiResponse<ApiEnvelope<List<CallParticipantDto>>>> GetParticipantsAsync(Guid id, CancellationToken ct = default);
+
+    [Get("/api/calls/{id}/linked-tasks")]
+    Task<IApiResponse<ApiEnvelope<List<BoardTaskDetailsDto>>>> GetLinkedTasksAsync(Guid id, CancellationToken ct = default);
 
     [Post("/api/calls/{id}/end")]
     Task<IApiResponse<ApiEnvelope<object>>> EndAsync(Guid id, CancellationToken ct = default);

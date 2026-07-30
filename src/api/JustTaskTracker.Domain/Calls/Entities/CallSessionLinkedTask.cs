@@ -1,7 +1,7 @@
 namespace JustTaskTracker.Domain.Calls.Entities;
 
-// Stub for Story 1.3 (optional task linking, AD-13). Not yet EF-mapped or persisted.
-// TaskId references BoardTask.Id.
+// Optional topic references (AD-13). TaskId references BoardTask.Id; a task may be linked to
+// several call sessions, but only once per session (composite PK).
 public class CallSessionLinkedTask
 {
     public Guid CallSessionId { get; set; }

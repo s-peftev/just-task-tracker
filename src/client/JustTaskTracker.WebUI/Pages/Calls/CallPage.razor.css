@@ -6,8 +6,17 @@
     background-color: var(--jtt-surface-app);
 }
 
+.call-page__body {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: row;
+    overflow: hidden;
+}
+
 .call-page__grid {
     flex: 1 1 auto;
+    min-width: 0;
     min-height: 0;
     display: grid;
     grid-template-columns: repeat(var(--call-grid-columns, 1), 1fr);
@@ -55,6 +64,16 @@
 .call-page__control-btn--off:hover {
     border-color: var(--jtt-stroke-danger-strong) !important;
     background: var(--jtt-overlay-danger-15) !important;
+}
+
+.call-page__control-btn--active {
+    color: var(--jtt-text-accent) !important;
+    border-color: var(--jtt-stroke-accent) !important;
+    background: var(--jtt-overlay-accent-10) !important;
+}
+
+.call-page__control-btn--active:hover {
+    background: var(--jtt-overlay-accent-15) !important;
 }
 
 .call-page__end-btn {

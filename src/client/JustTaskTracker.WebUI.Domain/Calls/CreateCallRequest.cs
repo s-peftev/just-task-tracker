@@ -7,4 +7,5 @@ public record CreateCallRequest(
     string Title,
     string? Topic,
     CallVisibility Visibility,
-    IReadOnlyList<Guid>? AllowedUserIds = null);
+    IReadOnlyList<Guid>? AllowedUserIds = null,
+    IReadOnlyList<Guid>? LinkedTaskIds = null);

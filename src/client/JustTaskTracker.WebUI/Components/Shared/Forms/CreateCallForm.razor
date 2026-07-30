@@ -2,11 +2,15 @@
 @using JustTaskTracker.WebUI.Domain.Calls
 @using JustTaskTracker.WebUI.Domain.Calls.Enums
 @using JustTaskTracker.WebUI.Services.Abstractions.Auth
+@using JustTaskTracker.WebUI.Services.Abstractions.Boards
 @using JustTaskTracker.WebUI.Services.Abstractions.Calls
 @using JustTaskTracker.WebUI.Validation
 @implements IDisposable
 @inject IProfileStore ProfileStore
+@inject IBoardDetailsStore BoardDetailsStore
 @inject ICallParticipantPickerStore ParticipantPickerStore
+@inject ICallTaskLinkPickerStore TaskLinkPickerStore
+@inject ISnackbar Snackbar
 
 <form id="@FormId" @onsubmit="SubmitAsync" @onsubmit:preventDefault="true">
     <div @onfocusout="OnFieldFocusOutAsync">
@@ -48,6 +52,15 @@
             </MudRadio>
         </MudRadioGroup>
     </fieldset>
+
+    <div class="create-call-form__tasks">
+        <button type="button"
+                class="btn-glass-white create-call-form__tasks-btn"
+                @onclick="OpenTaskLinkPickerAsync">
+            Link board tasks
+            <span class="create-call-form__tasks-count">(@TaskLinkPickerStore.SelectedTaskIds.Count linked)</span>
+        </button>
+    </div>
 
     <div class="create-call-form__members">
         <button type="button"
@@ -91,21 +104,30 @@
     protected override void OnInitialized()
     {
         ParticipantPickerStore.StateChanged += OnParticipantPickerStateChanged;
+        TaskLinkPickerStore.StateChanged += OnTaskLinkPickerStateChanged;
 
         if (ProfileStore.Profile is { } profile)
             ParticipantPickerStore.Reset(profile.Id);
 
+        TaskLinkPickerStore.Reset();
+
         UpdateSubmitState();
     }
 
-    public void Dispose() =>
+    public void Dispose()
+    {
         ParticipantPickerStore.StateChanged -= OnParticipantPickerStateChanged;
+        TaskLinkPickerStore.StateChanged -= OnTaskLinkPickerStateChanged;
+    }
 
     private void OnParticipantPickerStateChanged()
     {
         UpdateSubmitState();
         InvokeAsync(StateHasChanged);
     }
+
+    private void OnTaskLinkPickerStateChanged() =>
+        InvokeAsync(StateHasChanged);
 
     private async Task OnFieldChangedAsync()
     {
@@ -130,6 +152,24 @@
             return Task.CompletedTask;
 
         return ParticipantPickerStore.OpenAsync(BoardId);
+    }
+
+    private Task OpenTaskLinkPickerAsync()
+    {
+        // GetBoardTasksLookupQuery filters by board only, but the route it's nested under still
+        // expects a columnId -- any column works (same trick BoardPageFooter's task search uses).
+        var columnId = BoardDetailsStore.Board?.Columns
+            .OrderBy(column => column.Position)
+            .Select(column => column.Id)
+            .FirstOrDefault();
+
+        if (columnId is null || columnId == Guid.Empty)
+        {
+            Snackbar.Add("No columns available for task linking.", Severity.Info);
+            return Task.CompletedTask;
+        }
+
+        return TaskLinkPickerStore.OpenAsync(BoardId, columnId.Value);
     }
 
     private void UpdateSubmitState()
@@ -158,7 +198,11 @@
             ? ParticipantPickerStore.SelectedUserIds.ToList()
             : null;
 
-        MudDialog.Close(DialogResult.Ok(new CreateCallResult(_model.Title.Trim(), topic, _model.Visibility, allowedUserIds)));
+        IReadOnlyList<Guid>? linkedTaskIds = TaskLinkPickerStore.SelectedTaskIds.Count > 0
+            ? TaskLinkPickerStore.SelectedTaskIds.ToList()
+            : null;
+
+        MudDialog.Close(DialogResult.Ok(new CreateCallResult(_model.Title.Trim(), topic, _model.Visibility, allowedUserIds, linkedTaskIds)));
     }
 
     private async Task ValidateAsync()

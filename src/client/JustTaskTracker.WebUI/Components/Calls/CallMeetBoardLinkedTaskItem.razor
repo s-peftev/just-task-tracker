@@ -1,0 +1,233 @@
+@using JustTaskTracker.WebUI.Domain.Auth
+@using JustTaskTracker.WebUI.Domain.Boards
+@using JustTaskTracker.WebUI.Domain.Boards.Authorization
+@using JustTaskTracker.WebUI.Infrastructure
+@using JustTaskTracker.WebUI.Services.Abstractions.Boards
+@using JustTaskTracker.WebUI.Services.Exceptions
+@implements IAsyncDisposable
+@inject IBoardApiService BoardApiService
+@inject ISnackbar Snackbar
+@inject IJSRuntime Js
+
+<li class="call-meet-board-linked-task">
+    @if (_isExpanded)
+    {
+        <div class="call-meet-board-linked-task__expanded-header">
+            <div class="call-meet-board-linked-task__heading">
+                <span class="call-meet-board-linked-task__title" title="@Task.Title">@Task.Title</span>
+                <span class="call-meet-board-linked-task__column">@Task.ColumnName</span>
+            </div>
+
+            <button type="button"
+                    class="btn-icon btn-icon--sm call-meet-board-linked-task__collapse-btn"
+                    aria-label="Collapse task"
+                    @onclick="Collapse">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path d="M18 15l-6-6-6 6"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          fill="none" />
+                </svg>
+            </button>
+        </div>
+
+        <div class="call-meet-board-linked-task__body">
+            <div class="call-meet-board-linked-task__user-row">
+                <div class="call-meet-board-linked-task__user-line">
+                    <span class="call-meet-board-linked-task__user-identity">
+                        <UserAvatarPlaceholder Size="24px"
+                                               DisplayName="@Task.Reporter.DisplayName"
+                                               Email="@Task.Reporter.Email"
+                                               ProfilePhotoUrl="@Task.Reporter.ProfilePhotoUrl"
+                                               Title="@Task.Reporter.Email" />
+                        <span class="call-meet-board-linked-task__user-name">@UserDisplayFormatting.GetNameWithEmail(Task.Reporter)</span>
+                    </span>
+                    <span class="call-meet-board-linked-task__user-meta">
+                        created this task @FormatCreatedAt(Task.CreatedAtUtc)
+                    </span>
+                </div>
+            </div>
+
+            <div class="call-meet-board-linked-task__user-row">
+                @if (Task.Assignee is { } assignee)
+                {
+                    <div class="call-meet-board-linked-task__user-line">
+                        <span class="call-meet-board-linked-task__user-identity">
+                            <UserAvatarPlaceholder Size="24px"
+                                                   DisplayName="@assignee.DisplayName"
+                                                   Email="@assignee.Email"
+                                                   ProfilePhotoUrl="@assignee.ProfilePhotoUrl"
+                                                   Title="@assignee.Email" />
+                            <span class="call-meet-board-linked-task__user-name">@UserDisplayFormatting.GetNameWithEmail(assignee)</span>
+                        </span>
+                        <span class="call-meet-board-linked-task__user-meta">has been assigned to this task</span>
+                    </div>
+                }
+                else
+                {
+                    <span class="call-meet-board-linked-task__user-meta">
+                        Not assigned yet
+                    </span>
+                }
+            </div>
+
+            <section class="call-meet-board-linked-task__section">
+                <h4 class="call-meet-board-linked-task__section-title">Description</h4>
+
+                @if (string.IsNullOrWhiteSpace(Task.Description))
+                {
+                    <p class="call-meet-board-linked-task__placeholder-text">No description</p>
+                }
+                else
+                {
+                    <p class="call-meet-board-linked-task__description-text">@Task.Description</p>
+                }
+            </section>
+
+            <section class="call-meet-board-linked-task__section">
+                <h4 class="call-meet-board-linked-task__section-title">Attachments</h4>
+
+                @if (Task.Attachments.Count == 0)
+                {
+                    <p class="call-meet-board-linked-task__placeholder-text">No attachments yet</p>
+                }
+                else
+                {
+                    <ul class="call-meet-board-linked-task__attachment-list">
+                        @foreach (var attachment in Task.Attachments)
+                        {
+                            <li class="call-meet-board-linked-task__attachment-item">
+                                <div class="call-meet-board-linked-task__attachment-main">
+                                    <span class="call-meet-board-linked-task__attachment-format"
+                                          aria-hidden="true"
+                                          title="@GetFileFormatLabel(attachment.OriginalFileName)">
+                                        @GetFileFormatLabel(attachment.OriginalFileName)
+                                    </span>
+                                    <div class="call-meet-board-linked-task__attachment-info">
+                                        <span class="call-meet-board-linked-task__attachment-name" title="@attachment.OriginalFileName">
+                                            @attachment.OriginalFileName
+                                        </span>
+                                        <span class="call-meet-board-linked-task__attachment-date">
+                                            Added @FormatCreatedAt(attachment.CreatedAtUtc)
+                                        </span>
+                                    </div>
+                                </div>
+
+                                @if (CanDownloadAttachments)
+                                {
+                                    <div class="call-meet-board-linked-task__attachment-actions">
+                                        <span class="call-meet-board-linked-task__attachment-size">
+                                            @FormatAttachmentSizeMb(attachment.FileSizeBytes)
+                                        </span>
+                                        <button type="button"
+                                                class="btn-icon btn-icon--sm call-meet-board-linked-task__attachment-download"
+                                                aria-label="@($"Download {attachment.OriginalFileName}")"
+                                                disabled="@(_downloadingAttachmentId == attachment.Id)"
+                                                @onclick="() => DownloadAttachmentAsync(attachment)">
+                                            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                                                <path d="M12 5v11" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                                                <path d="M7 12l5 5 5-5"
+                                                      stroke="currentColor"
+                                                      stroke-width="2"
+                                                      stroke-linecap="round"
+                                                      stroke-linejoin="round"
+                                                      fill="none" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                }
+                            </li>
+                        }
+                    </ul>
+                }
+            </section>
+        </div>
+    }
+    else
+    {
+        <button type="button" class="call-meet-board-linked-task__preview-btn" @onclick="Expand">
+            <span class="call-meet-board-linked-task__title" title="@Task.Title">@Task.Title</span>
+            <span class="call-meet-board-linked-task__column">@Task.ColumnName</span>
+
+            @if (!string.IsNullOrWhiteSpace(Task.Description))
+            {
+                <span class="call-meet-board-linked-task__description" title="@Task.Description">@Task.Description</span>
+            }
+        </button>
+    }
+</li>
+
+@code {
+    [Parameter, EditorRequired]
+    public Guid BoardId { get; set; }
+
+    [Parameter, EditorRequired]
+    public BoardTaskDetailsDto Task { get; set; } = default!;
+
+    private bool _isExpanded;
+    private Guid? _downloadingAttachmentId;
+    private IJSObjectReference? _fileDownloadModule;
+
+    private bool CanDownloadAttachments => BoardRolePermissions.CanDownloadAttachments(Task.UserRole);
+
+    private void Expand() => _isExpanded = true;
+
+    private void Collapse() => _isExpanded = false;
+
+    private static string FormatCreatedAt(DateTime createdAtUtc) =>
+        createdAtUtc.ToLocalTime().ToString("g");
+
+    private static string GetFileFormatLabel(string originalFileName)
+    {
+        var extension = Path.GetExtension(originalFileName);
+
+        return string.IsNullOrWhiteSpace(extension)
+            ? "FILE"
+            : extension.TrimStart('.').ToUpperInvariant();
+    }
+
+    private static string FormatAttachmentSizeMb(long bytes) =>
+        $"{bytes / (1024d * 1024d):0.00} MB";
+
+    private async Task DownloadAttachmentAsync(BoardTaskAttachmentDto attachment)
+    {
+        if (!CanDownloadAttachments || _downloadingAttachmentId is not null)
+            return;
+
+        _downloadingAttachmentId = attachment.Id;
+
+        try
+        {
+            var file = await BoardApiService.DownloadBoardTaskAttachmentAsync(
+                BoardId,
+                Task.ColumnId,
+                Task.Id,
+                attachment.Id,
+                attachment.OriginalFileName);
+
+            _fileDownloadModule ??= await Js.InvokeAsync<IJSObjectReference>("import", "./js/fileDownload.js");
+
+            await _fileDownloadModule.InvokeVoidAsync(
+                "download",
+                file.FileName,
+                file.ContentType,
+                file.Content);
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+        finally
+        {
+            _downloadingAttachmentId = null;
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_fileDownloadModule is not null)
+            await _fileDownloadModule.DisposeAsync();
+    }
+}

@@ -12,4 +12,5 @@ public record CallSessionDto(
     string AcsRoomId,
     CallStatus Status,
     DateTime StartedAtUtc,
-    IReadOnlyList<Guid>? AllowedUserIds);
+    IReadOnlyList<Guid>? AllowedUserIds,
+    IReadOnlyList<Guid> LinkedTaskIds);

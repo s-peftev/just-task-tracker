@@ -6,6 +6,18 @@ public class AssistantPromptOptions
 {
     public string SystemPrompt { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Returned when knowledge-base search succeeds but finds no relevant chunks,
+    /// so the LLM is not called just to produce an "I don't know" reply.
+    /// </summary>
+    public string NoContextReply { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Instruction appended after the current-user profile block so the model
+    /// prioritizes this user's global role and entitlements over generic docs.
+    /// </summary>
+    public string UserContextInstruction { get; set; } = string.Empty;
+
     public int MaxOutputTokens { get; set; }
 
     public float Temperature { get; set; }
@@ -16,6 +28,12 @@ public class AssistantPromptOptions
 
         if (string.IsNullOrWhiteSpace(SystemPrompt))
             throw new InvalidOperationException($"{section}:{nameof(SystemPrompt)} is not configured.");
+
+        if (string.IsNullOrWhiteSpace(NoContextReply))
+            throw new InvalidOperationException($"{section}:{nameof(NoContextReply)} is not configured.");
+
+        if (string.IsNullOrWhiteSpace(UserContextInstruction))
+            throw new InvalidOperationException($"{section}:{nameof(UserContextInstruction)} is not configured.");
 
         if (MaxOutputTokens <= 0)
             throw new InvalidOperationException(

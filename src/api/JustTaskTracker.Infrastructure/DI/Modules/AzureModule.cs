@@ -1,13 +1,19 @@
-﻿using Azure.Messaging.ServiceBus;
+﻿using Azure;
+using Azure.Messaging.ServiceBus;
+using Azure.Search.Documents;
 using Azure.Storage.Blobs;
+using JustTaskTracker.Application.Assistant.Abstractions;
 using JustTaskTracker.Application.Common.ExternalProviders;
+using JustTaskTracker.Infrastructure.Assistant;
+using JustTaskTracker.Infrastructure.Boards.Export;
 using JustTaskTracker.Infrastructure.Common.Constants;
 using JustTaskTracker.Infrastructure.Common.ExternalProviders;
 using JustTaskTracker.Infrastructure.Common.Options;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using JustTaskTracker.Infrastructure.Boards.Export;
+using OpenAI;
+using System.ClientModel;
 
 namespace JustTaskTracker.Infrastructure.DI.Modules;
 
@@ -19,7 +25,9 @@ internal static class AzureModule
             .AddAzureBlobStorage(configuration)
             .AddAzureServiceBus(configuration)
             .AddAzureCosmosDb(configuration)
-            .AddAzureSignalR(configuration);
+            .AddAzureSignalR(configuration)
+            .AddAzureAiSearch()
+            .AddAzureOpenAi();
 
         return services;
     }
@@ -86,6 +94,44 @@ internal static class AzureModule
         {
             options.ConnectionString = connectionString;
         });
+
+        return services;
+    }
+
+    private static IServiceCollection AddAzureAiSearch(this IServiceCollection services)
+    {
+        services.AddSingleton(sp =>
+        {
+            var options = sp.GetRequiredService<AiSearchOptions>();
+
+            return new SearchClient(
+                new Uri(options.Endpoint),
+                options.IndexName,
+                new AzureKeyCredential(options.ApiKey));
+        });
+
+        services.AddSingleton<IKnowledgeBaseSearchService, AzureAiSearchKnowledgeService>();
+
+        return services;
+    }
+
+    private static IServiceCollection AddAzureOpenAi(this IServiceCollection services)
+    {
+        services.AddSingleton(sp =>
+        {
+            var options = sp.GetRequiredService<AzureOpenAiOptions>();
+
+            var client = new OpenAIClient(
+                new ApiKeyCredential(options.ApiKey),
+                new OpenAIClientOptions
+                {
+                    Endpoint = new Uri(options.Endpoint)
+                });
+
+            return client.GetChatClient(options.ChatDeploymentName);
+        });
+
+        services.AddSingleton<IAssistantCompletionService, AzureOpenAiCompletionService>();
 
         return services;
     }

@@ -9,6 +9,14 @@ using MediatR;
 namespace JustTaskTracker.Application.Common.Behaviors;
 
 /// <summary>
+/// Marks a MediatR request that requires a billing feature entitlement.
+/// </summary>
+public interface IRequireFeature
+{
+    string Feature { get; }
+}
+
+/// <summary>
 /// MediatR pipeline behavior that blocks requests when the current user
 /// is not entitled to the required billing feature.
 /// Applies only to requests implementing <see cref="IRequireFeature"/>.

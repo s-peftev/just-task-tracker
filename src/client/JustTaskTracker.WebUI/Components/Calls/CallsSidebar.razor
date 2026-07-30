@@ -2,9 +2,11 @@
 @using JustTaskTracker.WebUI.Domain.Boards.Authorization
 @using JustTaskTracker.WebUI.Domain.Calls
 @using JustTaskTracker.WebUI.Domain.Calls.Enums
+@using JustTaskTracker.WebUI.Infrastructure
 @using JustTaskTracker.WebUI.Services.Abstractions.Auth
 @using JustTaskTracker.WebUI.Services.Abstractions.Boards
 @using JustTaskTracker.WebUI.Services.Abstractions.Calls
+@using JustTaskTracker.WebUI.Services.Exceptions
 @using JustTaskTracker.WebUI.Validation
 @implements IDisposable
 @inject ICallSessionStore CallSessionStore
@@ -101,16 +103,69 @@
             </header>
 
             <div class="calls-sidebar__section-body calls-sidebar__section-body--history">
+                @if (CallSessionStore.IsLoadingHistory && CallSessionStore.History.Count == 0)
+                {
+                    <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Small" />
+                }
+                else if (CallSessionStore.History.Count == 0)
+                {
+                    <p class="calls-sidebar__empty">No call history on this board.</p>
+                }
+                else
+                {
+                    <ul class="calls-sidebar__list">
+                        @foreach (var session in CallSessionStore.History)
+                        {
+                            <CallHistoryCard Session="session"
+                                             OnShowLinkedTasks="() => ShowHistoryOverlay(session, HistoryOverlayKind.LinkedTasks)"
+                                             OnShowParticipants="() => ShowHistoryOverlay(session, HistoryOverlayKind.Participants)"
+                                             OnShowAllowedUsers="() => ShowHistoryOverlay(session, HistoryOverlayKind.AllowedUsers)" />
+                        }
+
+                        @if (CallSessionStore.HasMoreHistory)
+                        {
+                            <li>
+                                <ExpandableActionButton Text="Show more"
+                                                        Icon="ExpandableActionButtonIcon.ChevronDown"
+                                                        Disabled="@CallSessionStore.IsLoadingMoreHistory"
+                                                        OnClick="LoadMoreHistoryAsync" />
+                            </li>
+                        }
+                    </ul>
+                }
             </div>
         </section>
     </div>
 </aside>
 
+@if (_historyOverlayKind == HistoryOverlayKind.LinkedTasks && _historyOverlaySession is { } tasksSession)
+{
+    <CallHistoryLinkedTasksOverlay BoardId="BoardId" Tasks="tasksSession.LinkedTasks" OnClose="CloseHistoryOverlay" />
+}
+else if (_historyOverlayKind == HistoryOverlayKind.Participants && _historyOverlaySession is { } participantsSession)
+{
+    <CallHistoryParticipantsOverlay Participants="participantsSession.Participants" OnClose="CloseHistoryOverlay" />
+}
+else if (_historyOverlayKind == HistoryOverlayKind.AllowedUsers && _historyOverlaySession?.AllowedUsers is { } allowedUsers)
+{
+    <CallHistoryAllowedUsersOverlay Users="allowedUsers" OnClose="CloseHistoryOverlay" />
+}
+
 @code {
+    private enum HistoryOverlayKind
+    {
+        None,
+        LinkedTasks,
+        Participants,
+        AllowedUsers,
+    }
+
     [Parameter, EditorRequired]
     public Guid BoardId { get; set; }
 
     private bool _isHistoryExpanded = true;
+    private HistoryOverlayKind _historyOverlayKind = HistoryOverlayKind.None;
+    private CallSessionHistoryDto? _historyOverlaySession;
 
     protected override void OnInitialized()
     {
@@ -123,6 +178,30 @@
 
     private string? GetHistorySectionClass() =>
         _isHistoryExpanded ? null : "calls-sidebar__section--history-collapsed";
+
+    private void ShowHistoryOverlay(CallSessionHistoryDto session, HistoryOverlayKind kind)
+    {
+        _historyOverlaySession = session;
+        _historyOverlayKind = kind;
+    }
+
+    private void CloseHistoryOverlay()
+    {
+        _historyOverlaySession = null;
+        _historyOverlayKind = HistoryOverlayKind.None;
+    }
+
+    private async Task LoadMoreHistoryAsync()
+    {
+        try
+        {
+            await CallSessionStore.LoadMoreHistoryAsync();
+        }
+        catch (ApiServiceException ex)
+        {
+            Snackbar.ShowApiError(ex);
+        }
+    }
 
     private bool CanJoin(CallSessionDto call)
     {

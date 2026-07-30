@@ -1,11 +1,14 @@
 using JustTaskTracker.WebUI.Domain.Boards;
 using JustTaskTracker.WebUI.Domain.Calls;
+using JustTaskTracker.WebUI.Domain.Common.Pagination;
 
 namespace JustTaskTracker.WebUI.Services.Abstractions.Calls;
 
 public interface ICallsApiService
 {
     Task<IReadOnlyList<CallSessionDto>> GetActiveCallsAsync(Guid boardId, CancellationToken ct = default);
+
+    Task<PagedList<CallSessionHistoryDto>> GetHistoryAsync(Guid boardId, int pageNumber, int pageSize, CancellationToken ct = default);
 
     Task<CallSessionDto> CreateCallAsync(CreateCallRequest request, CancellationToken ct = default);
 

@@ -1,5 +1,6 @@
 using JustTaskTracker.WebUI.Domain.Boards;
 using JustTaskTracker.WebUI.Domain.Calls;
+using JustTaskTracker.WebUI.Domain.Common.Pagination;
 using JustTaskTracker.WebUI.Services.Api.Models;
 using Refit;
 
@@ -9,6 +10,13 @@ internal interface ICallsApi
 {
     [Get("/api/calls")]
     Task<IApiResponse<ApiEnvelope<List<CallSessionDto>>>> GetActiveAsync(Guid boardId, CancellationToken ct = default);
+
+    [Get("/api/calls/history")]
+    Task<IApiResponse<ApiEnvelope<PagedList<CallSessionHistoryDto>>>> GetHistoryAsync(
+        Guid boardId,
+        int pageNumber,
+        int pageSize,
+        CancellationToken ct = default);
 
     [Post("/api/calls")]
     Task<IApiResponse<ApiEnvelope<CallSessionDto>>> CreateAsync([Body] CreateCallRequest request, CancellationToken ct = default);

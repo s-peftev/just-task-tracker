@@ -28,6 +28,7 @@ internal class AzureOpenAiCompletionService(ChatClient chatClient, AssistantProm
             });
         }
 
+#pragma warning disable OPENAI001 // ReasoningEffortLevel is experimental in OpenAI SDK.
         var completionOptions = new ChatCompletionOptions
         {
             MaxOutputTokenCount = promptOptions.MaxOutputTokens
@@ -36,6 +37,12 @@ internal class AzureOpenAiCompletionService(ChatClient chatClient, AssistantProm
         // gpt-5-mini and similar models reject non-default temperature; only set when configured.
         if (promptOptions.Temperature is { } temperature)
             completionOptions.Temperature = temperature;
+
+        if (!string.IsNullOrWhiteSpace(promptOptions.ReasoningEffort))
+            completionOptions.ReasoningEffortLevel = new ChatReasoningEffortLevel(promptOptions.ReasoningEffort);
+#pragma warning restore OPENAI001
+
+        // Web search is opt-in via WebSearchOptions; leave unset so the model cannot browse the web.
 
         var completion = await chatClient.CompleteChatAsync(chatMessages, completionOptions, ct);
 

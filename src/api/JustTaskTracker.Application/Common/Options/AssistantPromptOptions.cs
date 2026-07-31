@@ -13,8 +13,8 @@ public class AssistantPromptOptions
     public string NoContextReply { get; set; } = string.Empty;
 
     /// <summary>
-    /// Instruction appended after the current-user profile block so the model
-    /// prioritizes this user's global role and entitlements over generic docs.
+    /// Instruction appended after the requester profile block so the model
+    /// treats profile facts as given when personalizing answers.
     /// </summary>
     public string UserContextInstruction { get; set; } = string.Empty;
 
@@ -24,6 +24,11 @@ public class AssistantPromptOptions
     /// Optional. Omit for models that only allow the default temperature (e.g. gpt-5-mini).
     /// </summary>
     public float? Temperature { get; set; }
+
+    /// <summary>
+    /// Optional reasoning effort for gpt-5* models: minimal, low, medium, or high.
+    /// </summary>
+    public string? ReasoningEffort { get; set; }
 
     public void Validate()
     {
@@ -45,5 +50,12 @@ public class AssistantPromptOptions
         if (Temperature is < 0f or > 2f)
             throw new InvalidOperationException(
                 $"{section}:{nameof(Temperature)} must be between 0 and 2.");
+
+        if (ReasoningEffort is { Length: > 0 } effort
+            && effort is not ("minimal" or "low" or "medium" or "high"))
+        {
+            throw new InvalidOperationException(
+                $"{section}:{nameof(ReasoningEffort)} must be one of: minimal, low, medium, high.");
+        }
     }
 }

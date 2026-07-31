@@ -5,7 +5,7 @@
     left: var(--sidebar-width);
     z-index: 4;
     box-sizing: border-box;
-    width: min(360px, calc(100% - var(--sidebar-width)));
+    width: min(540px, calc(100% - var(--sidebar-width)));
     display: flex;
     flex-direction: column;
     background: var(--jtt-surface-raised, var(--jtt-surface-sidebar));
@@ -17,7 +17,7 @@
 
 .sidebar-shell--collapsed .assistant-chat {
     left: 0;
-    width: min(360px, 100%);
+    width: min(540px, 100%);
 }
 
 .assistant-chat__header {

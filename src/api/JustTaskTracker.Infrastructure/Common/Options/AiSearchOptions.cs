@@ -18,6 +18,13 @@ public class AiSearchOptions
 
     public int TopK { get; set; }
 
+    /// <summary>
+    /// Minimum Azure AI Search semantic reranker score (typically 0–4).
+    /// Chunks below this are treated as irrelevant so off-topic queries
+    /// fall through to <c>NoContextReply</c> instead of calling the LLM.
+    /// </summary>
+    public double MinRerankerScore { get; set; }
+
     public void Validate()
     {
         var section = ConfigSections.AiSearch;
@@ -45,5 +52,9 @@ public class AiSearchOptions
 
         if (TopK <= 0)
             throw new InvalidOperationException($"{section}:{nameof(TopK)} must be greater than 0.");
+
+        if (MinRerankerScore < 0)
+            throw new InvalidOperationException(
+                $"{section}:{nameof(MinRerankerScore)} must be greater than or equal to 0.");
     }
 }

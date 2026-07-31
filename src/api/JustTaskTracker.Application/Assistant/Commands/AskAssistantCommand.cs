@@ -94,11 +94,11 @@ public class AskAssistantCommandHandler(
             $"""
             {promptOptions.SystemPrompt}
 
-            Current user:
+            Requester profile:
             {userContext}
             {promptOptions.UserContextInstruction}
 
-            Context:
+            Documentation:
             {knowledgeContext}
             """;
     }
@@ -158,8 +158,7 @@ public class AskAssistantCommandValidator : AbstractValidator<AskAssistantComman
 
                         message.RuleFor(x => x.Content)
                             .Must(content => !string.IsNullOrWhiteSpace(content))
-                            .WithMessage("'Content' must not be empty.")
-                            .MaximumLength(maxMessageLength);
+                            .WithMessage("'Content' must not be empty.");
                     });
             });
     }

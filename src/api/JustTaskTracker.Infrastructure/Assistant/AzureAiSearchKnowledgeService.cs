@@ -34,6 +34,10 @@ internal class AzureAiSearchKnowledgeService(SearchClient searchClient, AiSearch
 
         await foreach (var result in response.Value.GetResultsAsync())
         {
+            var rerankerScore = result.SemanticSearch?.RerankerScore;
+            if (rerankerScore is null || rerankerScore < options.MinRerankerScore)
+                continue;
+
             if (!result.Document.TryGetValue(options.ContentFieldName, out var rawContent))
                 continue;
 

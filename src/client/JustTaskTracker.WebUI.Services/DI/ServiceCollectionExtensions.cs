@@ -1,3 +1,4 @@
+using JustTaskTracker.WebUI.Services.Abstractions.Assistant;
 using JustTaskTracker.WebUI.Services.Abstractions.Auth;
 using JustTaskTracker.WebUI.Services.Abstractions.Billing;
 using JustTaskTracker.WebUI.Services.Abstractions.Boards;
@@ -6,6 +7,8 @@ using JustTaskTracker.WebUI.Services.Abstractions.Hubs;
 using JustTaskTracker.WebUI.Services.Abstractions.Theme;
 using JustTaskTracker.WebUI.Services.Abstractions.Users;
 using JustTaskTracker.WebUI.Services.Api;
+using JustTaskTracker.WebUI.Services.Assistant;
+using JustTaskTracker.WebUI.Services.Assistant.Stores;
 using JustTaskTracker.WebUI.Services.Auth;
 using JustTaskTracker.WebUI.Services.Auth.Stores;
 using JustTaskTracker.WebUI.Services.Billing;
@@ -71,6 +74,10 @@ public static class ServiceCollectionExtensions
             .ConfigureHttpClient(c => c.BaseAddress = new Uri(options.BaseUrl))
             .AddHttpMessageHandler<ApiAuthorizationMessageHandler>();
 
+        services.AddRefitClient<IAssistantApi>(RefitSettings)
+            .ConfigureHttpClient(c => c.BaseAddress = new Uri(options.BaseUrl))
+            .AddHttpMessageHandler<ApiAuthorizationMessageHandler>();
+
         services.AddScoped<IAuthApiService, AuthApiService>();
         services.AddScoped<IProfileStore, ProfileStore>();
         services.AddScoped<IThemeService, ThemeService>();
@@ -101,6 +108,9 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ICallTaskLinkPickerStore, CallTaskLinkPickerStore>();
         services.AddScoped<ICallsInteropService, CallsInteropService>();
         services.AddScoped<IActiveCallAlertStore, ActiveCallAlertStore>();
+
+        services.AddScoped<IAssistantApiService, AssistantApiService>();
+        services.AddScoped<IAssistantChatStore, AssistantChatStore>();
 
         return services;
     }

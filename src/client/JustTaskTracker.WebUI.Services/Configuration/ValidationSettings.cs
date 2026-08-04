@@ -7,6 +7,8 @@ public class ValidationSettings
     public BoardTaskValidationSettings BoardTasks { get; set; } = new();
 
     public ProfilePhotoValidationSettings ProfilePhotos { get; set; } = new();
+
+    public AssistantValidationSettings Assistant { get; set; } = new();
 }
 
 public class BoardTaskValidationSettings
@@ -49,4 +51,15 @@ public class ProfilePhotoValidationSettings
     public long MaxPhotoSizeBytes { get; set; } = DefaultMaxPhotoSizeBytes;
 
     public string[] AllowedContentTypes { get; set; } = DefaultAllowedContentTypes.ToArray();
+}
+
+public class AssistantValidationSettings
+{
+    private const int DefaultMaxMessageLength = 1000;
+
+    private const int DefaultMaxHistoryMessages = 10;
+
+    public int MaxMessageLength { get; set; } = DefaultMaxMessageLength;
+
+    public int MaxHistoryMessages { get; set; } = DefaultMaxHistoryMessages;
 }

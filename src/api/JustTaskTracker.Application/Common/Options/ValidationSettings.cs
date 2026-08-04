@@ -14,6 +14,8 @@ public class ValidationSettings
 
     public ProfilePhotoValidationSettings? ProfilePhotos { get; set; }
 
+    public AssistantValidationSettings? Assistant { get; set; }
+
     public void Validate()
     {
         var section = ConfigSections.ValidationSettings;
@@ -30,10 +32,14 @@ public class ValidationSettings
         if (ProfilePhotos is null)
             throw new InvalidOperationException($"{section}:ProfilePhotos is not configured.");
 
+        if (Assistant is null)
+            throw new InvalidOperationException($"{section}:Assistant is not configured.");
+
         Boards.Validate($"{section}:Boards");
         BoardTasks.Validate($"{section}:BoardTasks");
         Users.Validate($"{section}:Users");
         ProfilePhotos.Validate($"{section}:ProfilePhotos");
+        Assistant.Validate($"{section}:Assistant");
     }
 }
 
@@ -149,5 +155,27 @@ public class ProfilePhotoValidationSettings
 
         if (AllowedContentTypes.Any(string.IsNullOrWhiteSpace))
             throw new InvalidOperationException($"{sectionPath}:AllowedContentTypes must not contain empty values.");
+    }
+}
+
+public class AssistantValidationSettings
+{
+    public int MaxMessageLength { get; set; }
+
+    public int MaxHistoryMessages { get; set; }
+
+    internal void Validate(string sectionPath)
+    {
+        if (MaxMessageLength == 0)
+            throw new InvalidOperationException($"{sectionPath}:MaxMessageLength is not configured.");
+
+        if (MaxMessageLength < 0)
+            throw new InvalidOperationException($"{sectionPath}:MaxMessageLength must be greater than 0.");
+
+        if (MaxHistoryMessages == 0)
+            throw new InvalidOperationException($"{sectionPath}:MaxHistoryMessages is not configured.");
+
+        if (MaxHistoryMessages < 0)
+            throw new InvalidOperationException($"{sectionPath}:MaxHistoryMessages must be greater than 0.");
     }
 }

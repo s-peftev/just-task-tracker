@@ -9,4 +9,6 @@ public static class ConfigSections
     public const string CosmosDB = nameof(CosmosDB);
     public const string Stripe = nameof(Stripe);
     public const string Acs = nameof(Acs);
+    public const string AiSearch = nameof(AiSearch);
+    public const string AzureOpenAi = nameof(AzureOpenAi);
 }

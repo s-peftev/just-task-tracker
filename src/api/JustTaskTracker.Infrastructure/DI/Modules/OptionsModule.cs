@@ -72,6 +72,22 @@ internal static class OptionsModule
         acsOptions.Validate();
         services.AddSingleton(acsOptions);
 
+        var aiSearchOptions = configuration
+            .GetSection(ConfigSections.AiSearch)
+            .Get<AiSearchOptions>()
+            ?? throw new InvalidOperationException($"{ConfigSections.AiSearch} section is not configured.");
+
+        aiSearchOptions.Validate();
+        services.AddSingleton(aiSearchOptions);
+
+        var azureOpenAiOptions = configuration
+            .GetSection(ConfigSections.AzureOpenAi)
+            .Get<AzureOpenAiOptions>()
+            ?? throw new InvalidOperationException($"{ConfigSections.AzureOpenAi} section is not configured.");
+
+        azureOpenAiOptions.Validate();
+        services.AddSingleton(azureOpenAiOptions);
+
         return services;
     }
 }

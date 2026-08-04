@@ -8,4 +8,5 @@ public static class ConfigSections
     public const string BoardExportScheduler = nameof(BoardExportScheduler);
     public const string BoardExportRecoveryScheduler = nameof(BoardExportRecoveryScheduler);
     public const string Billing = nameof(Billing);
+    public const string AssistantPrompt = nameof(AssistantPrompt);
 }

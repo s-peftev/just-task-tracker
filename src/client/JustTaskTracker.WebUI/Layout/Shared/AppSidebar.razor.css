@@ -238,3 +238,7 @@
 .sidebar__footer ::deep .sidebar__footer-action:hover {
     color: var(--jtt-accent-secondary);
 }
+
+.sidebar__footer ::deep .sidebar__footer-action--active {
+    color: var(--jtt-accent);
+}

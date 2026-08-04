@@ -1,3 +1,4 @@
+using JustTaskTracker.Domain.Assistant.ReadModels;
 using JustTaskTracker.Domain.Auth.Entities;
 using JustTaskTracker.Domain.Billing.Entities;
 using JustTaskTracker.Domain.Calls.Entities;
@@ -32,6 +33,8 @@ public class JustTaskTrackerDbContext(
     public DbSet<CallSessionAllowedParticipant> CallSessionAllowedParticipants => Set<CallSessionAllowedParticipant>();
     public DbSet<CallSessionLinkedTask> CallSessionLinkedTasks => Set<CallSessionLinkedTask>();
     public DbSet<AcsUserIdentityMapping> AcsUserIdentityMappings => Set<AcsUserIdentityMapping>();
+    public DbSet<AssistantRequesterAccountReadModel> AssistantRequesterAccounts => Set<AssistantRequesterAccountReadModel>();
+    public DbSet<AssistantActiveOwnedBoardsCountReadModel> AssistantActiveOwnedBoardsCounts => Set<AssistantActiveOwnedBoardsCountReadModel>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

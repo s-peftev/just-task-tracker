@@ -1,4 +1,5 @@
 using JustTaskTracker.Application.Assistant.Abstractions;
+using JustTaskTracker.Application.Assistant.Tools;
 using JustTaskTracker.Application.Common.Options;
 using JustTaskTracker.Domain.Assistant.DTOs;
 using JustTaskTracker.Domain.Assistant.Enums;
@@ -6,9 +7,50 @@ using OpenAI.Chat;
 
 namespace JustTaskTracker.Infrastructure.Assistant;
 
-internal class AzureOpenAiCompletionService(ChatClient chatClient, AssistantPromptOptions promptOptions) : IAssistantCompletionService
+internal class AzureOpenAiCompletionService(
+    ChatClient chatClient,
+    AssistantPromptOptions promptOptions,
+    IAssistantToolExecutor toolExecutor,
+    IEnumerable<IAssistantToolHandler> toolHandlers)
+    : IAssistantCompletionService
 {
-    public async Task<string> GetAnswerAsync(string systemPrompt, IReadOnlyList<AssistantChatMessageDto> messages, CancellationToken ct = default)
+    private const int MaxToolRounds = 3;
+
+    private static readonly BinaryData EmptyObjectSchema =
+        BinaryData.FromString("""{"type":"object","properties":{}}""");
+
+    public async Task<string> GetAnswerAsync(
+        string systemPrompt,
+        IReadOnlyList<AssistantChatMessageDto> messages,
+        Guid currentUserId,
+        CancellationToken ct = default)
+    {
+        var chatMessages = CreateChatMessages(systemPrompt, messages);
+        var completionOptions = CreateCompletionOptions(allowTools: true);
+
+        for (var round = 0; round < MaxToolRounds; round++)
+        {
+            var completion = (await chatClient.CompleteChatAsync(chatMessages, completionOptions, ct)).Value;
+
+            if (completion.ToolCalls.Count == 0)
+                return ExtractText(completion);
+
+            chatMessages.Add(new AssistantChatMessage(completion.ToolCalls));
+
+            foreach (var toolCall in completion.ToolCalls)
+            {
+                var toolResult = await toolExecutor.ExecuteAsync(toolCall.FunctionName, currentUserId, ct);
+                chatMessages.Add(new ToolChatMessage(toolCall.Id, toolResult));
+            }
+        }
+
+        // Model kept requesting tools; force a final textual answer.
+        completionOptions.ToolChoice = ChatToolChoice.CreateNoneChoice();
+        var finalCompletion = (await chatClient.CompleteChatAsync(chatMessages, completionOptions, ct)).Value;
+        return ExtractText(finalCompletion);
+    }
+
+    private static List<ChatMessage> CreateChatMessages(string systemPrompt, IReadOnlyList<AssistantChatMessageDto> messages)
     {
         var chatMessages = new List<ChatMessage>
         {
@@ -28,13 +70,17 @@ internal class AzureOpenAiCompletionService(ChatClient chatClient, AssistantProm
             });
         }
 
+        return chatMessages;
+    }
+
+    private ChatCompletionOptions CreateCompletionOptions(bool allowTools)
+    {
 #pragma warning disable OPENAI001 // ReasoningEffortLevel is experimental in OpenAI SDK.
         var completionOptions = new ChatCompletionOptions
         {
             MaxOutputTokenCount = promptOptions.MaxOutputTokens
         };
 
-        // gpt-5-mini and similar models reject non-default temperature; only set when configured.
         if (promptOptions.Temperature is { } temperature)
             completionOptions.Temperature = temperature;
 
@@ -42,11 +88,21 @@ internal class AzureOpenAiCompletionService(ChatClient chatClient, AssistantProm
             completionOptions.ReasoningEffortLevel = new ChatReasoningEffortLevel(promptOptions.ReasoningEffort);
 #pragma warning restore OPENAI001
 
-        // Web search is opt-in via WebSearchOptions; leave unset so the model cannot browse the web.
+        if (allowTools)
+            AddAssistantTools(completionOptions);
 
-        var completion = await chatClient.CompleteChatAsync(chatMessages, completionOptions, ct);
+        return completionOptions;
+    }
 
-        return ExtractText(completion.Value);
+    private void AddAssistantTools(ChatCompletionOptions completionOptions)
+    {
+        foreach (var handler in toolHandlers)
+        {
+            completionOptions.Tools.Add(ChatTool.CreateFunctionTool(
+                functionName: handler.ToolName,
+                functionDescription: handler.Description,
+                functionParameters: EmptyObjectSchema));
+        }
     }
 
     private static string ExtractText(ChatCompletion completion)

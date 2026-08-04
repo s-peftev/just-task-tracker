@@ -7,16 +7,10 @@ public class AssistantPromptOptions
     public string SystemPrompt { get; set; } = string.Empty;
 
     /// <summary>
-    /// Returned when knowledge-base search succeeds but finds no relevant chunks,
-    /// so the LLM is not called just to produce an "I don't know" reply.
+    /// Returned when knowledge-base search finds no relevant chunks,
+    /// so the LLM is not called for off-topic or unsupported questions.
     /// </summary>
     public string NoContextReply { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Instruction appended after the requester profile block so the model
-    /// treats profile facts as given when personalizing answers.
-    /// </summary>
-    public string UserContextInstruction { get; set; } = string.Empty;
 
     public int MaxOutputTokens { get; set; }
 
@@ -39,9 +33,6 @@ public class AssistantPromptOptions
 
         if (string.IsNullOrWhiteSpace(NoContextReply))
             throw new InvalidOperationException($"{section}:{nameof(NoContextReply)} is not configured.");
-
-        if (string.IsNullOrWhiteSpace(UserContextInstruction))
-            throw new InvalidOperationException($"{section}:{nameof(UserContextInstruction)} is not configured.");
 
         if (MaxOutputTokens <= 0)
             throw new InvalidOperationException(

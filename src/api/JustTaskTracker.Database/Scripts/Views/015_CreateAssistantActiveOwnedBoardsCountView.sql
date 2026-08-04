@@ -2,7 +2,7 @@ CREATE VIEW [dbo].[vw_Assistant_ActiveOwnedBoardsCount]
 AS
 SELECT
     bm.[UserId],
-    COUNT_BIG(*) AS [ActiveOwnedBoardsCount]
+    COUNT(*) AS [ActiveOwnedBoardsCount]
 FROM [dbo].[BoardMembers] AS bm
 INNER JOIN [dbo].[Boards] AS b ON b.[Id] = bm.[BoardId]
 WHERE bm.[Role] = 1

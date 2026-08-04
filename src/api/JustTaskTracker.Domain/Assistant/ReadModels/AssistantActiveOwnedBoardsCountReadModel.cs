@@ -8,5 +8,5 @@ public class AssistantActiveOwnedBoardsCountReadModel
 {
     public Guid UserId { get; set; }
 
-    public long ActiveOwnedBoardsCount { get; set; }
+    public int ActiveOwnedBoardsCount { get; set; }
 }

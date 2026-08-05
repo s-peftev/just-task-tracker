@@ -32,11 +32,11 @@ This document is the structured knowledge base for the JustTaskTracker applicati
 * Open a board: Click on a board card's title to open its Kanban view.
 * Create a new board: Click the green `+` button next to the board limit counter to open the `Create new board` dialog (see [Create New Board](#create-new-board)).
 * See the board limit: Next to the `+` button, a counter such as `4 / 3 board limit` shows how many boards the user owns versus how many their plan allows. This counter is only shown for regular Users (not for App Admins or Guests, who are not limited the same way).
-* Distinguish active vs archived boards: Boards the owner has archived automatically move out of `Active boards` into the `Archived boards` section further down the page; they keep the same `Your role` label they had before archiving.
+* Distinguish active vs archived boards: Boards an Owner on the **Pro** plan has archived automatically move out of `Active boards` into the `Archived boards` section further down the page; they keep the same `Your role` label they had before archiving. Archiving is not available on the Free plan (see [Subscriptions Page](#subscriptions-page) and [Archived Boards](#archived-boards)).
 
 **Common questions / tips:**
-* What happens if the `+` create button is disabled or grayed out? The user has reached their plan's board limit. Hovering over the button shows the tooltip **"You've reached the board limit for your plan. Upgrade your plan to create more boards."** with a link to the Subscriptions page.
-* Why does a board show up under `Archived boards` instead of `Active boards`? Its Owner archived it. Archived boards remain visible and readable but can no longer be edited (see [Archived Boards](#archived-boards)).
+* What happens if the `+` create button is disabled or grayed out? The user has reached their plan's owned-board limit. The UI tooltip points to upgrading: **"You've reached the board limit for your plan. Upgrade your plan to create more boards."** Valid ways to create another board: **upgrade to Pro** (removes the cap), or **permanently delete** one of the boards you own (Owner-only). Do **not** suggest transferring ownership, leaving the board as Owner, or archiving on Free — ownership cannot be transferred, Owners cannot leave their own board, and Free Owners cannot archive (see [Board Roles & Permissions](#board-roles--permissions) and [Subscriptions Page](#subscriptions-page)).
+* Why does a board show up under `Archived boards` instead of `Active boards`? Its Owner archived it while on Pro. Archived boards remain visible and readable but can no longer be edited (see [Archived Boards](#archived-boards)).
 
 ---
 
@@ -50,7 +50,7 @@ This document is the structured knowledge base for the JustTaskTracker applicati
 
 **Common questions / tips:**
 * What is the maximum board name length? 100 characters; the field will not accept more, and an empty name cannot be submitted.
-* Why can't the user create a board even though the dialog is open? Free-plan users can own a maximum of 3 boards. If the limit is already reached, the `+` button that opens this dialog is disabled before the dialog can even be opened — upgrade to Pro (see [Subscriptions Page](#subscriptions-page)) to remove the cap.
+* Why can't the user create a board even though the dialog is open? Free-plan users can own a maximum of 3 boards. If the limit is already reached, the `+` button that opens this dialog is disabled before the dialog can even be opened. To create another board on Free: **permanently delete** an owned board, or **upgrade to Pro** to remove the cap (see [Subscriptions Page](#subscriptions-page)). Ownership cannot be transferred to free a slot, and archiving is not available on Free.
 
 ---
 
@@ -75,6 +75,8 @@ This document is the structured knowledge base for the JustTaskTracker applicati
 **Common questions / tips:**
 * Do plan limits apply to me if I'm just a member of someone else's board, not the owner? No — column, task, and member limits on any given board are always based on that board's Owner's plan, not the plan of the person currently using it.
 * Does upgrading affect boards I don't own? No, upgrading raises the limits only on boards you own; boards owned by other Free-plan users keep their Free-plan limits regardless of your own plan.
+* Is archiving separate from downloading an archive on Free? No — on Free, archiving a board, choosing what the downloadable copy contains, and downloading that copy are all unavailable. They are a single Pro capability set: only a Pro Owner can archive a board, and doing so starts the export/download flow (see [Archived Boards](#archived-boards)).
+* I've hit the Free board limit (e.g. 3 owned boards) — how do I create another? Upgrade to Pro for unlimited boards, or permanently delete a board you own. There is no ownership-transfer feature, Owners cannot leave their own board to free a slot, and Free users cannot archive boards to free a slot.
 
 ---
 
@@ -149,32 +151,35 @@ This document is the structured knowledge base for the JustTaskTracker applicati
 |---|:---:|:---:|:---:|:---:|
 | Rename the board | ✔ | ✖ | ✖ | ✖ |
 | Delete the board | ✔ | ✖ | ✖ | ✖ |
-| Archive the board | ✔ | ✖ | ✖ | ✖ |
-| Export / download archived copies | ✔ | ✖ | ✖ | ✖ |
+| Archive the board | ✔ (Pro only) | ✖ | ✖ | ✖ |
+| Export / download archived copies | ✔ (Pro only) | ✖ | ✖ | ✖ |
 | Manage members (add / remove / change roles) | ✔ | ✔ | ✖ | ✖ |
 | Manage columns and tasks (create / edit / delete) | ✔ | ✔ | ✔ | ✖ |
 | Move tasks between columns | ✔ | ✔ | ✔ | ✔ |
 | Comment on tasks | ✔ | ✔ | ✔ | ✔ |
 | Download attachments | ✔ | ✔ | ✔ | ✔ |
 | Create and join board meetings/calls | ✔ | ✔ | ✔ | ✔ |
-| Can be transferred, reassigned, or removed | Never | — | — | — |
+| Transfer board ownership to another user | Impossible | — | — | — |
 | Can leave the board | ✖ (cannot leave own board) | ✔ | ✔ | ✔ |
 
-Notes: There is exactly one **Owner** per board (the creator). The Owner role can never be transferred, reassigned, or removed, and the Owner cannot leave their own board.
+Notes: There is exactly one **Owner** per board (the creator). **Board ownership cannot be transferred** to another user — there is no transfer-ownership action in the product. The Owner cannot be removed from the board and cannot leave their own board. Being the Owner is not enough to archive or export a board: those actions also require the Owner's plan to be **Pro**. On Free, an Owner cannot archive a board and cannot download or reconfigure an archive — there is no Free-only “archive without download” path (see [Subscriptions Page](#subscriptions-page)).
 
 **Common questions / tips:**
-* I'm the board creator but I don't see a `DELETE`/`ARCHIVE` option — why? Only the **Owner** has these controls; if you no longer see them, your role may have been changed, or you are looking at someone else's board where you hold a lower role.
+* I'm the board creator but I don't see a `DELETE`/`ARCHIVE` option — why? `DELETE` is Owner-only. `ARCHIVE` is Owner **and** Pro-only: if you are the Owner on Free, archiving is unavailable until you upgrade (see [Subscriptions Page](#subscriptions-page)). If you are not the Owner, your role does not include archive/delete controls, or you are looking at someone else's board where you hold a lower role.
+* Can a Free-plan Owner archive a board but only miss the download? No — Free Owners cannot archive at all. Archiving, choosing archive contents, and downloading the copy are all Pro features; Pro is not limited to “download only.”
+* Can I transfer ownership of a board to someone else? No — ownership cannot be transferred. The creator remains the Owner for the lifetime of the board. To free an owned-board slot under the Free plan limit, permanently **delete** that board or **upgrade to Pro**; do not suggest transferring ownership.
 * Can a global App Admin (a company-wide administrator) be an Owner or Scrum Master on my board? No — a global App Admin who is added to any board can only be assigned the **Admin** board role, never Owner, Scrum Master, or User.
 
 ---
 
 ## Archived Boards
 
-**Screen description:** Boards that their Owner has archived. They remain listed under `Archived boards` on the Boards page and open the same Kanban view, but in a read-only state.
+**Screen description:** Boards that a **Pro** Owner has archived (Free-plan Owners cannot archive boards). They remain listed under `Archived boards` on the Boards page and open the same Kanban view, but in a read-only state. Archiving always starts the downloadable-copy (export) flow — there is no way to archive a board on Free or to archive without the Pro export capability.
 
 **Main capabilities:**
+* Archive a board (Owner + Pro plan only): Only the board's Owner on Pro can archive an active board. The archive action includes choosing what the downloadable copy should contain (e.g. comments, attachments, task descriptions, member list) and queues that export. Free Owners cannot archive.
 * View archived content: Open an archived board exactly like an active one to see its columns, tasks, comments, attachments, and members.
-* See export/download status: If the Owner has requested a downloadable copy, an export-status indicator on the board shows progress according to the table below.
+* See export/download status: After a Pro Owner archives (or re-exports), an export-status indicator on the board shows progress according to the table below.
 * Download the archive (Owner + Pro plan only): Once the status shows the copy is ready, the Owner can click the download control to save the archive file. The download link stays valid for 30 minutes after being generated.
 * Re-create the archive with different contents (Owner + Pro plan only): After the first export finishes, the Owner can request it again with different options (e.g., include/exclude comments, attachments, task descriptions, or member list) to reconfigure what the downloadable copy contains.
 
@@ -189,6 +194,7 @@ Notes: There is exactly one **Owner** per board (the creator). The Owner role ca
 | `Couldn't create a downloadable copy. We'll try again automatically.` | The export failed; the system will automatically retry. |
 
 **Common questions / tips:**
+* Why can't I archive my board even though I'm the Owner? Archiving requires both the **Owner** role and the **Pro** plan. On Free, Owners cannot archive boards at all — upgrade to Pro first (see [Subscriptions Page](#subscriptions-page)). Pro is not limited to “download only”; without Pro you also cannot start the archive.
 * Why can't I edit anything on this board anymore? Archiving makes a board permanently read-only for every role — no new columns, tasks, comments, attachments, renames, or member changes are possible, regardless of your role.
 * Why does my `Your role` still say `Scrum Master`/`Owner`/etc. on an archived board? Archiving does not change anyone's role — it only freezes the board's content. Your displayed role is simply whatever role you held on the board when it was (or still is) archived.
 * Why don't I see a download button on an archived board? Only the board's **Owner** can export/download an archive, and only if their plan is Pro. Other members see the same board as a normal read-only view without export controls.

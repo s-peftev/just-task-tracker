@@ -16,9 +16,6 @@ internal class AzureOpenAiCompletionService(
 {
     private const int MaxToolRounds = 3;
 
-    private static readonly BinaryData EmptyObjectSchema =
-        BinaryData.FromString("""{"type":"object","properties":{}}""");
-
     public async Task<string> GetAnswerAsync(
         string systemPrompt,
         IReadOnlyList<AssistantChatMessageDto> messages,
@@ -39,7 +36,11 @@ internal class AzureOpenAiCompletionService(
 
             foreach (var toolCall in completion.ToolCalls)
             {
-                var toolResult = await toolExecutor.ExecuteAsync(toolCall.FunctionName, currentUserId, ct);
+                var toolResult = await toolExecutor.ExecuteAsync(
+                    toolCall.FunctionName,
+                    currentUserId,
+                    toolCall.FunctionArguments ?? AssistantToolSchemas.EmptyObject,
+                    ct);
                 chatMessages.Add(new ToolChatMessage(toolCall.Id, toolResult));
             }
         }
@@ -101,7 +102,7 @@ internal class AzureOpenAiCompletionService(
             completionOptions.Tools.Add(ChatTool.CreateFunctionTool(
                 functionName: handler.ToolName,
                 functionDescription: handler.Description,
-                functionParameters: EmptyObjectSchema));
+                functionParameters: handler.ParametersSchema));
         }
     }
 

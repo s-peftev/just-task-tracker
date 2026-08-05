@@ -13,7 +13,9 @@ internal class GetRequesterAccountToolHandler(IAssistantDataQueryRepository assi
         "Use for questions about who the requester is, their plan, or subscription status. " +
         "Combine with documentation for Free/Pro limits and features. Do not invent limits.";
 
-    public async Task<string> ExecuteAsync(Guid currentUserId, CancellationToken ct = default)
+    public BinaryData ParametersSchema => AssistantToolSchemas.EmptyObject;
+
+    public async Task<string> ExecuteAsync(Guid currentUserId, BinaryData arguments, CancellationToken ct = default)
     {
         var account = await assistantDataQueryRepository.GetUserRolesAndSubscriptionInfoAsync(currentUserId, ct);
 

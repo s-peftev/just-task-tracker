@@ -6,7 +6,9 @@ public static class AssistantToolNames
 
     public const string GetRequesterAccount = nameof(GetRequesterAccount);
 
-    public const string ListMyActiveBoards = nameof(ListMyActiveBoards);
+    public const string ListMyBoards = nameof(ListMyBoards);
 
     public const string GetAssignedTasks = nameof(GetAssignedTasks);
+
+    public const string GetBoardContext = nameof(GetBoardContext);
 }

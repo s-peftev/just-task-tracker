@@ -8,7 +8,9 @@ public interface IAssistantDataQueryRepository
 
     Task<AssistantRequesterAccountReadModel?> GetUserRolesAndSubscriptionInfoAsync(Guid userId, CancellationToken ct = default);
 
-    Task<IReadOnlyList<AssistantMyActiveBoardReadModel>> GetMyActiveBoardsAsync(Guid userId, CancellationToken ct = default);
+    Task<IReadOnlyList<AssistantMyBoardReadModel>> GetMyBoardsAsync(Guid userId, CancellationToken ct = default);
 
     Task<IReadOnlyList<AssistantAssignedTaskReadModel>> GetAssignedTasksAsync(Guid userId, Guid boardId, CancellationToken ct = default);
+
+    Task<AssistantBoardContextReadModel?> GetBoardContextAsync(Guid userId, Guid boardId, CancellationToken ct = default);
 }

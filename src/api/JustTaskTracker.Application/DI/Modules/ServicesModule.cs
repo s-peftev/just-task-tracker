@@ -19,8 +19,9 @@ internal static class ServicesModule
 
         services.AddScoped<IAssistantToolHandler, GetActiveOwnedBoardsCountToolHandler>();
         services.AddScoped<IAssistantToolHandler, GetRequesterAccountToolHandler>();
-        services.AddScoped<IAssistantToolHandler, ListMyActiveBoardsToolHandler>();
+        services.AddScoped<IAssistantToolHandler, ListMyBoardsToolHandler>();
         services.AddScoped<IAssistantToolHandler, GetAssignedTasksToolHandler>();
+        services.AddScoped<IAssistantToolHandler, GetBoardContextToolHandler>();
         services.AddScoped<IAssistantToolExecutor, AssistantToolExecutor>();
 
         services.AddScoped<IBillingWebhookEventHandler, CustomerSubscriptionCreatedWebhookHandler>();

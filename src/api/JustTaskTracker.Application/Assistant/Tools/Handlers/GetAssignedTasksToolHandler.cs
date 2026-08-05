@@ -10,7 +10,7 @@ internal class GetAssignedTasksToolHandler(IAssistantDataQueryRepository assista
 
     public string Description =>
         "Returns tasks assigned to the current user on one active board: taskId, title, and createdAtUtc. " +
-        "Requires boardId from ListMyActiveBoards. " +
+        "Requires boardId of an active board from ListMyBoards. " +
         "Use whenever you need the requester's assigned tasks on a board (including counting or filtering by createdAtUtc from the list). " +
         "Do not invent tasks; do not show raw ids to the user unless asked.";
 
@@ -21,7 +21,7 @@ internal class GetAssignedTasksToolHandler(IAssistantDataQueryRepository assista
           "properties": {
             "boardId": {
               "type": "string",
-              "description": "Board id (GUID) from ListMyActiveBoards."
+              "description": "Board id (GUID) of an active board from ListMyBoards."
             }
           },
           "required": ["boardId"],
@@ -42,13 +42,13 @@ internal class GetAssignedTasksToolHandler(IAssistantDataQueryRepository assista
         }
 
         if (args is null || !Guid.TryParse(args.BoardId, out var boardId))
-            return AssistantToolJson.Error("boardId must be a valid GUID from ListMyActiveBoards.");
+            return AssistantToolJson.Error("boardId must be a valid GUID from ListMyBoards.");
 
-        var boards = await assistantDataQueryRepository.GetMyActiveBoardsAsync(currentUserId, ct);
-        if (!boards.Any(board => board.BoardId == boardId))
+        var boards = await assistantDataQueryRepository.GetMyBoardsAsync(currentUserId, ct);
+        if (!boards.Any(board => board.BoardId == boardId && !board.IsArchived))
         {
             return AssistantToolJson.Error(
-                "Board was not found among the user's active boards (missing, archived, or not a member)." +
+                "Board was not found among the user's active boards (missing, archived, or not a member). " +
                 "Tell the user you could not access that board. Do not invent or reuse an invalid boardId.");
         }
 

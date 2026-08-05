@@ -17,8 +17,8 @@ public class AssistantDataQueryRepository(JustTaskTrackerDbContext context) : IA
         context.AssistantRequesterAccounts
             .FirstOrDefaultAsync(row => row.UserId == userId, ct);
 
-    public async Task<IReadOnlyList<AssistantMyActiveBoardReadModel>> GetMyActiveBoardsAsync(Guid userId, CancellationToken ct = default) =>
-        await context.AssistantMyActiveBoards
+    public async Task<IReadOnlyList<AssistantMyBoardReadModel>> GetMyBoardsAsync(Guid userId, CancellationToken ct = default) =>
+        await context.AssistantMyBoards
             .Where(row => row.UserId == userId)
             .OrderBy(row => row.BoardName)
             .ToListAsync(ct);
@@ -28,4 +28,8 @@ public class AssistantDataQueryRepository(JustTaskTrackerDbContext context) : IA
             .Where(row => row.UserId == userId && row.BoardId == boardId)
             .OrderBy(row => row.CreatedAtUtc)
             .ToListAsync(ct);
+
+    public Task<AssistantBoardContextReadModel?> GetBoardContextAsync(Guid userId, Guid boardId, CancellationToken ct = default) =>
+        context.AssistantBoardContexts
+            .FirstOrDefaultAsync(row => row.UserId == userId && row.BoardId == boardId, ct);
 }

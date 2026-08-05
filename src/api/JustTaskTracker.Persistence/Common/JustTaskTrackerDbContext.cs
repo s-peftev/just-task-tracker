@@ -35,8 +35,9 @@ public class JustTaskTrackerDbContext(
     public DbSet<AcsUserIdentityMapping> AcsUserIdentityMappings => Set<AcsUserIdentityMapping>();
     public DbSet<AssistantRequesterAccountReadModel> AssistantRequesterAccounts => Set<AssistantRequesterAccountReadModel>();
     public DbSet<AssistantActiveOwnedBoardsCountReadModel> AssistantActiveOwnedBoardsCounts => Set<AssistantActiveOwnedBoardsCountReadModel>();
-    public DbSet<AssistantMyActiveBoardReadModel> AssistantMyActiveBoards => Set<AssistantMyActiveBoardReadModel>();
+    public DbSet<AssistantMyBoardReadModel> AssistantMyBoards => Set<AssistantMyBoardReadModel>();
     public DbSet<AssistantAssignedTaskReadModel> AssistantAssignedTasks => Set<AssistantAssignedTaskReadModel>();
+    public DbSet<AssistantBoardContextReadModel> AssistantBoardContexts => Set<AssistantBoardContextReadModel>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

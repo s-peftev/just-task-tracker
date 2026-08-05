@@ -5,13 +5,13 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace JustTaskTracker.Persistence.Assistant.Configurations;
 
-public class AssistantMyActiveBoardReadModelConfiguration
-    : IEntityTypeConfiguration<AssistantMyActiveBoardReadModel>
+public class AssistantBoardContextReadModelConfiguration
+    : IEntityTypeConfiguration<AssistantBoardContextReadModel>
 {
-    public void Configure(EntityTypeBuilder<AssistantMyActiveBoardReadModel> builder)
+    public void Configure(EntityTypeBuilder<AssistantBoardContextReadModel> builder)
     {
         builder.HasNoKey();
-        builder.ToView("vw_Assistant_MyActiveBoards");
+        builder.ToView("vw_Assistant_BoardContext");
 
         builder.Property(x => x.BoardName).HasMaxLength(BoardFieldLengths.MaxNameLength);
     }

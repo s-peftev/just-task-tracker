@@ -131,7 +131,7 @@ internal static class AzureModule
             return client.GetChatClient(options.ChatDeploymentName);
         });
 
-        services.AddSingleton<IAssistantCompletionService, AzureOpenAiCompletionService>();
+        services.AddScoped<IAssistantCompletionService, AzureOpenAiCompletionService>();
 
         return services;
     }

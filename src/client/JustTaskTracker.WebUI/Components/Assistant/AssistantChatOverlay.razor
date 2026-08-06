@@ -60,12 +60,12 @@
         }
 
         <form class="assistant-chat__composer" @onsubmit="OnSubmitAsync" @onsubmit:preventDefault>
-            <input class="assistant-chat__input"
+            <input @ref="_input"
+                   class="assistant-chat__input"
                    type="text"
                    maxlength="@ValidationSettings.Assistant.MaxMessageLength"
                    placeholder="Ask a question…"
                    aria-label="Message for JustAssistant"
-                   disabled="@ChatStore.IsSending"
                    autocomplete="off"
                    @bind="_draft"
                    @bind:event="oninput" />
@@ -87,8 +87,10 @@
 
     private string _draft = string.Empty;
     private ElementReference _messagesContainer;
+    private ElementReference _input;
     private IJSObjectReference? _module;
     private bool _shouldScroll;
+    private bool _shouldFocusInput;
 
     protected override void OnInitialized()
     {
@@ -97,7 +99,16 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!_shouldScroll || !ChatStore.IsOpen)
+        if (!ChatStore.IsOpen)
+            return;
+
+        if (_shouldFocusInput)
+        {
+            _shouldFocusInput = false;
+            await FocusInputAsync();
+        }
+
+        if (!_shouldScroll)
             return;
 
         _shouldScroll = false;
@@ -123,7 +134,22 @@
     {
         var text = _draft;
         _draft = string.Empty;
+        _shouldFocusInput = true;
         await ChatStore.SendAsync(text);
+        _shouldFocusInput = true;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task FocusInputAsync()
+    {
+        try
+        {
+            await _input.FocusAsync();
+        }
+        catch
+        {
+            // Ignore when the panel is closed or the input is not yet in the DOM.
+        }
     }
 
     private async Task ScrollMessagesToBottomAsync()

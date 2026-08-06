@@ -1,8 +1,10 @@
+using JustTaskTracker.Application.Assistant.Repositories;
 using JustTaskTracker.Application.Auth.Repositories;
 using JustTaskTracker.Application.Billing.Repositories;
 using JustTaskTracker.Application.Boards.Repositories;
 using JustTaskTracker.Application.Calls.Repositories;
 using JustTaskTracker.Application.Common.Persistence;
+using JustTaskTracker.Persistence.Assistant.Repositories;
 using JustTaskTracker.Persistence.Auth.Repositories;
 using JustTaskTracker.Persistence.Billing.Repositories;
 using JustTaskTracker.Persistence.Boards.Repositories;
@@ -30,6 +32,7 @@ internal static class RepositoriesModule
         services.AddScoped<ICallSessionAllowedParticipantRepository, CallSessionAllowedParticipantRepository>();
         services.AddScoped<ICallSessionLinkedTaskRepository, CallSessionLinkedTaskRepository>();
         services.AddScoped<IAcsUserIdentityMappingRepository, AcsUserIdentityMappingRepository>();
+        services.AddScoped<IAssistantDataQueryRepository, AssistantDataQueryRepository>();
 
         return services;
     }

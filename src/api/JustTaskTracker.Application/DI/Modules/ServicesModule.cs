@@ -1,4 +1,6 @@
-﻿using JustTaskTracker.Application.Billing.Webhooks;
+using JustTaskTracker.Application.Assistant.Tools;
+using JustTaskTracker.Application.Assistant.Tools.Handlers;
+using JustTaskTracker.Application.Billing.Webhooks;
 using JustTaskTracker.Application.Billing.Webhooks.Handlers;
 using JustTaskTracker.Application.Boards.Attachments;
 using JustTaskTracker.Application.Boards.Positioning;
@@ -14,6 +16,13 @@ internal static class ServicesModule
         services.AddScoped<IBoardPositioningService, BoardPositioningService>();
         services.AddScoped<IBoardTaskAttachmentService, BoardTaskAttachmentService>();
         services.AddScoped<IProfilePhotoService, ProfilePhotoService>();
+
+        services.AddScoped<IAssistantToolHandler, GetActiveOwnedBoardsCountToolHandler>();
+        services.AddScoped<IAssistantToolHandler, GetRequesterAccountToolHandler>();
+        services.AddScoped<IAssistantToolHandler, ListMyBoardsToolHandler>();
+        services.AddScoped<IAssistantToolHandler, GetAssignedTasksToolHandler>();
+        services.AddScoped<IAssistantToolHandler, GetBoardContextToolHandler>();
+        services.AddScoped<IAssistantToolExecutor, AssistantToolExecutor>();
 
         services.AddScoped<IBillingWebhookEventHandler, CustomerSubscriptionCreatedWebhookHandler>();
         services.AddScoped<IBillingWebhookEventHandler, CustomerSubscriptionUpdatedWebhookHandler>();

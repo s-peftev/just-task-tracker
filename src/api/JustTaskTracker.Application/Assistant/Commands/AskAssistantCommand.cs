@@ -2,12 +2,10 @@ using FluentValidation;
 using JustTaskTracker.Application.Assistant.Abstractions;
 using JustTaskTracker.Application.Auth;
 using JustTaskTracker.Application.Auth.Repositories;
-using JustTaskTracker.Application.Billing.Abstractions;
 using JustTaskTracker.Application.Common.Options;
 using JustTaskTracker.Domain.Assistant.DTOs;
 using JustTaskTracker.Domain.Assistant.Enums;
 using JustTaskTracker.Domain.Assistant.Errors;
-using JustTaskTracker.Domain.Billing.DTOs;
 using JustTaskTracker.Domain.Common.Results;
 using JustTaskTracker.Domain.Common.Results.Errors;
 using MediatR;
@@ -23,7 +21,6 @@ public class AskAssistantCommandHandler(
     IAssistantCompletionService assistantCompletionService,
     ICurrentUserAccessor currentUserAccessor,
     IUserRepository userRepository,
-    IEntitlementService entitlementService,
     AssistantPromptOptions promptOptions,
     ILogger<AskAssistantCommandHandler> logger)
     : IRequestHandler<AskAssistantCommand, Result<AssistantChatReplyDto>>
@@ -52,12 +49,7 @@ public class AskAssistantCommandHandler(
         if (chunks.Count == 0)
             return Result<AssistantChatReplyDto>.Success(new AssistantChatReplyDto(promptOptions.NoContextReply));
 
-        var entitlements = await entitlementService.GetEntitlementsAsync(currentUserInfo.Id, ct);
-        var systemPrompt = BuildSystemPrompt(
-            promptOptions,
-            currentUserAccessor.AppRoles,
-            entitlements,
-            chunks);
+        var systemPrompt = BuildSystemPrompt(promptOptions, chunks);
 
         IReadOnlyList<AssistantChatMessageDto> messages =
         [
@@ -67,7 +59,11 @@ public class AskAssistantCommandHandler(
 
         try
         {
-            var answer = await assistantCompletionService.GetAnswerAsync(systemPrompt, messages, ct);
+            var answer = await assistantCompletionService.GetAnswerAsync(
+                systemPrompt,
+                messages,
+                currentUserInfo.Id,
+                ct);
 
             if (string.IsNullOrWhiteSpace(answer))
                 return Result<AssistantChatReplyDto>.Failure(AssistantErrors.CompletionFailed);
@@ -81,52 +77,18 @@ public class AskAssistantCommandHandler(
         }
     }
 
-    private static string BuildSystemPrompt(
-        AssistantPromptOptions promptOptions,
-        IReadOnlyList<string> globalRoles,
-        EntitlementDto entitlements,
-        IReadOnlyList<RetrievedChunk> chunks)
+    private static string BuildSystemPrompt(AssistantPromptOptions promptOptions, IReadOnlyList<RetrievedChunk> chunks)
     {
-        var userContext = BuildUserContext(globalRoles, entitlements);
         var knowledgeContext = string.Join("\n\n", chunks.Select(chunk => chunk.Content));
 
         return
             $"""
             {promptOptions.SystemPrompt}
 
-            Requester profile:
-            {userContext}
-            {promptOptions.UserContextInstruction}
-
             Documentation:
             {knowledgeContext}
             """;
     }
-
-    private static string BuildUserContext(IReadOnlyList<string> globalRoles, EntitlementDto entitlements)
-    {
-        var roles = globalRoles.Count == 0
-            ? "none"
-            : string.Join(", ", globalRoles);
-
-        var features = entitlements.Features.Count == 0
-            ? "none"
-            : string.Join(", ", entitlements.Features);
-
-        var limits = entitlements.Limits;
-
-        return
-            $"""
-            - Global roles: {roles}
-            - Plan: {entitlements.PlanDisplayName} ({entitlements.PlanId})
-            - Subscription status: {entitlements.Status}
-            - Features: {features}
-            - Limits: MaxBoards={FormatLimit(limits.MaxBoards)}, MaxColumnsPerBoard={FormatLimit(limits.MaxColumnsPerBoard)}, MaxTasksPerBoard={FormatLimit(limits.MaxTasksPerBoard)}, MaxMembersPerBoard={FormatLimit(limits.MaxMembersPerBoard)}
-            """.Trim();
-    }
-
-    private static string FormatLimit(int? limit) =>
-        limit is null ? "unlimited" : limit.Value.ToString();
 }
 
 public class AskAssistantCommandValidator : AbstractValidator<AskAssistantCommand>

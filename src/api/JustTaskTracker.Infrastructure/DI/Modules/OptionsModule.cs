@@ -88,6 +88,14 @@ internal static class OptionsModule
         azureOpenAiOptions.Validate();
         services.AddSingleton(azureOpenAiOptions);
 
+        var keyVaultOptions = configuration
+            .GetSection(ConfigSections.KeyVault)
+            .Get<KeyVaultOptions>()
+            ?? throw new InvalidOperationException($"{ConfigSections.KeyVault} section is not configured.");
+
+        keyVaultOptions.Validate();
+        services.AddSingleton(keyVaultOptions);
+
         return services;
     }
 }

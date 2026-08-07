@@ -1,4 +1,5 @@
 ﻿using Azure;
+using Azure.Identity;
 using Azure.Messaging.ServiceBus;
 using Azure.Search.Documents;
 using Azure.Storage.Blobs;
@@ -19,8 +20,10 @@ namespace JustTaskTracker.Infrastructure.DI.Modules;
 
 internal static class AzureModule
 {
-    internal static IServiceCollection AddAzureModule(this IServiceCollection services, IConfiguration configuration)
+    internal static IServiceCollection AddAzureModule(this IServiceCollection services, ConfigurationManager configuration)
     {
+        AddAzureKeyVault(configuration);
+
         services
             .AddAzureBlobStorage(configuration)
             .AddAzureServiceBus(configuration)
@@ -30,6 +33,18 @@ internal static class AzureModule
             .AddAzureOpenAi();
 
         return services;
+    }
+
+    private static void AddAzureKeyVault(ConfigurationManager configuration)
+    {
+        var options = configuration
+            .GetSection(ConfigSections.KeyVault)
+            .Get<KeyVaultOptions>()
+            ?? throw new InvalidOperationException($"{ConfigSections.KeyVault} section is not configured.");
+
+        options.Validate();
+
+        configuration.AddAzureKeyVault(new Uri(options.Uri), new DefaultAzureCredential());
     }
 
     private static IServiceCollection AddAzureBlobStorage(this IServiceCollection services, IConfiguration configuration)

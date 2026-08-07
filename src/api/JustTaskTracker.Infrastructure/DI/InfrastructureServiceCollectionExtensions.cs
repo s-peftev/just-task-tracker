@@ -6,15 +6,15 @@ namespace JustTaskTracker.Infrastructure.DI;
 
 public static class InfrastructureServiceCollectionExtensions
 {
-    public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddInfrastructure(this IServiceCollection services, ConfigurationManager configuration)
     {
         services
+            .AddAzureModule(configuration)
             .AddOptionsModule(configuration)
             .AddCorsModule()
             .AddAuthenticationModule(configuration)
             .AddUtilsModule()
             .AddServicesModule()
-            .AddAzureModule(configuration)
             .AddHangfireModule(configuration)
             .AddBillingModule()
             .AddCallsModule(configuration);

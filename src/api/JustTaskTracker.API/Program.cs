@@ -23,9 +23,9 @@ builder.Services.AddControllers(options =>
     options.Conventions.Add(new PrefixConventionConfigurator("api"));
 });
 
+builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddApplication(builder.Configuration);
 builder.Services.AddPersistence(builder.Configuration);
-builder.Services.AddInfrastructure(builder.Configuration);
 
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();

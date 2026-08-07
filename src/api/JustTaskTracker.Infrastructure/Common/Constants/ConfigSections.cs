@@ -11,4 +11,5 @@ public static class ConfigSections
     public const string Acs = nameof(Acs);
     public const string AiSearch = nameof(AiSearch);
     public const string AzureOpenAi = nameof(AzureOpenAi);
+    public const string KeyVault = nameof(KeyVault);
 }

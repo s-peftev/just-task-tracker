@@ -1,3 +1,4 @@
+using Azure.Identity;
 using Azure.Monitor.OpenTelemetry.Exporter;
 using Azure.Storage.Blobs;
 using JustTaskTracker.Archival.Functions.Abstractions.Archiving;
@@ -9,6 +10,7 @@ using JustTaskTracker.Archival.Functions.Constants;
 using JustTaskTracker.Archival.Functions.ExternalProviders.Api;
 using JustTaskTracker.Archival.Functions.ExternalProviders.Blob;
 using JustTaskTracker.Archival.Functions.ExternalProviders.CosmosDB;
+using JustTaskTracker.Archival.Functions.Options;
 using JustTaskTracker.Archival.Functions.Processing;
 using JustTaskTracker.Archival.Functions.Processing.Export;
 using Microsoft.Azure.Cosmos;
@@ -22,6 +24,14 @@ using Microsoft.Extensions.Options;
 var builder = FunctionsApplication.CreateBuilder(args);
 
 builder.ConfigureFunctionsWebApplication();
+
+var keyVaultOptions = builder.Configuration
+    .GetSection(KeyVaultOptions.SectionName)
+    .Get<KeyVaultOptions>()
+    ?? throw new InvalidOperationException($"{KeyVaultOptions.SectionName} section is not configured.");
+
+keyVaultOptions.Validate();
+builder.Configuration.AddAzureKeyVault(new Uri(keyVaultOptions.Uri), new DefaultAzureCredential());
 
 if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("APPLICATIONINSIGHTS_CONNECTION_STRING")))
 {
